@@ -1,0 +1,6 @@
+{
+  "name": "ORION-9 AI Supply Chain Operating System",
+  "description": "ORION-9 AI Supply Chain Operating System. CONNECT. OBSERVE. PREDICT. ACT.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
