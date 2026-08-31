@@ -39,6 +39,14 @@ const menuGroups: { title: string; items: { name: string; path: string; icon: Ic
       { name: 'Sync Monitor', path: '/sync', icon: 'sync' }
     ]
   },
+    {
+    title: 'MANAGEMENT',
+    items: [
+      { name: 'Reports', path: '/reports', icon: 'reports' },
+      { name: 'Settings', path: '/settings', icon: 'settings' },
+      { name: 'About ORION-9', path: '/about', icon: 'about' }
+    ]
+  },
   {
     title: 'MANAGEMENT',
     items: [

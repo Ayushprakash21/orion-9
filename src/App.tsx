@@ -29,6 +29,7 @@ import { SupplyChainProvider } from './store/SupplyChainContext';
 import { ToastProvider } from './store/ToastContext';
 import { NotificationProvider } from './store/NotificationContext';
 import { EntityDrawerProvider } from './store/EntityDrawerContext';
+import { About } from './components/About';
 
 export default function App() {
   return (
@@ -57,7 +58,7 @@ export default function App() {
                   <Route path="scenarios" element={<Scenarios />} />
                   <Route path="sync" element={<SyncMonitor />} />
                   <Route path="data-quality" element={<DataQuality />} />
-
+                  <Route path="about" element={<About />} />
                 </Route>
               </Routes>
             </NotificationProvider>

@@ -25,6 +25,7 @@ const pageTitles: Record<string, string> = {
   '/scenarios': 'Scenario Engine',
   '/data-quality': 'Data Quality',
   '/sync': 'Sync Monitor',
+  '/about': 'About ORION-9',
 };
 
 export const Header = ({ 
