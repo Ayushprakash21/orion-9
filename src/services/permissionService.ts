@@ -1,0 +1,140 @@
+import { supabase } from '../lib/supabaseClient';
+import { PermissionCode, RoleCode } from '../types/auth';
+
+const ALL_SYSTEM_PERMISSIONS: PermissionCode[] = [
+  'users.read', 'users.create', 'users.update', 'users.disable', 'users.delete',
+  'organizations.read', 'organizations.create', 'organizations.update', 'organizations.disable',
+  'branding.read', 'branding.update',
+  'roles.read', 'roles.manage',
+  'audit.read',
+  'settings.read', 'settings.manage',
+  'inventory.read', 'inventory.manage',
+  'procurement.read', 'procurement.manage',
+  'shipments.read', 'shipments.manage',
+  'suppliers.read', 'suppliers.manage',
+  'analytics.read', 'ai.insights'
+];
+
+const DEFAULT_ROLE_PERMISSIONS: Record<RoleCode, PermissionCode[]> = {
+  platform_admin: ALL_SYSTEM_PERMISSIONS,
+  organization_admin: [
+    'users.read', 'users.create', 'users.update', 'users.disable',
+    'organizations.read', 'organizations.update',
+    'roles.read',
+    'audit.read',
+    'settings.read', 'settings.manage',
+    'inventory.read', 'inventory.manage',
+    'procurement.read', 'procurement.manage',
+    'shipments.read', 'shipments.manage',
+    'suppliers.read', 'suppliers.manage',
+    'analytics.read', 'ai.insights'
+  ],
+  supply_chain_manager: [
+    'users.read',
+    'inventory.read', 'inventory.manage',
+    'procurement.read', 'procurement.manage',
+    'shipments.read', 'shipments.manage',
+    'suppliers.read', 'suppliers.manage',
+    'analytics.read', 'ai.insights'
+  ],
+  planner: [
+    'inventory.read', 'inventory.manage',
+    'procurement.read',
+    'shipments.read',
+    'analytics.read', 'ai.insights'
+  ],
+  procurement_user: [
+    'procurement.read', 'procurement.manage',
+    'suppliers.read', 'suppliers.manage',
+    'inventory.read',
+    'shipments.read'
+  ],
+  inventory_user: [
+    'inventory.read', 'inventory.manage',
+    'shipments.read'
+  ],
+  viewer: [
+    'inventory.read',
+    'procurement.read',
+    'shipments.read',
+    'suppliers.read',
+    'analytics.read'
+  ],
+  manager: [
+    'users.read',
+    'inventory.read', 'inventory.manage',
+    'procurement.read', 'procurement.manage',
+    'shipments.read', 'shipments.manage',
+    'suppliers.read', 'suppliers.manage',
+    'analytics.read', 'ai.insights'
+  ],
+  user: [
+    'inventory.read',
+    'procurement.read',
+    'shipments.read',
+    'suppliers.read',
+    'analytics.read'
+  ]
+};
+
+export const permissionService = {
+  /**
+   * Returns default system permissions for a given role.
+   */
+  getDefaultPermissionsForRole: (role: RoleCode | string): PermissionCode[] => {
+    return DEFAULT_ROLE_PERMISSIONS[role as RoleCode] || DEFAULT_ROLE_PERMISSIONS.user;
+  },
+
+  /**
+   * Fetches permissions from the database for a specific role or roleId.
+   * Gracefully falls back to default role permissions if database query fails or yields empty.
+   */
+  getPermissionsForRole: async (roleCodeOrId: string, roleName?: string): Promise<PermissionCode[]> => {
+    try {
+      // 1. Try querying role_permissions table joined with permissions table
+      const { data, error } = await supabase
+        .from('role_permissions')
+        .select(`
+          role_id,
+          permission_id,
+          permissions (
+            id,
+            name,
+            code
+          )
+        `)
+        .eq('role_id', roleCodeOrId);
+
+      if (!error && data && data.length > 0) {
+        const dbPerms = data
+          .map((item: any) => item.permissions?.code || item.permissions?.name)
+          .filter(Boolean) as PermissionCode[];
+
+        if (dbPerms.length > 0) {
+          return Array.from(new Set(dbPerms));
+        }
+      }
+    } catch (err) {
+      console.warn('Unable to query role_permissions from Supabase:', err);
+    }
+
+    // 2. Fallback to default permissions by role name/code
+    const roleKey = (roleName || roleCodeOrId).toLowerCase() as RoleCode;
+    return permissionService.getDefaultPermissionsForRole(roleKey);
+  },
+
+  /**
+   * Checks whether a set of permissions includes a required permission.
+   */
+  hasPermission: (userPermissions: PermissionCode[], required: PermissionCode): boolean => {
+    return userPermissions.includes(required);
+  },
+
+  /**
+   * Checks whether user role matches any allowed role.
+   */
+  hasRole: (userRole: RoleCode | string | undefined, allowedRoles: (RoleCode | string)[]): boolean => {
+    if (!userRole) return false;
+    return allowedRoles.includes(userRole);
+  }
+};
