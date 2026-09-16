@@ -1,0 +1,12 @@
+{
+  "appName": "ORION SCM OS",
+  "productName": "ORION SCM OS",
+  "osName": "ORION 9 OS",
+  "description": "AI-Native Supply Chain Operating System",
+  "tagline": "AI-Native Supply Chain Operating System",
+  "version": "9.4.2",
+  "logoUrl": "/orion-9-logo.png",
+  "logo": "/orion-9-logo.png",
+  "logoIncludesName": true,
+  "logoIncludesWordmark": true
+}

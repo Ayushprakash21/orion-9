@@ -1,0 +1,808 @@
+@import "tailwindcss";
+
+@theme {
+  --color-os-bg: var(--os-bg);
+  --color-os-surface: var(--os-surface);
+  --color-os-surface-elevated: var(--os-surface-elevated);
+  --color-os-surface-hover: var(--os-surface-hover);
+  --color-os-surface-active: var(--os-surface-active);
+  --color-os-border: var(--os-border);
+  --color-os-border-inverse: var(--os-border-inverse);
+  --color-os-text-primary: var(--os-text-primary);
+  --color-os-text-secondary: var(--os-text-secondary);
+  --color-os-text-muted: var(--os-text-muted);
+  --color-os-text-primary-inverse: var(--os-text-primary-inverse);
+  --color-os-surface-secondary: var(--os-surface-secondary);
+  --color-os-border-strong: var(--os-border-strong);
+  --color-os-input-bg: var(--os-input-bg);
+  --color-os-accent: var(--os-accent);
+}
+
+:root, :root.dark {
+  /* DARK MODE (Default for Orion SCM OS) */
+  --os-bg: #090A0B;
+  --os-surface: #111214;
+  --os-surface-secondary: #16181A;
+  --os-surface-elevated: #16181A;
+  --os-surface-hover: #1E2023;
+  --os-surface-active: #2A2C30;
+  --os-border: #292C2F;
+  --os-border-strong: #3F4449;
+  --os-border-inverse: #E1E4E2;
+  --os-text-primary: #E7E5E0;
+  --os-text-secondary: #A7A6A1;
+  --os-text-muted: #777873;
+  --os-text-primary-inverse: #0A0A0A;
+  --os-input-bg: #111214;
+  --os-accent: #00F2FE;
+  background-color: var(--os-bg);
+  color: var(--os-text-primary);
+  /* Typography preferences */
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+:root.dark.true-tone {
+  /* DARK MODE + TRUE TONE (Slightly warmer) */
+  --os-bg: #0C0B0A;
+  --os-surface: #141311;
+  --os-surface-secondary: #1A1816;
+  --os-surface-elevated: #1A1816;
+  --os-surface-hover: #22201D;
+  --os-surface-active: #2D2A26;
+  --os-border: #302D29;
+  --os-border-strong: #46403A;
+  --os-text-primary: #E5E1DB;
+  --os-text-secondary: #A8A49C;
+  --os-text-muted: #7A756D;
+  --os-input-bg: #141311;
+  --os-accent: #00E5F0;
+}
+
+
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-color: #000;
+  opacity: var(--os-brightness-overlay, 0);
+  pointer-events: none;
+  z-index: 2147483647; /* Ensure it stays on top of everything */
+  transition: opacity 0.2s ease;
+}
+
+#root {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* GLOBAL ORION WINDOW CHROME RESET: no route may introduce shell margins. */
+.orion-desktop-shell,
+.orion-desktop-shell *,
+.orion-global-topbar {
+  box-sizing: border-box;
+}
+
+.orion-desktop-shell > .orion-app-viewport,
+.orion-desktop-shell > .orion-global-topbar {
+  margin: 0 !important;
+}
+
+/* Prevent browser autofill from styling inputs with yellow/olive background */
+:root.dark input:-webkit-autofill,
+:root.dark input:-webkit-autofill:hover, 
+:root.dark input:-webkit-autofill:focus, 
+:root.dark input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #0A0C0E inset !important;
+  -webkit-text-fill-color: #E8E8E5 !important;
+  caret-color: #E8E8E5 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+:root:not(.dark) input:-webkit-autofill,
+:root:not(.dark) input:-webkit-autofill:hover, 
+:root:not(.dark) input:-webkit-autofill:focus, 
+:root:not(.dark) input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #FFFFFF inset !important;
+  -webkit-text-fill-color: #202326 !important;
+  caret-color: #202326 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+@keyframes indeterminate-bar {
+  0% { left: -40%; width: 40%; }
+  50% { left: 30%; width: 40%; }
+  100% { left: 100%; width: 40%; }
+}
+
+.animate-indeterminate-bar {
+  animation: indeterminate-bar 1.4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes logo-fade-scale {
+  0% { opacity: 0; transform: scale(0.92); }
+  100% { opacity: 1; transform: scale(1); }
+}
+.animate-logo-fade-scale { animation: logo-fade-scale 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+@keyframes text-fade-in {
+  0% { opacity: 0; transform: translateY(4px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-text-fade-in { animation: text-fade-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 0.95; }
+}
+.animate-pulse-subtle { animation: pulse-subtle 2s ease-in-out infinite; }
+
+@keyframes app-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-app-fade-in { animation: app-fade-in 0.35s ease-out forwards; }
+
+@keyframes splash-fade-in {
+  from { opacity: 0; transform: scale(0.99); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-splash-fade-in { animation: splash-fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-indeterminate-bar { animation: none; left: 20%; width: 60%; }
+  .animate-logo-fade-scale { animation: none; opacity: 1; transform: none; }
+  .animate-text-fade-in { animation: none; opacity: 1; transform: none; }
+  .animate-pulse-subtle { animation: none; opacity: 0.8; }
+  .animate-app-fade-in { animation: none; opacity: 1; }
+  .animate-splash-fade-in { animation: none; opacity: 1; transform: none; }
+}
+@keyframes dash-particle {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-dash-particle { animation: none; opacity: 0; display: none; }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+}
+
+
+/* Reduced Motion Override */
+html.reduced-motion * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
+@theme {
+  --animate-float: float 10s ease-in-out infinite;
+  --animate-shockwave: shockwave 2s cubic-bezier(0.1, 0.8, 0.2, 1) infinite;
+  --animate-spin-slow: spin 20s linear infinite;
+  --animate-spin-reverse-slow: spin-reverse 25s linear infinite;
+  --animate-node-pop: node-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --animate-draw-line: draw-line 1s ease-out forwards;
+  --animate-fade-in-right: fade-in-right 0.3s ease-out forwards;
+  --animate-world-open: world-open 2.5s cubic-bezier(0.7, 0, 0.1, 1) forwards;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  25% { transform: translateY(-10px) translateX(5px); }
+  50% { transform: translateY(-20px) translateX(-5px); }
+  75% { transform: translateY(-10px) translateX(0px); }
+}
+@keyframes shockwave {
+  0% { transform: scale(0.1); opacity: 1; }
+  100% { transform: scale(4); opacity: 0; }
+}
+@keyframes spin-reverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+@keyframes node-pop {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes draw-line {
+  0% { stroke-dasharray: 0, 1000; opacity: 0; }
+  100% { stroke-dasharray: 1000, 1000; opacity: 1; }
+}
+@keyframes fade-in-right {
+  0% { opacity: 0; transform: translateX(20px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+@keyframes world-open {
+  0% { transform: scale(1) translateZ(0); opacity: 1; filter: brightness(1); }
+  100% { transform: scale(8) translateZ(1000px); opacity: 0; filter: brightness(2); }
+}
+
+/* ORION GLOBAL SHELL CONTRACT
+   The desktop owns one fixed viewport. The global system bar is an in-flow
+   48px shell row; application content is permanently confined below it. */
+html, body, #root {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+.orion-authenticated-shell {
+  transform: none !important;
+  filter: none !important;
+  perspective: none !important;
+  contain: none !important;
+}
+
+.orion-desktop-shell {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-width: 100vw !important;
+  max-height: 100dvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  display: grid !important;
+  grid-template-rows: 48px minmax(0, 1fr) !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  isolation: isolate !important;
+  transform: none !important;
+  contain: layout paint size !important;
+}
+
+/* The global bar is part of the desktop shell, not an independent viewport overlay.
+   This permanently reserves its 48px lane so application animations cannot move
+   behind, above, or through the system chrome. */
+.orion-global-topbar {
+  position: relative !important;
+  grid-row: 1 !important;
+  grid-column: 1 !important;
+  align-self: stretch !important;
+  justify-self: stretch !important;
+  inset: auto !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  margin: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  transform: none !important;
+  z-index: 2147483000 !important;
+  overflow: visible !important;
+}
+
+.orion-app-viewport {
+  position: relative !important;
+  grid-row: 2 !important;
+  grid-column: 1 !important;
+  align-self: stretch !important;
+  justify-self: stretch !important;
+  inset: auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip-path: inset(0) !important;
+  contain: layout paint size !important;
+}
+
+/* Never allow animated application roots/windows to establish a new viewport. */
+.orion-app-viewport > * {
+  max-height: 100% !important;
+}
+
+.orion-auth-portal {
+  width: 100vw;
+  height: 100dvh;
+  min-height: 100dvh !important;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+@supports not (height: 100dvh) {
+  .orion-auth-portal { height: 100vh; min-height: 100vh !important; max-height: 100vh; }
+}
+
+
+/* ==========================================================================
+   ORION-9 FINAL GLOBAL SHELL CONTRACT
+   This is intentionally authoritative and appears last so historical repair
+   snippets cannot reintroduce viewport/top-bar drift.
+   ========================================================================== */
+
+/* Browser viewport is the only coordinate system for the OS shell. */
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+/* USER DESKTOP ------------------------------------------------------------ */
+.orion-desktop-shell {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: 100vw !important;
+  max-height: 100dvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  display: grid !important;
+  grid-template-rows: 48px minmax(0, 1fr) !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  overflow: hidden !important;
+  isolation: isolate !important;
+}
+
+/* The backdrop belongs to the workspace row. It can never receive layout
+   geometry in the 48px chrome row. */
+.orion-desktop-shell > .orion-desktop-backdrop {
+  grid-row: 2 !important;
+  grid-column: 1 !important;
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  z-index: 0 !important;
+}
+
+.orion-desktop-shell > .orion-global-topbar {
+  grid-row: 1 !important;
+  grid-column: 1 !important;
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  margin: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  transform: none !important;
+  overflow: visible !important;
+  z-index: 2147483000 !important;
+}
+
+.orion-desktop-shell > .orion-app-viewport {
+  grid-row: 2 !important;
+  grid-column: 1 !important;
+  position: relative !important;
+  inset: auto !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  clip-path: inset(0) !important;
+  contain: layout paint size !important;
+  z-index: 10 !important;
+}
+
+/* Every window is clipped by the workspace. Maximized means 100% of the
+   workspace, never 100% of the browser viewport. */
+.orion-app-viewport > [data-window-id] {
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
+
+/* ADMIN DESKTOP ----------------------------------------------------------- */
+.orion-admin-shell {
+  width: 100% !important;
+  height: 100dvh !important;
+  min-height: 0 !important;
+  max-height: 100dvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.orion-admin-shell > .orion-global-topbar {
+  flex: 0 0 48px !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  margin: 0 !important;
+  transform: none !important;
+}
+
+.orion-admin-shell > :not(.orion-global-topbar) {
+  min-height: 0 !important;
+}
+
+/* No admin content may create a second viewport outside the reserved chrome. */
+.orion-admin-shell > .flex.flex-1 {
+  min-height: 0 !important;
+  height: calc(100dvh - 48px) !important;
+  max-height: calc(100dvh - 48px) !important;
+  overflow: hidden !important;
+}
+
+/* Window motion transforms are allowed inside the workspace, never outside
+   its clipping boundary. */
+.orion-app-viewport [data-window-id] {
+  box-sizing: border-box !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
+
+/* Eliminate historical page-level shell offsets. */
+.orion-authenticated-shell,
+.orion-auth-portal {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ORION-9 cinematic system ingress — replaces the generic ring/loading transitions. */
+.orion-cinematic{position:fixed;inset:0;width:100vw;height:100vh;z-index:100000;background:#01050b;color:#eef7ff;overflow:hidden;isolation:isolate;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;--entry-accent:#00f2fe}
+.orion-cinematic *{box-sizing:border-box}
+.orion-cinematic .oc-noise{position:absolute;inset:-50%;opacity:.045;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.95' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.8'/%3E%3C/svg%3E");animation:orionNoise .22s steps(2) infinite}
+.orion-cinematic .oc-vignette{position:absolute;inset:0;z-index:30;pointer-events:none;background:radial-gradient(circle at 50% 50%,transparent 18%,rgba(0,0,0,.2) 52%,rgba(0,0,0,.82) 100%)}
+.orion-cinematic .oc-stars{position:absolute;inset:0;z-index:1;opacity:.72}
+.orion-cinematic .oc-stars i{position:absolute;border-radius:50%;background:#d9faff;box-shadow:0 0 7px rgba(0,242,254,.55);animation:orionStar 2.8s ease-in-out infinite}
+.orion-cinematic .oc-scan{position:absolute;left:-10%;width:120%;height:1px;z-index:5;opacity:0;background:linear-gradient(90deg,transparent,var(--entry-accent),transparent);box-shadow:0 0 25px var(--entry-accent)}
+.orion-cinematic .oc-scan-a{top:18%}.orion-cinematic .oc-scan-b{top:82%;animation-delay:.55s}
+.orion-cinematic .oc-scan.active{animation:orionScan 1.9s cubic-bezier(.2,.8,.2,1) forwards}
+.oc-core-stage{position:absolute;left:50%;top:50%;width:230px;height:230px;z-index:12;transition:filter 1s ease;filter:drop-shadow(0 0 35px rgba(0,242,254,.22))}
+.oc-core-stage.active{filter:drop-shadow(0 0 70px rgba(0,242,254,.32))}
+.oc-core-halo{position:absolute;inset:-90px;border-radius:50%;background:radial-gradient(circle,rgba(0,242,254,.2),rgba(0,100,130,.06) 40%,transparent 70%);filter:blur(10px);animation:orionCoreBreath 2.4s ease-in-out infinite}
+.oc-core-shell{position:absolute;inset:28px;border:1px solid rgba(0,242,254,.6);border-radius:50%;background:radial-gradient(circle at 35% 28%,rgba(110,240,255,.22),rgba(2,11,20,.96) 58%);box-shadow:inset 0 0 45px rgba(0,242,254,.16),0 0 35px rgba(0,242,254,.22);overflow:hidden;display:grid;place-items:center}
+.oc-core-shell:before,.oc-core-shell:after{content:"";position:absolute;inset:12px;border:1px solid rgba(255,255,255,.09);border-radius:50%;transform:rotate(25deg) skewX(-18deg)}
+.oc-core-shell:after{inset:20px;transform:rotate(-35deg) skewX(16deg);border-color:rgba(0,242,254,.18)}
+.oc-core-grid{position:absolute;inset:-30%;opacity:.42;background:linear-gradient(rgba(0,242,254,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(0,242,254,.12) 1px,transparent 1px);background-size:16px 16px;transform:rotate(22deg);animation:orionGrid 4s linear infinite}
+.oc-core-logo{position:relative;z-index:2;filter:drop-shadow(0 0 18px rgba(0,242,254,.85));transform:scale(1.25)}
+.oc-core-beam{position:absolute;left:50%;top:50%;width:1px;height:150vh;transform:translate(-50%,-50%);background:linear-gradient(transparent,var(--entry-accent),transparent);opacity:.08;box-shadow:0 0 30px var(--entry-accent)}
+.oc-world-lattice{position:absolute;inset:0;z-index:6;opacity:0;transform:scale(.72);transition:opacity 1.1s ease,transform 2.1s cubic-bezier(.16,1,.3,1)}
+.oc-world-lattice.active{opacity:1;transform:scale(1)}.oc-world-lattice.depart{transform:scale(2.4);opacity:0;transition-duration:1.15s}
+.oc-world-lattice svg{position:absolute;inset:7% 5%;width:90%;height:86%;overflow:visible}
+.oc-world-lattice path{fill:none;stroke:url(#bootTrace);stroke-width:.09;stroke-dasharray:1.2 1.8;animation:orionTrace 3.5s linear infinite}
+.oc-node{position:absolute;z-index:2;display:flex;align-items:center;gap:7px;transform:translate(-50%,-50%);font-size:8px;letter-spacing:.18em;color:rgba(175,246,255,.7);white-space:nowrap;opacity:0;animation:orionNodeIn .7s cubic-bezier(.2,1,.3,1) forwards}
+.oc-node b{width:7px;height:7px;border-radius:50%;border:1px solid var(--entry-accent);background:#03151d;box-shadow:0 0 14px rgba(0,242,254,.75)}
+.oc-node:nth-child(3n) b{width:4px;height:4px}.oc-node span{transform:translateY(-1px)}
+.oc-brand-lock{position:absolute;z-index:20;left:50%;top:50%;transform:translate(-50%,-50%) scale(.65);opacity:0;text-align:center;transition:opacity .9s ease,transform 1.4s cubic-bezier(.16,1,.3,1)}
+.oc-brand-lock.active{opacity:.98;transform:translate(-50%,-50%) scale(1)}.oc-brand-lock.depart{transform:translate(-50%,-50%) scale(2.6);opacity:0;transition-duration:1s}
+.oc-brand-logo{filter:drop-shadow(0 0 22px rgba(0,242,254,.7));margin:auto}.oc-brand-name{margin-top:10px;font-size:19px;letter-spacing:.55em}.oc-brand-sub{margin-top:7px;font-size:8px;letter-spacing:.34em;color:rgba(0,242,254,.68)}
+.oc-console{position:absolute;left:5vw;bottom:7vh;width:min(370px,42vw);z-index:21;opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease}.oc-console.active{opacity:1;transform:none}.oc-console-head{display:flex;justify-content:space-between;color:rgba(0,242,254,.65);font-size:8px;letter-spacing:.22em;border-bottom:1px solid rgba(0,242,254,.15);padding-bottom:7px}.oc-console-line{display:grid;grid-template-columns:78px 1fr 25px;gap:10px;padding:5px 0;font-size:8px;letter-spacing:.1em;border-bottom:1px solid rgba(255,255,255,.035)}.oc-console-line span{color:rgba(0,242,254,.5)}.oc-console-line b{font-weight:400;color:rgba(225,244,248,.72)}.oc-console-line em{font-style:normal;color:#43e69a;text-align:right}
+.oc-boot-title{position:absolute;right:5vw;bottom:7vh;z-index:21;text-align:right;opacity:.72;transition:opacity .8s ease,transform 1s ease}.oc-boot-title span{display:block;font-size:8px;letter-spacing:.32em;color:rgba(255,255,255,.35)}.oc-boot-title strong{display:block;margin-top:5px;font-size:17px;letter-spacing:.34em;font-weight:500;color:var(--entry-accent);text-shadow:0 0 18px rgba(0,242,254,.3)}.oc-boot-title.depart{opacity:0;transform:translateY(30px)}
+.oc-open-flare{position:absolute;left:50%;top:50%;width:8px;height:8px;border-radius:50%;z-index:35;transform:translate(-50%,-50%) scale(0);background:#fff;opacity:0;box-shadow:0 0 35px 12px var(--entry-accent),0 0 130px 45px var(--entry-accent)}.oc-open-flare.active{animation:orionWorldFlash 1.35s cubic-bezier(.12,.8,.2,1) forwards}
+
+/* Authenticated ingress: a spatial construction, not a loading spinner. */
+.orion-world-entry .owe-dimension{position:absolute;inset:0;z-index:3;perspective:1200px;opacity:0;transition:opacity 1.1s ease}.owe-dimension.active{opacity:1}.owe-plane{position:absolute;left:50%;top:50%;width:150vw;height:75vh;border:1px solid rgba(0,242,254,.12);transform-origin:center;box-shadow:0 0 80px rgba(0,242,254,.03);background:linear-gradient(rgba(0,242,254,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(0,242,254,.035) 1px,transparent 1px);background-size:52px 52px}.plane-a{transform:translate(-50%,-50%) rotateX(72deg) translateZ(-90px)}.plane-b{transform:translate(-50%,-50%) rotateY(70deg) translateZ(-140px)}.plane-c{transform:translate(-50%,-50%) rotateY(-70deg) translateZ(-180px)}.owe-horizon{position:absolute;left:0;right:0;top:50%;height:1px;background:linear-gradient(90deg,transparent,var(--entry-accent),transparent);opacity:.28;box-shadow:0 0 30px var(--entry-accent)}
+.owe-core{position:absolute;left:50%;top:50%;width:170px;height:170px;z-index:14;transform:translate(-50%,-50%) scale(.2);opacity:0;transition:opacity 1s ease,transform 1.8s cubic-bezier(.16,1,.3,1)}.owe-core.active{opacity:1;transform:translate(-50%,-50%) scale(1)}.owe-core.launch{transform:translate(-50%,-50%) scale(12);opacity:0;transition-duration:1.25s}.owe-aura{position:absolute;inset:-100px;border-radius:50%;background:radial-gradient(circle,rgba(0,242,254,.24),transparent 68%);filter:blur(10px)}.owe-core-disc{position:absolute;inset:35px;border:1px solid var(--entry-accent);border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle at 35% 30%,rgba(0,242,254,.18),#020913 68%);box-shadow:inset 0 0 35px rgba(0,242,254,.15),0 0 50px rgba(0,242,254,.2)}.owe-core-disc img{max-width:82px;filter:drop-shadow(0 0 16px rgba(0,242,254,.8))}.owe-ring{position:absolute;left:50%;top:50%;border-radius:50%;border:1px solid rgba(0,242,254,.35);transform:translate(-50%,-50%)}.ring-a{width:210px;height:210px;border-left-color:transparent;border-right-color:rgba(0,242,254,.65);animation:orionOrbit 7s linear infinite}.ring-b{width:270px;height:150px;transform:translate(-50%,-50%) rotate(38deg);border-top-color:rgba(0,242,254,.6);animation:orionOrbitReverse 8s linear infinite}.ring-c{width:320px;height:320px;border-style:dashed;opacity:.3;animation:orionOrbit 15s linear infinite}
+.owe-auth{position:absolute;top:12%;left:50%;z-index:20;transform:translate(-50%,-20px);opacity:0;color:rgba(185,244,250,.58);font-size:9px;letter-spacing:.28em;transition:opacity .8s ease,transform .8s ease}.owe-auth.active{opacity:1;transform:translate(-50%,0)}.owe-auth-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:#3ee8a1;box-shadow:0 0 12px #3ee8a1;margin-right:8px}
+.owe-title{position:absolute;left:50%;top:50%;z-index:19;text-align:center;transform:translate(-50%,-50%) translateY(50px);opacity:0;transition:opacity .9s ease,transform 1.2s cubic-bezier(.16,1,.3,1)}.owe-title.active{opacity:1;transform:translate(-50%,-50%)}.owe-title.launch{opacity:0;transform:translate(-50%,-50%) scale(1.8);transition-duration:1s}.owe-title img{margin:auto;filter:drop-shadow(0 0 18px rgba(0,242,254,.65));max-width:130px}.owe-title span{display:block;margin-top:18px;font-size:9px;letter-spacing:.38em;color:var(--entry-accent)}.owe-title b{display:block;margin-top:7px;font-size:7px;letter-spacing:.24em;font-weight:400;color:rgba(255,255,255,.35)}
+.owe-systems{position:absolute;left:5vw;bottom:7vh;width:min(380px,42vw);z-index:20;opacity:0;transform:translateX(-25px);transition:opacity .8s ease,transform .8s ease}.owe-systems.active{opacity:1;transform:none}.owe-systems-head{display:flex;justify-content:space-between;font-size:8px;letter-spacing:.25em;color:rgba(0,242,254,.58);padding-bottom:8px;border-bottom:1px solid rgba(0,242,254,.14)}.owe-system{display:grid;grid-template-columns:28px 1fr 40px;gap:9px;padding:5px 0;font-size:8px;letter-spacing:.13em;border-bottom:1px solid rgba(255,255,255,.035);opacity:0;animation:orionSystemIn .65s cubic-bezier(.2,1,.3,1) forwards}.owe-system span{color:rgba(0,242,254,.35)}.owe-system b{font-weight:400;color:rgba(235,248,250,.7)}.owe-system em{font-style:normal;text-align:right;color:#45e6a1}.owe-status{position:absolute;right:5vw;bottom:7vh;z-index:20;text-align:right;opacity:0;transform:translateY(18px);transition:opacity .8s ease,transform .8s ease}.owe-status.active{opacity:1;transform:none}.owe-status span,.owe-status b{display:block}.owe-status span{font-size:8px;letter-spacing:.3em;color:rgba(255,255,255,.3)}.owe-status b{margin-top:6px;font-size:16px;letter-spacing:.3em;font-weight:400;color:var(--entry-accent);text-shadow:0 0 18px rgba(0,242,254,.25)}
+.owe-gate{position:absolute;inset:0;z-index:29;opacity:0;pointer-events:none;background:radial-gradient(circle at 50% 50%,#fff 0%,rgba(255,255,255,.75) 1%,rgba(0,242,254,.5) 4%,rgba(0,242,254,.08) 18%,transparent 38%);transform:scale(.2)}.owe-gate.active{animation:orionGate 1.35s cubic-bezier(.1,.8,.2,1) forwards}.owe-edge-flash{position:absolute;inset:0;z-index:40;pointer-events:none;opacity:0;border:2px solid var(--entry-accent);box-shadow:inset 0 0 100px rgba(0,242,254,.5)}.owe-edge-flash.active{animation:orionEdgeFlash 1.2s ease-out forwards}
+.orion-world-entry.admin .owe-core-disc{border-color:#7dd3fc}.orion-world-entry.admin .owe-title span,.orion-world-entry.admin .owe-status b{color:#7dd3fc}.orion-world-entry.admin .owe-auth-dot{background:#7dd3fc;box-shadow:0 0 12px #7dd3fc}
+@keyframes orionNoise{0%{transform:translate(0,0)}25%{transform:translate(2%, -1%)}50%{transform:translate(-1%,2%)}75%{transform:translate(-2%,-1%)}100%{transform:translate(1%,1%)}}
+@keyframes orionStar{0%,100%{opacity:.18;transform:scale(.65)}50%{opacity:.9;transform:scale(1.2)}}
+@keyframes orionScan{0%{opacity:0;transform:translateY(-40vh)}15%{opacity:.8}85%{opacity:.8}100%{opacity:0;transform:translateY(40vh)}}
+@keyframes orionCoreBreath{0%,100%{transform:scale(.86);opacity:.45}50%{transform:scale(1.08);opacity:.9}}
+@keyframes orionGrid{to{transform:rotate(22deg) translate(16px,10px)}}
+@keyframes orionTrace{to{stroke-dashoffset:-10}}
+@keyframes orionNodeIn{0%{opacity:0;transform:translate(-50%,-50%) scale(.2)}70%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}100%{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+@keyframes orionWorldFlash{0%{opacity:0;transform:translate(-50%,-50%) scale(0)}20%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(180)}}
+@keyframes orionOrbit{to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes orionOrbitReverse{to{transform:translate(-50%,-50%) rotate(-360deg)}}
+@keyframes orionSystemIn{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:translateX(0)}}
+@keyframes orionGate{0%{opacity:0;transform:scale(.2)}22%{opacity:.95}100%{opacity:0;transform:scale(10)}}
+@keyframes orionEdgeFlash{0%{opacity:0}25%{opacity:.9}100%{opacity:0}}
+@media (max-width:900px){.oc-console,.owe-systems{left:4vw;width:44vw}.oc-boot-title,.owe-status{right:4vw}.oc-node{font-size:6px}.oc-brand-sub,.owe-title b{font-size:6px;letter-spacing:.2em}}
+@media (prefers-reduced-motion:reduce){.orion-cinematic *{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}.orion-cinematic .oc-noise{display:none}}
+
+
+/* ================================================================
+   ORION-9 AUTHENTICATED WORLD INGRESS v2
+   A calm cinematic system construction. No flash, no zoom, no scale-out.
+   ================================================================ */
+.orion-entry-v2{
+  position:fixed; inset:0; width:100vw; height:100dvh; overflow:hidden;
+  z-index:100000; isolation:isolate; background:#02060d; color:#e9f8ff;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+  --entry-accent:#00f2fe;
+}
+.orion-entry-v2 *{box-sizing:border-box}
+.orion-entry-v2::before{
+  content:""; position:absolute; inset:0; z-index:0; pointer-events:none;
+  background:
+    radial-gradient(ellipse at 50% 52%, rgba(0,242,254,.075), transparent 34%),
+    radial-gradient(ellipse at 50% 100%, rgba(0,90,130,.10), transparent 46%);
+}
+.entry-v2-atmosphere{
+  position:absolute; inset:-20%; z-index:0; pointer-events:none; opacity:.7;
+  background:
+    radial-gradient(circle at 22% 38%, rgba(0,242,254,.055), transparent 20%),
+    radial-gradient(circle at 77% 61%, rgba(77,126,255,.045), transparent 23%);
+  animation:entryV2Atmosphere 9s ease-in-out infinite alternate;
+}
+.entry-v2-grid{
+  position:absolute; inset:0; z-index:1; pointer-events:none; opacity:0;
+  background-image:
+    linear-gradient(rgba(0,242,254,.045) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(0,242,254,.045) 1px,transparent 1px);
+  background-size:46px 46px;
+  animation:entryV2GridIn 1.8s ease forwards;
+}
+.entry-v2-scanline{
+  position:absolute; left:0; right:0; top:0; height:1px; z-index:4;
+  opacity:0; background:linear-gradient(90deg,transparent,var(--entry-accent),transparent);
+  box-shadow:0 0 22px var(--entry-accent);
+  animation:entryV2Scan 3.8s 1.1s ease-in-out infinite;
+}
+.entry-v2-header{
+  position:absolute; top:5vh; left:5vw; right:5vw; z-index:10;
+  display:flex; justify-content:space-between; align-items:center;
+  opacity:0; transform:translateY(-10px); transition:opacity .9s ease,transform .9s ease;
+}
+.entry-v2-header.active{opacity:1;transform:none}
+.entry-v2-brand{display:flex;align-items:center;gap:12px}
+.entry-v2-brand img{width:38px;height:38px;filter:drop-shadow(0 0 13px rgba(0,242,254,.45))}
+.entry-v2-brand span{display:block;font-size:11px;letter-spacing:.32em;color:var(--entry-accent)}
+.entry-v2-brand b{display:block;margin-top:4px;font-size:7px;letter-spacing:.17em;font-weight:400;color:rgba(235,248,255,.34)}
+.entry-v2-telemetry{display:flex;align-items:center;gap:8px;font-size:7px;letter-spacing:.2em;color:rgba(235,248,255,.38)}
+.entry-v2-telemetry b{color:var(--entry-accent);font-weight:400;margin-left:6px}
+.entry-v2-live-dot{width:5px;height:5px;border-radius:50%;background:#45e6a1;box-shadow:0 0 10px #45e6a1;animation:entryV2Pulse 1.8s ease-in-out infinite}
+
+.entry-v2-field{
+  position:absolute; inset:0; z-index:2; opacity:0;
+  transition:opacity 1.4s ease;
+}
+.entry-v2-field.active{opacity:1}
+.entry-v2-orbit{
+  position:absolute; left:50%; top:53%; border:1px solid rgba(0,242,254,.13);
+  border-radius:50%; transform:translate(-50%,-50%);
+}
+.orbit-one{width:min(62vw,760px);height:min(62vw,760px);animation:entryV2OrbitA 24s linear infinite}
+.orbit-two{width:min(44vw,540px);height:min(31vw,380px);transform:translate(-50%,-50%) rotate(28deg);border-color:rgba(125,211,252,.16);animation:entryV2OrbitB 18s linear infinite}
+.orbit-three{width:min(30vw,370px);height:min(52vw,630px);transform:translate(-50%,-50%) rotate(-33deg);border-color:rgba(0,242,254,.10);animation:entryV2OrbitA 31s linear infinite reverse}
+.entry-v2-axis{position:absolute;background:linear-gradient(90deg,transparent,rgba(0,242,254,.12),transparent)}
+.axis-x{left:9%;right:9%;top:53%;height:1px}
+.axis-y{top:14%;bottom:14%;left:50%;width:1px;background:linear-gradient(transparent,rgba(0,242,254,.12),transparent)}
+.entry-v2-node{
+  position:absolute; border:1px solid var(--entry-accent); border-radius:50%;
+  background:#06131a; box-shadow:0 0 11px rgba(0,242,254,.45);
+  opacity:0; animation:entryV2NodeIn .9s ease forwards,entryV2NodePulse 2.8s 1s ease-in-out infinite;
+}
+.entry-v2-node::after{
+  content:""; position:absolute; left:50%; top:50%; width:24px; height:1px;
+  transform-origin:left center; background:linear-gradient(90deg,rgba(0,242,254,.25),transparent);
+  transform:rotate(28deg);
+}
+
+.entry-v2-core{
+  position:absolute; left:50%; top:53%; width:270px; height:270px; z-index:12;
+  transform:translate(-50%,-50%); opacity:0; transition:opacity 1.4s ease;
+}
+.entry-v2-core.active{opacity:1}
+.entry-v2-core-ring{
+  position:absolute; left:50%; top:50%; border-radius:50%;
+  transform:translate(-50%,-50%); border:1px solid rgba(0,242,254,.28);
+}
+.entry-v2-core-ring::before{
+  content:"";position:absolute;left:8%;right:8%;top:-1px;height:2px;
+  background:var(--entry-accent);box-shadow:0 0 12px var(--entry-accent);opacity:.8;
+}
+.ring-outer{width:270px;height:270px;border-style:dashed;animation:entryV2Rotate 18s linear infinite}
+.ring-middle{width:205px;height:205px;border-color:rgba(125,211,252,.36);animation:entryV2RotateReverse 13s linear infinite}
+.ring-inner{width:145px;height:145px;border-color:rgba(0,242,254,.45);animation:entryV2Rotate 9s linear infinite}
+.entry-v2-core-crosshair{
+  position:absolute;left:50%;top:50%;width:320px;height:1px;transform:translate(-50%,-50%);
+  background:linear-gradient(90deg,transparent,rgba(0,242,254,.28),transparent);
+}
+.entry-v2-core-crosshair::after{
+  content:"";position:absolute;left:50%;top:-160px;width:1px;height:320px;
+  background:linear-gradient(transparent,rgba(0,242,254,.22),transparent);
+}
+.entry-v2-core-slice{position:absolute;left:50%;top:50%;width:235px;height:18px;border-top:1px solid var(--entry-accent);opacity:.38}
+.slice-a{transform:translate(-50%,-50%) rotate(18deg);animation:entryV2Rotate 11s linear infinite}
+.slice-b{transform:translate(-50%,-50%) rotate(-42deg);animation:entryV2RotateReverse 15s linear infinite}
+.entry-v2-core-disc{
+  position:absolute;left:50%;top:50%;width:92px;height:92px;transform:translate(-50%,-50%);
+  border:1px solid var(--entry-accent);border-radius:50%;display:grid;place-items:center;
+  background:radial-gradient(circle,rgba(0,242,254,.14),#020a12 68%);
+  box-shadow:inset 0 0 30px rgba(0,242,254,.12),0 0 32px rgba(0,242,254,.18);
+}
+.entry-v2-core-disc img{width:58px;filter:drop-shadow(0 0 13px rgba(0,242,254,.7))}
+.entry-v2-core.access .entry-v2-core-disc{box-shadow:inset 0 0 35px rgba(0,242,254,.2),0 0 45px rgba(0,242,254,.3)}
+
+.entry-v2-readout{
+  position:absolute;left:50%;top:calc(53% + 160px);z-index:14;width:460px;max-width:70vw;
+  transform:translateX(-50%);text-align:center;opacity:0;transition:opacity 1s ease;
+}
+.entry-v2-readout.active{opacity:1}
+.entry-v2-readout span{display:block;font-size:7px;letter-spacing:.3em;color:rgba(235,248,255,.35)}
+.entry-v2-readout b{display:block;margin-top:8px;font-size:11px;letter-spacing:.25em;font-weight:400;color:var(--entry-accent)}
+.entry-v2-readout em{display:block;margin-top:6px;font-style:normal;font-size:7px;letter-spacing:.2em;color:rgba(235,248,255,.25)}
+
+.entry-v2-system-list{
+  position:absolute;left:5vw;bottom:8vh;width:min(360px,34vw);z-index:15;
+  opacity:0;transform:translateX(-18px);transition:opacity .9s ease,transform .9s ease;
+}
+.entry-v2-system-list.active{opacity:1;transform:none}
+.entry-v2-list-head{display:flex;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid rgba(0,242,254,.14);font-size:7px;letter-spacing:.25em;color:rgba(0,242,254,.55)}
+.entry-v2-list-head b{font-weight:400;color:#45e6a1}
+.entry-v2-system{display:grid;grid-template-columns:25px 1fr 55px;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.035);font-size:7px;letter-spacing:.13em;opacity:0;animation:entryV2SystemIn .55s ease forwards}
+.entry-v2-system span{color:rgba(0,242,254,.35)}
+.entry-v2-system b{font-weight:400;color:rgba(235,248,255,.67)}
+.entry-v2-system em{text-align:right;font-style:normal;color:#45e6a1}
+
+.entry-v2-message{
+  position:absolute;right:5vw;bottom:8vh;z-index:15;text-align:right;
+  opacity:0;transform:translateX(18px);transition:opacity 1s ease,transform 1s ease;
+}
+.entry-v2-message.active{opacity:1;transform:none}
+.entry-v2-message span{display:block;font-size:7px;letter-spacing:.26em;color:#45e6a1}
+.entry-v2-message strong{display:block;margin-top:7px;font-size:15px;letter-spacing:.28em;font-weight:400;color:rgba(240,250,255,.88)}
+.entry-v2-message p{margin:7px 0 0;font-size:7px;letter-spacing:.12em;color:rgba(235,248,255,.3)}
+
+.entry-v2-footer{
+  position:absolute;left:50%;bottom:2.8vh;z-index:16;transform:translateX(-50%) translateY(8px);
+  display:flex;gap:9px;white-space:nowrap;font-size:6px;letter-spacing:.25em;
+  color:rgba(235,248,255,.2);opacity:0;transition:opacity .8s ease,transform .8s ease;
+}
+.entry-v2-footer.active{opacity:1;transform:translateX(-50%)}
+.entry-v2-handoff{
+  position:absolute;left:0;right:0;bottom:0;height:3px;z-index:25;
+  background:linear-gradient(90deg,transparent,var(--entry-accent),transparent);
+  opacity:0;transition:opacity 1s ease;
+}
+.entry-v2-handoff.active{opacity:.8}
+
+.orion-entry-v2.admin .entry-v2-brand span,
+.orion-entry-v2.admin .entry-v2-readout b{color:#7dd3fc}
+.orion-entry-v2.admin .entry-v2-node{border-color:#7dd3fc}
+.orion-entry-v2.admin .entry-v2-core-ring::before{background:#7dd3fc;box-shadow:0 0 12px #7dd3fc}
+.orion-entry-v2.admin .entry-v2-core-disc{border-color:#7dd3fc}
+
+/* No flash and no zoom: handoff is a quiet fade only. */
+.orion-entry-v2.handoff .entry-v2-header,
+.orion-entry-v2.handoff .entry-v2-field,
+.orion-entry-v2.handoff .entry-v2-core,
+.orion-entry-v2.handoff .entry-v2-readout,
+.orion-entry-v2.handoff .entry-v2-system-list,
+.orion-entry-v2.handoff .entry-v2-message,
+.orion-entry-v2.handoff .entry-v2-footer{
+  opacity:0;transition:opacity 1s ease;
+}
+@keyframes entryV2GridIn{from{opacity:0}to{opacity:.75}}
+@keyframes entryV2Atmosphere{from{transform:translate3d(-1%,0,0)}to{transform:translate3d(1%,1%,0)}}
+@keyframes entryV2Scan{0%{top:8%;opacity:0}15%{opacity:.65}50%{opacity:.35}85%{opacity:.65}100%{top:92%;opacity:0}}
+@keyframes entryV2Pulse{0%,100%{opacity:.55}50%{opacity:1}}
+@keyframes entryV2NodeIn{from{opacity:0}to{opacity:.78}}
+@keyframes entryV2NodePulse{0%,100%{box-shadow:0 0 8px rgba(0,242,254,.25)}50%{box-shadow:0 0 16px rgba(0,242,254,.6)}}
+@keyframes entryV2OrbitA{to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes entryV2OrbitB{to{transform:translate(-50%,-50%) rotate(388deg)}}
+@keyframes entryV2Rotate{to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes entryV2RotateReverse{to{transform:translate(-50%,-50%) rotate(-360deg)}}
+@keyframes entryV2SystemIn{from{opacity:0;transform:translateX(-12px)}to{opacity:1;transform:none}}
+
+@media (max-width: 760px){
+  .entry-v2-header{left:6vw;right:6vw}
+  .entry-v2-brand b,.entry-v2-telemetry span:not(.entry-v2-live-dot){display:none}
+  .entry-v2-system-list{left:6vw;width:70vw;bottom:7vh}
+  .entry-v2-message{right:6vw;bottom:3.5vh}
+  .entry-v2-footer{display:none}
+  .entry-v2-readout{top:calc(53% + 145px)}
+}
+@media (prefers-reduced-motion: reduce){
+  .entry-v2-atmosphere,.entry-v2-scanline,.entry-v2-orbit,.entry-v2-core-ring,
+  .entry-v2-core-slice,.entry-v2-live-dot,.entry-v2-node{animation-duration:8s}
+  .entry-v2-node,.entry-v2-system{animation-duration:.01ms}
+}
+
+
+/* ================================================================
+   ORION-9 POWER-ON CINEMATIC v2
+   Distinct from post-login ingress; no flash, no zoom, no scale.
+   ================================================================ */
+.orion-boot-v2{
+  position:fixed;inset:0;width:100vw;height:100dvh;overflow:hidden;z-index:100000;
+  isolation:isolate;background:#02060d;color:#e9f8ff;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace;
+}
+.orion-boot-v2::before{
+  content:"";position:absolute;inset:0;z-index:0;
+  background:radial-gradient(ellipse at 50% 52%,rgba(0,242,254,.065),transparent 34%),linear-gradient(180deg,#02050b,#01040a);
+}
+.boot-v2-stars{position:absolute;inset:0;z-index:1}
+.boot-v2-stars i{position:absolute;width:2px;height:2px;border-radius:50%;background:#bceeff;opacity:.18;animation:bootV2Star 3.4s ease-in-out infinite}
+.boot-v2-grid{position:absolute;inset:0;z-index:2;opacity:0;
+ background-image:linear-gradient(rgba(0,242,254,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(0,242,254,.045) 1px,transparent 1px);
+ background-size:52px 52px;transition:opacity 1.4s ease}
+.boot-v2-grid.active{opacity:.7}
+.boot-v2-horizon{position:absolute;left:8%;right:8%;top:58%;height:1px;z-index:3;background:linear-gradient(90deg,transparent,rgba(0,242,254,.35),transparent);opacity:.35}
+.boot-v2-header{position:absolute;left:5vw;right:5vw;top:5vh;z-index:20;display:flex;align-items:center;justify-content:space-between;opacity:0;transform:translateY(-10px);transition:opacity 1s ease,transform 1s ease}
+.boot-v2-header.active{opacity:1;transform:none}
+.boot-v2-brand{display:flex;align-items:center;gap:12px}.boot-v2-brand img{width:40px;height:40px;filter:drop-shadow(0 0 14px rgba(0,242,254,.45))}
+.boot-v2-brand b{display:block;font-size:11px;letter-spacing:.3em;color:#00f2fe}.boot-v2-brand span{display:block;margin-top:4px;font-size:7px;letter-spacing:.16em;color:rgba(235,248,255,.32)}
+.boot-v2-progress{display:flex;gap:14px;font-size:7px;letter-spacing:.2em;color:rgba(235,248,255,.3)}.boot-v2-progress b{font-weight:400;color:#00f2fe}
+
+.boot-v2-world{position:absolute;inset:0;z-index:5;opacity:0;transition:opacity 1.5s ease}
+.boot-v2-world.active{opacity:1}
+.boot-v2-world svg{position:absolute;inset:12% 6%;width:88%;height:78%;overflow:visible}
+.boot-v2-world path{fill:none;stroke:rgba(0,242,254,.2);stroke-width:.1;stroke-dasharray:1.2 2.5;stroke-dashoffset:100;animation:bootV2Trace 6s linear infinite}
+.boot-v2-node{position:absolute;transform:translate(-50%,-50%);display:flex;align-items:center;gap:6px;opacity:0;animation:bootV2NodeIn .7s ease forwards}
+.boot-v2-node i{width:6px;height:6px;border-radius:50%;border:1px solid #00f2fe;background:#03151c;box-shadow:0 0 13px rgba(0,242,254,.65)}
+.boot-v2-node span{font-size:7px;letter-spacing:.18em;color:rgba(175,246,255,.55)}
+
+.boot-v2-core{position:absolute;left:50%;top:52%;width:250px;height:250px;z-index:10;transform:translate(-50%,-50%);opacity:0;transition:opacity 1.2s ease}
+.boot-v2-core.active{opacity:1}
+.boot-v2-core-ring{position:absolute;left:50%;top:50%;border-radius:50%;transform:translate(-50%,-50%);border:1px solid rgba(0,242,254,.27)}
+.boot-v2-core-ring::after{content:"";position:absolute;left:50%;top:-4px;width:7px;height:7px;border-radius:50%;background:#00f2fe;box-shadow:0 0 15px #00f2fe}
+.boot-v2-core-ring.ring-a{width:250px;height:250px;border-style:dashed;animation:bootV2Rotate 20s linear infinite}
+.boot-v2-core-ring.ring-b{width:190px;height:190px;border-color:rgba(125,211,252,.35);animation:bootV2RotateReverse 14s linear infinite}
+.boot-v2-core-ring.ring-c{width:132px;height:132px;border-color:rgba(0,242,254,.45);animation:bootV2Rotate 9s linear infinite}
+.boot-v2-core-line{position:absolute;left:50%;top:50%;width:300px;height:1px;transform:translate(-50%,-50%);background:linear-gradient(90deg,transparent,rgba(0,242,254,.25),transparent)}
+.boot-v2-core-line.line-a{transform:translate(-50%,-50%) rotate(28deg)}.boot-v2-core-line.line-b{transform:translate(-50%,-50%) rotate(-62deg)}
+.boot-v2-core-disc{position:absolute;left:50%;top:50%;width:82px;height:82px;transform:translate(-50%,-50%);border:1px solid #00f2fe;border-radius:50%;display:grid;place-items:center;background:radial-gradient(circle,rgba(0,242,254,.12),#020a12 70%);box-shadow:inset 0 0 30px rgba(0,242,254,.13),0 0 28px rgba(0,242,254,.16)}
+.boot-v2-core-disc img{width:52px;filter:drop-shadow(0 0 12px rgba(0,242,254,.7))}
+
+.boot-v2-phase{position:absolute;left:50%;top:calc(52% + 165px);z-index:20;text-align:center;transform:translateX(-50%);opacity:0;transition:opacity 1s ease}
+.boot-v2-phase.active{opacity:1}
+.boot-v2-phase span,.boot-v2-phase strong,.boot-v2-phase em{display:block}.boot-v2-phase span{font-size:7px;letter-spacing:.32em;color:rgba(235,248,255,.3)}
+.boot-v2-phase strong{margin-top:7px;font-size:14px;letter-spacing:.28em;font-weight:400;color:#00f2fe}
+.boot-v2-phase em{margin-top:6px;font-style:normal;font-size:6px;letter-spacing:.2em;color:rgba(235,248,255,.2)}
+
+.boot-v2-console{position:absolute;left:5vw;bottom:8vh;width:min(360px,34vw);z-index:20;opacity:0;transform:translateX(-15px);transition:opacity 1s ease,transform 1s ease}
+.boot-v2-console.active{opacity:1;transform:none}
+.boot-v2-console-head{display:flex;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid rgba(0,242,254,.13);font-size:7px;letter-spacing:.22em;color:rgba(0,242,254,.5)}
+.boot-v2-console-head b{font-weight:400;color:#45e6a1}
+.boot-v2-line{display:grid;grid-template-columns:25px 1fr 82px;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.035);font-size:7px;letter-spacing:.12em;color:rgba(235,248,255,.2)}
+.boot-v2-line b{font-weight:400}.boot-v2-line em{text-align:right;font-style:normal}.boot-v2-line.done{color:rgba(235,248,255,.62)}.boot-v2-line.done em{color:#45e6a1}
+.boot-v2-online{position:absolute;right:5vw;bottom:8vh;z-index:20;font-size:8px;letter-spacing:.23em;color:#45e6a1;opacity:0;transform:translateX(15px);transition:opacity 1s ease,transform 1s ease}
+.boot-v2-online.active{opacity:1;transform:none}.boot-v2-online span{margin-right:7px;text-shadow:0 0 10px #45e6a1}
+
+@keyframes bootV2Star{0%,100%{opacity:.12}50%{opacity:.7}}
+@keyframes bootV2Trace{to{stroke-dashoffset:0}}
+@keyframes bootV2NodeIn{from{opacity:0}to{opacity:.72}}
+@keyframes bootV2Rotate{to{transform:translate(-50%,-50%) rotate(360deg)}}
+@keyframes bootV2RotateReverse{to{transform:translate(-50%,-50%) rotate(-360deg)}}

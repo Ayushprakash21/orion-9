@@ -1,0 +1,6 @@
+{
+  "name": "Orion SCM OS",
+  "description": "Orion SCM OS: AI Supply Chain Operating System. CONNECT. OBSERVE. PREDICT. ACT.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

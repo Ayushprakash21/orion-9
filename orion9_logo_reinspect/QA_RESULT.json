@@ -1,0 +1,13 @@
+{
+  "zip_source_readable": true,
+  "user_route_present": true,
+  "admin_route_present": true,
+  "user_cross_link_removed": true,
+  "admin_cross_link_removed": true,
+  "user_admin_filter": true,
+  "launcher_user_manual": true,
+  "local_import_missing_count": 0,
+  "local_import_missing_examples": [],
+  "nested_project_copy_count": 0,
+  "all_static_checks_pass": true
+}
