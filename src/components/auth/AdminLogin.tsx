@@ -42,7 +42,7 @@ export const AdminLogin: React.FC = () => {
 
     try {
       const rawFrom = (location.state as any)?.from?.pathname;
-      const from = (rawFrom && rawFrom.startsWith('/admin')) ? rawFrom : "/admin";
+      const from = (rawFrom && rawFrom.startsWith('/admin')) ? rawFrom : "/";
       await login(username, password, {
         destination: from,
         requiredRoles: ["platform_admin", "organization_admin"],

@@ -306,7 +306,7 @@ function AppBootstrap() {
         <OrionWorldEntrySequence
           isAdmin={isAdmin}
           onComplete={() => {
-            const dest = postLoginDestination || (isAdmin ? '/admin' : '/');
+            const dest = postLoginDestination || '/';
             completePostLoginInitialization();
             navigate(dest, { replace: true });
           }}
