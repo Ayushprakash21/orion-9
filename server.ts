@@ -9,16 +9,17 @@ import dotenv from "dotenv";
 
 dotenv.config({ override: true });
 
-let firebaseAdminApp: firebaseAdmin.app.App | null = null;
+let firebaseAdminApp: any = null;
 const getFirebaseAdmin = () => {
   if (firebaseAdminApp) return firebaseAdminApp;
   try {
-    if (firebaseAdmin.apps.length === 0) {
-      firebaseAdminApp = firebaseAdmin.initializeApp({
+    const admin: any = firebaseAdmin;
+    if (admin.apps && admin.apps.length === 0) {
+      firebaseAdminApp = admin.initializeApp({
         projectId: process.env.VITE_FIREBASE_PROJECT_ID || "orion9-dev-db-2026"
       });
-    } else {
-      firebaseAdminApp = firebaseAdmin.apps[0];
+    } else if (admin.apps) {
+      firebaseAdminApp = admin.apps[0];
     }
   } catch (e) {
     console.warn("[FirebaseAdmin] Initialization warning:", e);

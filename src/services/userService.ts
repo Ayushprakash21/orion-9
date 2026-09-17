@@ -1,4 +1,5 @@
 import { UserProfile, RoleCode } from '../types/auth';
+import { hashPassword } from '../kernel/security/crypto';
 
 // TEMPORARY LOCAL AUTH MODE — replace with Supabase/enterprise IdP before production.
 // admin / admin is development-only and must be replaced before production deployment.

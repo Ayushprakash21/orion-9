@@ -23,5 +23,27 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "exclude": ["dist", "node_modules"]
+  "include": [
+    "src/**/*",
+    "server.ts",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules",
+    "app",
+    "root",
+    "current_fix",
+    "work_orion",
+    "orion-9-final-repair",
+    "orion9_logo_reinspect",
+    "orion_admin2",
+    "orion_clean_inspect",
+    "orion_rebuild",
+    "orion_vvip_final",
+    "ORION-9-CONTROL-CENTER-FUNCTIONAL",
+    "ORION-9-LIVE-WALLPAPER-FIXED",
+    "ORION-9-PROFILE-FLAGS-FIXED",
+    "ORION-9-VVIP-FINAL"
+  ]
 }

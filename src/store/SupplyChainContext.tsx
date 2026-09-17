@@ -19,6 +19,15 @@ import { ActionEngine } from '../services/ActionEngine';
 import { DecisionEngine } from '../services/DecisionEngine';
 import { AuditService } from '../services/AuditService';
 import { dataEngine, rulesEngine, kpiEngine } from '../core';
+import {
+  kernelCommandBus,
+  kernelEventBus,
+  kernelPolicyEngine,
+  kernelAuditEngine,
+  actionStateMachine,
+  decisionStateMachine,
+  poStateMachine,
+} from '../kernel';
 
 interface SupplyChainState {
   products: Product[];
@@ -518,6 +527,11 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setActions(prev => {
       const next = prev.map(a => {
         if (a.id === actionId) {
+          // Kernel state transition check
+          const check = actionStateMachine.canTransition(a.status as any, 'APPROVED');
+          if (!check.valid) {
+            console.warn('[KernelStateMachine] Action transition warning:', check.reason);
+          }
           targetAction = { ...a, status: 'APPROVED' as const };
           return targetAction;
         }
@@ -525,6 +539,31 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
       });
       saveData(db.actions, next);
       return next;
+    });
+
+    // Kernel Event Fabric & Audit Engine
+    kernelEventBus.publish('ACTION_APPROVED', {
+      actionId,
+      entity: targetAction?.entity,
+      recommendation: targetAction?.recommendation,
+    }, {
+      entityId: actionId,
+      entityType: 'action',
+      actor: { id: userProfile?.id || 'operator', type: 'USER', name: userProfile?.fullName },
+      tenant: { organizationId: organizationProfile?.id || 'ORION_PLATFORM' },
+    });
+
+    kernelAuditEngine.record({
+      eventId: actionId,
+      correlationId: `act-${actionId}`,
+      actor: { id: userProfile?.id || 'operator', type: 'USER', name: userProfile?.fullName },
+      tenantId: organizationProfile?.id || 'ORION_PLATFORM',
+      action: 'ACTION_APPROVED',
+      entityType: 'action',
+      entityId: actionId,
+      afterState: { status: 'APPROVED' },
+      result: 'SUCCESS',
+      classification: 'INTERNAL',
     });
 
     const audit = AuditService.createEvent(
@@ -626,6 +665,32 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
       return next;
     });
 
+    // Kernel Event Fabric & Audit Engine
+    kernelEventBus.publish('ACTION_EXECUTED', {
+      actionId,
+      entity: targetAction.entity,
+      recommendation: targetAction.recommendation,
+      impact: targetAction.impact,
+    }, {
+      entityId: actionId,
+      entityType: 'action',
+      actor: { id: userProfile?.id || 'operator', type: 'USER', name: userProfile?.fullName },
+      tenant: { organizationId: organizationProfile?.id || 'ORION_PLATFORM' },
+    });
+
+    kernelAuditEngine.record({
+      eventId: actionId,
+      correlationId: `act-${actionId}`,
+      actor: { id: userProfile?.id || 'operator', type: 'USER', name: userProfile?.fullName },
+      tenantId: organizationProfile?.id || 'ORION_PLATFORM',
+      action: 'ACTION_EXECUTED',
+      entityType: 'action',
+      entityId: actionId,
+      afterState: { status: 'EXECUTED', impact: targetAction.impact },
+      result: 'SUCCESS',
+      classification: 'INTERNAL',
+    });
+
     // 3. Log persistent execution audit event
     const audit = AuditService.createEvent(
       actionId,
@@ -654,6 +719,29 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
       );
       saveData(db.actions, next);
       return next;
+    });
+
+    kernelEventBus.publish('ACTION_CANCELLED', {
+      actionId,
+      title: targetAction?.recommendation || actionId,
+    }, {
+      entityId: actionId,
+      entityType: 'action',
+      actor: { id: userProfile?.id || 'operator', type: 'USER', name: userProfile?.fullName },
+      tenant: { organizationId: organizationProfile?.id || 'ORION_PLATFORM' },
+    });
+
+    kernelAuditEngine.record({
+      eventId: actionId,
+      correlationId: `act-${actionId}`,
+      actor: { id: userProfile?.id || 'operator', type: 'USER', name: userProfile?.fullName },
+      tenantId: organizationProfile?.id || 'ORION_PLATFORM',
+      action: 'ACTION_CANCELLED',
+      entityType: 'action',
+      entityId: actionId,
+      afterState: { status: 'CANCELLED' },
+      result: 'SUCCESS',
+      classification: 'INTERNAL',
     });
 
     const audit = AuditService.createEvent(
@@ -736,6 +824,30 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
 
     // 3. Persistent audit event
+    kernelEventBus.publish(
+      'DECISION_APPROVED',
+      { decisionId, optionId, user, comment },
+      {
+        entityId: decisionId,
+        entityType: 'decision',
+        actor: { id: user, type: 'USER', name: user },
+        tenant: { organizationId: organizationProfile?.id || 'ORION_PLATFORM' },
+      }
+    );
+
+    kernelAuditEngine.record({
+      eventId: decisionId,
+      correlationId: `dec-${decisionId}`,
+      actor: { id: user, type: 'USER', name: user },
+      tenantId: organizationProfile?.id || 'ORION_PLATFORM',
+      action: 'DECISION_APPROVED',
+      entityType: 'decision',
+      entityId: decisionId,
+      afterState: { status: 'APPROVED', selectedOptionId: optionId },
+      result: 'SUCCESS',
+      classification: 'INTERNAL',
+    });
+
     const audit = AuditService.createEvent(
       decisionId,
       'APPROVED',
@@ -780,6 +892,30 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
       });
       saveData(db.decisions, next);
       return next;
+    });
+
+    kernelEventBus.publish(
+      'DECISION_REJECTED',
+      { decisionId, user, comment },
+      {
+        entityId: decisionId,
+        entityType: 'decision',
+        actor: { id: user, type: 'USER', name: user },
+        tenant: { organizationId: organizationProfile?.id || 'ORION_PLATFORM' },
+      }
+    );
+
+    kernelAuditEngine.record({
+      eventId: decisionId,
+      correlationId: `dec-${decisionId}`,
+      actor: { id: user, type: 'USER', name: user },
+      tenantId: organizationProfile?.id || 'ORION_PLATFORM',
+      action: 'DECISION_REJECTED',
+      entityType: 'decision',
+      entityId: decisionId,
+      afterState: { status: 'REJECTED' },
+      result: 'SUCCESS',
+      classification: 'INTERNAL',
     });
 
     const audit = AuditService.createEvent(
