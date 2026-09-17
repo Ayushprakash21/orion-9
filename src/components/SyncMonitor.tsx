@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Activity, RefreshCw, AlertCircle, CheckCircle2, Play, CircleSlash, ArrowRight } from 'lucide-react';
+import { Activity, RefreshCw, AlertCircle, CheckCircle2, Play, CircleSlash, ArrowRight, GitCompare } from 'lucide-react';
 import { useToast } from '../store/ToastContext';
 import { useNotifications } from '../store/NotificationContext';
 import { useEntityDrawer } from '../store/EntityDrawerContext';
 import { formatNumber } from '../lib/formatters';
 import { MobileRecordCard } from './MobileRecordCard';
+import { useOptionalWindowManager } from '../os/WindowManagerContext';
 
 interface SyncJob {
   id: string;
@@ -18,6 +19,7 @@ interface SyncJob {
 }
 
 export const SyncMonitor: React.FC = () => {
+  const wm = useOptionalWindowManager();
   const { showToast } = useToast();
   const { addNotification } = useNotifications();
   const { openEntity } = useEntityDrawer();
@@ -83,6 +85,15 @@ export const SyncMonitor: React.FC = () => {
           <p className="text-xs text-os-text-muted mt-1 hidden sm:block">Monitor data integration sync jobs, pipeline statuses, and error logs.</p>
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
+          {wm && (
+            <button
+              onClick={() => wm.openApplication('master-data')}
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 py-2 bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 rounded-lg text-xs uppercase tracking-wider font-medium hover:bg-indigo-500/20 transition-colors cursor-pointer"
+            >
+              <GitCompare size={14} />
+              <span>Data Fabric & MDM</span>
+            </button>
+          )}
           <button 
             onClick={handleSyncAll}
             disabled={isSyncing}

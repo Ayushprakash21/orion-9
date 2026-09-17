@@ -5,7 +5,8 @@ import {
   Brain, FileText, Settings, Database, Server, Link, 
   Map, Target, Zap, LayoutDashboard, Globe, Network, Users,
   Clock, History, Sliders, ShieldAlert, Eye, HelpCircle, GitBranch,
-  Compass, UserCheck, HeartPulse, RefreshCw, Info, User, Building2
+  Compass, UserCheck, HeartPulse, RefreshCw, Info, User, Building2,
+  ShieldCheck
 } from 'lucide-react';
 
 export interface OrionApp {
@@ -79,6 +80,26 @@ export const ORION_REGISTRY: Record<string, OrionApp> = {
     color: '#EF4444', // red
     description: 'Supply chain disruptions and risk alerts.',
     dockDefault: true,
+  },
+  'approval-center': {
+    id: 'approval-center',
+    name: 'Approval Center',
+    route: '/approvals',
+    category: 'Control',
+    icon: ShieldCheck,
+    color: '#00F2FE',
+    description: 'Centralized human-in-the-loop governance for AI recommendations, quality holds, and high-value orders.',
+    dockDefault: true,
+  },
+  'master-data': {
+    id: 'master-data',
+    name: 'Data & Integration Fabric',
+    route: '/master-data',
+    category: 'Platform',
+    icon: Database,
+    color: '#6366F1',
+    description: 'Master Data Lifecycle, ERP Integration Contracts, State Reconciliation, and Event Fabric Replay.',
+    dockDefault: false,
   },
   'world-model': {
     id: 'world-model',

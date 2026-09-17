@@ -60,6 +60,7 @@ export interface EventEnvelope<T = any> {
   payload: T;
   schemaVersion: string;
   classification?: DataClassification;
+  isReplay?: boolean;
 }
 
 /**
@@ -110,8 +111,8 @@ export interface CommandResult<R = any> {
  */
 export interface KernelAuditRecord {
   auditId: string;
-  eventId: string;
-  correlationId: string;
+  eventId?: string;
+  correlationId?: string;
   timestamp: string;
   actor: {
     id: string;
@@ -121,10 +122,10 @@ export interface KernelAuditRecord {
     agentId?: string;
     model?: string;
   };
-  tenantId: string;
+  tenantId?: string;
   action: string;
-  entityType: string;
-  entityId: string;
+  entityType?: string;
+  entityId?: string;
   beforeState?: any;
   afterState?: any;
   policyEvaluation?: {
@@ -138,9 +139,10 @@ export interface KernelAuditRecord {
     approverId?: string;
     approvedAt?: string;
   };
-  result: 'SUCCESS' | 'FAILED' | 'BLOCKED' | 'PENDING_APPROVAL';
+  result?: 'SUCCESS' | 'FAILED' | 'BLOCKED' | 'PENDING_APPROVAL';
   failureReason?: string;
   classification: DataClassification;
+  details?: any;
 }
 
 /**

@@ -6,6 +6,8 @@ import { Suppliers } from '../components/Suppliers';
 import { Shipments } from '../components/Shipments';
 import { Exceptions } from '../components/Exceptions';
 import { DecisionCenter } from '../components/DecisionCenter';
+import { ApprovalCenter } from '../components/ApprovalCenter';
+import { MasterDataManager } from '../components/MasterDataManager';
 import { AICopilot } from '../components/AICopilot';
 import { DataCenter } from '../components/DataCenter';
 import { Integrations } from '../components/Integrations';
@@ -69,6 +71,8 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'shipments': Shipments,
   'exceptions': Exceptions,
   'decisions': DecisionCenter,
+  'approval-center': ApprovalCenter,
+  'master-data': MasterDataManager,
   'orion-ai': AICopilot,
   'reports': Reports,
   'settings': Settings,

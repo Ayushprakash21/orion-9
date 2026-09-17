@@ -135,7 +135,7 @@ export function OrionCommandPalette() {
     // If query is empty: suggest top apps and essential system commands
     if (!q) {
       // Pinned default apps
-      const topAppIds = ['command-center', 'inventory', 'procurement', 'suppliers', 'shipments', 'exceptions', 'world-model', 'orion-ai'];
+      const topAppIds = ['command-center', 'inventory', 'procurement', 'suppliers', 'shipments', 'exceptions', 'approval-center', 'master-data', 'world-model', 'orion-ai'];
       topAppIds.forEach(id => {
         const app = ORION_REGISTRY[id];
         if (app) {

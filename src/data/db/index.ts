@@ -56,6 +56,9 @@ export const db = {
   supplierCommunications: createSafeInstance({ name: 'SC_DB', storeName: 'supplierCommunications' }),
   warehouseDetails: createSafeInstance({ name: 'SC_DB', storeName: 'warehouseDetails' }),
   workflows: createSafeInstance({ name: 'SC_DB', storeName: 'workflows' }),
+  eventFabric: createSafeInstance({ name: 'SC_DB', storeName: 'eventFabric' }),
+  masterData: createSafeInstance({ name: 'SC_DB', storeName: 'masterData' }),
+  reconciliations: createSafeInstance({ name: 'SC_DB', storeName: 'reconciliations' }),
 };
 
 export const saveData = async <T>(store: LocalForage, data: T[]): Promise<void> => {

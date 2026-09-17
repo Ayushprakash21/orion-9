@@ -26,6 +26,40 @@ export type OrganizationProfile = {
   updatedAt: string;
 };
 
+export type DataClassification = 'PUBLIC' | 'INTERNAL' | 'CONFIDENTIAL' | 'RESTRICTED';
+
+export type SourceSystemType =
+  | 'SAP'
+  | 'ORACLE'
+  | 'NETSUITE'
+  | 'SHOPIFY'
+  | 'MANUAL'
+  | 'ORION_INTERNAL'
+  | 'EDI'
+  | 'SFTP'
+  | 'WMS'
+  | 'TMS';
+
+export type MasterDataLifecycleState =
+  | 'DRAFT'
+  | 'VALIDATED'
+  | 'DUPLICATE_CHECKED'
+  | 'APPROVAL_PENDING'
+  | 'ACTIVE'
+  | 'RETIRED';
+
+export interface DataLineageRecord {
+  entityId: string;
+  entityType: string;
+  sourceSystemId?: string;
+  sourceSystemType?: SourceSystemType;
+  ingestionJobId?: string;
+  transformedAt: string;
+  actor: string;
+  checksum?: string;
+  classification: DataClassification;
+}
+
 export type Product = {
   id: string; // SKU
   name: string;
@@ -48,12 +82,21 @@ export type Product = {
   volume?: number;
   abcClass?: string;
   criticality?: string;
+  // Layer 7 Data Fabric extensions
+  sourceSystemId?: string;
+  sourceSystemType?: SourceSystemType;
+  classification?: DataClassification;
+  lifecycleState?: MasterDataLifecycleState;
+  lineage?: DataLineageRecord;
 };
 
 export type Warehouse = {
   id: string;
   name: string;
   location: string;
+  sourceSystemId?: string;
+  sourceSystemType?: SourceSystemType;
+  classification?: DataClassification;
 };
 
 export type Inventory = {
@@ -70,6 +113,11 @@ export type Inventory = {
   unitCost: number;
   leadTime: number; // in days
   lastUpdated?: string;
+  // Layer 7 Data Fabric extensions
+  sourceSystemId?: string;
+  sourceSystemType?: SourceSystemType;
+  classification?: DataClassification;
+  lineage?: DataLineageRecord;
 };
 
 export type Supplier = {
@@ -88,6 +136,13 @@ export type Supplier = {
   score?: number;
   riskLevel?: string;
   status?: string;
+  // Layer 7 Data Fabric extensions
+  sourceSystemId?: string;
+  sourceSystemType?: SourceSystemType;
+  classification?: DataClassification;
+  lifecycleState?: MasterDataLifecycleState;
+  taxId?: string;
+  lineage?: DataLineageRecord;
 };
 
 export type PurchaseOrder = {
@@ -106,6 +161,11 @@ export type PurchaseOrder = {
     unitPrice: number;
   }>;
   buyer: string;
+  // Layer 7 Data Fabric extensions
+  sourceSystemId?: string;
+  sourceSystemType?: SourceSystemType;
+  classification?: DataClassification;
+  lineage?: DataLineageRecord;
 };
 
 export type Shipment = {
@@ -123,6 +183,11 @@ export type Shipment = {
   delayDays: number;
   freightCost: number;
   trackingNumber?: string;
+  // Layer 7 Data Fabric extensions
+  sourceSystemId?: string;
+  sourceSystemType?: SourceSystemType;
+  classification?: DataClassification;
+  lineage?: DataLineageRecord;
 };
 
 export type ExceptionType = 'Stock-Out Risk' | 'Low Stock' | 'Excess Inventory' | 'Supplier Delay' | 'Quality Issue' | 'Supplier Quality' | 'Shipment Delay' | 'Forecast Variance' | 'Demand Spike' | 'Purchase Order Delay' | 'PO Overdue' | 'Lead Time Risk' | 'Data Quality' | 'Cost Variance';

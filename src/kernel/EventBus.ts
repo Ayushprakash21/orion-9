@@ -6,8 +6,18 @@
 
 import { EventEnvelope, DataClassification } from './types';
 import { generateCorrelationId } from './security/crypto';
+import { db, loadData, saveData } from '../data/db';
 
 export type EventHandler<T = any> = (event: EventEnvelope<T>) => void | Promise<void>;
+
+export interface EventReplayOptions {
+  fromTimestamp?: string;
+  toTimestamp?: string;
+  eventTypes?: string[];
+  correlationId?: string;
+  entityId?: string;
+  delayMs?: number;
+}
 
 export class KernelEventBus {
   private static instance: KernelEventBus;
@@ -15,15 +25,44 @@ export class KernelEventBus {
   private wildcardSubscribers: Set<EventHandler> = new Set();
   private eventHistory: EventEnvelope[] = [];
   private processedEventIds: Set<string> = new Set();
-  private maxHistorySize: number = 500;
+  private maxHistorySize: number = 1000;
+  private isPersisting: boolean = false;
 
-  private constructor() {}
+  private constructor() {
+    this.hydrateFromStorage();
+  }
 
   public static getInstance(): KernelEventBus {
     if (!KernelEventBus.instance) {
       KernelEventBus.instance = new KernelEventBus();
     }
     return KernelEventBus.instance;
+  }
+
+  private async hydrateFromStorage(): Promise<void> {
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = await loadData<EventEnvelope>(db.eventFabric);
+        if (stored && stored.length > 0) {
+          this.eventHistory = stored.slice(-this.maxHistorySize);
+          this.eventHistory.forEach(e => this.processedEventIds.add(e.eventId));
+        }
+      }
+    } catch (e) {
+      console.warn('[EventBus] Unable to hydrate events from local storage:', e);
+    }
+  }
+
+  private async persistEvents(): Promise<void> {
+    if (this.isPersisting || typeof window === 'undefined') return;
+    this.isPersisting = true;
+    try {
+      await saveData(db.eventFabric, this.eventHistory);
+    } catch (err) {
+      console.warn('[EventBus] Event persistence warning:', err);
+    } finally {
+      this.isPersisting = false;
+    }
   }
 
   /**
@@ -42,6 +81,7 @@ export class KernelEventBus {
       entityId?: string;
       entityType?: string;
       classification?: DataClassification;
+      isReplay?: boolean;
     }
   ): EventEnvelope<T> {
     const eventId = `evt-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
@@ -84,6 +124,9 @@ export class KernelEventBus {
       const removed = this.eventHistory.shift();
       if (removed) this.processedEventIds.delete(removed.eventId);
     }
+
+    // Persist to indexed storage
+    this.persistEvents();
 
     // Dispatch to specific topic subscribers
     const handlers = this.subscribers.get(eventType);
@@ -151,11 +194,82 @@ export class KernelEventBus {
   }
 
   /**
+   * Replays historical events matching criteria for time-travel analysis, state rebuild, or testing
+   */
+  public async replayEvents(options?: EventReplayOptions): Promise<{ replayedCount: number; events: EventEnvelope[] }> {
+    let matched = [...this.eventHistory];
+
+    if (options?.fromTimestamp) {
+      const fromTime = new Date(options.fromTimestamp).getTime();
+      matched = matched.filter(e => new Date(e.timestamp).getTime() >= fromTime);
+    }
+    if (options?.toTimestamp) {
+      const toTime = new Date(options.toTimestamp).getTime();
+      matched = matched.filter(e => new Date(e.timestamp).getTime() <= toTime);
+    }
+    if (options?.eventTypes && options.eventTypes.length > 0) {
+      matched = matched.filter(e => options.eventTypes!.includes(e.eventType));
+    }
+    if (options?.correlationId) {
+      matched = matched.filter(e => e.correlationId === options.correlationId);
+    }
+    if (options?.entityId) {
+      matched = matched.filter(e => e.entityId === options.entityId);
+    }
+
+    const delay = options?.delayMs ?? 0;
+
+    for (const evt of matched) {
+      if (delay > 0) {
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+      
+      const replayEnvelope: EventEnvelope = {
+        ...evt,
+        isReplay: true,
+      };
+
+      // Dispatch to subscribers with isReplay tag
+      const handlers = this.subscribers.get(evt.eventType);
+      if (handlers) {
+        handlers.forEach(h => {
+          try {
+            h(replayEnvelope);
+          } catch (err) {
+            console.error(`[EventBus Replay] Error in handler for ${evt.eventType}:`, err);
+          }
+        });
+      }
+
+      this.wildcardSubscribers.forEach(h => {
+        try {
+          h(replayEnvelope);
+        } catch (err) {
+          console.error(`[EventBus Replay] Error in wildcard handler for ${evt.eventType}:`, err);
+        }
+      });
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('orion:event:replay', { detail: replayEnvelope }));
+      }
+    }
+
+    return { replayedCount: matched.length, events: matched };
+  }
+
+  /**
    * Clears event history (testing & maintenance only)
    */
-  public clearHistory(): void {
+  public async clearHistory(): Promise<void> {
     this.eventHistory = [];
     this.processedEventIds.clear();
+    if (typeof window !== 'undefined') {
+      try {
+        await db.eventFabric.clear();
+      } catch (err) {
+        console.warn('[EventBus] Clear storage error:', err);
+      }
+    }
   }
 }
 
