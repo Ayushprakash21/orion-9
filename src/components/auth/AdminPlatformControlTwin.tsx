@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { BrandLogo } from "../brand/BrandLogo";
 import { useBranding } from "../../store/BrandingContext";
+import { AdminEarthGlobe3D } from "./AdminEarthGlobe3D";
 
 export interface AdminNodeInfo {
   id: string;
@@ -313,6 +314,9 @@ export const AdminPlatformControlTwin: React.FC<AdminPlatformControlTwinProps> =
           <div className="text-xs lg:text-sm font-bold tracking-[0.16em] text-[#00F2FE] uppercase mt-1.5 drop-shadow-[0_0_12px_rgba(0,242,254,0.5)]">
             PLATFORM CONTROL PLANE
           </div>
+          <div className="text-[9.5px] lg:text-[10.5px] font-mono tracking-[0.22em] text-cyan-300 uppercase mt-0.5 drop-shadow-[0_0_10px_rgba(0,242,254,0.4)] font-semibold">
+            CONNECTED INTELLIGENCE FOR A MORE RESILIENT TOMORROW
+          </div>
           <div className="text-[9px] lg:text-[10px] font-mono text-os-text-muted tracking-[0.18em] uppercase mt-1 flex items-center gap-1.5 font-medium">
             <span>DATA</span>
             <span className="text-cyan-500">·</span>
@@ -350,7 +354,7 @@ export const AdminPlatformControlTwin: React.FC<AdminPlatformControlTwinProps> =
         <svg
           className="absolute inset-0 w-full h-full pointer-events-none"
           viewBox="0 0 1000 680"
-          preserveAspectRatio="xMidYMid meet"
+          preserveAspectRatio="none"
         >
           <defs>
             <filter id="p-glow" x="-30%" y="-30%" width="160%" height="160%">
@@ -386,69 +390,7 @@ export const AdminPlatformControlTwin: React.FC<AdminPlatformControlTwinProps> =
           {/* ========================================================================= */}
           {/* 3D WIREFRAME MOUNTAIN / CONTOUR TOPOGRAPHY MESH (BOTTOM 30%)             */}
           {/* ========================================================================= */}
-          <g opacity="0.85">
-            {/* Topography Contour Wave 1 */}
-            <path
-              d="M -50 630 Q 150 540 320 590 T 640 560 T 920 600 T 1050 580"
-              stroke="#00F2FE"
-              strokeWidth="1.2"
-              strokeOpacity="0.45"
-              fill="none"
-            />
-            {/* Topography Contour Wave 2 */}
-            <path
-              d="M -50 645 Q 120 565 280 610 T 580 575 T 840 615 T 1050 595"
-              stroke="#0284C7"
-              strokeWidth="1"
-              strokeOpacity="0.35"
-              fill="none"
-            />
-            {/* Topography Contour Wave 3 */}
-            <path
-              d="M -50 660 Q 180 580 380 625 T 720 590 T 980 630 T 1050 610"
-              stroke="#38BDF8"
-              strokeWidth="0.9"
-              strokeOpacity="0.3"
-              fill="none"
-            />
-            {/* Topography Contour Wave 4 */}
-            <path
-              d="M -50 675 Q 220 605 440 640 T 780 610 T 1050 635"
-              stroke="#00F2FE"
-              strokeWidth="0.8"
-              strokeOpacity="0.25"
-              fill="none"
-            />
-
-            {/* Crosshatch Perspective Grid Lines for 3D Mesh look */}
-            {Array.from({ length: 22 }).map((_, i) => {
-              const xStart = 20 + i * 46;
-              const xTop = 50 + i * 42;
-              return (
-                <line
-                  key={`mesh-grid-${i}`}
-                  x1={xStart}
-                  y1="675"
-                  x2={xTop}
-                  y2={570 + Math.sin(i * 0.7) * 20}
-                  stroke="#00F2FE"
-                  strokeWidth="0.6"
-                  strokeOpacity="0.2"
-                />
-              );
-            })}
-
-            {/* Glowing Embers / Particles across terrain */}
-            <circle cx="95" cy="580" r="2.2" fill="#00F2FE" filter="url(#p-glow)" opacity="0.9" />
-            <circle cx="180" cy="565" r="1.8" fill="#F59E0B" filter="url(#p-glow)" opacity="0.8" />
-            <circle cx="270" cy="610" r="2.5" fill="#00F2FE" filter="url(#p-glow)" opacity="0.95" />
-            <circle cx="390" cy="570" r="1.8" fill="#38BDF8" opacity="0.7" />
-            <circle cx="480" cy="605" r="3.2" fill="#F59E0B" filter="url(#p-glow)" opacity="0.95" />
-            <circle cx="620" cy="565" r="2.5" fill="#00F2FE" filter="url(#p-glow)" opacity="0.85" />
-            <circle cx="750" cy="600" r="2" fill="#38BDF8" opacity="0.8" />
-            <circle cx="860" cy="575" r="2.8" fill="#F59E0B" filter="url(#p-glow)" opacity="0.9" />
-            <circle cx="940" cy="615" r="2" fill="#00F2FE" opacity="0.75" />
-          </g>
+          {/* Topography curves removed per user request */}
 
           {/* ========================================================================= */}
           {/* ORBITAL ENGINE RINGS & SPOKES AROUND ORION CORE                           */}
@@ -655,7 +597,7 @@ export const AdminPlatformControlTwin: React.FC<AdminPlatformControlTwinProps> =
         {/* CENTERPIECE: LARGE CENTERED ORION-9 LOGO & TAGLINE                        */}
         {/* ========================================================================= */}
         <div
-          style={{ left: "50%", top: "42%" }}
+          style={{ left: "50%", top: "44.1%" }}
           className="absolute -translate-x-1/2 -translate-y-1/2 z-20 flex flex-col items-center text-center select-none"
         >
           <div
@@ -684,25 +626,23 @@ export const AdminPlatformControlTwin: React.FC<AdminPlatformControlTwinProps> =
                 : "hover:scale-105"
             }`}
           >
-            {/* Large centered ORION-9 logo with zero border around logo, no rectangular card */}
-            <div className="w-32 h-32 sm:w-36 sm:h-36 rounded-full flex items-center justify-center bg-[radial-gradient(circle_at_35%_30%,#0e3e68_0%,#071f3a_45%,#030e1d_85%,#01060f_100%)] border-2 border-[#00F2FE]/90 shadow-[0_0_60px_rgba(0,242,254,0.55)] relative overflow-hidden">
-              <svg className="absolute inset-0 w-full h-full opacity-65 animate-[spin_60s_linear_infinite]" viewBox="0 0 160 160">
-                <ellipse cx="80" cy="80" rx="72" ry="32" stroke="#00F2FE" strokeWidth="0.8" fill="none" strokeDasharray="3 3" />
-                <ellipse cx="80" cy="80" rx="72" ry="52" stroke="#00F2FE" strokeWidth="0.6" fill="none" strokeDasharray="2 4" />
-                <ellipse cx="80" cy="80" rx="36" ry="72" stroke="#00F2FE" strokeWidth="0.8" fill="none" strokeDasharray="3 3" />
-                <line x1="8" y1="80" x2="152" y2="80" stroke="#00F2FE" strokeWidth="0.9" />
-                <line x1="80" y1="8" x2="80" y2="152" stroke="#00F2FE" strokeWidth="0.9" />
-              </svg>
-              <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_30%_25%,rgba(255,255,255,0.3)_0%,rgba(0,242,254,0.15)_30%,transparent_65%)] pointer-events-none" />
-              <div className="relative z-10 text-xl sm:text-2xl font-black font-sans tracking-[0.22em] text-white uppercase drop-shadow-[0_0_16px_rgba(0,242,254,0.95)]">
-                ORION-9
+            {/* 3D Rotating Earth Globe with Centered ORION-9 Branding */}
+            <div className="w-44 h-44 rounded-full flex items-center justify-center relative overflow-hidden" style={{ background: 'transparent' }}>
+              {/* Three.js 3D Earth Canvas */}
+              <div className="absolute inset-0 w-full h-full pointer-events-none flex items-center justify-center">
+                <AdminEarthGlobe3D size={176} />
+              </div>
+
+              {/* Soft radial fade-out mask so edges dissolve into background */}
+              <div className="absolute inset-0 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, transparent 45%, #020712 78%)' }} />
+
+              {/* Centered ORION-9 Text — clean bold white, no pill background */}
+              <div className="relative z-10 flex items-center justify-center pointer-events-none">
+                <span className="text-base sm:text-lg font-black font-sans tracking-[0.28em] text-white uppercase whitespace-nowrap select-none" style={{ textShadow: '0 0 18px rgba(0,242,254,0.9), 0 0 40px rgba(0,242,254,0.5), 0 2px 4px rgba(0,0,0,0.8)' }}>
+                  ORION-9
+                </span>
               </div>
             </div>
-          </div>
-
-          {/* Tagline placed below with deliberate 28px visual gap */}
-          <div className="mt-7 font-mono text-[10px] sm:text-[11px] tracking-[0.28em] text-cyan-300 uppercase whitespace-nowrap drop-shadow-[0_0_12px_rgba(0,242,254,0.5)] font-semibold">
-            CONNECTED INTELLIGENCE FOR A MORE RESILIENT TOMORROW
           </div>
         </div>
 
@@ -792,13 +732,15 @@ export const AdminPlatformControlTwin: React.FC<AdminPlatformControlTwinProps> =
                 onMouseEnter={() => handleNodeMouseEnter(node)}
                 onMouseLeave={handleNodeMouseLeave}
                 onClick={(e) => handleNodeTouchOrClick(e, node)}
-                className={`w-16 h-16 sm:w-18 sm:h-18 lg:w-20 lg:h-20 rounded-2xl flex flex-col items-center justify-center p-2 transition-all duration-300 cursor-pointer focus:outline-none border ${
+                className={`relative w-16 h-16 sm:w-18 sm:h-18 lg:w-20 lg:h-20 rounded-2xl flex flex-col items-center justify-center p-2 transition-all duration-300 cursor-pointer focus:outline-none border ${
                   isInspected
                     ? "bg-[#09152B] border-[#00F2FE] shadow-[0_0_24px_rgba(0,242,254,0.6)] scale-105"
                     : "bg-os-surface/95 border-slate-700/60 hover:border-cyan-400/70 hover:shadow-[0_0_18px_rgba(0,242,254,0.3)] hover:scale-105"
                 }`}
                 aria-label={`Inspect ${node.name}`}
               >
+                {/* Circuit Connection Terminal Port on Right Edge */}
+                <div className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#00F2FE] border-2 border-[#020712] shadow-[0_0_8px_#00F2FE] pointer-events-none" />
                 <IconComp className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-400 mb-1.5 transition-transform group-hover:scale-110" />
                 <span className="text-[8px] sm:text-[9px] font-bold tracking-widest text-os-text-primary uppercase font-sans">
                   {node.name}
@@ -824,13 +766,15 @@ export const AdminPlatformControlTwin: React.FC<AdminPlatformControlTwinProps> =
                 onMouseEnter={() => handleNodeMouseEnter(node)}
                 onMouseLeave={handleNodeMouseLeave}
                 onClick={(e) => handleNodeTouchOrClick(e, node)}
-                className={`w-16 h-16 sm:w-18 sm:h-18 lg:w-20 lg:h-20 rounded-2xl flex flex-col items-center justify-center p-2 transition-all duration-300 cursor-pointer focus:outline-none border ${
+                className={`relative w-16 h-16 sm:w-18 sm:h-18 lg:w-20 lg:h-20 rounded-2xl flex flex-col items-center justify-center p-2 transition-all duration-300 cursor-pointer focus:outline-none border ${
                   isInspected
                     ? "bg-[#09152B] border-[#00F2FE] shadow-[0_0_24px_rgba(0,242,254,0.6)] scale-105"
                     : "bg-os-surface/95 border-slate-700/60 hover:border-cyan-400/70 hover:shadow-[0_0_18px_rgba(0,242,254,0.3)] hover:scale-105"
                 }`}
                 aria-label={`Inspect ${node.name}`}
               >
+                {/* Circuit Connection Terminal Port on Left Edge */}
+                <div className="absolute -left-1.5 top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full bg-[#00F2FE] border-2 border-[#020712] shadow-[0_0_8px_#00F2FE] pointer-events-none" />
                 <IconComp className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-400 mb-1.5 transition-transform group-hover:scale-110" />
                 <span className="text-[7.5px] sm:text-[8.5px] font-bold tracking-wider text-os-text-primary uppercase font-sans">
                   {node.name}

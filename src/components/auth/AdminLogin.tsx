@@ -75,8 +75,8 @@ export const AdminLogin: React.FC = () => {
       {/* RIGHT AUTHENTICATION AREA (~30-32%): PLATFORM ADMINISTRATION LOGIN CARD   */}
       {/* EXACTLY MATCHING THE USER'S PROVIDED SCREENSHOT                           */}
       {/* ========================================================================= */}
-      <div className="w-full lg:w-[380px] xl:w-[420px] 2xl:w-[450px] h-full min-h-0 flex flex-col relative z-20 bg-os-bg justify-center overflow-y-auto">
-        <div className="flex-1 flex flex-col justify-center px-6 sm:px-8 xl:px-10 py-10 w-full max-w-[420px] mx-auto">
+      <div className="w-full lg:w-[380px] xl:w-[420px] 2xl:w-[450px] h-full min-h-0 flex flex-col relative z-20 bg-os-bg justify-between overflow-y-auto">
+        <div className="flex-1 flex flex-col justify-center px-6 sm:px-8 xl:px-10 py-6 w-full max-w-[420px] mx-auto">
           {/* Card Container with subtle cyan border and rounded-2xl corners */}
           <div className="rounded-2xl bg-os-surface/95 border border-[#17263C] p-7 sm:p-8 xl:p-9 shadow-[0_20px_60px_rgba(0,0,0,0.85)] backdrop-blur-xl">
             {/* Top Pill Badge: PLATFORM ADMIN */}
@@ -227,30 +227,29 @@ export const AdminLogin: React.FC = () => {
               </div>
             </div>
           </div>
-
-          {/* Authentication navigation is anchored to the viewport bottom, matching the user login screen. */}
-          <div className="absolute left-0 right-0 bottom-8 xl:bottom-10 px-6 sm:px-8 xl:px-10 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={triggerShutdown}
-              aria-label="Shut down ORION"
-              title="Shut Down ORION"
-              className="group inline-flex h-10 w-10 items-center justify-center rounded-full border border-os-border bg-os-surface/90 text-os-text-secondary hover:text-red-400 hover:border-red-500/50 hover:bg-red-500/10 transition-all duration-200 shadow-lg cursor-pointer"
-            >
-              <Power className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" strokeWidth={2.2} />
-            </button>
-            <Link
-              to="/login"
-              replace
-              className="inline-flex items-center justify-center gap-2 min-w-[190px] px-5 py-3 rounded-xl border border-os-border bg-os-surface/90 text-[11px] font-mono font-bold tracking-[0.16em] uppercase text-os-text-secondary hover:text-white hover:border-os-accent/60 hover:bg-os-surface transition-all duration-200 shadow-lg backdrop-blur-md"
-              aria-label="Return to User Login"
-            >
-              <span aria-hidden="true">←</span>
-              <span>USER LOGIN</span>
-            </Link>
-          </div>
         </div>
 
+        {/* Authentication navigation matching Login.tsx bottom bar */}
+        <div className="w-full min-h-[64px] p-4 sm:p-6 flex items-center justify-between shrink-0 border-t border-white/5">
+          <button
+            type="button"
+            onClick={triggerShutdown}
+            aria-label="Shut down ORION"
+            title="Shut Down ORION"
+            className="group inline-flex h-10 w-10 items-center justify-center rounded-full border border-os-border bg-os-surface/90 text-os-text-secondary hover:text-red-400 hover:border-red-500/50 hover:bg-red-500/10 transition-all duration-200 shadow-lg cursor-pointer"
+          >
+            <Power className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" strokeWidth={2.2} />
+          </button>
+          <Link
+            to="/login"
+            replace
+            className="inline-flex items-center justify-center gap-2 min-w-[190px] px-5 py-3 rounded-xl border border-os-border bg-os-surface/90 text-[11px] font-mono font-bold tracking-[0.16em] uppercase text-os-text-secondary hover:text-white hover:border-os-accent/60 hover:bg-os-surface transition-all duration-200 shadow-lg backdrop-blur-md"
+            aria-label="Return to User Login"
+          >
+            <span aria-hidden="true">←</span>
+            <span>USER LOGIN</span>
+          </Link>
+        </div>
       </div>
     </div>
   );
