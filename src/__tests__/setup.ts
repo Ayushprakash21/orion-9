@@ -35,7 +35,9 @@ vi.mock('localforage', () => ({
   },
 }));
 
-// Suppress Supabase network calls — always return null (local fallback mode).
-vi.mock('../lib/supabaseClient', () => ({
-  getSupabase: vi.fn().mockReturnValue(null),
+// Suppress Firebase network calls — return mock instances in test mode
+vi.mock('../lib/firebaseClient', () => ({
+  getFirebaseApp: vi.fn().mockReturnValue(null),
+  getFirebaseAuth: vi.fn().mockReturnValue(null),
+  getFirebaseFirestore: vi.fn().mockReturnValue(null),
 }));

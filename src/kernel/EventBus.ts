@@ -7,6 +7,8 @@
 import { EventEnvelope, DataClassification } from './types';
 import { generateCorrelationId } from './security/crypto';
 import { db, loadData, saveData } from '../data/db';
+import { getFirebaseFirestore } from '../lib/firebaseClient';
+import { doc, setDoc } from 'firebase/firestore';
 
 export type EventHandler<T = any> = (event: EventEnvelope<T>) => void | Promise<void>;
 
@@ -127,6 +129,17 @@ export class KernelEventBus {
 
     // Persist to indexed storage
     this.persistEvents();
+
+    // Persist to Cloud Firestore events collection asynchronously
+    try {
+      const db = getFirebaseFirestore();
+      if (db) {
+        setDoc(doc(db, 'events', eventId), {
+          ...envelope,
+          organizationId: envelope.tenant?.organizationId || 'ORION_PLATFORM',
+        }).catch(err => console.warn('[EventBus] Firestore event persistence warning:', err));
+      }
+    } catch (e) {}
 
     // Dispatch to specific topic subscribers
     const handlers = this.subscribers.get(eventType);

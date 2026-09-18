@@ -2,16 +2,17 @@
  * ORION-9 LOCAL-FIRST OUTBOX SYNCHRONIZATION ENGINE
  * 
  * Implements the robust local-first conceptual model:
- * USER ACTION -> LOCAL STATE (IndexedDB) -> LOCAL OUTBOX -> SUPABASE -> 
- * SERVER VALIDATION -> DATABASE COMMIT -> EVENT -> LOCAL SYNC.
+ * USER ACTION -> LOCAL STATE (IndexedDB) -> LOCAL OUTBOX -> FIREBASE -> 
+ * SERVER VALIDATION -> FIRESTORE COMMIT -> EVENT -> LOCAL SYNC.
  * 
  * In offline mode:
  * Actions are queued transactionally in `SC_OUTBOX` IndexedDB.
- * When a connection is re-established, the queue revalidates against Supabase and commits.
+ * When a connection is re-established, the queue revalidates against Cloud Firestore and commits.
  */
 
 import localforage from 'localforage';
-import { getSupabase } from '../../lib/supabaseClient';
+import { getFirebaseFirestore } from '../../lib/firebaseClient';
+import { doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { generateCorrelationId } from '../../kernel/security/crypto';
 
 export interface OutboxItem {
@@ -91,15 +92,15 @@ class OutboxSyncEngine {
   }
 
   /**
-   * Processes all pending items in the outbox against Supabase PostgreSQL.
+   * Processes all pending items in the outbox against Cloud Firestore.
    */
   public async processQueue(): Promise<{ processed: number; failed: number }> {
     if (this.isProcessing) return { processed: 0, failed: 0 };
     const store = this.getStore();
     if (!store) return { processed: 0, failed: 0 };
 
-    const supabase = getSupabase();
-    if (!supabase) {
+    const db = getFirebaseFirestore();
+    if (!db) {
       // Remote DB is not configured; items remain safely in local outbox
       return { processed: 0, failed: 0 };
     }
@@ -118,24 +119,18 @@ class OutboxSyncEngine {
           item.status = 'SYNCING';
           await store.setItem(key, item);
 
-          // Perform remote mutation with tenant isolation check
-          const table = item.entityType;
-          let remoteResult;
+          const collectionName = item.entityType.toLowerCase();
+          const docId = item.payload?.id || item.id;
+          const targetDocRef = doc(db, collectionName, docId);
 
-          if (item.operation === 'INSERT') {
-            remoteResult = await supabase.from(table).insert({
+          if (item.operation === 'DELETE') {
+            await deleteDoc(targetDocRef);
+          } else {
+            await setDoc(targetDocRef, {
               ...item.payload,
-              organization_id: item.tenantId,
-            });
-          } else if (item.operation === 'UPDATE') {
-            const { id, ...updates } = item.payload;
-            remoteResult = await supabase.from(table).update(updates).eq('id', id).eq('organization_id', item.tenantId);
-          } else if (item.operation === 'DELETE') {
-            remoteResult = await supabase.from(table).delete().eq('id', item.payload.id).eq('organization_id', item.tenantId);
-          }
-
-          if (remoteResult?.error) {
-            throw remoteResult.error;
+              organizationId: item.tenantId,
+              updatedAt: new Date().toISOString(),
+            }, { merge: true });
           }
 
           // Marked as synced and remove from queue

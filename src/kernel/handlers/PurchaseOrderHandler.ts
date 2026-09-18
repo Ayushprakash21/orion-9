@@ -8,7 +8,7 @@
  * Workflow:
  *   CreatePurchaseOrder command
  *     → CommandBus (identity, auth, policy, approval gate)
- *     → PurchaseOrderHandler (Supabase upsert / IndexedDB fallback)
+ *     → PurchaseOrderHandler (Cloud Firestore repository / IndexedDB fallback)
  *     → State transition: DRAFT → PENDING_APPROVAL or DRAFT → APPROVED
  *     → PurchaseOrderCreated event
  *     → Audit record
@@ -25,7 +25,8 @@ import { kernelCommandBus, CommandHandler } from '../CommandBus';
 import { poStateMachine, POState } from '../StateMachine';
 import { kernelEventBus } from '../EventBus';
 import { kernelAuditEngine } from '../AuditEngine';
-import { getSupabase } from '../../lib/supabaseClient';
+import { getFirebaseFirestore } from '../../lib/firebaseClient';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { db, loadData, saveData } from '../../data/db';
 import { generateCorrelationId } from '../security/crypto';
 import {
@@ -132,7 +133,7 @@ const handleCreatePurchaseOrder: CommandHandler<CreatePurchaseOrderPayload, Purc
   command: CommandEnvelope<CreatePurchaseOrderPayload>
 ) => {
   const { payload, actor, tenant, commandId, correlationId } = command;
-  const supabase = getSupabase();
+  const firestore = getFirebaseFirestore();
 
   const poId = `po-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
   const now = new Date().toISOString();
@@ -160,29 +161,30 @@ const handleCreatePurchaseOrder: CommandHandler<CreatePurchaseOrderPayload, Purc
     updatedAt: now,
   };
 
-  // Persist to Supabase if available, otherwise local IndexedDB.
-  if (supabase) {
-    const { error } = await supabase.from('purchase_orders').insert({
-      id: po.id,
-      command_id: po.commandId,
-      correlation_id: po.correlationId,
-      organization_id: po.organizationId,
-      title: po.title,
-      supplier_id: po.supplierId,
-      supplier_name: po.supplierName,
-      amount: po.amount,
-      currency: po.currency,
-      description: po.description,
-      requested_delivery_date: po.requestedDeliveryDate,
-      state: po.state,
-      lines: po.lines,
-      created_by: po.createdBy,
-      created_at: po.createdAt,
-      updated_at: po.updatedAt,
-    });
-
-    if (error) {
-      console.warn('[POHandler] Supabase insert failed, falling back to local:', error.message);
+  // Persist to Cloud Firestore if available, otherwise local IndexedDB.
+  if (firestore) {
+    try {
+      const poDocRef = doc(firestore, 'purchase_orders', po.id);
+      await setDoc(poDocRef, {
+        id: po.id,
+        commandId: po.commandId,
+        correlationId: po.correlationId,
+        organizationId: po.organizationId,
+        title: po.title,
+        supplierId: po.supplierId || null,
+        supplierName: po.supplierName || null,
+        amount: po.amount,
+        currency: po.currency,
+        description: po.description || null,
+        requestedDeliveryDate: po.requestedDeliveryDate || null,
+        state: po.state,
+        lines: po.lines || [],
+        createdBy: po.createdBy,
+        createdAt: po.createdAt,
+        updatedAt: po.updatedAt,
+      });
+    } catch (fsErr: any) {
+      console.warn('[POHandler] Firestore insert failed, falling back to local store:', fsErr.message);
       await saveLocalPO(po);
     }
   } else {
@@ -211,37 +213,39 @@ const handleApprovePurchaseOrder: CommandHandler<ApprovePurchaseOrderPayload, Pu
   command: CommandEnvelope<ApprovePurchaseOrderPayload>
 ) => {
   const { payload, actor, tenant, correlationId } = command;
-  const supabase = getSupabase();
+  const firestore = getFirebaseFirestore();
 
   // Fetch the PO.
   let po: PurchaseOrder | null = null;
 
-  if (supabase) {
-    const { data, error } = await supabase
-      .from('purchase_orders')
-      .select('*')
-      .eq('id', payload.purchaseOrderId)
-      .eq('organization_id', tenant.organizationId)
-      .single();
-
-    if (!error && data) {
-      po = {
-        id: data.id,
-        commandId: data.command_id,
-        correlationId: data.correlation_id,
-        organizationId: data.organization_id,
-        title: data.title,
-        supplierId: data.supplier_id,
-        supplierName: data.supplier_name,
-        amount: data.amount,
-        currency: data.currency,
-        description: data.description,
-        state: data.state,
-        lines: data.lines || [],
-        createdBy: data.created_by,
-        createdAt: data.created_at,
-        updatedAt: data.updated_at,
-      };
+  if (firestore) {
+    try {
+      const poDocRef = doc(firestore, 'purchase_orders', payload.purchaseOrderId);
+      const snap = await getDoc(poDocRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data.organizationId === tenant.organizationId) {
+          po = {
+            id: data.id,
+            commandId: data.commandId,
+            correlationId: data.correlationId,
+            organizationId: data.organizationId,
+            title: data.title,
+            supplierId: data.supplierId,
+            supplierName: data.supplierName,
+            amount: data.amount,
+            currency: data.currency,
+            description: data.description,
+            state: data.state,
+            lines: data.lines || [],
+            createdBy: data.createdBy,
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+          };
+        }
+      }
+    } catch (err) {
+      console.warn('[POHandler] Firestore fetch error, trying local fallback:', err);
     }
   }
 
@@ -281,12 +285,18 @@ const handleApprovePurchaseOrder: CommandHandler<ApprovePurchaseOrderPayload, Pu
   po.updatedAt = now;
 
   // Persist update.
-  if (supabase) {
-    await supabase
-      .from('purchase_orders')
-      .update({ state: toState, approved_by: actor.id, approved_at: now, updated_at: now })
-      .eq('id', po.id)
-      .eq('organization_id', tenant.organizationId);
+  if (firestore) {
+    try {
+      const poDocRef = doc(firestore, 'purchase_orders', po.id);
+      await updateDoc(poDocRef, {
+        state: toState,
+        approvedBy: actor.id,
+        approvedAt: now,
+        updatedAt: now,
+      });
+    } catch (err) {
+      await saveLocalPO(po);
+    }
   } else {
     await saveLocalPO(po);
   }
@@ -313,21 +323,31 @@ const handleRejectPurchaseOrder: CommandHandler<RejectPurchaseOrderPayload, { pu
   command: CommandEnvelope<RejectPurchaseOrderPayload>
 ) => {
   const { payload, actor, tenant, correlationId } = command;
-  const supabase = getSupabase();
+  const firestore = getFirebaseFirestore();
   const now = new Date().toISOString();
 
-  if (supabase) {
-    await supabase
-      .from('purchase_orders')
-      .update({
+  if (firestore) {
+    try {
+      const poDocRef = doc(firestore, 'purchase_orders', payload.purchaseOrderId);
+      await updateDoc(poDocRef, {
         state: 'REJECTED',
-        rejected_by: actor.id,
-        rejected_at: now,
-        rejection_reason: payload.reason,
-        updated_at: now,
-      })
-      .eq('id', payload.purchaseOrderId)
-      .eq('organization_id', tenant.organizationId);
+        rejectedBy: actor.id,
+        rejectedAt: now,
+        rejectionReason: payload.reason,
+        updatedAt: now,
+      });
+    } catch {
+      const local = await getLocalPOs();
+      const po = local.find(p => p.id === payload.purchaseOrderId);
+      if (po) {
+        po.state = 'REJECTED';
+        po.rejectedBy = actor.id;
+        po.rejectedAt = now;
+        po.rejectionReason = payload.reason;
+        po.updatedAt = now;
+        await saveLocalPO(po);
+      }
+    }
   } else {
     const local = await getLocalPOs();
     const po = local.find(p => p.id === payload.purchaseOrderId);
@@ -356,15 +376,22 @@ const handleCancelPurchaseOrder: CommandHandler<CancelPurchaseOrderPayload, { pu
   command: CommandEnvelope<CancelPurchaseOrderPayload>
 ) => {
   const { payload, actor, tenant, correlationId } = command;
-  const supabase = getSupabase();
+  const firestore = getFirebaseFirestore();
   const now = new Date().toISOString();
 
-  if (supabase) {
-    await supabase
-      .from('purchase_orders')
-      .update({ state: 'CANCELLED', updated_at: now })
-      .eq('id', payload.purchaseOrderId)
-      .eq('organization_id', tenant.organizationId);
+  if (firestore) {
+    try {
+      const poDocRef = doc(firestore, 'purchase_orders', payload.purchaseOrderId);
+      await updateDoc(poDocRef, { state: 'CANCELLED', updatedAt: now });
+    } catch {
+      const local = await getLocalPOs();
+      const po = local.find(p => p.id === payload.purchaseOrderId);
+      if (po) {
+        po.state = 'CANCELLED';
+        po.updatedAt = now;
+        await saveLocalPO(po);
+      }
+    }
   } else {
     const local = await getLocalPOs();
     const po = local.find(p => p.id === payload.purchaseOrderId);

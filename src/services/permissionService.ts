@@ -1,6 +1,6 @@
 import { RoleCode, PermissionCode } from '../types/auth';
 
-// TEMPORARY LOCAL AUTH MODE — replace with Supabase/enterprise IdP before production.
+// TEMPORARY LOCAL AUTH MODE — replace with Firebase/enterprise IdP before production.
 // admin / admin is development-only and must be replaced before production deployment.
 
 const DEFAULT_ROLE_PERMISSIONS: Record<RoleCode, PermissionCode[]> = {

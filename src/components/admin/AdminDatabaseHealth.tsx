@@ -12,7 +12,7 @@ import {
   Clock,
   Server
 } from 'lucide-react';
-import { databaseHealthService, DatabaseHealthReport, ORION_SCHEMA_TABLES } from '../../services/databaseHealthService';
+import { databaseHealthService, DatabaseHealthReport, ORION_SCHEMA_COLLECTIONS } from '../../services/databaseHealthService';
 import { outboxSyncEngine } from '../../core/data/OutboxSyncEngine';
 
 export const AdminDatabaseHealth: React.FC = () => {
@@ -58,7 +58,7 @@ export const AdminDatabaseHealth: React.FC = () => {
             <div>
               <h2 className="text-xl font-semibold tracking-tight">Database Architecture & Health Verification</h2>
               <p className="text-xs text-os-text-muted mt-0.5">
-                Primary: <strong className="text-os-text-primary">Supabase PostgreSQL</strong> • Local Store: <strong className="text-os-text-primary">IndexedDB / LocalForage</strong>
+                Primary: <strong className="text-os-text-primary">Google Firebase (Auth & Cloud Firestore)</strong> • Local Store: <strong className="text-os-text-primary">IndexedDB / LocalForage</strong>
               </p>
             </div>
           </div>
@@ -98,10 +98,10 @@ export const AdminDatabaseHealth: React.FC = () => {
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 <span className="text-emerald-400">CONNECTED</span>
               </>
-            ) : report?.connectionStatus === 'NOT CONFIGURED' ? (
+            ) : report?.connectionStatus === 'CONFIGURED' ? (
               <>
-                <AlertTriangle className="w-4 h-4 text-amber-400" />
-                <span className="text-amber-400">NOT CONFIGURED</span>
+                <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <span className="text-emerald-400">CONFIGURED</span>
               </>
             ) : (
               <>
@@ -118,19 +118,14 @@ export const AdminDatabaseHealth: React.FC = () => {
         {/* Schema Status */}
         <div className="p-4 rounded-xl border border-os-border bg-os-surface/40 backdrop-blur-sm space-y-2">
           <div className="flex items-center justify-between text-xs text-os-text-muted">
-            <span>Schema & Migration</span>
+            <span>Cloud Firestore Schema</span>
             <Layers className="w-4 h-4 text-os-text-muted" />
           </div>
           <div className="text-base font-semibold font-mono flex items-center gap-2">
-            {report?.migrationStatus === 'CURRENT' ? (
+            {report?.firestoreStatus === 'CONNECTED' ? (
               <>
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span className="text-emerald-400">CURRENT</span>
-              </>
-            ) : report?.migrationStatus === 'MIGRATION REQUIRED' ? (
-              <>
-                <AlertTriangle className="w-4 h-4 text-amber-400" />
-                <span className="text-amber-400">MIGRATION REQUIRED</span>
+                <span className="text-emerald-400">ACTIVE</span>
               </>
             ) : (
               <>
@@ -140,21 +135,21 @@ export const AdminDatabaseHealth: React.FC = () => {
             )}
           </div>
           <p className="text-[11px] text-os-text-muted">
-            File: <strong>migration.sql</strong> ({report?.tableAvailability.totalDefined} tables)
+            Collections: <strong>firestore.rules</strong> ({report?.tableAvailability.totalDefined} collections)
           </p>
         </div>
 
-        {/* RLS Policy Enforcement */}
+        {/* Firestore Security Rules Enforcement */}
         <div className="p-4 rounded-xl border border-os-border bg-os-surface/40 backdrop-blur-sm space-y-2">
           <div className="flex items-center justify-between text-xs text-os-text-muted">
-            <span>Row Level Security (RLS)</span>
+            <span>Firestore Security Rules</span>
             <ShieldCheck className="w-4 h-4 text-os-text-muted" />
           </div>
           <div className="text-base font-semibold font-mono flex items-center gap-2">
-            {report?.rlsStatus === 'ENABLED' ? (
+            {report?.securityRulesStatus === 'VERIFIED' ? (
               <>
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                <span className="text-emerald-400">ENABLED</span>
+                <span className="text-emerald-400">HARDENED</span>
               </>
             ) : (
               <>
@@ -192,32 +187,32 @@ export const AdminDatabaseHealth: React.FC = () => {
         <div className="text-xs space-y-1">
           <p className="font-semibold text-blue-300">Dual-Tier Enterprise Architecture Grounding</p>
           <p className="text-os-text-muted leading-relaxed">
-            Orion-9 never treats local browser storage as the enterprise system-of-record. <strong>Supabase PostgreSQL</strong> serves as the persistent multi-tenant system-of-record with strict Row Level Security (RLS). <strong>IndexedDB (LocalForage)</strong> operates as a zero-latency local cache with an offline transactional Outbox queue, guaranteeing offline continuity and immediate responsiveness.
+            Orion-9 never treats local browser storage as the enterprise system-of-record. <strong>Google Firebase Auth & Cloud Firestore</strong> serve as the persistent multi-tenant system-of-record with strict Firestore Security Rules. <strong>IndexedDB (LocalForage)</strong> operates as a zero-latency local cache with an offline transactional Outbox queue, guaranteeing offline continuity and immediate responsiveness.
           </p>
         </div>
       </div>
 
-      {/* Schema Table Inventory */}
+      {/* Schema Collection Inventory */}
       <div className="rounded-xl border border-os-border bg-os-surface/30 overflow-hidden">
         <div className="px-5 py-4 border-b border-os-border flex items-center justify-between bg-os-surface/50">
           <div>
-            <h3 className="text-sm font-semibold">Orion-9 Enterprise Database Table Schema ({ORION_SCHEMA_TABLES.length} Tables)</h3>
-            <p className="text-xs text-os-text-muted mt-0.5">All tables defined with mandatory organization/tenant isolation and RLS policies</p>
+            <h3 className="text-sm font-semibold">Orion-9 Enterprise Firestore Collections ({ORION_SCHEMA_COLLECTIONS.length} Collections)</h3>
+            <p className="text-xs text-os-text-muted mt-0.5">All collections protected with mandatory organization/tenant isolation and Firestore Security Rules</p>
           </div>
           <span className="px-2.5 py-1 text-[10px] font-mono rounded-md bg-white/5 border border-os-border text-os-text-secondary">
-            v2.0 Idempotent Migration
+            v2.0 Firebase Architecture
           </span>
         </div>
 
         <div className="p-5">
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5">
-            {ORION_SCHEMA_TABLES.map(table => (
+            {ORION_SCHEMA_COLLECTIONS.map(collection => (
               <div
-                key={table}
+                key={collection}
                 className="px-3 py-2 rounded-lg border border-os-border/60 bg-os-surface/50 flex items-center justify-between font-mono text-xs"
               >
-                <span className="truncate">{table}</span>
-                <span className="text-[10px] text-emerald-400 font-sans ml-2">RLS</span>
+                <span className="truncate">{collection}</span>
+                <span className="text-[10px] text-emerald-400 font-sans ml-2">Rules</span>
               </div>
             ))}
           </div>

@@ -4,7 +4,8 @@ import { userService } from './userService';
 import { organizationService } from './organizationService';
 import { auditService } from './AuditService';
 import { privilegedSessionManager } from '../kernel/security/privilegedSession';
-import { getSupabase } from '../lib/supabaseClient';
+import { getFirebaseAuth } from '../lib/firebaseClient';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { generateCorrelationId } from '../kernel/security/crypto';
 
 export interface AuthSessionDetails {
@@ -58,7 +59,7 @@ export const authService = {
   },
 
   /**
-   * Authenticates user via Supabase Auth (if configured) or secure salted credentials.
+   * Authenticates user via Firebase Auth Authority (or local identity verification).
    * Universal bypasses, empty passwords, and 'admin' shortcuts are strictly forbidden.
    */
   authenticate: async (identifier: string, passwordString: string): Promise<AuthSessionDetails> => {
@@ -72,37 +73,49 @@ export const authService = {
     }
 
     const cleanIdentifier = identifier.trim().toLowerCase();
+    const resolvedEmail = await authService.resolveIdentity(cleanIdentifier).catch(() => cleanIdentifier);
 
-    // 1. Try Supabase Auth first if configured
-    const supabase = getSupabase();
-    if (supabase && cleanIdentifier.includes('@')) {
-      try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: cleanIdentifier,
-          password: passwordString,
-        });
-        if (!error && data?.user) {
-          const details = await authService.loadFullSession(data.user.id, data.user.email);
+    // 1. Try Firebase Auth first
+    try {
+      const auth = getFirebaseAuth();
+      if (auth && resolvedEmail.includes('@')) {
+        const userCredential = await signInWithEmailAndPassword(auth, resolvedEmail, passwordString);
+        if (userCredential?.user) {
+          const fbUser = userCredential.user;
+          const details = await authService.loadFullSession(fbUser.uid, fbUser.email || resolvedEmail);
           if (typeof window !== 'undefined') {
             localStorage.setItem('orion_auth_session', JSON.stringify(details));
           }
           await auditService.log({
-            actorUserId: data.user.id,
-            actorName: details.profile.fullName || cleanIdentifier,
+            actorUserId: fbUser.uid,
+            actorName: details.profile.fullName || resolvedEmail,
             actorRole: details.role,
             organizationId: details.organization?.id,
             action: 'LOGIN_SUCCESS',
-            operation: 'SUPABASE_AUTH',
+            operation: 'FIREBASE_AUTH',
             resourceType: 'auth_session',
-            resourceId: data.user.id,
+            resourceId: fbUser.uid,
             status: 'success',
             correlationId,
           });
           return details;
         }
-      } catch (sbErr) {
-        console.warn('[SUPABASE_AUTH_FALLBACK] Remote auth unavailable, falling back to local secure verification:', sbErr);
       }
+    } catch (fbErr: any) {
+      // If Firebase Auth throws wrong password, reject immediately
+      if (fbErr?.code === 'auth/wrong-password' || fbErr?.code === 'auth/user-not-found' || fbErr?.code === 'auth/invalid-credential') {
+        await auditService.log({
+          actorUserId: cleanIdentifier,
+          actorName: cleanIdentifier,
+          action: 'LOGIN_FAILURE',
+          operation: 'FIREBASE_CREDENTIAL_REJECTED',
+          resourceType: 'auth_session',
+          status: 'failure',
+          correlationId,
+        });
+        throw new Error('Invalid username or password.');
+      }
+      console.warn('[FIREBASE_AUTH_NOTICE] Remote auth notice, attempting local identity verification:', fbErr.message);
     }
 
     // 2. Local verification against salted hashes

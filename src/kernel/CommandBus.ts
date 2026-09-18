@@ -10,6 +10,8 @@ import { kernelPolicyEngine } from './PolicyEngine';
 import { kernelEventBus } from './EventBus';
 import { kernelAuditEngine } from './AuditEngine';
 import { authorizationEngine } from './authorization/AuthorizationEngine';
+import { getFirebaseFirestore } from '../lib/firebaseClient';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 export type CommandHandler<T = any, R = any> = (
   command: CommandEnvelope<T>
@@ -113,9 +115,7 @@ export class KernelCommandBus {
       };
     }
 
-    // 3. AUTHORIZATION — tenant isolation is the hard gate; role/permission checks are
-    // best-effort here. The Policy Engine provides the authoritative governance layer.
-    // This step only hard-blocks cross-tenant access (TENANT_ACCESS_DENIED).
+    // 3. FAIL-CLOSED AUTHORIZATION GATE
     try {
       const requiredPermission = `${context.entityType || 'generic'}:${commandType.replace('_PURCHASE_ORDER', '').toLowerCase()}`;
       authorizationEngine.authorize({
@@ -132,31 +132,28 @@ export class KernelCommandBus {
         organizationId: context.tenant.organizationId,
       });
     } catch (authErr: any) {
-      // ONLY hard-block on cross-tenant access violation.
-      if (authErr?.code === 'TENANT_ACCESS_DENIED') {
-        await kernelAuditEngine.record({
-          eventId: commandId,
-          correlationId,
-          actor: context.actor,
-          tenantId: context.tenant.organizationId,
-          action: commandType,
-          entityType: context.entityType || 'generic',
-          entityId: context.entityId || 'unknown',
-          result: 'BLOCKED',
-          failureReason: authErr.message,
-          classification: 'INTERNAL',
-        });
-        return {
-          success: false,
-          commandId,
-          correlationId,
-          error: `Authorization denied: ${authErr.message}`,
-          errorCode: 'UNAUTHORIZED',
-          executionTimestamp,
-        };
-      }
-      // For UNAUTHORIZED or unknown permissions — fall through to policy engine.
-      // The policy engine is the authoritative governance layer.
+      // FAIL-CLOSED: Stop execution immediately on ANY authorization or tenant access denial.
+      await kernelAuditEngine.record({
+        eventId: commandId,
+        correlationId,
+        actor: context.actor,
+        tenantId: context.tenant.organizationId,
+        action: commandType,
+        entityType: context.entityType || 'generic',
+        entityId: context.entityId || 'unknown',
+        result: 'BLOCKED',
+        failureReason: authErr.message || 'Authorization access denied',
+        classification: 'INTERNAL',
+      });
+
+      return {
+        success: false,
+        commandId,
+        correlationId,
+        error: `Authorization denied: ${authErr.message || 'Access denied'}`,
+        errorCode: authErr?.code === 'TENANT_ACCESS_DENIED' ? 'TENANT_ACCESS_DENIED' : 'UNAUTHORIZED',
+        executionTimestamp,
+      };
     }
 
     // 4. POLICY EVALUATION
@@ -169,7 +166,6 @@ export class KernelCommandBus {
       amount: context.amount,
     });
 
-    // 4. POLICY OUTCOME ENFORCEMENT
     if (policyResult.result === 'BLOCK') {
       await kernelAuditEngine.record({
         eventId: commandId,
@@ -181,7 +177,7 @@ export class KernelCommandBus {
         entityId: context.entityId || 'unknown',
         policyEvaluation: {
           policyId: policyResult.ruleId,
-          result: 'BLOCK',
+          result: policyResult.result,
           reason: policyResult.reason,
         },
         result: 'BLOCKED',
@@ -200,7 +196,7 @@ export class KernelCommandBus {
       };
     }
 
-    // 5. APPROVAL CHECK: If policy requires approval, stop execution and record pending approval
+    // 5. APPROVAL CHECK: If policy requires approval, stop execution and record pending approval durably
     if (policyResult.requiresApproval) {
       const approvalId = `appr-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
       const approvalRecord: ApprovalRecord = {
@@ -223,8 +219,21 @@ export class KernelCommandBus {
       };
 
       this.pendingApprovals.set(approvalId, approvalRecord);
-      // Store command envelope so we can re-execute after human approval.
       this.pendingCommandEnvelopes.set(approvalId, command);
+
+      // Persist approval record to Cloud Firestore approvals collection
+      try {
+        const db = getFirebaseFirestore();
+        if (db) {
+          await setDoc(doc(db, 'approvals', approvalId), {
+            ...approvalRecord,
+            organizationId: context.tenant.organizationId,
+            commandEnvelope: command,
+          });
+        }
+      } catch (err) {
+        console.warn('[APPROVAL_FIRESTORE_WARN] Could not persist approval record to Cloud Firestore:', err);
+      }
 
       // Publish APPROVAL_REQUIRED event
       kernelEventBus.publish(
@@ -287,6 +296,24 @@ export class KernelCommandBus {
 
     try {
       const result = await handler(command);
+
+      // Save successful result to durable idempotency store if key exists
+      if (context.idempotencyKey) {
+        try {
+          const db = getFirebaseFirestore();
+          if (db) {
+            const idempKey = `${context.tenant.organizationId}_${context.idempotencyKey}`;
+            await setDoc(doc(db, 'idempotency', idempKey), {
+              idempotencyKey: context.idempotencyKey,
+              commandId,
+              tenantId: context.tenant.organizationId,
+              status: 'COMPLETED',
+              result,
+              createdAt: executionTimestamp,
+            });
+          }
+        } catch (e) {}
+      }
 
       // 7. EVENT EMISSION
       kernelEventBus.publish(
@@ -361,19 +388,9 @@ export class KernelCommandBus {
 
   /**
    * Resolves a pending approval decision.
-   *
-   * When status is 'APPROVED':
-   *   1. Marks the approval record as APPROVED.
-   *   2. Re-executes the original command handler (bypass policy/approval gates).
-   *   3. Publishes APPROVAL_GRANTED and the command's completion event.
-   *   4. Records an audit trail.
-   *
-   * When status is 'REJECTED':
-   *   1. Marks the approval record as REJECTED.
-   *   2. Publishes APPROVAL_REJECTED event.
-   *   3. Records an audit trail.
-   *
-   * Returns the CommandResult of the re-executed handler (or null if rejected/not found).
+   * Enforces security bounds:
+   * - Requester cannot self-approve their own request unless explicitly permitted.
+   * - Already decided / expired requests cannot be re-resolved.
    */
   public async resolveApproval(
     approvalId: string,
@@ -381,13 +398,55 @@ export class KernelCommandBus {
     approver: { id: string; name: string; role: string },
     comments?: string
   ): Promise<CommandResult | null> {
-    const record = this.pendingApprovals.get(approvalId);
+    let record = this.pendingApprovals.get(approvalId);
+
+    // Try Firestore lookup if not in memory
+    if (!record) {
+      try {
+        const db = getFirebaseFirestore();
+        if (db) {
+          const snap = await getDoc(doc(db, 'approvals', approvalId));
+          if (snap.exists()) {
+            const data = snap.data();
+            record = data as ApprovalRecord;
+            if (data.commandEnvelope) {
+              this.pendingCommandEnvelopes.set(approvalId, data.commandEnvelope);
+            }
+          }
+        }
+      } catch (e) {}
+    }
+
     if (!record) return null;
 
+    // Check already resolved
+    if (record.status !== 'PENDING') {
+      throw new Error(`Approval request '${approvalId}' is already ${record.status}.`);
+    }
+
+    // Security Check: Self-approval restriction
+    if (status === 'APPROVED' && record.requester?.id === approver.id) {
+      throw new Error('Self-approval violation: Requester cannot approve their own request.');
+    }
+
+    const decidedAt = new Date().toISOString();
     record.status = status;
-    record.decidedAt = new Date().toISOString();
+    record.decidedAt = decidedAt;
     record.approver = approver;
     if (comments) record.comments = comments;
+
+    // Update Firestore approval document
+    try {
+      const db = getFirebaseFirestore();
+      if (db) {
+        await updateDoc(doc(db, 'approvals', approvalId), {
+          status,
+          decidedAt,
+          approver,
+          comments: comments || null,
+        });
+      }
+    } catch (e) {}
 
     // Publish approval decision event.
     kernelEventBus.publish(
@@ -406,7 +465,6 @@ export class KernelCommandBus {
         eventId: record.commandId,
         correlationId: record.correlationId,
         actor: { id: approver.id, type: 'USER', name: approver.name, role: approver.role },
-        tenantId: record.requester?.id ? undefined : undefined, // stored on record
         action: record.action,
         entityType: record.entityType,
         entityId: record.entityId,
@@ -430,7 +488,6 @@ export class KernelCommandBus {
     // APPROVED — resume command execution.
     const pendingEnvelope = this.pendingCommandEnvelopes.get(approvalId);
     if (!pendingEnvelope) {
-      // No envelope stored (e.g., resolved externally). Log and return success.
       return {
         success: true,
         commandId: record.commandId,

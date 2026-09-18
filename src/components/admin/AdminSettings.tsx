@@ -111,7 +111,7 @@ export const AdminSettings = () => {
             <div>
               <h2 className="text-sm font-semibold uppercase tracking-wider text-os-text-primary mb-4">Admin Credentials</h2>
               <p className="text-xs text-os-text-secondary mb-4">
-                Updating your username or password will update your Supabase profile and require logging in again.
+                Updating your username or password will update your Firebase profile and require logging in again.
               </p>
               
               <div className="space-y-4">

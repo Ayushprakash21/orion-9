@@ -1,12 +1,15 @@
 /**
  * ORION-9 AUDIT ENGINE
  * Cross-cutting Governance Layer: Records immutable, tamper-evident audit records
- * for all material state changes, policy checks, approvals, and AI decisions.
+ * for all material state changes, policy checks, approvals, and AI decisions
+ * directly into Cloud Firestore (`audit_logs` collection) and local IndexedDB.
  */
 
 import { KernelAuditRecord, DataClassification } from './types';
 import { generateCorrelationId } from './security/crypto';
 import { db, loadData, saveData } from '../data/db';
+import { getFirebaseFirestore } from '../lib/firebaseClient';
+import { doc, setDoc } from 'firebase/firestore';
 
 export class KernelAuditEngine {
   private static instance: KernelAuditEngine;
@@ -67,6 +70,32 @@ export class KernelAuditEngine {
     } catch (err) {
       console.warn('[AuditEngine] Local persistence warning:', err);
     }
+
+    // Persist to Cloud Firestore `audit_logs` collection
+    try {
+      const dbInstance = getFirebaseFirestore();
+      if (dbInstance) {
+        setDoc(doc(dbInstance, 'audit_logs', auditId), {
+          auditId: record.auditId,
+          correlationId: record.correlationId,
+          actorUserId: record.actor.id,
+          actorName: record.actor.name,
+          actorRole: record.actor.role || 'user',
+          organizationId: record.tenantId || 'ORION_PLATFORM',
+          action: record.action,
+          entityType: record.entityType,
+          entityId: record.entityId,
+          result: record.result,
+          failureReason: record.failureReason || null,
+          beforeState: record.beforeState || null,
+          afterState: record.afterState || null,
+          policyEvaluation: record.policyEvaluation || null,
+          approval: record.approval || null,
+          classification: record.classification,
+          timestamp: record.timestamp,
+        }).catch(err => console.warn('[AuditEngine] Firestore audit log warning:', err));
+      }
+    } catch (e) {}
 
     // Broadcast audit event
     if (typeof window !== 'undefined') {

@@ -2,12 +2,14 @@
  * ORION-9 ENTERPRISE AUDIT EVENT LOGGING SERVICE
  * 
  * Captures immutable audit traces for authentication, privileged step-up,
- * authorization decisions, database configuration, and administrative operations.
+ * authorization decisions, database configuration, and administrative operations
+ * directly into Cloud Firestore (`audit_logs` collection) and local cache.
  */
 
 import { AuditEvent, RoleCode } from '../types/auth';
 import { generateCorrelationId } from '../kernel/security/crypto';
-import { getSupabase } from '../lib/supabaseClient';
+import { getFirebaseFirestore } from '../lib/firebaseClient';
+import { doc, setDoc } from 'firebase/firestore';
 
 const LOCAL_AUDIT_KEY = 'orion_audit_events';
 const MAX_LOCAL_AUDIT_LOGS = 500;
@@ -51,7 +53,7 @@ class AuditService {
   }
 
   /**
-   * Records an audit event both to local storage and asynchronously to Supabase (if available).
+   * Records an audit event both to local storage and asynchronously to Cloud Firestore `audit_logs`.
    */
   public async log(params: LogAuditParams): Promise<AuditEvent> {
     const event: AuditEvent = {
@@ -75,30 +77,30 @@ class AuditService {
       },
     };
 
-    // 1. Write to Local Store
+    // 1. Write to Local Store Cache
     this.saveLocally(event);
 
-    // 2. Push to Supabase if connected
+    // 2. Persist to Cloud Firestore `audit_logs` collection
     try {
-      const supabase = getSupabase();
-      if (supabase) {
-        await supabase.from('audit_events').insert({
-          id: event.id,
-          organization_id: event.organizationId,
-          actor_user_id: event.actorUserId,
-          actor_name: event.actorName,
+      const db = getFirebaseFirestore();
+      if (db) {
+        const auditDocRef = doc(db, 'audit_logs', event.id);
+        await setDoc(auditDocRef, {
+          auditId: event.id,
+          organizationId: event.organizationId,
+          actorUserId: event.actorUserId,
+          actorName: event.actorName,
           action: event.action,
-          resource_type: event.resourceType,
-          resource_id: event.resourceId,
+          resourceType: event.resourceType,
+          resourceId: event.resourceId || 'N/A',
           status: event.status,
-          correlation_id: event.correlationId,
+          correlationId: event.correlationId,
           metadata: event.metadata,
-          created_at: event.timestamp,
+          timestamp: event.timestamp,
         });
       }
     } catch (err) {
-      // Offline or remote DB not yet configured: local persistence guarantees trace preservation
-      console.warn('[AUDIT_REMOTE_WARN] Could not mirror audit event to remote database:', err);
+      console.warn('[AUDIT_REMOTE_WARN] Could not mirror audit event to Cloud Firestore:', err);
     }
 
     return event;
