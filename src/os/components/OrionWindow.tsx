@@ -469,10 +469,10 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
       className={cn(
         "orion-window-surface flex flex-col text-os-text-primary overflow-hidden select-text pointer-events-auto",
         isMinimized && "pointer-events-none",
-        isMaximized ? "rounded-none border-none shadow-none" : "rounded-xl border shadow-2xl",
-        isActive
-          ? "border-white/[0.14] ring-1 ring-[#00F2FE]/20 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.85)]"
-          : "border-os-border shadow-[0_15px_35px_-10px_rgba(0,0,0,0.7)]"
+        isMaximized ? "rounded-none border-none shadow-none" : "shadow-[0_15px_40px_rgba(0,0,0,0.12)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.55)] rounded-xl border border-os-border/70",
+        isActive && !isMaximized
+          ? "ring-1 ring-os-accent/30 border-os-border-strong"
+          : ""
       )}
     >
       {/* Title Bar / Chrome */}
@@ -490,103 +490,91 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
             maximizeApplication(win.id);
           }
         }}
-        style={{ backgroundColor: '#080a0d', opacity: 1, isolation: 'isolate', mixBlendMode: 'normal' }}
         className={cn(
-          "orion-window-titlebar flex items-center justify-between h-9 min-h-9 px-3 shrink-0 select-none relative z-[100]",
-          "border-b border-white/[0.08] transition-colors cursor-default",
-          isActive
-            ? "bg-[#080a0d] text-os-text-primary"
-            : "bg-[#080a0d] text-os-text-muted"
+          "orion-window-titlebar h-10 bg-os-surface/90 dark:bg-os-surface/85 backdrop-blur-md border-b border-os-border/50 px-3.5 flex items-center justify-between select-none relative z-[100] transition-colors cursor-default",
+          isActive ? "text-os-text-primary" : "text-os-text-muted"
         )}
       >
-        {/* Left: App Identity */}
-        <div className="flex items-center gap-2 min-w-0 pointer-events-none">
-          <div
-            className="w-4 h-4 rounded flex items-center justify-center shrink-0"
-            style={{ color: app.color }}
-          >
-            <Icon className="w-3.5 h-3.5" />
-          </div>
-          <span className={cn(
-            "text-[12px] font-medium tracking-wide truncate",
-            isActive ? "text-os-text-primary" : "text-os-text-muted"
-          )}>
-            {app.name}
-          </span>
-          <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest hidden sm:inline-block ml-1">
-            • {app.category}
-          </span>
-        </div>
-
-        {/* Right: Window Controls */}
-        <div 
-          data-window-controls="true"
-          style={{ backgroundColor: '#080a0d', opacity: 1, isolation: 'isolate' }}
-          className="absolute right-1 top-0 h-9 flex items-center gap-1 shrink-0 z-[120] pointer-events-auto bg-[#080a0d] pl-1"
-          onPointerDown={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          onContextMenu={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
-          onDoubleClick={(e) => e.stopPropagation()}
-        >
-          <button
-            type="button"
-            aria-label={`Minimize ${app.name}`}
-            title="Minimize"
+        {/* Left: Window Controls & App Identity */}
+        <div className="flex items-center min-w-0 h-full">
+          {/* macOS style Window Controls */}
+          <div 
+            data-window-controls="true"
+            className="flex items-center gap-2 group/controls mr-3 z-[120] pointer-events-auto h-full"
             onPointerDown={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              minimizeApplication(win.id);
-            }}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-os-surface-active active:bg-os-surface-active text-os-text-muted hover:text-os-text-primary transition-colors cursor-pointer select-none group"
+            onContextMenu={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            onDoubleClick={(e) => e.stopPropagation()}
           >
-            <Minus className="w-3.5 h-3.5 transition-transform group-hover:scale-110" />
-          </button>
-
-          {!isMobile && (
             <button
               type="button"
-              aria-label={win.state === 'maximized' ? `Restore ${app.name}` : `Maximize ${app.name}`}
-              title={win.state === 'maximized' ? "Restore" : "Maximize"}
-              onPointerDown={(e) => e.stopPropagation()}
-              onMouseDown={(e) => e.stopPropagation()}
+              aria-label={`Close ${app.name}`}
+              title="Close"
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
-                if (win.state === 'maximized') {
-                  restoreApplication(win.id);
-                } else {
-                  maximizeApplication(win.id);
-                }
+                closeApplication(win.id);
               }}
-              className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-os-surface-active active:bg-os-surface-active text-os-text-muted hover:text-os-text-primary transition-colors cursor-pointer select-none group"
+              className="w-3 h-3 rounded-full bg-[#FF5F57] border border-[#E0443E]/50 flex items-center justify-center transition-all cursor-pointer"
             >
-              {win.state === 'maximized' ? (
-                <Square className="w-3 h-3 text-os-text-muted group-hover:text-os-text-primary transition-colors" />
-              ) : (
-                <Square className="w-3.5 h-3.5 text-os-text-muted group-hover:text-os-text-primary transition-colors" />
-              )}
+              <X className="w-2 h-2 text-[#4D0000] opacity-0 group-hover/controls:opacity-100" />
             </button>
-          )}
+            <button
+              type="button"
+              aria-label={`Minimize ${app.name}`}
+              title="Minimize"
+              onClick={(e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                minimizeApplication(win.id);
+              }}
+              className="w-3 h-3 rounded-full bg-[#FEBC2E] border border-[#D89E24]/50 flex items-center justify-center transition-all cursor-pointer"
+            >
+              <Minus className="w-2 h-2 text-[#5D4200] opacity-0 group-hover/controls:opacity-100" />
+            </button>
+            {!isMobile && (
+              <button
+                type="button"
+                aria-label={win.state === 'maximized' ? `Restore ${app.name}` : `Maximize ${app.name}`}
+                title={win.state === 'maximized' ? "Restore" : "Maximize"}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  if (win.state === 'maximized') {
+                    restoreApplication(win.id);
+                  } else {
+                    maximizeApplication(win.id);
+                  }
+                }}
+                className="w-3 h-3 rounded-full bg-[#28C840] border border-[#1AAB29]/50 flex items-center justify-center transition-all cursor-pointer"
+              >
+                <Maximize2 className="w-2 h-2 text-[#004D00] opacity-0 group-hover/controls:opacity-100" />
+              </button>
+            )}
+          </div>
 
-          <button
-            type="button"
-            aria-label={`Close ${app.name}`}
-            title="Close"
-            onPointerDown={(e) => e.stopPropagation()}
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              closeApplication(win.id);
-            }}
-            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-500/20 active:bg-red-500/30 text-os-text-muted hover:text-red-400 transition-colors cursor-pointer select-none group"
-          >
-            <X className="w-4 h-4 transition-transform group-hover:scale-110" />
-          </button>
+          <div className="flex items-center gap-2 min-w-0 pointer-events-none">
+            <div
+              className="w-4 h-4 rounded flex items-center justify-center shrink-0"
+              style={{ color: app.color }}
+            >
+              <Icon className="w-3.5 h-3.5" />
+            </div>
+            <span className={cn(
+              "text-[12px] font-medium tracking-wide truncate",
+              isActive ? "text-os-text-primary" : "text-os-text-muted"
+            )}>
+              {app.name}
+            </span>
+            <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest hidden sm:inline-block ml-1">
+              • {app.category}
+            </span>
+          </div>
         </div>
+
+        {/* Right: Empty for flex-between balance, or other future tools */}
+        <div></div>
       </div>
 
       {/* Window Body & Application Content */}

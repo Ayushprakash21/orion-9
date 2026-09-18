@@ -75,7 +75,7 @@ export function OrionSystemBar() {
   const activeApp = activeAppId ? ORION_REGISTRY[activeAppId] : null;
 
   return (
-    <header className="orion-global-topbar relative top-auto left-auto right-auto h-[48px] min-h-[48px] w-full z-[10000] flex items-center justify-between px-3 md:px-4 text-[12px] font-medium text-os-text-secondary select-none bg-[#080a0d] border-b border-os-border shadow-[0_1px_0_rgba(255,255,255,0.05)] pointer-events-auto shrink-0">
+    <header className="orion-global-topbar relative top-auto left-auto right-auto h-[44px] min-h-[44px] w-full z-[10000] flex items-center justify-between px-3 md:px-4 text-[12px] font-medium text-os-text-secondary select-none bg-os-surface/80 dark:bg-[#0c0d10]/80 backdrop-blur-xl border-b border-os-border shadow-xs pointer-events-auto shrink-0">
       
       {/* LEFT: ORION HOME BUTTON & MENU */}
       <div className="flex items-center h-full min-w-0" ref={menuRef}>
@@ -88,7 +88,7 @@ export function OrionSystemBar() {
           aria-expanded={menuOpen}
         >
           <BrandLogo sizePreset="sm" variant="mark" />
-          <span className="font-mono font-bold text-[13px] md:text-[14px] tracking-wider uppercase hidden sm:inline-block shrink-0 whitespace-nowrap text-os-text-primary group-hover:text-white group-hover:drop-shadow-[0_0_8px_rgba(0,242,254,0.6)] transition-all">
+          <span className="font-mono font-bold text-[13px] md:text-[14px] tracking-wider uppercase hidden sm:inline-block shrink-0 whitespace-nowrap text-os-text-primary group-hover:text-os-text-primary transition-all">
             ORION
           </span>
           {isAdmin && (
@@ -141,16 +141,16 @@ export function OrionSystemBar() {
 
       {/* CENTER: WORKSPACE SWITCHER & ACTIVE APP */}
       <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 max-w-[42vw] min-w-0">
-        <div className="flex items-center bg-os-surface-active rounded-full p-0.5 border border-os-border">
+        <div className="flex items-center bg-os-surface-active/60 p-0.5 rounded-lg border border-os-border/40">
           {WORKSPACES.map(ws => (
             <button
               key={ws.id}
               onClick={() => setWorkspace(ws.id)}
               className={cn(
-                "px-2.5 py-0.5 text-[10px] font-mono tracking-wider rounded-full transition-all cursor-pointer",
+                "px-2.5 py-0.5 text-[10px] font-mono tracking-wider transition-all cursor-pointer",
                 activeWorkspaceId === ws.id
-                  ? "bg-os-surface-active text-os-text-primary font-semibold shadow-sm text-cyan-300"
-                  : "text-os-text-muted hover:text-os-text-primary"
+                  ? "bg-os-surface text-os-text-primary shadow-xs rounded-md font-semibold"
+                  : "text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-hover/50 rounded-md"
               )}
             >
               {ws.name}
@@ -172,7 +172,7 @@ export function OrionSystemBar() {
       <div className="flex items-center h-full gap-1 shrink-0 min-w-0">
         <button 
           onClick={() => setCommandPaletteOpen(true)}
-          className="flex items-center h-full px-2 hover:bg-os-surface-active hover:text-os-text-primary transition-colors rounded-sm text-os-text-muted cursor-pointer"
+          className="flex items-center hover:bg-os-surface-hover hover:text-os-text-primary rounded-md p-1.5 transition-colors text-os-text-muted cursor-pointer"
           title="Search (Cmd+K)"
         >
           <Search className="w-3.5 h-3.5" />
@@ -180,13 +180,13 @@ export function OrionSystemBar() {
 
         
 
-        <div className="relative h-full flex items-center notification-anchor" ref={notifRef}>
+        <div className="relative flex items-center notification-anchor" ref={notifRef}>
           <button 
             type="button"
             onClick={() => setNotificationsOpen(v => !v)}
             className={cn(
-              "relative flex items-center h-full px-2 hover:bg-os-surface-active hover:text-os-text-primary transition-colors rounded-sm cursor-pointer outline-none",
-              hasCriticalExceptions ? "text-red-400" : "text-os-text-muted hover:text-os-text-primary",
+              "relative flex items-center hover:bg-os-surface-hover hover:text-os-text-primary rounded-md p-1.5 transition-colors cursor-pointer outline-none",
+              hasCriticalExceptions ? "text-red-400" : "text-os-text-muted",
               notificationsOpen && "bg-os-surface-active text-os-text-primary shadow-inner"
             )}
             title={hasCriticalExceptions ? "Critical exceptions detected" : "Notifications"}
@@ -197,7 +197,7 @@ export function OrionSystemBar() {
             {(unreadCount > 0 || hasCriticalExceptions) && (
               <span
                 className={cn(
-                  "absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full",
+                  "absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full",
                   hasCriticalExceptions ? "bg-red-500 shadow-[0_0_5px_#EF4444] animate-pulse" : "bg-os-accent shadow-md shadow-os-accent/20"
                 )}
               />
@@ -213,7 +213,7 @@ export function OrionSystemBar() {
         <button 
           onClick={() => setStatusOpen(true)}
           className={cn(
-            "flex items-center h-full px-2 hover:bg-os-surface-active transition-colors rounded-sm cursor-pointer",
+            "flex items-center hover:bg-os-surface-hover rounded-md p-1.5 transition-colors cursor-pointer",
             isOnline ? (isLocalMode ? "text-amber-400" : "text-emerald-400") : "text-red-400"
           )}
           title={statusLabel}
@@ -224,7 +224,7 @@ export function OrionSystemBar() {
         <button
           type="button"
           onClick={() => openApplication('time-world')}
-          className="group relative flex items-center h-full px-2 font-mono text-[11px] text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-active transition-colors rounded-sm cursor-pointer"
+          className="group relative flex items-center font-mono text-[11px] text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-hover rounded-md p-1.5 transition-colors cursor-pointer"
           aria-label="Open Time & World settings"
           title="Open Time & World"
         >

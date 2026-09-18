@@ -39,17 +39,12 @@ export const AccountMenu = ({ closeSidebar }: { closeSidebar?: () => void }) => 
   };
 
   const handleSignOut = async () => {
-    const wasAdmin = isAdmin;
     try {
       await signOut();
     } catch (err) {
       console.warn('Sign out warning:', err);
     }
-    if (wasAdmin) {
-      navigate('/admin-login', { replace: true });
-    } else {
-      navigate('/login', { replace: true });
-    }
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -94,7 +89,7 @@ export const AccountMenu = ({ closeSidebar }: { closeSidebar?: () => void }) => 
           {isAdmin && (
             <button
               type="button"
-              onClick={() => { setIsOpen(false); navigate('/admin'); }}
+              onClick={() => handleAction('/settings', 'settings')}
               className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-accent text-os-text-primary transition-colors flex items-center gap-2 uppercase"
             >
               <Shield size={14} className="text-os-text-muted" /> Admin Panel

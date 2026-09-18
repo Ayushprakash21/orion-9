@@ -66,9 +66,8 @@ import { BrandingProvider } from './store/BrandingContext';
 import { useSupplyChain } from './store/SupplyChainContext';
 import { About } from './components/About';
 import { Login } from './components/auth/Login';
-import { AdminLogin } from './components/auth/AdminLogin';
 import { Profile } from './components/Profile';
-import { AdminLayout } from './components/admin/AdminLayout';
+
 import { AdminOverview } from './components/admin/AdminOverview';
 import { AdminUsers } from './components/admin/AdminUsers';
 import { AdminOrganizations } from './components/admin/AdminOrganizations';
@@ -116,16 +115,16 @@ function UnauthenticatedApplication() {
 
   return (
     <Routes>
-      <Route path="/admin-login" element={<AdminLogin />} />
-      <Route path="/admin/login" element={<AdminLogin />} />
+      <Route path="/admin-login" element={<Navigate to="/login" replace state={{ from: location }} />} />
+      <Route path="/admin/login" element={<Navigate to="/login" replace state={{ from: location }} />} />
       <Route path="/login" element={<Login />} />
       <Route
         path="/admin"
-        element={<Navigate to="/admin-login" replace state={{ from: location }} />}
+        element={<Navigate to="/login" replace state={{ from: location }} />}
       />
       <Route
         path="/admin/*"
-        element={<Navigate to="/admin-login" replace state={{ from: location }} />}
+        element={<Navigate to="/login" replace state={{ from: location }} />}
       />
       <Route
         path="*"
@@ -150,36 +149,9 @@ function AuthenticatedApplication() {
       <Route path="/admin/login" element={<Navigate to="/admin" replace />} />
       <Route path="/admin-login" element={<Navigate to="/admin" replace />} />
 
-      {/* Admin Application routes */}
-      {isAdmin && (
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<AdminOverview />} />
-          <Route path="control-center" element={<AdminControlCenter />} />
-          <Route path="control-center/domains/:domainId" element={<AdminControlCenter />} />
-          <Route path="control-center/capabilities/:domainId/:capabilityId" element={<AdminControlCenter />} />
-          <Route path="control-center/policies" element={<ControlCenterPolicies />} />
-          <Route path="control-center/approvals" element={<ControlCenterApprovals />} />
-          <Route path="control-center/simulations" element={<ControlCenterSimulations />} />
-          <Route path="control-center/audit" element={<ControlCenterAudit />} />
-          <Route path="manual" element={<ManualCenter admin />} />
-          <Route path="platform-intelligence" element={<PlatformIntelligence />} />
-          <Route path="users" element={<AdminUsers />} />
-          <Route path="organizations" element={<AdminOrganizations />} />
-          <Route path="roles" element={<AdminRoles />} />
-          <Route path="audit-logs" element={<AdminAuditLogs />} />
-          <Route path="demo-data" element={<AdminDemoData />} />
-          <Route path="settings" element={<AdminSettings />} />
-          <Route path="branding" element={<AdminBranding />} />
-        </Route>
-      )}
-
-      {/* If non-admin attempts /admin routes, redirect to root */}
-      {!isAdmin && (
-        <>
-          <Route path="/admin" element={<Navigate to="/" replace />} />
-          <Route path="/admin/*" element={<Navigate to="/" replace />} />
-        </>
-      )}
+      {/* All admin interfaces are now hosted within the Settings app, accessible via the OS Desktop */}
+      <Route path="/admin" element={<Navigate to="/" replace />} />
+      <Route path="/admin/*" element={<Navigate to="/" replace />} />
 
       {/* User Manual: standard users have access only to the User Manual. */}
       {!isAdmin && (
@@ -234,9 +206,15 @@ function AppBootstrap() {
   }, []);
 
   React.useEffect(() => {
-    document.documentElement.classList.remove('light');
-    document.documentElement.classList.add('dark');
-    document.documentElement.style.colorScheme = 'dark';
+    const prefersDark = theme === 'dark' || 
+      (theme === 'system' || !theme ? window.matchMedia('(prefers-color-scheme: dark)').matches : false);
+    
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(prefersDark ? 'dark' : 'light');
+    document.documentElement.style.colorScheme = prefersDark ? 'dark' : 'light';
+    if (document.body) {
+      document.body.style.backgroundColor = prefersDark ? '#07090E' : '#F5F5F7';
+    }
     
     // Brightness is 20 to 100. 100 means 0 overlay opacity, 20 means 0.8 overlay opacity.
     const opacity = (100 - brightness) / 100;

@@ -6,7 +6,7 @@ import {
   Map, Target, Zap, LayoutDashboard, Globe, Network, Users,
   Clock, History, Sliders, ShieldAlert, Eye, HelpCircle, GitBranch,
   Compass, UserCheck, HeartPulse, RefreshCw, Info, User, Building2,
-  ShieldCheck
+  ShieldCheck, DollarSign, PackageCheck
 } from 'lucide-react';
 
 export interface OrionApp {
@@ -99,6 +99,46 @@ export const ORION_REGISTRY: Record<string, OrionApp> = {
     icon: Database,
     color: '#6366F1',
     description: 'Master Data Lifecycle, ERP Integration Contracts, State Reconciliation, and Event Fabric Replay.',
+    dockDefault: false,
+  },
+  'quality': {
+    id: 'quality',
+    name: 'Quality Center',
+    route: '/quality',
+    category: 'Operations',
+    icon: ShieldCheck,
+    color: '#F43F5E',
+    description: 'AQL lot inspection, defect quarantine, Non-Conformance Reports (NCR), and hold releases.',
+    dockDefault: false,
+  },
+  'invoice-matching': {
+    id: 'invoice-matching',
+    name: 'Invoice 3-Way Match',
+    route: '/invoice-matching',
+    category: 'Operations',
+    icon: DollarSign,
+    color: '#10B981',
+    description: 'Automated 3-way cross-referencing (PO vs GRN vs Invoice) and variance approval.',
+    dockDefault: false,
+  },
+  'gate-receiving': {
+    id: 'gate-receiving',
+    name: 'Gate & GRN Center',
+    route: '/gate-receiving',
+    category: 'Operations',
+    icon: PackageCheck,
+    color: '#3B82F6',
+    description: 'Physical carrier gate check-in, dock door allocation, and Goods Receipt Note (GRN) posting.',
+    dockDefault: false,
+  },
+  'vendor-onboarding': {
+    id: 'vendor-onboarding',
+    name: 'Vendor Onboarding & RFQ',
+    route: '/vendor-onboarding',
+    category: 'Control',
+    icon: Users,
+    color: '#F59E0B',
+    description: 'Supplier self-service onboarding, ESG vetting, compliance audit, and multi-criteria RFQ awards.',
     dockDefault: false,
   },
   'world-model': {
@@ -588,5 +628,23 @@ export const ORION_REGISTRY: Record<string, OrionApp> = {
     icon: Building2,
     color: '#8B5CF6',
     description: 'Enterprise organization profile and domain settings.',
+  },
+  'control-center': {
+    id: 'control-center',
+    name: 'Control Center',
+    route: '/control-center',
+    category: 'Control',
+    icon: ShieldCheck,
+    color: '#00F2FE',
+    description: 'System control center and advanced simulations.',
+  },
+  'platform-intelligence': {
+    id: 'platform-intelligence',
+    name: 'Platform Intelligence',
+    route: '/platform-intelligence',
+    category: 'Platform',
+    icon: Brain,
+    color: '#8B5CF6',
+    description: 'Platform AI settings and models.',
   },
 };

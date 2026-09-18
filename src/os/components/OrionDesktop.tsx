@@ -229,7 +229,7 @@ export function OrionDesktop() {
       {/* OS Layer 0: Premium Desktop Background & Live Supply Chain Network */}
       <div className="orion-desktop-wallpaper-layer absolute inset-0 z-0 pointer-events-none">
         {/* Live Supply Chain Network Canvas — HOME DESKTOP ONLY */}
-        <OrionLiveWallpaper />
+        <OrionLiveWallpaper hasOpenWindows={currentWorkspaceWindows.some(w => w.state !== 'minimized')} />
         
       </div>
 

@@ -418,7 +418,8 @@ export class MasterDataService {
     kernelAuditEngine.record({
       action: 'SUBMIT_MASTER_DATA_APPROVAL',
       actor: { id: actor, type: 'USER', name: actor },
-      entity: { id: recordId, type: record.entityType },
+      entityId: recordId,
+      entityType: record.entityType,
       classification: record.classification,
       details: {
         recordId,
@@ -468,7 +469,8 @@ export class MasterDataService {
     kernelAuditEngine.record({
       action: 'ACTIVATE_MASTER_DATA',
       actor: { id: approver, type: 'USER', name: approver },
-      entity: { id: recordId, type: record.entityType },
+      entityId: recordId,
+      entityType: record.entityType,
       classification: record.classification,
       details: {
         recordId,
@@ -516,7 +518,8 @@ export class MasterDataService {
     kernelAuditEngine.record({
       action: 'RETIRE_MASTER_DATA',
       actor: { id: actor, type: 'USER', name: actor },
-      entity: { id: recordId, type: record.entityType },
+      entityId: recordId,
+      entityType: record.entityType,
       classification: record.classification,
       details: { recordId, reason }
     });

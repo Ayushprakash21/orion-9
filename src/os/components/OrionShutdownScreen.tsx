@@ -12,20 +12,20 @@ export const OrionShutdownScreen: React.FC<OrionShutdownScreenProps> = ({ onComp
   
   useEffect(() => {
     // 0-1s: Initial
-    const t1 = setTimeout(() => setPhase('network'), 1000);
+    const t1 = setTimeout(() => setPhase('network'), 300);
     // 1-3s: Network drains, packets disappear
-    const t2 = setTimeout(() => setPhase('nodes'), 3000);
+    const t2 = setTimeout(() => setPhase('nodes'), 700);
     // 3-5s: Nodes disconnect
-    const t3 = setTimeout(() => setPhase('orbital'), 5000);
+    const t3 = setTimeout(() => setPhase('orbital'), 1100);
     // 5-6s: Orbital rings contract
-    const t4 = setTimeout(() => setPhase('core'), 6000);
+    const t4 = setTimeout(() => setPhase('core'), 1500);
     // 6-8s: Core loses energy, final warning pulse
-    const t5 = setTimeout(() => setPhase('final'), 8000);
+    const t5 = setTimeout(() => setPhase('final'), 2000);
     // 8-10s: Terminated fade out
     const t6 = setTimeout(() => {
       setPhase('terminated');
       if (onComplete) onComplete();
-    }, 10000);
+    }, 2500);
 
     return () => {
       clearTimeout(t1);

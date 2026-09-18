@@ -4,13 +4,26 @@ import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
 
-// Ensure dark theme is applied immediately to prevent any white screen flashes
+// Apply initial theme based on system preference or saved setting
 try {
   if (typeof document !== 'undefined') {
-    document.documentElement.classList.add('dark');
-    document.documentElement.style.colorScheme = 'dark';
+    const savedSettings = localStorage.getItem('orion_system_settings');
+    let theme: string = 'system';
+    try {
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        if (parsed.theme) theme = parsed.theme;
+      }
+    } catch {}
+    
+    const prefersDark = theme === 'dark' || 
+      (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(prefersDark ? 'dark' : 'light');
+    document.documentElement.style.colorScheme = prefersDark ? 'dark' : 'light';
     if (document.body) {
-      document.body.style.backgroundColor = '#07090E';
+      document.body.style.backgroundColor = prefersDark ? '#07090E' : '#F5F5F7';
     }
   }
 } catch (e) {

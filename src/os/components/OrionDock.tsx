@@ -486,7 +486,7 @@ export function OrionDock() {
       onMouseLeave={() => scheduleDockHide()}
     >
       <div 
-        className="flex items-center gap-2 p-2 rounded-[24px] bg-[#080a0d] border border-os-border shadow-[0_20px_40px_-10px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.06)] transition-all duration-300 overflow-x-auto max-w-[calc(100vw-24px)]"
+        className="flex items-center gap-2 p-2 backdrop-blur-2xl bg-os-surface/75 dark:bg-[#121316]/75 border border-os-border/60 shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.55)] rounded-2xl transition-all duration-300 overflow-x-auto max-w-[calc(100vw-24px)]"
         style={{ scrollbarWidth: 'none' }}
         onMouseLeave={() => { setHoveredApp(null); scheduleDockHide(); }}
       >
@@ -505,7 +505,7 @@ export function OrionDock() {
           // Smooth magnification
           const hoveredIndex = hoveredApp ? dockApps.indexOf(hoveredApp) : -1;
           const distance = hoveredIndex !== -1 ? Math.abs(hoveredIndex - index) : 100;
-          const scale = distance === 0 ? 1.15 : distance === 1 ? 1.05 : 1;
+          const scale = distance === 0 ? 1.05 : distance === 1 ? 1.02 : 1;
 
           return (
             <button
@@ -533,11 +533,11 @@ export function OrionDock() {
               onContextMenu={(e) => handleDockItemContextMenu(e, id)}
               onMouseEnter={() => setHoveredApp(id)}
               className={cn(
-                "relative group flex flex-col items-center justify-center transition-transform duration-200 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00F2FE]",
+                "relative group flex flex-col items-center justify-center transition-all duration-300 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00F2FE] hover:-translate-y-1",
                 draggedApp === id && "opacity-50",
                 dragOverApp === id && "scale-110 mx-4" // Visual feedback for drop target
               )}
-              style={{ transform: dragOverApp !== id ? `scale(${scale})` : undefined, width: '48px', height: '48px' }}
+              style={{ transform: dragOverApp !== id && hoveredApp ? `scale(${scale})` : undefined, width: '48px', height: '48px' }}
               title={app.name}
             >
               <div 
@@ -560,12 +560,12 @@ export function OrionDock() {
               {isOpen && (
                 <div 
                   className={cn(
-                    "absolute -bottom-1.5 transition-all duration-200 rounded-full",
+                    "absolute -bottom-1.5 transition-all duration-200",
                     isActive 
-                      ? "w-1.5 h-1.5 bg-os-accent shadow-[0_0_8px_#00F2FE]" 
+                      ? "w-1.5 h-1.5 rounded-full bg-os-accent" 
                       : isMinimized
-                      ? "w-1 h-1 bg-slate-500"
-                      : "w-1 h-1 bg-white/60"
+                      ? "w-1 h-1 rounded-full bg-os-text-muted/50"
+                      : "w-1 h-1 rounded-full bg-os-text-muted"
                   )}
                 />
               )}
@@ -598,9 +598,9 @@ export function OrionDock() {
           }}
           onContextMenu={handleLauncherContextMenu}
           onMouseEnter={() => setHoveredApp('launcher')}
-          className="relative group flex flex-col items-center justify-center transition-transform duration-200 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00F2FE]"
+          className="relative group flex flex-col items-center justify-center transition-all duration-300 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00F2FE] hover:-translate-y-1"
           style={{ 
-            transform: `scale(${hoveredApp === 'launcher' ? 1.15 : 1})`,
+            transform: `scale(${hoveredApp === 'launcher' ? 1.05 : 1})`,
             width: '48px', height: '48px' 
           }}
           title="All Applications"

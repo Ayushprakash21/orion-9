@@ -152,7 +152,7 @@ export const Dashboard = () => {
       {/* EXECUTIVE SUPPLY CHAIN HEALTH */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         {Object.entries(healthScores).map(([key, data]) => (
-          <div key={key} className="bg-os-surface border border-os-border rounded-xl p-4 hover:border-os-border-inverse transition-colors group cursor-pointer" onClick={() => navigate(`/${key}`)}>
+          <div key={key} className="bg-os-surface/80 backdrop-blur-md border border-os-border/70 rounded-xl p-4 shadow-xs hover:border-os-border-strong transition-all group cursor-pointer" onClick={() => navigate(`/${key}`)}>
             <div className="flex justify-between items-start mb-2">
               <span className="text-xs uppercase tracking-wider text-os-text-muted font-medium group-hover:text-os-text-primary transition-colors">{key}</span>
               <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
@@ -216,7 +216,7 @@ export const Dashboard = () => {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* WHAT REQUIRES MANAGEMENT ATTENTION */}
-        <div className="xl:col-span-2 bg-os-surface border border-os-border rounded-xl flex flex-col overflow-hidden">
+        <div className="xl:col-span-2 bg-os-surface/80 backdrop-blur-md border border-os-border/70 rounded-xl shadow-xs hover:border-os-border-strong transition-all flex flex-col overflow-hidden">
           <div className="p-4 sm:p-5 border-b border-os-border flex justify-between items-center bg-os-surface-secondary">
             <div className="flex items-center gap-2">
               <AlertTriangle size={16} className="text-red-500" />
@@ -260,30 +260,29 @@ export const Dashboard = () => {
         </div>
 
         {/* AI MANAGEMENT BRIEF */}
-        <div className="bg-os-surface border border-emerald-500/30 rounded-xl flex flex-col overflow-hidden relative shadow-[0_0_15px_rgba(48,209,88,0.05)]">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-[#30D158]/50 to-transparent"></div>
-          <div className="p-4 sm:p-5 border-b border-os-border flex justify-between items-center bg-emerald-500/5">
+        <div className="bg-os-surface/80 backdrop-blur-md border border-os-border/70 rounded-xl shadow-xs hover:border-os-border-strong transition-all flex flex-col overflow-hidden relative">
+          <div className="p-4 sm:p-5 border-b border-os-border/70 flex justify-between items-center bg-os-surface-secondary">
             <div className="flex items-center gap-2">
-              <BrainCircuit size={16} className="text-emerald-500" />
+              <BrainCircuit size={16} className="text-os-text-primary" />
               <h2 className="text-xs uppercase tracking-wider text-os-text-primary font-semibold">Today's Orion Brief</h2>
             </div>
-            <span className="text-[9px] uppercase tracking-widest text-emerald-500 font-mono border border-emerald-500/30 px-1.5 py-0.5 rounded">AI Generated</span>
+            <span className="text-[9px] uppercase tracking-widest text-os-text-secondary font-mono border border-os-border/70 px-1.5 py-0.5 rounded">AI Generated</span>
           </div>
-          <div className="p-5 space-y-5 flex-1 bg-gradient-to-b from-os-surface to-os-bg/30">
+          <div className="p-5 space-y-5 flex-1">
             <div>
-              <span className="text-[10px] uppercase tracking-widest text-red-500 font-bold block mb-1">Biggest Risk</span>
+              <span className="text-[10px] uppercase tracking-widest text-os-text-secondary font-bold block mb-1">Biggest Risk</span>
               <p className="text-xs text-os-text-primary leading-relaxed">{topRisks.topRisks[0]?.description || 'Supply chain is currently stable with no severe identified risks.'}</p>
             </div>
             <div>
-              <span className="text-[10px] uppercase tracking-widest text-emerald-500 font-bold block mb-1">Biggest Opportunity</span>
+              <span className="text-[10px] uppercase tracking-widest text-os-text-secondary font-bold block mb-1">Biggest Opportunity</span>
               <p className="text-xs text-os-text-primary leading-relaxed">Inventory rebalancing could free up {formatCurrency(invValue * 0.05, currency)} in working capital this quarter.</p>
             </div>
             <div>
-              <span className="text-[10px] uppercase tracking-widest text-amber-500 font-bold block mb-1">Most Important Decision</span>
+              <span className="text-[10px] uppercase tracking-widest text-os-text-secondary font-bold block mb-1">Most Important Decision</span>
               <p className="text-xs text-os-text-primary leading-relaxed">{pendingDecisions[0]?.issue || 'No pending critical decisions.'}</p>
             </div>
             <div>
-              <span className="text-[10px] uppercase tracking-widest text-[#64D2FF] font-bold block mb-1">Emerging Trend</span>
+              <span className="text-[10px] uppercase tracking-widest text-os-text-secondary font-bold block mb-1">Emerging Trend</span>
               <p className="text-xs text-os-text-primary leading-relaxed">Regional carrier delays in APAC are increasing. Lead times for ocean freight have stretched by 3.2 days average.</p>
             </div>
           </div>
@@ -291,7 +290,7 @@ export const Dashboard = () => {
       </div>
 
       {/* END-TO-END SUPPLY CHAIN FLOW */}
-      <div className="bg-os-surface border border-os-border rounded-xl p-4 sm:p-5">
+      <div className="bg-os-surface/80 backdrop-blur-md border border-os-border/70 rounded-xl shadow-xs hover:border-os-border-strong transition-all p-4 sm:p-5">
         <h2 className="text-xs uppercase tracking-wider text-os-text-primary font-semibold mb-4 flex items-center gap-2">
           <Network size={16} className="text-os-text-secondary" /> End-to-End Supply Chain Flow
         </h2>
@@ -302,7 +301,7 @@ export const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         
         {/* INVENTORY */}
-        <div className="bg-os-surface border border-os-border rounded-xl overflow-hidden">
+        <div className="bg-os-surface/80 backdrop-blur-md border border-os-border/70 rounded-xl shadow-xs hover:border-os-border-strong transition-all overflow-hidden">
           <div className="p-4 border-b border-os-border flex items-center gap-2">
             <Box size={14} className="text-os-text-secondary" />
             <h3 className="text-xs uppercase tracking-wider font-semibold text-os-text-primary">Inventory</h3>
@@ -323,7 +322,7 @@ export const Dashboard = () => {
         </div>
 
         {/* SUPPLIERS */}
-        <div className="bg-os-surface border border-os-border rounded-xl overflow-hidden">
+        <div className="bg-os-surface/80 backdrop-blur-md border border-os-border/70 rounded-xl shadow-xs hover:border-os-border-strong transition-all overflow-hidden">
           <div className="p-4 border-b border-os-border flex items-center gap-2">
             <Factory size={14} className="text-os-text-secondary" />
             <h3 className="text-xs uppercase tracking-wider font-semibold text-os-text-primary">Suppliers</h3>
@@ -344,7 +343,7 @@ export const Dashboard = () => {
         </div>
 
         {/* LOGISTICS */}
-        <div className="bg-os-surface border border-os-border rounded-xl overflow-hidden">
+        <div className="bg-os-surface/80 backdrop-blur-md border border-os-border/70 rounded-xl shadow-xs hover:border-os-border-strong transition-all overflow-hidden">
           <div className="p-4 border-b border-os-border flex items-center gap-2">
             <Truck size={14} className="text-os-text-secondary" />
             <h3 className="text-xs uppercase tracking-wider font-semibold text-os-text-primary">Logistics</h3>

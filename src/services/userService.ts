@@ -240,10 +240,11 @@ export const userService = {
     }
 
     const newId = 'user-' + Math.random().toString(36).substr(2, 9);
+    const passwordHash = await hashPassword(userData.password || 'admin');
     const newUser: any = {
       id: newId,
       username: userData.username.trim(),
-      password: userData.password || 'admin', // TEMPORARY LOCAL AUTH MODE
+      password: passwordHash,
       email: userData.email.trim(),
       fullName: userData.fullName.trim(),
       displayName: userData.displayName || userData.fullName.trim().split(' ')[0],
@@ -319,7 +320,8 @@ export const userService = {
       throw new Error('User not found.');
     }
 
-    localUsers[userIndex].password = passwordString;
+    const passwordHash = await hashPassword(passwordString);
+    localUsers[userIndex].password = passwordHash;
     localUsers[userIndex].updatedAt = new Date().toISOString();
     saveLocalUsers(localUsers);
     return true;

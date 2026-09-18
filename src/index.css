@@ -43,6 +43,28 @@
   transition: background-color 0.25s ease, color 0.25s ease;
 }
 
+:root.light {
+  --os-bg: #F5F5F7;
+  --os-surface: #FFFFFF;
+  --os-surface-secondary: #F0F0F2;
+  --os-surface-elevated: #FFFFFF;
+  --os-surface-hover: #E8E8EC;
+  --os-surface-active: #DDDDE1;
+  --os-border: #D1D1D6;
+  --os-border-strong: #B0B0B8;
+  --os-border-inverse: #1D1D1F;
+  --os-text-primary: #1D1D1F;
+  --os-text-secondary: #6E6E73;
+  --os-text-muted: #98989D;
+  --os-text-primary-inverse: #F5F5F7;
+  --os-input-bg: #FFFFFF;
+  --os-accent: #007AFF;
+  background-color: var(--os-bg);
+  color: var(--os-text-primary);
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
 
 
 
@@ -95,6 +117,16 @@ body::after {
   -webkit-box-shadow: 0 0 0 30px #0A0C0E inset !important;
   -webkit-text-fill-color: #E8E8E5 !important;
   caret-color: #E8E8E5 !important;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+:root.light input:-webkit-autofill,
+:root.light input:-webkit-autofill:hover,
+:root.light input:-webkit-autofill:focus,
+:root.light input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #FFFFFF inset !important;
+  -webkit-text-fill-color: #1D1D1F !important;
+  caret-color: #1D1D1F !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 

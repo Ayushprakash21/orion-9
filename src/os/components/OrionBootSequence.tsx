@@ -26,15 +26,15 @@ export function OrionBootSequence({ onComplete }: OrionBootSequenceProps) {
     const tick = (t:number) => {
       if (start.current === null) start.current = t;
       const e=t-start.current; setElapsed(e);
-      if (e >= 7200) { if (!done.current) { done.current=true; onComplete(); } return; }
+      if (e >= 2000) { if (!done.current) { done.current=true; onComplete(); } return; }
       raf=requestAnimationFrame(tick);
     };
     raf=requestAnimationFrame(tick); return ()=>cancelAnimationFrame(raf);
   },[onComplete]);
   const dust=useMemo(()=>Array.from({length:70},(_,i)=>({x:(i*47)%100,y:(i*71+11)%100,d:(i%19)*.08})),[]);
-  const pct=Math.min(100,Math.floor(elapsed/7200*100));
-  const stage=Math.min(6,Math.floor(elapsed/1000));
-  const fabric=elapsed>1400, core=elapsed>2700, topology=elapsed>3900, ready=elapsed>6100;
+  const pct=Math.min(100,Math.floor(elapsed/2000*100));
+  const stage=Math.min(6,Math.floor(elapsed/330));
+  const fabric=elapsed>380, core=elapsed>750, topology=elapsed>1100, ready=elapsed>1700;
   return <main className={`orion-cinematic orion-boot-v3 ${ready?'is-ready':''}`} role="status" aria-live="polite">
     <div className="ob3-noise" />
     <div className="ob3-grid" />

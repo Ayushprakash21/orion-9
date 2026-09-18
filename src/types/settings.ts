@@ -1,6 +1,6 @@
 export interface SystemSettings {
   // Display & Experience
-  theme?: 'dark';
+  theme?: 'light' | 'dark' | 'system';
   brightness?: number; // 20 - 100
   reducedMotion?: boolean;
   displayScale?: number; // Windows-style UI scale: 100, 125, 150, 175, 200
@@ -52,7 +52,7 @@ export interface SystemSettings {
 }
 
 export const DEFAULT_SETTINGS: SystemSettings = {
-  theme: 'dark',
+  theme: 'system',
   brightness: 100,
   reducedMotion: false,
   displayScale: 100,
@@ -183,7 +183,9 @@ export function normalizeSettings(raw?: Partial<SystemSettings> | Record<string,
     applicationName: raw.applicationName || DEFAULT_SETTINGS.applicationName,
     applicationTagline: raw.applicationTagline || DEFAULT_SETTINGS.applicationTagline,
     
-    theme: 'dark', // Force dark theme
+    theme: (['light','dark','system'].includes(String(raw.theme || '').toLowerCase()) 
+  ? String(raw.theme).toLowerCase() as SystemSettings['theme'] 
+  : DEFAULT_SETTINGS.theme) as SystemSettings['theme'],
     brightness: validBrightness as number,
     displayScale: validDisplayScale,
     textSize: validTextSize,

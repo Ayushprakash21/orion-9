@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useSupplyChain } from '../store/SupplyChainContext';
 import { useAuth } from '../store/AuthContext';
-import { Save, Shield, Globe, CheckCircle2, RotateCcw, Settings as SettingsIcon, Sliders, Eye } from 'lucide-react';
+import { 
+  Save, Shield, Globe, CheckCircle2, RotateCcw, Settings as SettingsIcon, 
+  Sliders, Eye, Search, User, Building2, ShieldCheck, Activity, Database, Brush, Key, Lock, Unlock, Users, Clock
+} from 'lucide-react';
 import { SearchableDropdown } from './ui/SearchableDropdown';
 import { FXRateService } from '../services/FXRateService';
 import { timezones, locales } from '../lib/timezones';
@@ -9,19 +12,42 @@ import { SystemSettings, normalizeSettings, DEFAULT_SYSTEM_SETTINGS } from '../t
 import { SettingsCurrencyConverter } from "./SettingsCurrencyConverter";
 import { DisplayPreferencesControls } from '../os/DisplayPreferences';
 import { cn } from '../lib/utils';
+import { userService } from '../services/userService';
 
-type SettingsCategory = 'operational' | 'system' | 'appearance' | 'localization' | 'sound' | 'privacy';
+// Admin Components
+import { AdminOverview } from './admin/AdminOverview';
+import { AdminUsers } from './admin/AdminUsers';
+import { AdminOrganizations } from './admin/AdminOrganizations';
+import { AdminRoles } from './admin/AdminRoles';
+import { AdminBranding } from './admin/AdminBranding';
+import { AdminAuditLogs } from './admin/AdminAuditLogs';
+import { AdminDemoData } from './admin/AdminDemoData';
+import { AdminSettings } from './admin/AdminSettings';
+
+type SettingsCategory = 
+  // SYSTEM PREFERENCES
+  | 'operational' | 'system' | 'appearance' | 'localization' | 'sound' | 'privacy' | 'profile'
+  // ADMINISTRATION
+  | 'admin_overview' | 'admin_users' | 'admin_orgs' | 'admin_roles' | 'admin_branding' | 'admin_audit' | 'admin_demo' | 'admin_security';
 
 export const Settings = () => {
   const { user, profile, hasRole } = useAuth();
-  const isAdmin = hasRole(['platform_admin']) || profile?.role === 'platform_admin' || user?.id === 'admin' || user?.id === 'local-admin';
-  const { settings, updateSettings} = useSupplyChain();
+  const isAdmin = hasRole(['platform_admin', 'organization_admin']) || profile?.role === 'platform_admin' || profile?.role === 'organization_admin' || user?.id === 'admin' || user?.id === 'local-admin';
+  const { settings, updateSettings } = useSupplyChain();
   
   const [localSettings, setLocalSettings] = useState<SystemSettings>(() => normalizeSettings(settings));
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [currencyOptions, setCurrencyOptions] = useState<{value: string, label: string}[]>([]);
   const [activeCategory, setActiveCategory] = useState<SettingsCategory>('operational');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Privileged Session State
+  const [privilegedUntil, setPrivilegedUntil] = useState<number | null>(null);
+  const [unlockPassword, setUnlockPassword] = useState('');
+  const [unlockError, setUnlockError] = useState('');
+  const [isUnlocking, setIsUnlocking] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState<string>('');
 
   useEffect(() => {
     let mounted = true;
@@ -38,6 +64,25 @@ export const Settings = () => {
   useEffect(() => {
     setLocalSettings(normalizeSettings(settings));
   }, [settings]);
+
+  // Privileged Session Timer
+  useEffect(() => {
+    let interval: any;
+    if (privilegedUntil) {
+      interval = setInterval(() => {
+        const now = Date.now();
+        if (now > privilegedUntil) {
+          setPrivilegedUntil(null);
+        } else {
+          const diff = Math.ceil((privilegedUntil - now) / 1000);
+          const mins = Math.floor(diff / 60);
+          const secs = diff % 60;
+          setTimeRemaining(`${mins}:${secs.toString().padStart(2, '0')}`);
+        }
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [privilegedUntil]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type} = e.target;
@@ -65,7 +110,111 @@ export const Settings = () => {
     setLocalSettings({ ...DEFAULT_SYSTEM_SETTINGS });
   };
 
+  const handleUnlock = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUnlocking(true);
+    setUnlockError('');
+    try {
+      if (!user) throw new Error("No user");
+      // Use existing admin passwords or check against getRawUsers
+      const rawUsers = userService.getRawUsers ? userService.getRawUsers() : [];
+      const u = rawUsers.find((u: any) => u.id === user.id);
+      
+      let isValid = false;
+      if (user.id === 'admin' && unlockPassword === 'admin') isValid = true;
+      else if (u && u.password === unlockPassword) isValid = true;
+      else if (unlockPassword === 'admin') isValid = true; // Fallback for demo
+      
+      if (isValid) {
+        setPrivilegedUntil(Date.now() + 30 * 60 * 1000); // 30 minutes
+        setUnlockPassword('');
+      } else {
+        setUnlockError('Incorrect password');
+      }
+    } catch (err) {
+      setUnlockError('Authentication failed');
+    } finally {
+      setIsUnlocking(false);
+    }
+  };
+
+  const lockNow = () => setPrivilegedUntil(null);
+
+  const isAdminTab = activeCategory.startsWith('admin_');
+
+  const renderAdminTab = () => {
+    if (!privilegedUntil) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center h-full max-w-md mx-auto animate-in fade-in zoom-in-95 duration-300">
+          <div className="bg-os-surface border border-os-border rounded-2xl p-8 shadow-2xl w-full flex flex-col items-center text-center">
+            <div className="w-16 h-16 bg-os-accent/10 rounded-full flex items-center justify-center mb-6">
+              <Lock className="text-os-accent w-8 h-8" />
+            </div>
+            <h3 className="text-lg font-medium text-os-text-primary mb-2">Administrator Authentication Required</h3>
+            <p className="text-sm text-os-text-muted mb-8">Enter your administrator password to unlock privileged settings.</p>
+            
+            <form onSubmit={handleUnlock} className="w-full">
+              <div className="mb-4">
+                <input 
+                  type="password" 
+                  autoFocus
+                  placeholder="Password" 
+                  value={unlockPassword}
+                  onChange={e => setUnlockPassword(e.target.value)}
+                  className="w-full bg-os-input-bg border border-os-border rounded-lg px-4 py-3 text-os-text-primary focus:outline-none focus:border-os-accent focus:ring-1 focus:ring-os-accent transition-all"
+                />
+                {unlockError && <p className="text-red-400 text-xs mt-2 text-left">{unlockError}</p>}
+              </div>
+              <button 
+                type="submit" 
+                disabled={isUnlocking || !unlockPassword}
+                className="w-full bg-os-accent text-black font-medium py-3 rounded-lg hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+              >
+                {isUnlocking ? 'Verifying...' : <>Unlock <Unlock size={16} /></>}
+              </button>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
+        <div className="bg-os-surface/80 border border-os-border rounded-lg p-3 mb-6 flex items-center justify-between shadow-sm backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="text-emerald-400 w-5 h-5" />
+            <div>
+              <div className="text-sm font-medium text-os-text-primary flex items-center gap-2">
+                Privileged Session Active 
+                <span className="text-xs text-os-text-muted font-normal">• Expires in {timeRemaining}</span>
+              </div>
+            </div>
+          </div>
+          <button 
+            onClick={lockNow}
+            className="px-3 py-1.5 text-xs font-medium bg-os-surface-hover hover:bg-os-border border border-os-border rounded-md text-os-text-primary transition-colors flex items-center gap-2"
+          >
+            <Lock size={12} /> Lock Now
+          </button>
+        </div>
+        
+        <div className="flex-1 bg-os-surface border border-os-border rounded-xl overflow-hidden relative">
+          {activeCategory === 'admin_overview' && <AdminOverview />}
+          {activeCategory === 'admin_users' && <AdminUsers />}
+          {activeCategory === 'admin_orgs' && <AdminOrganizations />}
+          {activeCategory === 'admin_roles' && <AdminRoles />}
+          {activeCategory === 'admin_branding' && <AdminBranding />}
+          {activeCategory === 'admin_audit' && <AdminAuditLogs />}
+          {activeCategory === 'admin_demo' && <AdminDemoData />}
+          {activeCategory === 'admin_security' && <AdminSettings />}
+        </div>
+      </div>
+    );
+  };
+
   const renderCategoryContent = () => {
+    if (isAdminTab) return renderAdminTab();
+
     switch (activeCategory) {
       case 'operational':
         return (
@@ -249,102 +398,142 @@ export const Settings = () => {
     }
   };
 
+  const menuItems = [
+    { id: 'operational', label: 'General', icon: Sliders, group: 'system' },
+    { id: 'appearance', label: 'Appearance', icon: Eye, group: 'system' },
+    { id: 'localization', label: 'Localization', icon: Globe, group: 'system' },
+    { id: 'sound', label: 'Sound', icon: Activity, group: 'system' },
+    { id: 'privacy', label: 'Privacy & Security', icon: Shield, group: 'system' },
+  ];
+
+  const adminItems = [
+    { id: 'admin_overview', label: 'Overview', icon: SettingsIcon, group: 'admin' },
+    { id: 'admin_users', label: 'Users', icon: Users, group: 'admin' },
+    { id: 'admin_orgs', label: 'Organizations', icon: Building2, group: 'admin' },
+    { id: 'admin_roles', label: 'Roles', icon: Key, group: 'admin' },
+    { id: 'admin_branding', label: 'Branding', icon: Brush, group: 'admin' },
+    { id: 'admin_audit', label: 'Audit Activity', icon: Clock, group: 'admin' },
+    { id: 'admin_demo', label: 'Demo Data', icon: Database, group: 'admin' },
+    { id: 'admin_security', label: 'Security', icon: ShieldCheck, group: 'admin' },
+  ];
+
+  const filteredMenuItems = menuItems.filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredAdminItems = adminItems.filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()));
+
   return (
     <div className="flex flex-col md:flex-row w-full h-full bg-os-bg text-os-text-primary overflow-hidden font-sans">
-      <div className="w-full md:w-64 shrink-0 bg-os-surface border-r border-os-border flex flex-col">
-        <div className="p-6 border-b border-os-border">
-          <h2 className="text-xs font-mono font-bold tracking-widest uppercase text-os-text-primary flex items-center gap-2">
-            <SettingsIcon size={16} className="text-os-text-muted" /> System Settings
-          </h2>
+      <div className="w-full md:w-64 shrink-0 bg-os-surface/50 border-r border-os-border flex flex-col">
+        {/* Search */}
+        <div className="p-4 border-b border-os-border backdrop-blur-md sticky top-0 z-10">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2 text-os-text-muted" size={14} />
+            <input 
+              type="text" 
+              placeholder="Search Settings" 
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              className="w-full bg-os-input-bg border border-os-border rounded-md pl-8 pr-3 py-1.5 text-sm text-os-text-primary focus:outline-none focus:border-os-accent transition-colors"
+            />
+          </div>
+        </div>
+
+        {/* User Mini Profile */}
+        <div className="p-4 border-b border-os-border flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full overflow-hidden bg-os-surface-hover flex items-center justify-center shrink-0 border border-os-border">
+            {profile?.avatarUrl ? (
+              <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+            ) : (
+              <User size={20} className="text-os-text-muted" />
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-medium text-os-text-primary truncate">{profile?.fullName || profile?.displayName || 'User'}</div>
+            <div className="text-[10px] text-os-text-muted truncate uppercase tracking-widest">{profile?.role || 'Operator'}</div>
+          </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar">
-          <button
-            onClick={() => setActiveCategory('operational')}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left",
-              activeCategory === 'operational' ? "bg-os-accent/10 text-os-accent border border-os-accent/20" : "text-os-text-secondary hover:bg-os-surface-hover hover:text-os-text-primary"
-            )}
-          >
-            <Sliders size={16} /> Operational Params
-          </button>
-          
-          <button
-            onClick={() => setActiveCategory('localization')}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left",
-              activeCategory === 'localization' ? "bg-os-accent/10 text-os-accent border border-os-accent/20" : "text-os-text-secondary hover:bg-os-surface-hover hover:text-os-text-primary"
-            )}
-          >
-            <Globe size={16} /> Localization
-          </button>
-          
-          <button
-            onClick={() => setActiveCategory('appearance')}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left",
-              activeCategory === 'appearance' ? "bg-os-accent/10 text-os-accent border border-os-accent/20" : "text-os-text-secondary hover:bg-os-surface-hover hover:text-os-text-primary"
-            )}
-          >
-            <Eye size={16} /> Appearance
-          </button>
-          
-          
-          <button
-            onClick={() => setActiveCategory('sound')}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left",
-              activeCategory === 'sound' ? "bg-os-accent/10 text-os-accent border border-os-accent/20" : "text-os-text-secondary hover:bg-os-surface-hover hover:text-os-text-primary"
-            )}
-          >
-            <Sliders size={16} /> Sound
-          </button>
+        <div className="flex-1 overflow-y-auto p-3 space-y-6 custom-scrollbar">
+          {/* SYSTEM PREFERENCES */}
+          {filteredMenuItems.length > 0 && (
+            <div>
+              <div className="px-3 mb-2 text-[10px] font-mono tracking-widest uppercase text-os-text-secondary">System Preferences</div>
+              <div className="space-y-0.5">
+                {filteredMenuItems.map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveCategory(item.id as SettingsCategory)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left",
+                      activeCategory === item.id ? "bg-os-accent/10 text-os-accent" : "text-os-text-secondary hover:bg-os-surface-hover hover:text-os-text-primary"
+                    )}
+                  >
+                    <item.icon size={16} className={activeCategory === item.id ? "text-os-accent" : "text-os-text-muted"} /> {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
-          <button
-            onClick={() => setActiveCategory('privacy')}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left",
-              activeCategory === 'privacy' ? "bg-os-accent/10 text-os-accent border border-os-accent/20" : "text-os-text-secondary hover:bg-os-surface-hover hover:text-os-text-primary"
-            )}
-          >
-            <Shield size={16} /> Privacy
-          </button>
+          {/* ADMINISTRATION */}
+          {isAdmin && filteredAdminItems.length > 0 && (
+            <div>
+              <div className="px-3 mb-2 text-[10px] font-mono tracking-widest uppercase text-os-text-secondary">Administration</div>
+              <div className="space-y-0.5">
+                {filteredAdminItems.map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveCategory(item.id as SettingsCategory)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left",
+                      activeCategory === item.id ? "bg-emerald-500/10 text-emerald-400" : "text-os-text-secondary hover:bg-os-surface-hover hover:text-os-text-primary"
+                    )}
+                  >
+                    <item.icon size={16} className={activeCategory === item.id ? "text-emerald-400" : "text-os-text-muted"} /> {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="flex-1 flex flex-col overflow-hidden relative bg-os-bg">
-        <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar">
-          <div className="max-w-4xl mx-auto">
-            {renderCategoryContent()}
-          </div>
+        <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar relative">
+          {isAdminTab ? renderCategoryContent() : (
+            <div className="max-w-3xl mx-auto">
+              {renderCategoryContent()}
+            </div>
+          )}
         </div>
         
-        <div className="p-4 md:px-10 border-t border-os-border bg-os-surface/80 backdrop-blur-md shrink-0">
-          <div className="max-w-4xl mx-auto flex justify-end gap-3 items-center">
-            {isSaved && (
-              <span className="text-emerald-400 text-xs font-mono uppercase tracking-widest flex items-center gap-1.5 animate-in fade-in mr-2">
-                <CheckCircle2 size={14} /> Saved
-              </span>
-            )}
-            <button 
-              onClick={handleReset} 
-              type="button"
-              className="flex items-center gap-1.5 px-4 py-2 text-[10px] uppercase tracking-widest font-medium text-os-text-secondary border border-os-border rounded-sm shadow-sm hover:bg-os-surface-hover transition-colors"
-            >
-              <RotateCcw size={12} />
-              Reset
-            </button>
-            <button 
-              onClick={handleSave} 
-              disabled={isSaving}
-              type="button"
-              className="flex items-center gap-2 px-6 py-2 text-[10px] uppercase tracking-widest font-medium text-black bg-os-accent border border-os-accent rounded-sm hover:brightness-110 disabled:opacity-50 transition-all font-bold shadow-[0_0_15px_rgba(0,242,254,0.3)]"
-            >
-              <Save size={14} />
-              {isSaving ? 'Saving...' : 'Apply Changes'}
-            </button>
+        {!isAdminTab && (
+          <div className="p-4 md:px-10 border-t border-os-border bg-os-surface/80 backdrop-blur-md shrink-0">
+            <div className="max-w-3xl mx-auto flex justify-end gap-3 items-center">
+              {isSaved && (
+                <span className="text-emerald-400 text-xs font-mono uppercase tracking-widest flex items-center gap-1.5 animate-in fade-in mr-2">
+                  <CheckCircle2 size={14} /> Saved
+                </span>
+              )}
+              <button 
+                onClick={handleReset} 
+                type="button"
+                className="flex items-center gap-1.5 px-4 py-2 text-[10px] uppercase tracking-widest font-medium text-os-text-secondary border border-os-border rounded-sm shadow-sm hover:bg-os-surface-hover transition-colors"
+              >
+                <RotateCcw size={12} />
+                Reset
+              </button>
+              <button 
+                onClick={handleSave} 
+                disabled={isSaving}
+                type="button"
+                className="flex items-center gap-2 px-6 py-2 text-[10px] uppercase tracking-widest font-medium text-black bg-os-accent border border-os-accent rounded-sm hover:brightness-110 disabled:opacity-50 transition-all font-bold shadow-[0_0_15px_rgba(0,242,254,0.3)]"
+              >
+                <Save size={14} />
+                {isSaving ? 'Saving...' : 'Apply Changes'}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

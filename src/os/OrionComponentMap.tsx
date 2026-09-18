@@ -8,6 +8,10 @@ import { Exceptions } from '../components/Exceptions';
 import { DecisionCenter } from '../components/DecisionCenter';
 import { ApprovalCenter } from '../components/ApprovalCenter';
 import { MasterDataManager } from '../components/MasterDataManager';
+import { QualityCenter } from '../components/QualityCenter';
+import { FinanceMatchingCenter } from '../components/FinanceMatchingCenter';
+import { ReceivingGateCenter } from '../components/ReceivingGateCenter';
+import { VendorOnboardingCenter } from '../components/VendorOnboardingCenter';
 import { AICopilot } from '../components/AICopilot';
 import { DataCenter } from '../components/DataCenter';
 import { Integrations } from '../components/Integrations';
@@ -60,6 +64,9 @@ import { Profile } from '../components/Profile';
 import { TimeWorld } from '../components/TimeWorld';
 import { ManualCenter } from '../components/ManualCenter';
 
+import { AdminControlCenter } from '../components/admin/AdminControlCenter';
+import { PlatformIntelligence } from '../components/admin/PlatformIntelligence';
+
 const ProfileUserView: React.FC = () => <Profile initialTab="profile" />;
 const ProfileOrgView: React.FC = () => <Profile initialTab="organization" />;
 
@@ -73,6 +80,10 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'decisions': DecisionCenter,
   'approval-center': ApprovalCenter,
   'master-data': MasterDataManager,
+  'quality': QualityCenter,
+  'invoice-matching': FinanceMatchingCenter,
+  'gate-receiving': ReceivingGateCenter,
+  'vendor-onboarding': VendorOnboardingCenter,
   'orion-ai': AICopilot,
   'reports': Reports,
   'settings': Settings,
@@ -125,6 +136,8 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'time-world': TimeWorld,
   'user-manual': ManualCenter,
   'organization': ProfileOrgView,
+  'control-center': AdminControlCenter,
+  'platform-intelligence': PlatformIntelligence,
 };
 
 export function getAppComponent(appId: string): React.ComponentType<any> | null {

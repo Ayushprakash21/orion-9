@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useCallback } fr
 import { SessionState, PermissionCode, RoleCode, UserProfile, Organization, AuthUser } from '../types/auth';
 import { authService, AuthSessionDetails } from '../services/authService';
 import { userService } from '../services/userService';
+import { verifyPassword, hashPassword } from '../kernel/security/crypto';
 
 export type BootState = 
   | 'BOOTING'
@@ -242,19 +243,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         throw new Error('Account inactive. Please contact your administrator.');
       }
 
-      // The normal USER LOGIN portal is strictly non-administrative.
-      // Administrator identities must use /admin/login; never allow an admin
-      // account to authenticate through the user portal.
       const isAdminUser = matchedUser.role === 'platform_admin' || matchedUser.role === 'organization_admin';
-      if (isAdminUser && !options?.requiredRoles?.length) {
-        console.warn('[AUTH_ERROR] Administrator attempted user-portal login:', matchedUser.username);
-        throw new Error('Administrator accounts must use the Admin Console.');
-      }
 
-      const isPasswordMatch = 
-        matchedUser.password === passwordString ||
-        matchedUser.password === passwordString.trim() ||
-        (!matchedUser.password && passwordString === passwordString.trim() && passwordString.length > 0);
+      const isPasswordMatch = await verifyPassword(passwordString, matchedUser.password);
 
       if (!isPasswordMatch) {
         console.warn('[AUTH_ERROR] Password mismatch for identifier:', cleanIdentifier);
@@ -270,12 +261,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      if (matchedUser.password !== passwordString) {
-        matchedUser.password = passwordString;
+      const isCurrentHashed = matchedUser.password?.startsWith('$2');
+      if (!isCurrentHashed) {
+        const hashedStr = await hashPassword(passwordString);
+        matchedUser.password = hashedStr;
         const currentUsers = userService.getRawUsers();
         const uIdx = currentUsers.findIndex(u => u.id === matchedUser.id);
         if (uIdx !== -1) {
-          currentUsers[uIdx].password = passwordString;
+          currentUsers[uIdx].password = hashedStr;
           if (typeof window !== 'undefined') {
             localStorage.setItem('orion_users', JSON.stringify(currentUsers));
           }
@@ -291,8 +284,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       // Trigger authoritative post-login initialization
       if (!options?.skipPostLoginInit) {
-        const isAdminRole = details.role === 'platform_admin' || details.role === 'organization_admin';
-        const defaultDest = isAdminRole ? '/admin' : '/';
+        // Default destination is always '/' (Desktop Home) for both admins and users!
+        // Admin overview/management is accessed within the OS Desktop (Settings -> Administration)
+        const defaultDest = '/';
         const targetDest = options?.destination || defaultDest;
         setBootState('POST_LOGIN_INITIALIZING');
         setPostLoginDestination(targetDest);

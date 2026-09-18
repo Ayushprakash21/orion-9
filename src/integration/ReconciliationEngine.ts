@@ -400,7 +400,8 @@ export class ReconciliationEngine {
     kernelAuditEngine.record({
       action: 'RESOLVE_RECONCILIATION_DISCREPANCY',
       actor: { id: actor, type: 'USER', name: actor },
-      entity: { id: discrepancy.entityId, type: discrepancy.entityType },
+      entityId: discrepancy.entityId,
+      entityType: discrepancy.entityType,
       classification: 'INTERNAL',
       details: {
         discrepancyId,

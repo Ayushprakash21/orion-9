@@ -15,6 +15,8 @@ export interface AuthSessionDetails {
   organization: Organization | null;
   role: RoleCode;
   permissions: PermissionCode[];
+  token?: string;
+  expiresAt?: string;
 }
 
 export const authService = {
@@ -165,6 +167,8 @@ export const authService = {
       organization,
       role: roleCode,
       permissions,
+      token: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : 'orion-session-' + Date.now().toString(36) + '-' + Math.random().toString(36).substring(2, 9),
+      expiresAt: new Date(Date.now() + 8 * 3600 * 1000).toISOString()
     };
   },
 
@@ -186,8 +190,8 @@ export const authService = {
       const details = JSON.parse(sessionStr) as AuthSessionDetails;
       return {
         user: details.user,
-        access_token: 'local-development-mode-token',
-        expires_at: 9999999999
+        access_token: details.token || 'local-development-mode-token',
+        expires_at: details.expiresAt ? new Date(details.expiresAt).getTime() : 9999999999
       };
     } catch (e) {
       localStorage.removeItem('orion_auth_session');
