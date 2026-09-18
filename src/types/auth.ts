@@ -113,4 +113,16 @@ export interface AuditEvent {
   metadata?: Record<string, any>;
   ipAddress?: string;
   userAgent?: string;
+  correlationId?: string;
+}
+
+export interface PrivilegedAdminSession {
+  token: string;
+  userId: string;
+  organizationId: string;
+  role: RoleCode;
+  createdAt: string;
+  expiresAt: string;
+  authenticationMethod: 'step_up_password' | 'mfa_totp' | 'enterprise_sso';
+  correlationId: string;
 }

@@ -1,0 +1,65 @@
+[
+  {
+    "id": "CNS-2026-09",
+    "title": "Midwest Regional LTL-to-FTL High-Cube Consolidation",
+    "originCluster": "Chicago Metro & Milwaukee Supplier Cluster",
+    "destinationCluster": "Reno Gigafactory & Assembly Hub",
+    "candidateShipmentIds": [
+      "SH-LTL-101",
+      "SH-LTL-104",
+      "SH-LTL-108"
+    ],
+    "proposedMode": "ROAD_FTL",
+    "consolidatedCost": 4800,
+    "unconsolidatedCost": 8950,
+    "netCostSavings": 4150,
+    "carbonSavingsKg": 890,
+    "transitTimeDeltaHours": -12,
+    "status": "PROPOSED",
+    "sha256Seal": "772b901a884fe091c849182390a4bb66104889c2517391bda401829bb9414e08",
+    "aiConfidenceScore": 96,
+    "rationale": "Bundling 3 LTL wafer shipments into a single dedicated 53ft air-ride trailer reduces total linehaul cost by 46.4% and eliminates 2 cross-dock transfers."
+  },
+  {
+    "id": "CNS-2026-10",
+    "title": "Trans-European Rail Feeder Shift (Rotterdam - Leipzig)",
+    "originCluster": "Port of Rotterdam Inbound Containers",
+    "destinationCluster": "Eastern Germany Industrial Corridor",
+    "candidateShipmentIds": [
+      "SH-EUR-201",
+      "SH-EUR-204"
+    ],
+    "proposedMode": "RAIL",
+    "consolidatedCost": 3200,
+    "unconsolidatedCost": 5900,
+    "netCostSavings": 2700,
+    "carbonSavingsKg": 2450,
+    "transitTimeDeltaHours": 6,
+    "status": "ROUTED_TO_APPROVAL",
+    "approvalRequestId": "APV-CNS-2026-10",
+    "sha256Seal": "99014bca88172901a4e51082bb491a0c8391845190cbb4120938471629d81640",
+    "aiConfidenceScore": 92,
+    "rationale": "Shifting two 40ft high-cube containers from diesel motorway haul to electrified rail network saves $2,700 and eliminates 2.45 metric tons of CO2."
+  },
+  {
+    "id": "CNS-2026-11",
+    "title": "South China Sea Multi-Supplier Ocean Container Pooling",
+    "originCluster": "Shenzhen & Ningbo Tier-2 Mechanical Suppliers",
+    "destinationCluster": "Port of Long Beach Master Inbound",
+    "candidateShipmentIds": [
+      "SH-OCN-301",
+      "SH-OCN-302",
+      "SH-OCN-303"
+    ],
+    "proposedMode": "OCEAN",
+    "consolidatedCost": 7100,
+    "unconsolidatedCost": 12400,
+    "netCostSavings": 5300,
+    "carbonSavingsKg": 1120,
+    "transitTimeDeltaHours": 0,
+    "status": "APPROVED",
+    "sha256Seal": "31890fae10984920c8418bb592019488a09b3341c8821094857261a890471b01",
+    "aiConfidenceScore": 98,
+    "rationale": "Consolidation approved by Director of Supply Chain Logistics. Booked under Maersk contract rate with zero demurrage penalty."
+  }
+]

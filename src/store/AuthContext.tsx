@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
-import { SessionState, PermissionCode, RoleCode, UserProfile, Organization, AuthUser } from '../types/auth';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { SessionState, PermissionCode, RoleCode, UserProfile, Organization, AuthUser, PrivilegedAdminSession } from '../types/auth';
 import { authService, AuthSessionDetails } from '../services/authService';
 import { userService } from '../services/userService';
-import { verifyPassword, hashPassword } from '../kernel/security/crypto';
+import { privilegedSessionManager } from '../kernel/security/privilegedSession';
 
 export type BootState = 
   | 'BOOTING'
@@ -37,6 +37,9 @@ interface AuthContextType extends SessionState {
   completeSystemInitialization: () => void;
   hasPermission: (permission: PermissionCode) => boolean;
   hasRole: (roles: RoleCode[]) => boolean;
+  privilegedSession: PrivilegedAdminSession | null;
+  requestAdminStepUp: (password: string) => Promise<PrivilegedAdminSession>;
+  revokeAdminStepUp: () => void;
   signIn: (identifier: string, password: string, options?: LoginOptions) => Promise<UserProfile>;
   login: (identifier: string, password: string, options?: LoginOptions) => Promise<UserProfile>;
   signUp: (email: string, password: string) => Promise<void>;
@@ -79,6 +82,9 @@ const AuthContext = createContext<AuthContextType>({
   completeSystemInitialization: () => {},
   hasPermission: () => false,
   hasRole: () => false,
+  privilegedSession: null,
+  requestAdminStepUp: async () => ({} as PrivilegedAdminSession),
+  revokeAdminStepUp: () => {},
   signIn: async () => ({} as UserProfile),
   login: async () => ({} as UserProfile),
   signUp: async () => {},
@@ -222,6 +228,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return currentRole ? roles.includes(currentRole) : false;
   }, [role, state.profile?.role]);
 
+  const [privilegedSession, setPrivilegedSession] = useState<PrivilegedAdminSession | null>(() => {
+    return privilegedSessionManager.getSession();
+  });
+
+  useEffect(() => {
+    return privilegedSessionManager.subscribe(s => {
+      setPrivilegedSession(s);
+    });
+  }, []);
+
+  const requestAdminStepUp = useCallback(async (password: string): Promise<PrivilegedAdminSession> => {
+    if (!state.profile?.id) throw new Error('No active authenticated user identity found');
+    const session = await authService.requestAdminStepUp(state.profile.id, password);
+    setPrivilegedSession(session);
+    return session;
+  }, [state.profile?.id]);
+
+  const revokeAdminStepUp = useCallback(() => {
+    privilegedSessionManager.revoke('Step-up manually revoked');
+    setPrivilegedSession(null);
+  }, []);
+
   const login = async (identifier: string, passwordString: string, options?: LoginOptions): Promise<UserProfile> => {
     setBootState('AUTHENTICATING');
     setState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -229,72 +257,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (!identifier || !identifier.trim()) {
         throw new Error('Enter your username or email.');
       }
-      if (!passwordString) {
+      if (!passwordString || !passwordString.trim()) {
         throw new Error('Enter your password.');
       }
 
-      const cleanIdentifier = identifier.trim().toLowerCase();
-      const localUsers = userService.getRawUsers();
-
-      const matchedUser = localUsers.find((u: any) => {
-        const uUsername = (u.username || '').trim().toLowerCase();
-        const uEmail = (u.email || '').trim().toLowerCase();
-        return uUsername === cleanIdentifier || uEmail === cleanIdentifier;
-      });
-
-      if (!matchedUser) {
-        console.warn('[AUTH_ERROR] User not found for identifier:', cleanIdentifier);
-        throw new Error('Invalid username or password.');
-      }
-
-      if (matchedUser.status === 'inactive' || matchedUser.status === 'suspended') {
-        console.warn('[AUTH_ERROR] Account inactive:', matchedUser.username);
-        throw new Error('Account inactive. Please contact your administrator.');
-      }
-
-      const isAdminUser = matchedUser.role === 'platform_admin' || matchedUser.role === 'organization_admin';
-
-      const isPasswordMatch = await verifyPassword(passwordString, matchedUser.password);
-
-      if (!isPasswordMatch) {
-        console.warn('[AUTH_ERROR] Password mismatch for identifier:', cleanIdentifier);
-        throw new Error('Invalid username or password.');
-      }
+      // Authoritative authentication via authService (no bypasses, no plaintext storage)
+      const details = await authService.authenticate(identifier, passwordString);
 
       if (options?.requiredRoles && options.requiredRoles.length > 0) {
-        const userRole = (matchedUser.role || (isAdminUser ? 'platform_admin' : 'viewer')) as RoleCode;
+        const userRole = details.role;
         const hasRequiredRole = options.requiredRoles.includes(userRole);
         if (!hasRequiredRole) {
-          console.warn('[AUTH_ERROR] User does not meet required role for portal:', userRole);
           throw new Error('Access denied. Administrator privileges required for platform control plane.');
         }
-      }
-
-      const isCurrentHashed = matchedUser.password?.startsWith('$2');
-      if (!isCurrentHashed) {
-        const hashedStr = await hashPassword(passwordString);
-        matchedUser.password = hashedStr;
-        const currentUsers = userService.getRawUsers();
-        const uIdx = currentUsers.findIndex(u => u.id === matchedUser.id);
-        if (uIdx !== -1) {
-          currentUsers[uIdx].password = hashedStr;
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('orion_users', JSON.stringify(currentUsers));
-          }
-        }
-      }
-
-      const details = await authService.loadFullSession(matchedUser.id, matchedUser.email);
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('orion_auth_session', JSON.stringify(details));
       }
 
       applySessionDetails(details);
 
       // Trigger authoritative post-login initialization
       if (!options?.skipPostLoginInit) {
-        // Default destination is always '/' (Desktop Home) for both admins and users!
-        // Admin overview/management is accessed within the OS Desktop (Settings -> Administration)
         const defaultDest = '/';
         const targetDest = options?.destination || defaultDest;
         setBootState('POST_LOGIN_INITIALIZING');
@@ -400,6 +381,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         completeSystemInitialization,
         hasPermission,
         hasRole,
+        privilegedSession,
+        requestAdminStepUp,
+        revokeAdminStepUp,
         signIn,
         login,
         signUp,

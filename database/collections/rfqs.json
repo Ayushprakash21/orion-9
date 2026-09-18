@@ -1,0 +1,100 @@
+[
+  {
+    "id": "RFQ-2026-901",
+    "rfqNumber": "RFQ-ORION-SSB-09",
+    "title": "Solid-State Battery Electrolyte Sourcing & Volume Allocation",
+    "category": "Direct Procurement",
+    "sku": "SKU-SSB-ELEC-90",
+    "targetUnits": 150000,
+    "targetBudgetUsd": 1800000,
+    "currency": "USD",
+    "deadline": "2026-10-02T13:02:07.031Z",
+    "status": "EVALUATING",
+    "createdAt": "2026-09-08T13:02:07.031Z",
+    "bids": [
+      {
+        "id": "BID-01",
+        "supplierId": "SUP-001",
+        "supplierName": "Supplier A Tech Ltd.",
+        "unitPrice": 11.2,
+        "leadTimeDays": 28,
+        "moq": 10000,
+        "paymentTerms": "NET_60",
+        "incoterm": "DDP",
+        "esgScore": 84,
+        "historicalOtif": 89.4,
+        "calculatedScore": 87.2,
+        "awarded": false,
+        "complianceStatus": "VERIFIED",
+        "notes": "Includes dedicated dual-site cleanroom production in Taiwan & Dresden.",
+        "submittedAt": "2026-09-13T13:02:07.031Z"
+      },
+      {
+        "id": "BID-02",
+        "supplierId": "SUP-003",
+        "supplierName": "Supplier C Technologies",
+        "unitPrice": 10.45,
+        "leadTimeDays": 21,
+        "moq": 25000,
+        "paymentTerms": "NET_45",
+        "incoterm": "CIF",
+        "esgScore": 92,
+        "historicalOtif": 96,
+        "calculatedScore": 94.6,
+        "awarded": false,
+        "complianceStatus": "VERIFIED",
+        "notes": "Lowest cost per kg with zero cobalt content and verified low-carbon cathode footprint.",
+        "submittedAt": "2026-09-14T13:02:07.031Z"
+      },
+      {
+        "id": "BID-03",
+        "supplierId": "SUP-002",
+        "supplierName": "Supplier B Materials Ltd.",
+        "unitPrice": 12.8,
+        "leadTimeDays": 35,
+        "moq": 5000,
+        "paymentTerms": "NET_30",
+        "incoterm": "FCA",
+        "esgScore": 78,
+        "historicalOtif": 94.2,
+        "calculatedScore": 79.8,
+        "awarded": false,
+        "complianceStatus": "NEEDS_AUDIT",
+        "notes": "Smaller batches available but higher per-unit premium.",
+        "submittedAt": "2026-09-16T13:02:07.031Z"
+      }
+    ]
+  },
+  {
+    "id": "RFQ-2026-902",
+    "rfqNumber": "RFQ-ORION-OPTO-04",
+    "title": "High-Precision Optoelectronic Laser Sensor Assemblies",
+    "category": "Semiconductors",
+    "sku": "SKU-OPTO-SEN-40",
+    "targetUnits": 50000,
+    "targetBudgetUsd": 950000,
+    "currency": "USD",
+    "deadline": "2026-10-13T13:02:07.031Z",
+    "status": "OPEN",
+    "createdAt": "2026-09-14T13:02:07.031Z",
+    "bids": [
+      {
+        "id": "BID-04",
+        "supplierId": "SUP-001",
+        "supplierName": "Supplier A Tech Ltd.",
+        "unitPrice": 18.5,
+        "leadTimeDays": 42,
+        "moq": 5000,
+        "paymentTerms": "NET_45",
+        "incoterm": "DDP",
+        "esgScore": 84,
+        "historicalOtif": 89.4,
+        "calculatedScore": 88,
+        "awarded": false,
+        "complianceStatus": "VERIFIED",
+        "notes": "Automated test reports bundled with each reel of 1000 pieces.",
+        "submittedAt": "2026-09-17T13:02:07.031Z"
+      }
+    ]
+  }
+]

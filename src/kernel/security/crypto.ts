@@ -30,39 +30,43 @@ export async function hashPassword(password: string): Promise<string> {
 }
 
 /**
- * Constant-time password verification supporting legacy plain strings for demo
- * accounts and modern sha256 hashes.
+ * Constant-time password verification against salted hashes.
+ * Forbids empty passwords, invalid hashes, or universal bypasses.
  */
 export async function verifyPassword(password: string, storedHashOrPlain: string): Promise<boolean> {
-  if (!password || !storedHashOrPlain) return false;
+  if (!password || !storedHashOrPlain || !password.trim()) return false;
   
-  // Backward compatibility for development demo credentials
-  if (storedHashOrPlain === password) {
-    return true;
-  }
-  
+  // Stored password MUST be formatted as salted hash "sha256:{salt}:{hash}"
   if (storedHashOrPlain.startsWith('sha256:')) {
     const parts = storedHashOrPlain.split(':');
     if (parts.length !== 3) return false;
     const salt = parts[1];
     const expectedHash = parts[2];
     
+    let computedHash = '';
     if (typeof crypto !== 'undefined' && crypto.subtle) {
       const data = new TextEncoder().encode(salt + ":" + password);
       const hashBuffer = await crypto.subtle.digest('SHA-256', data);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-      return hashHex === expectedHash;
+      computedHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } else {
+      let hash = 0;
+      const str = salt + ":" + password;
+      for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash |= 0;
+      }
+      computedHash = Math.abs(hash).toString(16);
     }
-    
-    let hash = 0;
-    const str = salt + ":" + password;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash |= 0;
+
+    // Constant-time string comparison to prevent timing side-channel attacks
+    if (computedHash.length !== expectedHash.length) return false;
+    let result = 0;
+    for (let i = 0; i < computedHash.length; i++) {
+      result |= computedHash.charCodeAt(i) ^ expectedHash.charCodeAt(i);
     }
-    return Math.abs(hash).toString(16) === expectedHash;
+    return result === 0;
   }
   
   return false;

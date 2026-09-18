@@ -1,0 +1,602 @@
+[
+  {
+    "id": "SKU-1000",
+    "name": "Component A-1 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1001",
+    "name": "Component B-1 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1002",
+    "name": "Component C-1 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1003",
+    "name": "Component D-1 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1004",
+    "name": "Component E-1 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1005",
+    "name": "Component F-1 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1006",
+    "name": "Component G-1 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1007",
+    "name": "Component H-1 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1008",
+    "name": "Component I-1 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1009",
+    "name": "Component J-1 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1010",
+    "name": "Component K-1 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1011",
+    "name": "Component L-1 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1012",
+    "name": "Component M-1 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1013",
+    "name": "Component N-1 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1014",
+    "name": "Component O-1 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1015",
+    "name": "Component P-1 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1016",
+    "name": "Component Q-1 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1017",
+    "name": "Component R-1 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1018",
+    "name": "Component S-1 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1019",
+    "name": "Component T-1 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1020",
+    "name": "Component U-1 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1021",
+    "name": "Component V-1 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1022",
+    "name": "Component W-1 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1023",
+    "name": "Component X-1 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1024",
+    "name": "Component Y-1 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1025",
+    "name": "Component Z-1 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1026",
+    "name": "Component A-2 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1027",
+    "name": "Component B-2 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1028",
+    "name": "Component C-2 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1029",
+    "name": "Component D-2 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1030",
+    "name": "Component E-2 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1031",
+    "name": "Component F-2 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1032",
+    "name": "Component G-2 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1033",
+    "name": "Component H-2 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1034",
+    "name": "Component I-2 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1035",
+    "name": "Component J-2 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1036",
+    "name": "Component K-2 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1037",
+    "name": "Component L-2 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1038",
+    "name": "Component M-2 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1039",
+    "name": "Component N-2 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1040",
+    "name": "Component O-2 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1041",
+    "name": "Component P-2 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1042",
+    "name": "Component Q-2 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1043",
+    "name": "Component R-2 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1044",
+    "name": "Component S-2 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1045",
+    "name": "Component T-2 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1046",
+    "name": "Component U-2 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1047",
+    "name": "Component V-2 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1048",
+    "name": "Component W-2 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1049",
+    "name": "Component X-2 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1050",
+    "name": "Component Y-2 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1051",
+    "name": "Component Z-2 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1052",
+    "name": "Component A-3 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1053",
+    "name": "Component B-3 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1054",
+    "name": "Component C-3 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1055",
+    "name": "Component D-3 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1056",
+    "name": "Component E-3 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1057",
+    "name": "Component F-3 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1058",
+    "name": "Component G-3 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1059",
+    "name": "Component H-3 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1060",
+    "name": "Component I-3 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1061",
+    "name": "Component J-3 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1062",
+    "name": "Component K-3 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1063",
+    "name": "Component L-3 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1064",
+    "name": "Component M-3 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1065",
+    "name": "Component N-3 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1066",
+    "name": "Component O-3 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1067",
+    "name": "Component P-3 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1068",
+    "name": "Component Q-3 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1069",
+    "name": "Component R-3 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1070",
+    "name": "Component S-3 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1071",
+    "name": "Component T-3 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1072",
+    "name": "Component U-3 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1073",
+    "name": "Component V-3 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1074",
+    "name": "Component W-3 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1075",
+    "name": "Component X-3 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1076",
+    "name": "Component Y-3 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1077",
+    "name": "Component Z-3 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1078",
+    "name": "Component A-4 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1079",
+    "name": "Component B-4 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1080",
+    "name": "Component C-4 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1081",
+    "name": "Component D-4 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1082",
+    "name": "Component E-4 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1083",
+    "name": "Component F-4 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1084",
+    "name": "Component G-4 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1085",
+    "name": "Component H-4 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1086",
+    "name": "Component I-4 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1087",
+    "name": "Component J-4 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1088",
+    "name": "Component K-4 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1089",
+    "name": "Component L-4 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1090",
+    "name": "Component M-4 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1091",
+    "name": "Component N-4 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1092",
+    "name": "Component O-4 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1093",
+    "name": "Component P-4 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1094",
+    "name": "Component Q-4 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1095",
+    "name": "Component R-4 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1096",
+    "name": "Component S-4 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1097",
+    "name": "Component T-4 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1098",
+    "name": "Component U-4 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1099",
+    "name": "Component V-4 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1100",
+    "name": "Component W-4 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1101",
+    "name": "Component X-4 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1102",
+    "name": "Component Y-4 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1103",
+    "name": "Component Z-4 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1104",
+    "name": "Component A-5 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1105",
+    "name": "Component B-5 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1106",
+    "name": "Component C-5 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1107",
+    "name": "Component D-5 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1108",
+    "name": "Component E-5 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1109",
+    "name": "Component F-5 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1110",
+    "name": "Component G-5 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1111",
+    "name": "Component H-5 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1112",
+    "name": "Component I-5 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1113",
+    "name": "Component J-5 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1114",
+    "name": "Component K-5 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1115",
+    "name": "Component L-5 (Packaging)",
+    "category": "Packaging"
+  },
+  {
+    "id": "SKU-1116",
+    "name": "Component M-5 (Electronics)",
+    "category": "Electronics"
+  },
+  {
+    "id": "SKU-1117",
+    "name": "Component N-5 (Plastics)",
+    "category": "Plastics"
+  },
+  {
+    "id": "SKU-1118",
+    "name": "Component O-5 (Metals)",
+    "category": "Metals"
+  },
+  {
+    "id": "SKU-1119",
+    "name": "Component P-5 (Packaging)",
+    "category": "Packaging"
+  }
+]

@@ -1,0 +1,61 @@
+[
+  {
+    "id": "PB-SCN-01",
+    "scenarioId": "SCN-2026-001",
+    "title": "Emergency Air Freight Expedite via Taipei & Anchorage",
+    "strategy": "EXPEDITE_AIR_FREIGHT",
+    "description": "Bypass congested maritime sea-lanes by chartering 3x Boeing 747-8F cargo flights from Taipei (TPE) directly to Chicago O'Hare (ORD), airlifting 1,200 critical coprocessors.",
+    "costToExecute": 84000,
+    "revenueProtected": 980000,
+    "riskMitigationPercent": 68,
+    "timeToRecoverDays": 4,
+    "requiresExecutiveApproval": true,
+    "steps": [
+      "Issue emergency freight charter request to Lufthansa Cargo / Atlas Air",
+      "Coordinate immediate tarmac release at Taipei Taoyuan Airport",
+      "Reroute custom bonded transit through Chicago Central Hub (NODE-WH-01)",
+      "Update SAP ERP Planned Inbound Order delivery dates to -14 days"
+    ],
+    "status": "PROPOSED",
+    "sha256Seal": "7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069"
+  },
+  {
+    "id": "PB-SCN-02",
+    "scenarioId": "SCN-2026-001",
+    "title": "Secondary Domestic Foundry Dual-Sourcing Activation",
+    "strategy": "DUAL_SOURCING_ALLOCATION",
+    "description": "Shift 40% wafer fabrication allocation to GlobalFoundries Fab 8 (Malta, NY) under secondary contingency agreement, offsetting Far-East foundry deficits.",
+    "costToExecute": 135000,
+    "revenueProtected": 1250000,
+    "riskMitigationPercent": 82,
+    "timeToRecoverDays": 9,
+    "requiresExecutiveApproval": true,
+    "steps": [
+      "Trigger dual-sourcing clause in Contract MSA-2026-GF-09",
+      "Transmit photomask design files via secure cryptographic vault",
+      "Authorize expedited batch run charge (,000)",
+      "Align Austin Assembly Plant production schedule for Day 9 receipt"
+    ],
+    "status": "PROPOSED",
+    "sha256Seal": "9b2c83d6a74e51141e8c117b8f9e671d64380aa647e387c126487e4726483b8e"
+  },
+  {
+    "id": "PB-SCN-03",
+    "scenarioId": "SCN-2026-001",
+    "title": "Inter-Hub Regional Buffer Stock Transfer (Reno to Chicago)",
+    "strategy": "BUFFER_STOCK_REROUTE",
+    "description": "Cross-dock and truck 350 reserve modules from West Coast Gateway (NODE-WH-02) to Chicago Central Hub (NODE-WH-01) using dedicated expedited dry vans.",
+    "costToExecute": 18500,
+    "revenueProtected": 410000,
+    "riskMitigationPercent": 35,
+    "timeToRecoverDays": 2,
+    "requiresExecutiveApproval": false,
+    "steps": [
+      "Dispatch 4x Team-Driver FTL tractor trailers from Reno, NV",
+      "Reserve priority cross-dock door 14 at Chicago Distribution Hub",
+      "Rebalance safety stock threshold at West Coast facility to 15%"
+    ],
+    "status": "PROPOSED",
+    "sha256Seal": "4392bf9837a718b2c4e36359f6d713918a93e8e19d7d425ecdae4c4c23f81e89"
+  }
+]

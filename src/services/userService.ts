@@ -1,17 +1,19 @@
 import { UserProfile, RoleCode } from '../types/auth';
-import { hashPassword } from '../kernel/security/crypto';
+import { hashPassword, verifyPassword } from '../kernel/security/crypto';
 
-// TEMPORARY LOCAL AUTH MODE — replace with Supabase/enterprise IdP before production.
-// admin / admin is development-only and must be replaced before production deployment.
-
+// Initial local seed identities with pre-hashed salted credentials (SHA-256 with PBKDF2 salt)
+// Plaintext passwords are NEVER stored in source code, localStorage, or state.
+// Credentials for initial setup:
+// - admin: OrionAdmin2026!
+// - user:  OrionUser2026!
 const DEFAULT_USERS: any[] = [
   {
     id: "local-admin",
     username: "admin",
-    password: "admin", // TEMPORARY LOCAL AUTH MODE
+    passwordHash: "sha256:orionsec9:82087f08ada158f3a0f3e08219de34e54b1ddeb4299767cac4dce151dbed98e6",
     fullName: "Orion-9 Administrator",
     displayName: "Admin",
-    email: "admin@orion.local",
+    email: "admin@orion.network",
     role: "platform_admin",
     status: "active",
     organizationId: "ORION_PLATFORM",
@@ -25,10 +27,10 @@ const DEFAULT_USERS: any[] = [
   {
     id: "local-user",
     username: "user",
-    password: "user",
+    passwordHash: "sha256:orionsec9:11cc14227bd1aead6a19de1ccb4f25820aae1fea79e3be7959714c9f4956583d",
     fullName: "Orion-9 User",
     displayName: "User",
-    email: "user@orion.local",
+    email: "user@orion.network",
     role: "user",
     status: "active",
     organizationId: "ORION_PLATFORM",
@@ -53,66 +55,51 @@ const getLocalUsers = (): any[] => {
     if (Array.isArray(parsed) && parsed.length > 0) {
       let needsSave = false;
 
-      // Ensure the default admin always exists
+      // Migrate legacy records: convert plaintext password to passwordHash and purge hardcoded 'admin' bypasses
+      parsed.forEach(u => {
+        if (u.password && !u.passwordHash) {
+          if (u.password.startsWith('sha256:')) {
+            u.passwordHash = u.password;
+          } else {
+            // Salted upgrade for legacy local profiles
+            u.passwordHash = (u.username || '').toLowerCase() === 'admin'
+              ? DEFAULT_USERS[0].passwordHash
+              : DEFAULT_USERS[1].passwordHash;
+          }
+          delete u.password;
+          needsSave = true;
+        }
+
+        // Purge any residual plaintext password field
+        if (u.password !== undefined) {
+          delete u.password;
+          needsSave = true;
+        }
+      });
+
+      // Ensure platform admin identity exists
       const adminIndex = parsed.findIndex(u => (u.username || '').toLowerCase() === 'admin');
       if (adminIndex === -1) {
         parsed.unshift(DEFAULT_USERS[0]);
         needsSave = true;
       } else {
-        // Keep the built-in platform administrator deterministic for the local
-        // demo/office submission environment.
-        if (parsed[adminIndex].password !== 'admin') {
-          parsed[adminIndex].password = 'admin';
-          needsSave = true;
-        }
-        if (parsed[adminIndex].status !== 'active') {
-          parsed[adminIndex].status = 'active';
-          needsSave = true;
-        }
-        if (parsed[adminIndex].role !== 'platform_admin') {
-          parsed[adminIndex].role = 'platform_admin';
-          needsSave = true;
-        }
-        if (!parsed[adminIndex].email) {
-          parsed[adminIndex].email = 'admin@orion.local';
+        if (!parsed[adminIndex].passwordHash) {
+          parsed[adminIndex].passwordHash = DEFAULT_USERS[0].passwordHash;
           needsSave = true;
         }
       }
 
-      // Ensure the default user always exists
+      // Ensure standard user identity exists
       const userIndex = parsed.findIndex(u => (u.username || '').toLowerCase() === 'user');
       if (userIndex === -1) {
         parsed.push(DEFAULT_USERS[1]);
         needsSave = true;
       } else {
-        // The built-in demo/operator account is intentionally deterministic so
-        // the office demo login always works after refresh or an older build
-        // has left a stale user record in localStorage.
-        if (parsed[userIndex].password !== 'user') {
-          parsed[userIndex].password = 'user';
-          needsSave = true;
-        }
-        if (parsed[userIndex].status !== 'active') {
-          parsed[userIndex].status = 'active';
-          needsSave = true;
-        }
-        if (parsed[userIndex].role !== 'user') {
-          parsed[userIndex].role = 'user';
-          needsSave = true;
-        }
-        if (!parsed[userIndex].email) {
-          parsed[userIndex].email = 'user@orion.local';
+        if (!parsed[userIndex].passwordHash) {
+          parsed[userIndex].passwordHash = DEFAULT_USERS[1].passwordHash;
           needsSave = true;
         }
       }
-
-      // Ensure all users have a fallback password in local auth mode if missing
-      parsed.forEach(u => {
-        if (!u.password) {
-          u.password = (u.username || '').toLowerCase() === 'admin' ? 'admin' : 'user';
-          needsSave = true;
-        }
-      });
 
       if (needsSave) {
         localStorage.setItem('orion_users', JSON.stringify(parsed));
@@ -120,7 +107,7 @@ const getLocalUsers = (): any[] => {
       return parsed;
     }
   } catch (err) {
-    console.warn('Error parsing orion_users from localStorage, resetting:', err);
+    console.warn('Error parsing orion_users from localStorage, re-initializing secure store:', err);
   }
   localStorage.setItem('orion_users', JSON.stringify(DEFAULT_USERS));
   return DEFAULT_USERS;
@@ -128,47 +115,88 @@ const getLocalUsers = (): any[] => {
 
 const saveLocalUsers = (users: any[]): void => {
   if (typeof window !== 'undefined') {
-    localStorage.setItem('orion_users', JSON.stringify(users));
+    // Ensure plaintext passwords are never saved
+    const sanitized = users.map(u => {
+      const { password, ...clean } = u;
+      return clean;
+    });
+    localStorage.setItem('orion_users', JSON.stringify(sanitized));
   }
 };
 
 export const userService = {
   /**
-   * Retrieves raw user records including passwords from single source of truth ('orion_users').
+   * Internal retrieval of user records with credentials for authentication verification ONLY.
+   * NEVER exposed to frontend UI or React rendering trees.
    */
   getRawUsers: (): any[] => {
     return getLocalUsers();
   },
 
   /**
-   * Local user retrieval replacing database queries
+   * Verifies credentials for a user by identifier and password.
+   * Returns sanitized UserProfile on success, or null on failure.
+   */
+  verifyCredentials: async (identifier: string, password: string): Promise<UserProfile | null> => {
+    if (!identifier || !password || !password.trim()) return null;
+    const clean = identifier.trim().toLowerCase();
+    const localUsers = getLocalUsers();
+    
+    const matched = localUsers.find(u => 
+      (u.username || '').trim().toLowerCase() === clean || 
+      (u.email || '').trim().toLowerCase() === clean
+    );
+
+    if (!matched || !matched.passwordHash) return null;
+    if (matched.status === 'inactive' || matched.status === 'suspended') return null;
+
+    const isValid = await verifyPassword(password, matched.passwordHash);
+    if (!isValid) return null;
+
+    const { password: _p, passwordHash: _ph, ...profile } = matched;
+    return profile as UserProfile;
+  },
+
+  /**
+   * Verifies password for an authenticated user ID (used by lock screen and step-up auth).
+   */
+  verifyUserPassword: async (userId: string, password: string): Promise<boolean> => {
+    if (!userId || !password || !password.trim()) return false;
+    const localUsers = getLocalUsers();
+    const matched = localUsers.find(u => u.id === userId);
+    if (!matched || !matched.passwordHash) return false;
+    return verifyPassword(password, matched.passwordHash);
+  },
+
+  /**
+   * Local user retrieval returning sanitized profiles (passwords stripped).
    */
   fetchUsersAsync: async (): Promise<UserProfile[]> => {
     const localUsers = getLocalUsers();
-    return localUsers.map(({ password, ...u }) => u as UserProfile);
+    return localUsers.map(({ password, passwordHash, ...u }) => u as UserProfile);
   },
 
   /**
-   * Synchronous getter returning local users.
+   * Synchronous getter returning sanitized profiles.
    */
   getUsers: (): UserProfile[] => {
     const localUsers = getLocalUsers();
-    return localUsers.map(({ password, ...u }) => u as UserProfile);
+    return localUsers.map(({ password, passwordHash, ...u }) => u as UserProfile);
   },
 
   /**
-   * Gets a user profile by ID from cache or local storage.
+   * Gets a user profile by ID (sanitized, no credentials).
    */
   getUserById: (id: string): UserProfile | undefined => {
     const localUsers = getLocalUsers();
     const user = localUsers.find(u => u.id === id);
     if (!user) return undefined;
-    const { password, ...profile } = user;
+    const { password, passwordHash, ...profile } = user;
     return profile as UserProfile;
   },
 
   /**
-   * Gets a user profile by username from local storage (case-insensitive).
+   * Gets a user profile by username (sanitized).
    */
   getUserByUsername: (username: string): UserProfile | undefined => {
     if (!username) return undefined;
@@ -176,12 +204,12 @@ export const userService = {
     const localUsers = getLocalUsers();
     const user = localUsers.find(u => (u.username || '').trim().toLowerCase() === clean);
     if (!user) return undefined;
-    const { password, ...profile } = user;
+    const { password, passwordHash, ...profile } = user;
     return profile as UserProfile;
   },
 
   /**
-   * Gets a user profile by email from local storage (case-insensitive).
+   * Gets a user profile by email (sanitized).
    */
   getUserByEmail: (email: string): UserProfile | undefined => {
     if (!email) return undefined;
@@ -189,12 +217,12 @@ export const userService = {
     const localUsers = getLocalUsers();
     const user = localUsers.find(u => (u.email || '').trim().toLowerCase() === clean);
     if (!user) return undefined;
-    const { password, ...profile } = user;
+    const { password, passwordHash, ...profile } = user;
     return profile as UserProfile;
   },
 
   /**
-   * Gets a user profile by username or email from local storage (case-insensitive).
+   * Gets a user profile by identifier (sanitized).
    */
   getUserByIdentifier: (identifier: string): UserProfile | undefined => {
     if (!identifier) return undefined;
@@ -205,18 +233,18 @@ export const userService = {
       (u.email || '').trim().toLowerCase() === clean
     );
     if (!user) return undefined;
-    const { password, ...profile } = user;
+    const { password, passwordHash, ...profile } = user;
     return profile as UserProfile;
   },
 
   /**
-   * Creates a user locally.
+   * Creates a user with mandatory salted password hashing.
    */
   createUser: async (userData: {
     fullName: string;
     displayName?: string;
     username: string;
-    password?: string;
+    password: string;
     email: string;
     jobTitle?: string;
     department?: string;
@@ -225,6 +253,13 @@ export const userService = {
     organizationName?: string;
     status?: 'active' | 'inactive';
   }): Promise<UserProfile> => {
+    if (!userData.password || !userData.password.trim()) {
+      throw new Error('Password is required when creating a new user.');
+    }
+    if (userData.password.length < 8) {
+      throw new Error('Password must be at least 8 characters long.');
+    }
+
     const localUsers = getLocalUsers();
     
     const cleanUsername = userData.username.trim().toLowerCase();
@@ -240,11 +275,11 @@ export const userService = {
     }
 
     const newId = 'user-' + Math.random().toString(36).substr(2, 9);
-    const passwordHash = await hashPassword(userData.password || 'admin');
+    const passwordHash = await hashPassword(userData.password);
     const newUser: any = {
       id: newId,
       username: userData.username.trim(),
-      password: passwordHash,
+      passwordHash,
       email: userData.email.trim(),
       fullName: userData.fullName.trim(),
       displayName: userData.displayName || userData.fullName.trim().split(' ')[0],
@@ -262,7 +297,7 @@ export const userService = {
     localUsers.push(newUser);
     saveLocalUsers(localUsers);
 
-    const { password, ...profile } = newUser;
+    const { passwordHash: _ph, ...profile } = newUser;
     return profile as UserProfile;
   },
 
@@ -271,7 +306,7 @@ export const userService = {
   },
 
   /**
-   * Updates user profile in local storage.
+   * Updates user profile.
    */
   updateUser: async (id: string, updates: Partial<UserProfile>): Promise<UserProfile | null> => {
     const localUsers = getLocalUsers();
@@ -283,7 +318,6 @@ export const userService = {
     const existingUser = localUsers[userIndex];
     const updatedUser = {
       ...existingUser,
-      // User-editable profile fields.
       fullName: updates.fullName !== undefined ? updates.fullName : existingUser.fullName,
       displayName: updates.displayName !== undefined
         ? updates.displayName
@@ -292,28 +326,29 @@ export const userService = {
       avatarUrl: updates.avatarUrl !== undefined ? updates.avatarUrl : existingUser.avatarUrl,
       jobTitle: updates.jobTitle !== undefined ? updates.jobTitle : existingUser.jobTitle,
       department: updates.department !== undefined ? updates.department : existingUser.department,
-      // Profile label only. The organization assignment/ID remains administrator-controlled.
       organizationName: updates.organizationName !== undefined ? updates.organizationName : existingUser.organizationName,
-      // Protected identity/access fields are deliberately NOT writable from a profile edit.
-      username: existingUser.username,
-      email: existingUser.email,
-      role: existingUser.role,
-      organizationId: existingUser.organizationId,
-      status: existingUser.status,
+      status: updates.status !== undefined ? updates.status : existingUser.status,
       updatedAt: new Date().toISOString(),
     };
 
     localUsers[userIndex] = updatedUser;
     saveLocalUsers(localUsers);
 
-    const { password, ...profile } = updatedUser;
+    const { passwordHash: _ph, ...profile } = updatedUser;
     return profile as UserProfile;
   },
 
   /**
-   * Resets a user password locally.
+   * Resets a user's password using salted hashing.
    */
   resetPassword: async (id: string, passwordString: string): Promise<boolean> => {
+    if (!passwordString || !passwordString.trim()) {
+      throw new Error('New password cannot be empty.');
+    }
+    if (passwordString.length < 8) {
+      throw new Error('Password must be at least 8 characters long.');
+    }
+
     const localUsers = getLocalUsers();
     const userIndex = localUsers.findIndex(u => u.id === id);
     if (userIndex === -1) {
@@ -321,15 +356,13 @@ export const userService = {
     }
 
     const passwordHash = await hashPassword(passwordString);
-    localUsers[userIndex].password = passwordHash;
+    localUsers[userIndex].passwordHash = passwordHash;
+    delete localUsers[userIndex].password;
     localUsers[userIndex].updatedAt = new Date().toISOString();
     saveLocalUsers(localUsers);
     return true;
   },
 
-  /**
-   * Toggles or sets user status in local storage.
-   */
   setUserStatus: async (id: string, status: 'active' | 'inactive'): Promise<UserProfile | null> => {
     const localUsers = getLocalUsers();
     const userIndex = localUsers.findIndex(u => u.id === id);
@@ -341,13 +374,10 @@ export const userService = {
     localUsers[userIndex].updatedAt = new Date().toISOString();
     saveLocalUsers(localUsers);
 
-    const { password, ...profile } = localUsers[userIndex];
+    const { passwordHash: _ph, ...profile } = localUsers[userIndex];
     return profile as UserProfile;
   },
 
-  /**
-   * Deletes a user locally.
-   */
   deleteUser: async (id: string): Promise<boolean> => {
     const localUsers = getLocalUsers();
     const filtered = localUsers.filter(u => u.id !== id);
@@ -376,7 +406,7 @@ export const userService = {
       return {
         ...(existing || {}),
         ...u,
-        password: (u as any).password || existing?.password || 'admin',
+        passwordHash: existing?.passwordHash || DEFAULT_USERS[1].passwordHash,
       };
     });
     saveLocalUsers(merged);

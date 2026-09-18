@@ -1,0 +1,92 @@
+[
+  {
+    "id": "ECH-001",
+    "name": "Munich Advanced Manufacturing Plant",
+    "code": "PLANT-MUC-01",
+    "tier": "TIER_1_CENTRAL_PLANT",
+    "location": "Munich, Bavaria",
+    "country": "Germany",
+    "capacityUnits": 500000,
+    "currentUtilizationPct": 88.4,
+    "leadTimeDaysToNextEchelon": 6,
+    "childEchelonIds": [
+      "ECH-002",
+      "ECH-003",
+      "ECH-004"
+    ],
+    "isDecouplingPoint": true
+  },
+  {
+    "id": "ECH-002",
+    "name": "Chicago Central Logistics Center",
+    "code": "CDC-ORD-02",
+    "tier": "TIER_2_REGIONAL_DC",
+    "location": "Chicago, Illinois",
+    "country": "United States",
+    "capacityUnits": 320000,
+    "currentUtilizationPct": 76.8,
+    "leadTimeDaysToNextEchelon": 2,
+    "parentEchelonId": "ECH-001",
+    "childEchelonIds": [
+      "ECH-005",
+      "ECH-006"
+    ],
+    "isDecouplingPoint": true
+  },
+  {
+    "id": "ECH-003",
+    "name": "Rotterdam Port Multimodal Hub",
+    "code": "RDC-RTM-03",
+    "tier": "TIER_2_REGIONAL_DC",
+    "location": "Rotterdam",
+    "country": "Netherlands",
+    "capacityUnits": 280000,
+    "currentUtilizationPct": 82.1,
+    "leadTimeDaysToNextEchelon": 3,
+    "parentEchelonId": "ECH-001",
+    "childEchelonIds": [],
+    "isDecouplingPoint": true
+  },
+  {
+    "id": "ECH-004",
+    "name": "Singapore APAC Transshipment Center",
+    "code": "RDC-SIN-04",
+    "tier": "TIER_2_REGIONAL_DC",
+    "location": "Jurong Island",
+    "country": "Singapore",
+    "capacityUnits": 350000,
+    "currentUtilizationPct": 69.5,
+    "leadTimeDaysToNextEchelon": 4,
+    "parentEchelonId": "ECH-001",
+    "childEchelonIds": [],
+    "isDecouplingPoint": true
+  },
+  {
+    "id": "ECH-005",
+    "name": "Austin Spoke Fulfillment Hub",
+    "code": "SPOKE-AUS-05",
+    "tier": "TIER_3_LOCAL_SPOKE",
+    "location": "Austin, Texas",
+    "country": "United States",
+    "capacityUnits": 95000,
+    "currentUtilizationPct": 91.2,
+    "leadTimeDaysToNextEchelon": 1,
+    "parentEchelonId": "ECH-002",
+    "childEchelonIds": [],
+    "isDecouplingPoint": false
+  },
+  {
+    "id": "ECH-006",
+    "name": "Silicon Valley Forward Micro-Buffer",
+    "code": "FMB-SJC-06",
+    "tier": "TIER_4_FORWARD_BUFFER",
+    "location": "San Jose, California",
+    "country": "United States",
+    "capacityUnits": 45000,
+    "currentUtilizationPct": 62,
+    "leadTimeDaysToNextEchelon": 0,
+    "parentEchelonId": "ECH-002",
+    "childEchelonIds": [],
+    "isDecouplingPoint": false
+  }
+]

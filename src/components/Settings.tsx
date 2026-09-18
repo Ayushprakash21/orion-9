@@ -23,16 +23,21 @@ import { AdminBranding } from './admin/AdminBranding';
 import { AdminAuditLogs } from './admin/AdminAuditLogs';
 import { AdminDemoData } from './admin/AdminDemoData';
 import { AdminSettings } from './admin/AdminSettings';
+import { AdminDatabaseHealth } from './admin/AdminDatabaseHealth';
+import { privilegedSessionManager } from '../kernel/security/privilegedSession';
+import { authService } from '../services/authService';
 
 type SettingsCategory = 
-  // SYSTEM PREFERENCES
-  | 'operational' | 'system' | 'appearance' | 'localization' | 'sound' | 'privacy' | 'profile'
+  // SYSTEM
+  | 'operational' | 'appearance' | 'localization' | 'sound' | 'privacy'
   // ADMINISTRATION
-  | 'admin_overview' | 'admin_users' | 'admin_orgs' | 'admin_roles' | 'admin_branding' | 'admin_audit' | 'admin_demo' | 'admin_security';
+  | 'admin_overview' | 'admin_users' | 'admin_orgs' | 'admin_roles' | 'admin_branding' | 'admin_audit' | 'admin_demo' | 'admin_security' | 'admin_database';
 
 export const Settings = () => {
   const { user, profile, hasRole } = useAuth();
-  const isAdmin = hasRole(['platform_admin', 'organization_admin']) || profile?.role === 'platform_admin' || profile?.role === 'organization_admin' || user?.id === 'admin' || user?.id === 'local-admin';
+  const isAdmin = hasRole(['platform_admin', 'organization_admin']) || 
+                  profile?.role === 'platform_admin' || 
+                  profile?.role === 'organization_admin';
   const { settings, updateSettings } = useSupplyChain();
   
   const [localSettings, setLocalSettings] = useState<SystemSettings>(() => normalizeSettings(settings));
@@ -43,11 +48,20 @@ export const Settings = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Privileged Session State
-  const [privilegedUntil, setPrivilegedUntil] = useState<number | null>(null);
+  const [privilegedUntil, setPrivilegedUntil] = useState<number | null>(() => {
+    const s = privilegedSessionManager.getSession();
+    return s ? new Date(s.expiresAt).getTime() : null;
+  });
   const [unlockPassword, setUnlockPassword] = useState('');
   const [unlockError, setUnlockError] = useState('');
   const [isUnlocking, setIsUnlocking] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<string>('');
+
+  useEffect(() => {
+    return privilegedSessionManager.subscribe(session => {
+      setPrivilegedUntil(session ? new Date(session.expiresAt).getTime() : null);
+    });
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -72,6 +86,7 @@ export const Settings = () => {
       interval = setInterval(() => {
         const now = Date.now();
         if (now > privilegedUntil) {
+          privilegedSessionManager.revoke('Privileged session timed out');
           setPrivilegedUntil(null);
         } else {
           const diff = Math.ceil((privilegedUntil - now) / 1000);
@@ -115,30 +130,24 @@ export const Settings = () => {
     setIsUnlocking(true);
     setUnlockError('');
     try {
-      if (!user) throw new Error("No user");
-      // Use existing admin passwords or check against getRawUsers
-      const rawUsers = userService.getRawUsers ? userService.getRawUsers() : [];
-      const u = rawUsers.find((u: any) => u.id === user.id);
+      if (!user?.id) throw new Error("No authenticated user identity found.");
       
-      let isValid = false;
-      if (user.id === 'admin' && unlockPassword === 'admin') isValid = true;
-      else if (u && u.password === unlockPassword) isValid = true;
-      else if (unlockPassword === 'admin') isValid = true; // Fallback for demo
-      
-      if (isValid) {
-        setPrivilegedUntil(Date.now() + 30 * 60 * 1000); // 30 minutes
+      const privSession = await authService.requestAdminStepUp(user.id, unlockPassword);
+      if (privSession) {
+        setPrivilegedUntil(new Date(privSession.expiresAt).getTime());
         setUnlockPassword('');
-      } else {
-        setUnlockError('Incorrect password');
       }
-    } catch (err) {
-      setUnlockError('Authentication failed');
+    } catch (err: any) {
+      setUnlockError(err.message || 'Authentication failed. Please check your administrator password.');
     } finally {
       setIsUnlocking(false);
     }
   };
 
-  const lockNow = () => setPrivilegedUntil(null);
+  const lockNow = () => {
+    privilegedSessionManager.revoke('Manually locked by administrator');
+    setPrivilegedUntil(null);
+  };
 
   const isAdminTab = activeCategory.startsWith('admin_');
 
@@ -207,6 +216,7 @@ export const Settings = () => {
           {activeCategory === 'admin_audit' && <AdminAuditLogs />}
           {activeCategory === 'admin_demo' && <AdminDemoData />}
           {activeCategory === 'admin_security' && <AdminSettings />}
+          {activeCategory === 'admin_database' && <AdminDatabaseHealth />}
         </div>
       </div>
     );
@@ -415,6 +425,7 @@ export const Settings = () => {
     { id: 'admin_audit', label: 'Audit Activity', icon: Clock, group: 'admin' },
     { id: 'admin_demo', label: 'Demo Data', icon: Database, group: 'admin' },
     { id: 'admin_security', label: 'Security', icon: ShieldCheck, group: 'admin' },
+    { id: 'admin_database', label: 'Database Health', icon: Database, group: 'admin' },
   ];
 
   const filteredMenuItems = menuItems.filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()));

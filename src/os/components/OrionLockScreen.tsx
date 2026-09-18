@@ -2,6 +2,8 @@ import React, { useEffect } from 'react';
 import { UserProfile } from '../../types/auth';
 import { Lock, Unlock, Shield } from 'lucide-react';
 
+import { userService } from '../../services/userService';
+
 interface OrionLockScreenProps {
   onUnlock: () => void;
   currentUser: UserProfile | null;
@@ -10,15 +12,33 @@ interface OrionLockScreenProps {
 export const OrionLockScreen: React.FC<OrionLockScreenProps> = ({ onUnlock, currentUser }) => {
   const [password, setPassword] = React.useState('');
   const [error, setError] = React.useState(false);
+  const [isVerifying, setIsVerifying] = React.useState(false);
 
-  const handleUnlockAttempt = () => {
-    if (password === 'admin' || password === 'user' || password === 'password' || password === 'orion') {
-      onUnlock();
-    } else {
+  const handleUnlockAttempt = async () => {
+    if (!password || !password.trim() || !currentUser?.id) {
       setError(true);
-      setTimeout(() => setError(false), 1000);
+      setTimeout(() => setError(false), 1200);
+      return;
+    }
+
+    setIsVerifying(true);
+    try {
+      const isValid = await userService.verifyUserPassword(currentUser.id, password);
+      if (isValid) {
+        setPassword('');
+        onUnlock();
+      } else {
+        setError(true);
+        setTimeout(() => setError(false), 1200);
+      }
+    } catch (e) {
+      setError(true);
+      setTimeout(() => setError(false), 1200);
+    } finally {
+      setIsVerifying(false);
     }
   };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Enter') {
@@ -27,7 +47,7 @@ export const OrionLockScreen: React.FC<OrionLockScreenProps> = ({ onUnlock, curr
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onUnlock]);
+  }, [onUnlock, password, currentUser]);
 
   const initials = currentUser?.displayName 
     ? currentUser.displayName.substring(0, 2).toUpperCase() 

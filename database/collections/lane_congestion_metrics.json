@@ -1,0 +1,74 @@
+[
+  {
+    "laneId": "LANE-SUEZ-01",
+    "originPort": "Port of Singapore (SGSIN)",
+    "destinationPort": "Port of Rotterdam (NLRTM)",
+    "mode": "OCEAN",
+    "congestionIndex": 86,
+    "status": "CRITICAL_BOTTLENECK",
+    "averageDwellDays": 14.8,
+    "historicalBaselineDays": 7.2,
+    "primaryChokeCause": "Suez Security Corridor Navigational Rerouting (Cape of Good Hope detour)",
+    "alternativeRerouteSuggestion": "Reroute high-value consignments via Trans-Pacific Ocean to US West Coast then landbridge rail to East Coast."
+  },
+  {
+    "laneId": "LANE-MALACCA-02",
+    "originPort": "Port of Shanghai (CNSHG)",
+    "destinationPort": "Port of Singapore (SGSIN)",
+    "mode": "OCEAN",
+    "congestionIndex": 72,
+    "status": "ELEVATED",
+    "averageDwellDays": 4.2,
+    "historicalBaselineDays": 2.1,
+    "primaryChokeCause": "Strait of Malacca Monsoon Swell & Singapore Anchorage Queue",
+    "alternativeRerouteSuggestion": "Direct dispatch to Tanjung Pelepas secondary terminal."
+  },
+  {
+    "laneId": "LANE-LA-LB-03",
+    "originPort": "Port of Ningbo (CNNGB)",
+    "destinationPort": "Port of Long Beach (USLGB)",
+    "mode": "OCEAN",
+    "congestionIndex": 58,
+    "status": "NORMAL",
+    "averageDwellDays": 3.4,
+    "historicalBaselineDays": 3,
+    "primaryChokeCause": "Terminal gate turn-time moderate",
+    "alternativeRerouteSuggestion": "Maintain standard schedule; prioritize Pier T night gates."
+  },
+  {
+    "laneId": "LANE-US-I80-04",
+    "originPort": "Chicago Freight Hub (ORD)",
+    "destinationPort": "Reno Logistics Corridor (RNO)",
+    "mode": "ROAD_FTL",
+    "congestionIndex": 44,
+    "status": "NORMAL",
+    "averageDwellDays": 1.8,
+    "historicalBaselineDays": 1.8,
+    "primaryChokeCause": "Clear interstate conditions across Wyoming / Utah",
+    "alternativeRerouteSuggestion": "Optimal road corridor active."
+  },
+  {
+    "laneId": "LANE-EU-A14-05",
+    "originPort": "Dresden Tech Campus",
+    "destinationPort": "Leipzig Automotive Hub",
+    "mode": "ROAD_FTL",
+    "congestionIndex": 32,
+    "status": "NORMAL",
+    "averageDwellDays": 0.2,
+    "historicalBaselineDays": 0.2,
+    "primaryChokeCause": "Unrestricted flow on Autobahn A14",
+    "alternativeRerouteSuggestion": "Direct expressway routing."
+  },
+  {
+    "laneId": "LANE-ATL-AIR-06",
+    "originPort": "Frankfurt CargoCity (EDDF)",
+    "destinationPort": "Chicago O’Hare (KORD)",
+    "mode": "AIR",
+    "congestionIndex": 38,
+    "status": "NORMAL",
+    "averageDwellDays": 0.4,
+    "historicalBaselineDays": 0.4,
+    "primaryChokeCause": "Normal transatlantic air corridor traffic",
+    "alternativeRerouteSuggestion": "Clear for urgent cold-chain flights."
+  }
+]

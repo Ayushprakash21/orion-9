@@ -1,0 +1,52 @@
+[
+  {
+    "nodeId": "ECH-001",
+    "nodeName": "Munich Advanced Manufacturing Plant",
+    "demandVariance": 14.8,
+    "orderVariance": 16.4,
+    "bullwhipRatio": 1.11,
+    "dampeningFactor": 0.89,
+    "evaluationPeriod": "Last 90 Days",
+    "status": "STABILIZED"
+  },
+  {
+    "nodeId": "ECH-002",
+    "nodeName": "Chicago Central Logistics Center",
+    "demandVariance": 28.2,
+    "orderVariance": 34.6,
+    "bullwhipRatio": 1.23,
+    "dampeningFactor": 0.81,
+    "evaluationPeriod": "Last 90 Days",
+    "status": "DAMPENING"
+  },
+  {
+    "nodeId": "ECH-003",
+    "nodeName": "Rotterdam Port Multimodal Hub",
+    "demandVariance": 22,
+    "orderVariance": 23.8,
+    "bullwhipRatio": 1.08,
+    "dampeningFactor": 0.93,
+    "evaluationPeriod": "Last 90 Days",
+    "status": "STABILIZED"
+  },
+  {
+    "nodeId": "ECH-004",
+    "nodeName": "Singapore APAC Transshipment Center",
+    "demandVariance": 38.5,
+    "orderVariance": 44.2,
+    "bullwhipRatio": 1.15,
+    "dampeningFactor": 0.87,
+    "evaluationPeriod": "Last 90 Days",
+    "status": "STABILIZED"
+  },
+  {
+    "nodeId": "ECH-005",
+    "nodeName": "Austin Spoke Fulfillment Hub",
+    "demandVariance": 18.2,
+    "orderVariance": 26.5,
+    "bullwhipRatio": 1.46,
+    "dampeningFactor": 0.68,
+    "evaluationPeriod": "Last 90 Days",
+    "status": "AMPLIFIED"
+  }
+]

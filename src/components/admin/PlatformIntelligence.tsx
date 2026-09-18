@@ -426,8 +426,8 @@ export const PlatformIntelligence: React.FC = () => {
         generatedAt: new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' }),
         adminUser: {
           name: profile?.fullName || profile?.displayName || 'Platform Administrator',
-          username: profile?.username || 'admin',
-          email: profile?.email || 'admin@orion.local',
+          username: profile?.username || 'administrator',
+          email: profile?.email || 'admin@orion.network',
           role: profile?.role || 'platform_admin',
           organization: (profile as any)?.organizationName || 'Orion Global Operations'
         },

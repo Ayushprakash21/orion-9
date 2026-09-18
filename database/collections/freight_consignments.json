@@ -1,0 +1,569 @@
+[
+  {
+    "id": "FRT-2026-881",
+    "consignmentNumber": "MSK-9921827-01",
+    "title": "Tier-1 Microcontroller & PCB Inbound Batch",
+    "mode": "OCEAN",
+    "carrierId": "c1",
+    "carrierName": "Maersk Line Maritime",
+    "carrierScac": "MAEU",
+    "origin": {
+      "name": "Port of Shanghai, Yangshan Terminal",
+      "code": "CNSHG",
+      "country": "China",
+      "coordinates": [
+        30.6277,
+        122.0645
+      ]
+    },
+    "destination": {
+      "name": "Port of Long Beach, Pier T",
+      "code": "USLGB",
+      "country": "United States",
+      "coordinates": [
+        33.7541,
+        -118.2165
+      ]
+    },
+    "status": "IN_TRANSIT",
+    "containerNumber": "MSKU-820194-4",
+    "vesselOrFlight": "Maersk Mc-Kinney Møller / V-2604W",
+    "totalWeightKg": 18450,
+    "totalVolumeCbm": 68.2,
+    "commodity": "High-Density Semiconductor Assemblies & Passive SMD Kits",
+    "carbonFootprintKg": 1420.5,
+    "bookingDate": "2026-09-02T04:00:00.000Z",
+    "estimatedArrival": "2026-09-24T18:00:00.000Z",
+    "freightCost": 6450,
+    "currency": "USD",
+    "progressPercent": 68,
+    "coldChain": {
+      "required": true,
+      "minTempCelsius": 15,
+      "maxTempCelsius": 25,
+      "targetHumidityPercent": 45,
+      "isBreached": false
+    },
+    "demurrageRisk": {
+      "isAtRisk": true,
+      "freeTimeDaysRemaining": 2,
+      "estimatedAccrualDaily": 450,
+      "accruedPenalty": 0,
+      "chokePoint": "San Pedro Bay Anchor Queue (3.2 days average dwell)",
+      "lastUpdated": "2026-09-18T10:30:00.000Z"
+    },
+    "latestTelemetry": {
+      "timestamp": "2026-09-18T11:15:00.000Z",
+      "latitude": 32.1804,
+      "longitude": -138.4521,
+      "locationName": "Eastern Pacific Maritime Sector 4B",
+      "temperatureCelsius": 19.8,
+      "humidityPercent": 48.2,
+      "shockGForce": 0.18,
+      "batteryPercent": 88,
+      "tamperSealIntact": true,
+      "geofenceStatus": "INSIDE_CORRIDOR"
+    },
+    "telemetryHistory": [
+      {
+        "timestamp": "2026-09-15T08:00:00.000Z",
+        "latitude": 31.4201,
+        "longitude": 145.2104,
+        "locationName": "Northwest Pacific Corridor",
+        "temperatureCelsius": 20.1,
+        "humidityPercent": 46.5,
+        "shockGForce": 0.12,
+        "batteryPercent": 96,
+        "tamperSealIntact": true,
+        "geofenceStatus": "INSIDE_CORRIDOR"
+      },
+      {
+        "timestamp": "2026-09-17T02:00:00.000Z",
+        "latitude": 32.0102,
+        "longitude": -155.8012,
+        "locationName": "Mid-Pacific Waypoint Alpha",
+        "temperatureCelsius": 19.5,
+        "humidityPercent": 47.9,
+        "shockGForce": 0.22,
+        "batteryPercent": 91,
+        "tamperSealIntact": true,
+        "geofenceStatus": "INSIDE_CORRIDOR"
+      },
+      {
+        "timestamp": "2026-09-18T11:15:00.000Z",
+        "latitude": 32.1804,
+        "longitude": -138.4521,
+        "locationName": "Eastern Pacific Maritime Sector 4B",
+        "temperatureCelsius": 19.8,
+        "humidityPercent": 48.2,
+        "shockGForce": 0.18,
+        "batteryPercent": 88,
+        "tamperSealIntact": true,
+        "geofenceStatus": "INSIDE_CORRIDOR"
+      }
+    ],
+    "policyCompliance": {
+      "cleared": true,
+      "requiresApproval": false,
+      "sha256Seal": "e89f81a74d75806c9a3e62058b753c1550c8227b686cf5b62b1a0d33e9d8cb4e"
+    },
+    "notes": "Priority allocation for Reno Gigafactory Assembly Run #991."
+  },
+  {
+    "id": "FRT-2026-882",
+    "consignmentNumber": "LH-CARGO-7731-09",
+    "title": "Emergency Cryogenic Bio-Reagents Expedite",
+    "mode": "AIR",
+    "carrierId": "c3",
+    "carrierName": "Lufthansa Cargo Special Logistics",
+    "carrierScac": "GEC",
+    "origin": {
+      "name": "Frankfurt Airport CargoCity South",
+      "code": "EDDF",
+      "country": "Germany",
+      "coordinates": [
+        50.0379,
+        8.5622
+      ]
+    },
+    "destination": {
+      "name": "Chicago O’Hare International Cargo Center",
+      "code": "KORD",
+      "country": "United States",
+      "coordinates": [
+        41.9742,
+        -87.9073
+      ]
+    },
+    "status": "IN_TRANSIT",
+    "containerNumber": "AKE-99214-LH",
+    "vesselOrFlight": "LH-8220 Boeing 777F",
+    "totalWeightKg": 2450,
+    "totalVolumeCbm": 11.4,
+    "commodity": "Active Cryo Enzyme Reagents & Sterile Biologics",
+    "carbonFootprintKg": 4980,
+    "bookingDate": "2026-09-17T22:00:00.000Z",
+    "estimatedArrival": "2026-09-18T21:30:00.000Z",
+    "freightCost": 28400,
+    "currency": "USD",
+    "progressPercent": 82,
+    "coldChain": {
+      "required": true,
+      "minTempCelsius": -25,
+      "maxTempCelsius": -18,
+      "targetHumidityPercent": 20,
+      "isBreached": false
+    },
+    "demurrageRisk": {
+      "isAtRisk": false,
+      "freeTimeDaysRemaining": 5,
+      "estimatedAccrualDaily": 600,
+      "accruedPenalty": 0,
+      "chokePoint": "None (Priority Air Express Bypass)",
+      "lastUpdated": "2026-09-18T11:00:00.000Z"
+    },
+    "latestTelemetry": {
+      "timestamp": "2026-09-18T11:45:00.000Z",
+      "latitude": 49.8821,
+      "longitude": -64.1205,
+      "locationName": "Canadian Maritimes Inbound Air Corridor",
+      "temperatureCelsius": -21.4,
+      "humidityPercent": 18.1,
+      "shockGForce": 0.14,
+      "batteryPercent": 94,
+      "tamperSealIntact": true,
+      "geofenceStatus": "INSIDE_CORRIDOR"
+    },
+    "telemetryHistory": [
+      {
+        "timestamp": "2026-09-18T04:00:00.000Z",
+        "latitude": 50.0379,
+        "longitude": 8.5622,
+        "locationName": "Frankfurt Hub Tarmac Cold Staging",
+        "temperatureCelsius": -22.1,
+        "humidityPercent": 17.5,
+        "shockGForce": 0.08,
+        "batteryPercent": 99,
+        "tamperSealIntact": true,
+        "geofenceStatus": "AT_WAYPOINT"
+      },
+      {
+        "timestamp": "2026-09-18T08:30:00.000Z",
+        "latitude": 56.4011,
+        "longitude": -28.9102,
+        "locationName": "North Atlantic Cruise FL360",
+        "temperatureCelsius": -21.8,
+        "humidityPercent": 17.9,
+        "shockGForce": 0.11,
+        "batteryPercent": 96,
+        "tamperSealIntact": true,
+        "geofenceStatus": "INSIDE_CORRIDOR"
+      },
+      {
+        "timestamp": "2026-09-18T11:45:00.000Z",
+        "latitude": 49.8821,
+        "longitude": -64.1205,
+        "locationName": "Canadian Maritimes Inbound Air Corridor",
+        "temperatureCelsius": -21.4,
+        "humidityPercent": 18.1,
+        "shockGForce": 0.14,
+        "batteryPercent": 94,
+        "tamperSealIntact": true,
+        "geofenceStatus": "INSIDE_CORRIDOR"
+      }
+    ],
+    "policyCompliance": {
+      "cleared": true,
+      "policyId": "POL-LOG-001",
+      "requiresApproval": true,
+      "approvalId": "APV-2026-0819",
+      "sha256Seal": "c1b489a244fe9e9512bc09a471c26f0490b8f152dcf0092c45b591b7d581e194"
+    },
+    "notes": "Approved under POL-LOG-001 via Emergency Expedited Air protocol."
+  },
+  {
+    "id": "FRT-2026-883",
+    "consignmentNumber": "MSC-77401-SEA",
+    "title": "Lithium Iron Phosphate (LFP) Battery Cells",
+    "mode": "OCEAN",
+    "carrierId": "c2",
+    "carrierName": "Mediterranean Shipping Company (MSC)",
+    "carrierScac": "MSCU",
+    "origin": {
+      "name": "Port of Ningbo-Zhoushan Beilun Terminal",
+      "code": "CNNGB",
+      "country": "China",
+      "coordinates": [
+        29.9405,
+        121.8485
+      ]
+    },
+    "destination": {
+      "name": "Port of Rotterdam Maasvlakte II",
+      "code": "NLRTM",
+      "country": "Netherlands",
+      "coordinates": [
+        51.9547,
+        4.0289
+      ]
+    },
+    "status": "CUSTOMS_HOLD",
+    "containerNumber": "MEDU-990184-7",
+    "vesselOrFlight": "MSC Gülsün / V-0911E",
+    "totalWeightKg": 26800,
+    "totalVolumeCbm": 74,
+    "commodity": "Class 9 Dangerous Goods: UN3480 Lithium Ion Cells",
+    "carbonFootprintKg": 1980,
+    "bookingDate": "2026-08-28T09:00:00.000Z",
+    "estimatedArrival": "2026-09-21T06:00:00.000Z",
+    "freightCost": 7850,
+    "currency": "USD",
+    "progressPercent": 91,
+    "coldChain": {
+      "required": true,
+      "minTempCelsius": 10,
+      "maxTempCelsius": 30,
+      "targetHumidityPercent": 50,
+      "isBreached": false
+    },
+    "demurrageRisk": {
+      "isAtRisk": true,
+      "freeTimeDaysRemaining": 1,
+      "estimatedAccrualDaily": 520,
+      "accruedPenalty": 520,
+      "chokePoint": "Customs Hazardous Materials Inspection Gate 4",
+      "lastUpdated": "2026-09-18T09:45:00.000Z"
+    },
+    "latestTelemetry": {
+      "timestamp": "2026-09-18T10:00:00.000Z",
+      "latitude": 51.9547,
+      "longitude": 4.0289,
+      "locationName": "Rotterdam Maasvlakte Customs Holding Yard",
+      "temperatureCelsius": 22.4,
+      "humidityPercent": 54,
+      "shockGForce": 0.25,
+      "batteryPercent": 74,
+      "tamperSealIntact": true,
+      "geofenceStatus": "ARRIVED_FACILITY"
+    },
+    "telemetryHistory": [
+      {
+        "timestamp": "2026-09-18T10:00:00.000Z",
+        "latitude": 51.9547,
+        "longitude": 4.0289,
+        "locationName": "Rotterdam Maasvlakte Customs Holding Yard",
+        "temperatureCelsius": 22.4,
+        "humidityPercent": 54,
+        "shockGForce": 0.25,
+        "batteryPercent": 74,
+        "tamperSealIntact": true,
+        "geofenceStatus": "ARRIVED_FACILITY"
+      }
+    ],
+    "policyCompliance": {
+      "cleared": false,
+      "requiresApproval": true,
+      "approvalId": "APV-CUST-883",
+      "sha256Seal": "ff889140ab4208a1c938166c3098e94511d73a78c187126eb3902341bca90821"
+    },
+    "notes": "Pending Dangerous Goods declaration cross-check with EU Customs."
+  },
+  {
+    "id": "FRT-2026-884",
+    "consignmentNumber": "KN-ROAD-2281-FTL",
+    "title": "High-Purity Silicon Wafers (Temp-Controlled FTL)",
+    "mode": "ROAD_FTL",
+    "carrierId": "c4",
+    "carrierName": "Kuehne+Nagel PharmaChain Logistics",
+    "carrierScac": "KHNN",
+    "origin": {
+      "name": "Apex Dresden Microelectronics Campus",
+      "code": "DEDRS",
+      "country": "Germany",
+      "coordinates": [
+        51.0504,
+        13.7373
+      ]
+    },
+    "destination": {
+      "name": "Leipzig Automotive Assembly Plant",
+      "code": "DELEI",
+      "country": "Germany",
+      "coordinates": [
+        51.3397,
+        12.3731
+      ]
+    },
+    "status": "IN_TRANSIT",
+    "containerNumber": "TRL-KN-88301",
+    "vesselOrFlight": "Volvo FH Electric / Rig #440",
+    "totalWeightKg": 8200,
+    "totalVolumeCbm": 38,
+    "commodity": "300mm Monocrystalline Prime Wafers (Class 100 Packing)",
+    "carbonFootprintKg": 42,
+    "bookingDate": "2026-09-18T06:00:00.000Z",
+    "estimatedArrival": "2026-09-18T16:30:00.000Z",
+    "freightCost": 2150,
+    "currency": "EUR",
+    "progressPercent": 75,
+    "coldChain": {
+      "required": true,
+      "minTempCelsius": 18,
+      "maxTempCelsius": 22,
+      "targetHumidityPercent": 40,
+      "isBreached": false
+    },
+    "demurrageRisk": {
+      "isAtRisk": false,
+      "freeTimeDaysRemaining": 7,
+      "estimatedAccrualDaily": 150,
+      "accruedPenalty": 0,
+      "chokePoint": "None (Direct Autobahn A14 Transit)",
+      "lastUpdated": "2026-09-18T11:40:00.000Z"
+    },
+    "latestTelemetry": {
+      "timestamp": "2026-09-18T11:40:00.000Z",
+      "latitude": 51.189,
+      "longitude": 13.1042,
+      "locationName": "Autobahn A14 Rest Area Nossen",
+      "temperatureCelsius": 20.2,
+      "humidityPercent": 41,
+      "shockGForce": 0.16,
+      "batteryPercent": 92,
+      "tamperSealIntact": true,
+      "geofenceStatus": "INSIDE_CORRIDOR"
+    },
+    "telemetryHistory": [
+      {
+        "timestamp": "2026-09-18T07:15:00.000Z",
+        "latitude": 51.0504,
+        "longitude": 13.7373,
+        "locationName": "Dresden Cleanroom Gate Check",
+        "temperatureCelsius": 19.9,
+        "humidityPercent": 39.8,
+        "shockGForce": 0.09,
+        "batteryPercent": 98,
+        "tamperSealIntact": true,
+        "geofenceStatus": "AT_WAYPOINT"
+      },
+      {
+        "timestamp": "2026-09-18T11:40:00.000Z",
+        "latitude": 51.189,
+        "longitude": 13.1042,
+        "locationName": "Autobahn A14 Rest Area Nossen",
+        "temperatureCelsius": 20.2,
+        "humidityPercent": 41,
+        "shockGForce": 0.16,
+        "batteryPercent": 92,
+        "tamperSealIntact": true,
+        "geofenceStatus": "INSIDE_CORRIDOR"
+      }
+    ],
+    "policyCompliance": {
+      "cleared": true,
+      "requiresApproval": false,
+      "sha256Seal": "a718c9918bcde09a88204f669a19c118029a76d8b94871e8432a975e54c87109"
+    },
+    "notes": "Scheduled for Bay 4 dock appointment upon arrival."
+  },
+  {
+    "id": "FRT-2026-885",
+    "consignmentNumber": "DB-RAIL-00912",
+    "title": "Structural Extruded Aluminum Profiles",
+    "mode": "RAIL",
+    "carrierId": "c5",
+    "carrierName": "DB Cargo Eurasia Freight Services",
+    "carrierScac": "DBCH",
+    "origin": {
+      "name": "Port of Rotterdam Rail Shunting Yard",
+      "code": "NLRTM",
+      "country": "Netherlands",
+      "coordinates": [
+        51.9244,
+        4.4777
+      ]
+    },
+    "destination": {
+      "name": "Duisburg Intermodal Logistics Hub (DIT)",
+      "code": "DEDUI",
+      "country": "Germany",
+      "coordinates": [
+        51.4344,
+        6.7623
+      ]
+    },
+    "status": "IN_TRANSIT",
+    "containerNumber": "DBCU-11094-1",
+    "vesselOrFlight": "DB Train #61049",
+    "totalWeightKg": 42000,
+    "totalVolumeCbm": 112,
+    "commodity": "Anodized 6061-T6 Chassis Extrusions",
+    "carbonFootprintKg": 180,
+    "bookingDate": "2026-09-17T14:00:00.000Z",
+    "estimatedArrival": "2026-09-18T19:00:00.000Z",
+    "freightCost": 1850,
+    "currency": "EUR",
+    "progressPercent": 88,
+    "coldChain": {
+      "required": false,
+      "minTempCelsius": -40,
+      "maxTempCelsius": 60,
+      "targetHumidityPercent": 80,
+      "isBreached": false
+    },
+    "demurrageRisk": {
+      "isAtRisk": false,
+      "freeTimeDaysRemaining": 4,
+      "estimatedAccrualDaily": 180,
+      "accruedPenalty": 0,
+      "chokePoint": "None (High Rail Velocity)",
+      "lastUpdated": "2026-09-18T11:00:00.000Z"
+    },
+    "latestTelemetry": {
+      "timestamp": "2026-09-18T11:20:00.000Z",
+      "latitude": 51.6201,
+      "longitude": 5.8492,
+      "locationName": "Rhine-Waal Rail Transit Segment",
+      "temperatureCelsius": 17.5,
+      "humidityPercent": 62,
+      "shockGForce": 0.35,
+      "batteryPercent": 85,
+      "tamperSealIntact": true,
+      "geofenceStatus": "INSIDE_CORRIDOR"
+    },
+    "telemetryHistory": [
+      {
+        "timestamp": "2026-09-18T11:20:00.000Z",
+        "latitude": 51.6201,
+        "longitude": 5.8492,
+        "locationName": "Rhine-Waal Rail Transit Segment",
+        "temperatureCelsius": 17.5,
+        "humidityPercent": 62,
+        "shockGForce": 0.35,
+        "batteryPercent": 85,
+        "tamperSealIntact": true,
+        "geofenceStatus": "INSIDE_CORRIDOR"
+      }
+    ],
+    "policyCompliance": {
+      "cleared": true,
+      "requiresApproval": false,
+      "sha256Seal": "44810a9c84e9b72605f884198c61e67041a774b98028e3b1c85633e721a6a9b4"
+    },
+    "notes": "Green freight mode: 78% carbon reduction vs diesel FTL."
+  },
+  {
+    "id": "FRT-2026-886",
+    "consignmentNumber": "FDX-EXP-55019",
+    "title": "Urgent Firmware Calibration Testers",
+    "mode": "AIR",
+    "carrierId": "c6",
+    "carrierName": "FedEx Express Global Network",
+    "carrierScac": "FXFE",
+    "origin": {
+      "name": "Tokyo Narita Air Freight Hub",
+      "code": "RJAA",
+      "country": "Japan",
+      "coordinates": [
+        35.7647,
+        140.3863
+      ]
+    },
+    "destination": {
+      "name": "San Jose International Airport Logistics Base",
+      "code": "KSJC",
+      "country": "United States",
+      "coordinates": [
+        37.3639,
+        -121.9289
+      ]
+    },
+    "status": "DELIVERED",
+    "containerNumber": "FX-ULD-1904",
+    "vesselOrFlight": "FDX 582 McDonnell Douglas MD-11F",
+    "totalWeightKg": 890,
+    "totalVolumeCbm": 4.8,
+    "commodity": "Automated Functional Test Fixtures & Probe Cards",
+    "carbonFootprintKg": 1850,
+    "bookingDate": "2026-09-15T01:00:00.000Z",
+    "estimatedArrival": "2026-09-16T18:00:00.000Z",
+    "actualArrival": "2026-09-16T17:42:00.000Z",
+    "freightCost": 14200,
+    "currency": "USD",
+    "progressPercent": 100,
+    "coldChain": {
+      "required": false,
+      "minTempCelsius": 5,
+      "maxTempCelsius": 35,
+      "targetHumidityPercent": 55,
+      "isBreached": false
+    },
+    "demurrageRisk": {
+      "isAtRisk": false,
+      "freeTimeDaysRemaining": 10,
+      "estimatedAccrualDaily": 250,
+      "accruedPenalty": 0,
+      "chokePoint": "Delivered On-Time",
+      "lastUpdated": "2026-09-16T18:00:00.000Z"
+    },
+    "latestTelemetry": {
+      "timestamp": "2026-09-16T17:42:00.000Z",
+      "latitude": 37.3639,
+      "longitude": -121.9289,
+      "locationName": "San Jose Logistics Dock Bay 1",
+      "temperatureCelsius": 21,
+      "humidityPercent": 44,
+      "shockGForce": 0.05,
+      "batteryPercent": 81,
+      "tamperSealIntact": true,
+      "geofenceStatus": "ARRIVED_FACILITY"
+    },
+    "telemetryHistory": [],
+    "policyCompliance": {
+      "cleared": true,
+      "requiresApproval": false,
+      "sha256Seal": "98e721a503a481c817293b6e8284615a990e72bf8271638841029cba59187311"
+    },
+    "notes": "Signed off and received by Quality Lab Technician."
+  }
+]

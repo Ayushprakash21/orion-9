@@ -1,0 +1,27 @@
+[
+  {
+    "id": "WH-001",
+    "name": "Central Warehouse",
+    "location": "Mumbai"
+  },
+  {
+    "id": "WH-002",
+    "name": "North Distribution Center",
+    "location": "Delhi"
+  },
+  {
+    "id": "WH-003",
+    "name": "South Distribution Center",
+    "location": "Bengaluru"
+  },
+  {
+    "id": "WH-004",
+    "name": "East Distribution Center",
+    "location": "Kolkata"
+  },
+  {
+    "id": "WH-005",
+    "name": "West Distribution Center",
+    "location": "Ahmedabad"
+  }
+]
