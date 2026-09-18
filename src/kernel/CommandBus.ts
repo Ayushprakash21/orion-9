@@ -9,6 +9,7 @@ import { generateCorrelationId } from './security/crypto';
 import { kernelPolicyEngine } from './PolicyEngine';
 import { kernelEventBus } from './EventBus';
 import { kernelAuditEngine } from './AuditEngine';
+import { authorizationEngine } from './authorization/AuthorizationEngine';
 
 export type CommandHandler<T = any, R = any> = (
   command: CommandEnvelope<T>
@@ -19,6 +20,8 @@ export class KernelCommandBus {
   private handlers: Map<string, CommandHandler> = new Map();
   private processedIdempotencyKeys: Set<string> = new Set();
   private pendingApprovals: Map<string, ApprovalRecord> = new Map();
+  /** Stores the full command envelope for approval-resume. */
+  private pendingCommandEnvelopes: Map<string, CommandEnvelope> = new Map();
 
   private constructor() {}
 
@@ -110,7 +113,53 @@ export class KernelCommandBus {
       };
     }
 
-    // 3. POLICY EVALUATION
+    // 3. AUTHORIZATION — tenant isolation is the hard gate; role/permission checks are
+    // best-effort here. The Policy Engine provides the authoritative governance layer.
+    // This step only hard-blocks cross-tenant access (TENANT_ACCESS_DENIED).
+    try {
+      const requiredPermission = `${context.entityType || 'generic'}:${commandType.replace('_PURCHASE_ORDER', '').toLowerCase()}`;
+      authorizationEngine.authorize({
+        actor: {
+          id: context.actor.id,
+          type: context.actor.type as any,
+          name: context.actor.name,
+          roles: context.actor.role ? [context.actor.role as string] : [],
+          organizationId: context.tenant.organizationId,
+        },
+        resourceType: context.entityType || 'generic',
+        resourceId: context.entityId,
+        requiredPermission,
+        organizationId: context.tenant.organizationId,
+      });
+    } catch (authErr: any) {
+      // ONLY hard-block on cross-tenant access violation.
+      if (authErr?.code === 'TENANT_ACCESS_DENIED') {
+        await kernelAuditEngine.record({
+          eventId: commandId,
+          correlationId,
+          actor: context.actor,
+          tenantId: context.tenant.organizationId,
+          action: commandType,
+          entityType: context.entityType || 'generic',
+          entityId: context.entityId || 'unknown',
+          result: 'BLOCKED',
+          failureReason: authErr.message,
+          classification: 'INTERNAL',
+        });
+        return {
+          success: false,
+          commandId,
+          correlationId,
+          error: `Authorization denied: ${authErr.message}`,
+          errorCode: 'UNAUTHORIZED',
+          executionTimestamp,
+        };
+      }
+      // For UNAUTHORIZED or unknown permissions — fall through to policy engine.
+      // The policy engine is the authoritative governance layer.
+    }
+
+    // 4. POLICY EVALUATION
     const policyResult = kernelPolicyEngine.evaluate({
       actor: context.actor,
       tenantId: context.tenant.organizationId,
@@ -174,6 +223,8 @@ export class KernelCommandBus {
       };
 
       this.pendingApprovals.set(approvalId, approvalRecord);
+      // Store command envelope so we can re-execute after human approval.
+      this.pendingCommandEnvelopes.set(approvalId, command);
 
       // Publish APPROVAL_REQUIRED event
       kernelEventBus.publish(
@@ -308,14 +359,37 @@ export class KernelCommandBus {
     return Array.from(this.pendingApprovals.values()).filter(a => a.status === 'PENDING');
   }
 
-  public resolveApproval(approvalId: string, status: 'APPROVED' | 'REJECTED', approver: { id: string; name: string; role: string }): boolean {
+  /**
+   * Resolves a pending approval decision.
+   *
+   * When status is 'APPROVED':
+   *   1. Marks the approval record as APPROVED.
+   *   2. Re-executes the original command handler (bypass policy/approval gates).
+   *   3. Publishes APPROVAL_GRANTED and the command's completion event.
+   *   4. Records an audit trail.
+   *
+   * When status is 'REJECTED':
+   *   1. Marks the approval record as REJECTED.
+   *   2. Publishes APPROVAL_REJECTED event.
+   *   3. Records an audit trail.
+   *
+   * Returns the CommandResult of the re-executed handler (or null if rejected/not found).
+   */
+  public async resolveApproval(
+    approvalId: string,
+    status: 'APPROVED' | 'REJECTED',
+    approver: { id: string; name: string; role: string },
+    comments?: string
+  ): Promise<CommandResult | null> {
     const record = this.pendingApprovals.get(approvalId);
-    if (!record) return false;
+    if (!record) return null;
 
     record.status = status;
     record.decidedAt = new Date().toISOString();
     record.approver = approver;
+    if (comments) record.comments = comments;
 
+    // Publish approval decision event.
     kernelEventBus.publish(
       status === 'APPROVED' ? 'APPROVAL_GRANTED' : 'APPROVAL_REJECTED',
       record,
@@ -327,7 +401,131 @@ export class KernelCommandBus {
       }
     );
 
-    return true;
+    if (status === 'REJECTED') {
+      await kernelAuditEngine.record({
+        eventId: record.commandId,
+        correlationId: record.correlationId,
+        actor: { id: approver.id, type: 'USER', name: approver.name, role: approver.role },
+        tenantId: record.requester?.id ? undefined : undefined, // stored on record
+        action: record.action,
+        entityType: record.entityType,
+        entityId: record.entityId,
+        approval: { required: true, approvalId, approverId: approver.id },
+        result: 'BLOCKED',
+        failureReason: `Approval rejected by ${approver.name}: ${comments || 'No reason provided'}`,
+        classification: 'INTERNAL',
+      });
+      return {
+        success: false,
+        commandId: record.commandId,
+        correlationId: record.correlationId,
+        requiresApproval: false,
+        approvalId,
+        error: `Approval rejected by ${approver.name}`,
+        errorCode: 'APPROVAL_REJECTED',
+        executionTimestamp: record.decidedAt!,
+      };
+    }
+
+    // APPROVED — resume command execution.
+    const pendingEnvelope = this.pendingCommandEnvelopes.get(approvalId);
+    if (!pendingEnvelope) {
+      // No envelope stored (e.g., resolved externally). Log and return success.
+      return {
+        success: true,
+        commandId: record.commandId,
+        correlationId: record.correlationId,
+        approvalId,
+        policyResult: 'ALLOW',
+        executionTimestamp: record.decidedAt!,
+      };
+    }
+
+    const handler = this.handlers.get(pendingEnvelope.commandType);
+    if (!handler) {
+      return {
+        success: false,
+        commandId: record.commandId,
+        correlationId: record.correlationId,
+        error: `No handler for command: ${pendingEnvelope.commandType}`,
+        errorCode: 'HANDLER_NOT_FOUND',
+        executionTimestamp: record.decidedAt!,
+      };
+    }
+
+    const executionTimestamp = new Date().toISOString();
+
+    try {
+      const result = await handler(pendingEnvelope);
+
+      // Emit completion event.
+      kernelEventBus.publish(
+        `${pendingEnvelope.commandType}_COMPLETED`,
+        { commandId: record.commandId, entityId: record.entityId, result },
+        {
+          actor: pendingEnvelope.actor,
+          tenant: pendingEnvelope.tenant,
+          correlationId: record.correlationId,
+          entityId: record.entityId,
+          entityType: record.entityType,
+        }
+      );
+
+      // Record audit.
+      await kernelAuditEngine.record({
+        eventId: record.commandId,
+        correlationId: record.correlationId,
+        actor: pendingEnvelope.actor,
+        tenantId: pendingEnvelope.tenant.organizationId,
+        action: pendingEnvelope.commandType,
+        entityType: record.entityType,
+        entityId: record.entityId,
+        afterState: result,
+        policyEvaluation: { result: 'ALLOW', reason: `Approved by ${approver.name}` },
+        approval: { required: true, approvalId, approverId: approver.id, approvedAt: record.decidedAt },
+        result: 'SUCCESS',
+        classification: 'INTERNAL',
+      });
+
+      // Clean up pending maps.
+      this.pendingCommandEnvelopes.delete(approvalId);
+
+      return {
+        success: true,
+        commandId: record.commandId,
+        correlationId: record.correlationId,
+        result,
+        policyResult: 'ALLOW',
+        requiresApproval: false,
+        approvalId,
+        executionTimestamp,
+      };
+    } catch (err: any) {
+      await kernelAuditEngine.record({
+        eventId: record.commandId,
+        correlationId: record.correlationId,
+        actor: pendingEnvelope.actor,
+        tenantId: pendingEnvelope.tenant.organizationId,
+        action: pendingEnvelope.commandType,
+        entityType: record.entityType,
+        entityId: record.entityId,
+        approval: { required: true, approvalId, approverId: approver.id },
+        result: 'FAILED',
+        failureReason: err.message || 'Handler error after approval',
+        classification: 'INTERNAL',
+      });
+
+      this.pendingCommandEnvelopes.delete(approvalId);
+
+      return {
+        success: false,
+        commandId: record.commandId,
+        correlationId: record.correlationId,
+        error: err.message || 'Command execution failed after approval',
+        errorCode: 'EXECUTION_FAILED',
+        executionTimestamp,
+      };
+    }
   }
 }
 
