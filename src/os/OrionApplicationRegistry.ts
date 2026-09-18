@@ -171,6 +171,16 @@ export const ORION_REGISTRY: Record<string, OrionApp> = {
     description: 'Analytical reports and document generation.',
     dockDefault: true,
   },
+  'documents': {
+    id: 'documents',
+    name: 'Document Workspace',
+    route: '/documents',
+    category: 'Platform',
+    icon: FileText,
+    color: '#818CF8',
+    description: 'Tamper-evident document repository, OCR parsing, classification, and entity binding.',
+    dockDefault: true,
+  },
   'user-manual': {
     id: 'user-manual',
     name: 'ORION-9 User Manual',

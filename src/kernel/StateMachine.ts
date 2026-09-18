@@ -333,6 +333,146 @@ export const vendorStateMachine = new StateMachine<VendorState>({
 });
 
 /**
+ * 8. CONTRACT STATE MACHINE
+ */
+export type ContractState =
+  | 'DRAFT'
+  | 'UNDER_LEGAL_REVIEW'
+  | 'PENDING_EXECUTIVE_APPROVAL'
+  | 'ACTIVE'
+  | 'EXPIRING_SOON'
+  | 'AMENDED'
+  | 'EXPIRED'
+  | 'TERMINATED';
+
+export const contractStateMachine = new StateMachine<ContractState>({
+  entityType: 'contract',
+  initialState: 'DRAFT',
+  terminalStates: ['EXPIRED', 'TERMINATED'],
+  transitions: [
+    { from: 'DRAFT', to: 'UNDER_LEGAL_REVIEW' },
+    { from: 'UNDER_LEGAL_REVIEW', to: 'PENDING_EXECUTIVE_APPROVAL' },
+    { from: 'UNDER_LEGAL_REVIEW', to: 'ACTIVE' },
+    { from: 'PENDING_EXECUTIVE_APPROVAL', to: 'ACTIVE', requiresApproval: true },
+    { from: 'PENDING_EXECUTIVE_APPROVAL', to: 'UNDER_LEGAL_REVIEW' },
+    { from: 'ACTIVE', to: 'EXPIRING_SOON' },
+    { from: 'ACTIVE', to: 'AMENDED' },
+    { from: 'AMENDED', to: 'ACTIVE' },
+    { from: 'EXPIRING_SOON', to: 'ACTIVE' },
+    { from: ['ACTIVE', 'EXPIRING_SOON'], to: 'EXPIRED' },
+    { from: ['DRAFT', 'UNDER_LEGAL_REVIEW', 'PENDING_EXECUTIVE_APPROVAL', 'ACTIVE', 'EXPIRING_SOON', 'AMENDED'], to: 'TERMINATED' },
+  ],
+});
+
+/**
+ * 9. SCENARIO & STRESS TEST STATE MACHINE
+ */
+export type ScenarioKernelState =
+  | 'DRAFT'
+  | 'READY'
+  | 'SIMULATING'
+  | 'CONVERGED'
+  | 'CONTINGENCY_DRAFTED'
+  | 'ROUTED_TO_APPROVAL'
+  | 'COMMITTED'
+  | 'ARCHIVED';
+
+export const scenarioStateMachine = new StateMachine<ScenarioKernelState>({
+  entityType: 'scenario',
+  initialState: 'DRAFT',
+  terminalStates: ['ARCHIVED'],
+  transitions: [
+    { from: 'DRAFT', to: 'READY' },
+    { from: 'READY', to: 'SIMULATING' },
+    { from: 'SIMULATING', to: 'CONVERGED' },
+    { from: 'CONVERGED', to: 'CONTINGENCY_DRAFTED' },
+    { from: 'CONVERGED', to: 'SIMULATING' }, // rerun
+    { from: ['CONVERGED', 'CONTINGENCY_DRAFTED'], to: 'ROUTED_TO_APPROVAL', requiresApproval: true },
+    { from: ['CONVERGED', 'CONTINGENCY_DRAFTED'], to: 'COMMITTED' }, // if within autonomous budget
+    { from: 'ROUTED_TO_APPROVAL', to: 'COMMITTED', requiresApproval: true },
+    { from: 'ROUTED_TO_APPROVAL', to: 'CONTINGENCY_DRAFTED' }, // rejected/revised
+    { from: ['DRAFT', 'READY', 'CONVERGED', 'CONTINGENCY_DRAFTED', 'ROUTED_TO_APPROVAL', 'COMMITTED'], to: 'ARCHIVED' },
+  ],
+});
+
+/**
+ * 10. YARD MANAGEMENT & DOCK APPOINTMENT STATE MACHINE
+ */
+export type YardAppointmentKernelState =
+  | 'SCHEDULED'
+  | 'GATE_CHECKED_IN'
+  | 'AT_DOCK_DOOR'
+  | 'UNLOADING'
+  | 'COMPLETED'
+  | 'DEMURRAGE_TRIGGERED';
+
+export const yardAppointmentStateMachine = new StateMachine<YardAppointmentKernelState>({
+  entityType: 'yard_appointment',
+  initialState: 'SCHEDULED',
+  terminalStates: ['COMPLETED'],
+  transitions: [
+    { from: 'SCHEDULED', to: 'GATE_CHECKED_IN' },
+    { from: 'GATE_CHECKED_IN', to: 'AT_DOCK_DOOR' },
+    { from: 'AT_DOCK_DOOR', to: 'UNLOADING' },
+    { from: 'UNLOADING', to: 'COMPLETED' },
+    { from: ['GATE_CHECKED_IN', 'AT_DOCK_DOOR', 'UNLOADING'], to: 'DEMURRAGE_TRIGGERED' },
+    { from: 'DEMURRAGE_TRIGGERED', to: 'COMPLETED' },
+  ],
+});
+
+/**
+ * 11. FREIGHT CONSOLIDATION STATE MACHINE
+ */
+export type FreightConsolidationKernelState =
+  | 'PROPOSED'
+  | 'ROUTED_TO_APPROVAL'
+  | 'APPROVED'
+  | 'DISPATCHED'
+  | 'REJECTED';
+
+export const consolidationStateMachine = new StateMachine<FreightConsolidationKernelState>({
+  entityType: 'freight_consolidation',
+  initialState: 'PROPOSED',
+  terminalStates: ['DISPATCHED', 'REJECTED'],
+  transitions: [
+    { from: 'PROPOSED', to: 'ROUTED_TO_APPROVAL', requiresApproval: true },
+    { from: 'PROPOSED', to: 'APPROVED' },
+    { from: 'ROUTED_TO_APPROVAL', to: 'APPROVED', requiresApproval: true },
+    { from: 'ROUTED_TO_APPROVAL', to: 'REJECTED' },
+    { from: 'APPROVED', to: 'DISPATCHED' },
+  ],
+});
+
+/**
+ * 12. AUTONOMOUS REPLENISHMENT & STOCK TRANSFER ORDER STATE MACHINE
+ */
+export type ReplenishmentOrderKernelState =
+  | 'DRAFT_PROPOSED'
+  | 'POLICY_EVALUATED'
+  | 'PENDING_APPROVAL'
+  | 'AUTO_APPROVED'
+  | 'TRANSMITTED_TO_ERP'
+  | 'IN_TRANSIT'
+  | 'FULFILLED'
+  | 'REJECTED';
+
+export const replenishmentOrderStateMachine = new StateMachine<ReplenishmentOrderKernelState>({
+  entityType: 'replenishment_order',
+  initialState: 'DRAFT_PROPOSED',
+  terminalStates: ['FULFILLED', 'REJECTED'],
+  transitions: [
+    { from: 'DRAFT_PROPOSED', to: 'POLICY_EVALUATED' },
+    { from: 'POLICY_EVALUATED', to: 'PENDING_APPROVAL', requiresApproval: true },
+    { from: 'POLICY_EVALUATED', to: 'AUTO_APPROVED' },
+    { from: 'PENDING_APPROVAL', to: 'AUTO_APPROVED', requiresApproval: true },
+    { from: 'PENDING_APPROVAL', to: 'REJECTED' },
+    { from: 'AUTO_APPROVED', to: 'TRANSMITTED_TO_ERP' },
+    { from: 'TRANSMITTED_TO_ERP', to: 'IN_TRANSIT' },
+    { from: 'IN_TRANSIT', to: 'FULFILLED' },
+  ],
+});
+
+/**
  * Global Registry Mapping
  */
 export const KERNEL_STATE_MACHINES: Record<string, StateMachine<any>> = {
@@ -343,4 +483,12 @@ export const KERNEL_STATE_MACHINES: Record<string, StateMachine<any>> = {
   quality_inspection: qualityStateMachine,
   invoice: invoiceStateMachine,
   vendor: vendorStateMachine,
+  contract: contractStateMachine,
+  scenario: scenarioStateMachine,
+  yard_appointment: yardAppointmentStateMachine,
+  freight_consolidation: consolidationStateMachine,
+  replenishment_order: replenishmentOrderStateMachine,
 };
+
+
+

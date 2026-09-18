@@ -1,684 +1,1031 @@
-import React, { useState, useMemo } from 'react';
-import { Workflow, Play, Plus, Server, Database, ArrowRight, TrendingDown, AlertTriangle, CheckCircle2, RefreshCw, FileText, Layers, ExternalLink, HelpCircle, X, ShieldAlert } from 'lucide-react';
+﻿import React, { useState, useMemo } from 'react';
+import { 
+  Network, Play, Plus, Server, Database, ArrowRight, TrendingDown, 
+  AlertTriangle, CheckCircle2, RefreshCw, FileText, Layers, ExternalLink, 
+  HelpCircle, X, ShieldAlert, Zap, Globe, Cpu, Plane, Compass, Activity, 
+  BarChart3, Boxes, Truck, ShieldCheck, ChevronRight, Sparkles, Filter, Search
+} from 'lucide-react';
 import { useSupplyChain } from '../store/SupplyChainContext';
 import { useEntityDrawer } from '../store/EntityDrawerContext';
 import { useToast } from '../store/ToastContext';
-import { formatCurrency, formatNumber, formatPercentage } from '../lib/formatters';
-import { ScenarioEngine } from '../services/ScenarioEngine';
-import { eventEngine } from '../core/events/EventEngine';
-
-interface ScenarioDefinition {
-  id: string;
-  name: string;
-  type: 'Supplier Delay' | 'Demand Spike' | 'Port Congestion' | 'Custom';
-  params: {
-    delayDays?: number;
-    demandIncreasePercent?: number;
-    portName?: string;
-  };
-  description: string;
-  createdAt: string;
-}
-
-interface SimulationResult {
-  scenarioId: string;
-  scenarioName: string;
-  executedAt: string;
-  affectedSkusCount: number;
-  affectedPosCount: number;
-  baseStockouts?: number;
-  newStockoutsCount: number;
-  baseExposure?: number;
-  financialExposure: number;
-  exposureDelta?: number;
-  riskIncreasePercent: number;
-  affectedInventory: any[];
-  affectedPos: any[];
-  affectedShipments: any[];
-  status: 'READY' | 'RUNNING' | 'COMPLETE' | 'FAILED';
-}
+import { formatCurrency, formatNumber } from '../lib/formatters';
+import { EnterpriseScenario, DigitalTwinNode, ContingencyPlaybook, ScenarioShockType } from '../types/scenario';
 
 export const Scenarios: React.FC = () => {
-  const { inventory, purchaseOrders, shipments, suppliers, settings, dataMode, currency } = useSupplyChain();
-  const { openEntity } = useEntityDrawer();
+  const { 
+    scenarios, 
+    digitalTwinNodes, 
+    contingencyPlans, 
+    runScenarioSimulation, 
+    generateContingencyPlaybooks, 
+    dispatchContingencyPlan, 
+    addScenario,
+    currency 
+  } = useSupplyChain();
   const { showToast } = useToast();
 
-  const [scenarios, setScenarios] = useState<ScenarioDefinition[]>([
-    {
-      id: 'sc-1',
-      name: 'Global Supplier Delay',
-      type: 'Supplier Delay',
-      params: { delayDays: 7 },
-      description: 'Simulate a 7-day global supplier delay across all inbound shipments and open purchase orders.',
-      createdAt: '2026-08-01'
-    },
-    {
-      id: 'sc-2',
-      name: 'Q3 Demand Spike Surge',
-      type: 'Demand Spike',
-      params: { demandIncreasePercent: 50 },
-      description: 'Simulate a sudden 50% increase in daily customer demand across inventory SKUs.',
-      createdAt: '2026-08-05'
-    },
-    {
-      id: 'sc-3',
-      name: 'Mumbai Port Congestion',
-      type: 'Port Congestion',
-      params: { portName: 'Mumbai', delayDays: 14 },
-      description: 'Simulate a 14-day customs and logistics hold on all shipments routing through Mumbai port.',
-      createdAt: '2026-08-10'
+  const [activeTab, setActiveTab] = useState<'portfolio' | 'digital_twin' | 'monte_carlo' | 'playbooks'>('portfolio');
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string>(scenarios[0]?.id || 'SCN-2026-001');
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [shockTypeFilter, setShockTypeFilter] = useState<string>('ALL');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isSimulating, setIsSimulating] = useState<boolean>(false);
+  const [isGeneratingPlaybooks, setIsGeneratingPlaybooks] = useState<boolean>(false);
+  const [isDispatching, setIsDispatching] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState<boolean>(false);
+
+  // New Scenario Form State
+  const [formName, setFormName] = useState<string>('');
+  const [formShockType, setFormShockType] = useState<ScenarioShockType>('PORT_BLOCKADE');
+  const [formSeverity, setFormSeverity] = useState<'LOW' | 'MEDIUM' | 'HIGH' | 'CATASTROPHIC'>('HIGH');
+  const [formDuration, setFormDuration] = useState<number>(14);
+  const [formMagnitude, setFormMagnitude] = useState<number>(75);
+  const [formEpicenter, setFormEpicenter] = useState<string>('Port of Singapore (Malacca Choke)');
+  const [formDesc, setFormDesc] = useState<string>('');
+
+  const selectedScenario = useMemo(() => {
+    return scenarios.find(s => s.id === selectedScenarioId) || scenarios[0];
+  }, [scenarios, selectedScenarioId]);
+
+  const filteredScenarios = useMemo(() => {
+    return scenarios.filter(s => {
+      const matchesFilter = shockTypeFilter === 'ALL' || s.shockType === shockTypeFilter;
+      const matchesSearch = !searchQuery || 
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.targetEpicenter.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesFilter && matchesSearch;
+    });
+  }, [scenarios, shockTypeFilter, searchQuery]);
+
+  // Operational HUD Metrics
+  const totalExposure = useMemo(() => {
+    return scenarios.reduce((acc, s) => acc + (s.financialExposure || 0), 0);
+  }, [scenarios]);
+
+  const avgResilience = useMemo(() => {
+    if (scenarios.length === 0) return 0;
+    return Math.round(scenarios.reduce((acc, s) => acc + (s.networkResilienceScore || 0), 0) / scenarios.length);
+  }, [scenarios]);
+
+  const totalDisruptedNodes = useMemo(() => {
+    const nodeSet = new Set<string>();
+    scenarios.forEach(s => s.affectedNodeIds?.forEach(id => nodeSet.add(id)));
+    return nodeSet.size;
+  }, [scenarios]);
+
+  const pendingApprovalsCount = useMemo(() => {
+    return contingencyPlans.filter(p => p.status === 'SUBMITTED_TO_APPROVAL').length;
+  }, [contingencyPlans]);
+
+  // Actions
+  const handleExecuteSimulation = async (scenarioId: string) => {
+    setIsSimulating(true);
+    showToast('Executing multi-tier digital twin propagation & Monte Carlo stress model...', 'info', 'Simulation Running');
+    try {
+      const updated = await runScenarioSimulation(scenarioId);
+      showToast(`Simulation converged. Network Resilience: ${updated.networkResilienceScore}%, Exposure: ${formatCurrency(updated.financialExposure, currency)}.`, 'success', 'Simulation Complete');
+    } catch (err: any) {
+      showToast(err.message || 'Simulation error', 'error', 'Simulation Failed');
+    } finally {
+      setIsSimulating(false);
     }
-  ]);
-
-  const [activeScenarioId, setActiveScenarioId] = useState<string>('sc-1');
-  const [simulationResults, setSimulationResults] = useState<Record<string, SimulationResult>>({});
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [showNewModal, setShowNewModal] = useState(false);
-  const [showAffectedModal, setShowAffectedModal] = useState(false);
-  const [showOrionModal, setShowOrionModal] = useState(false);
-
-  // New scenario form state
-  const [newName, setNewName] = useState('');
-  const [newType, setNewType] = useState<'Supplier Delay' | 'Demand Spike' | 'Port Congestion' | 'Custom'>('Supplier Delay');
-  const [newParamVal, setNewParamVal] = useState(7);
-  const [newDesc, setNewDesc] = useState('');
-
-  const activeScenario = scenarios.find(s => s.id === activeScenarioId) || scenarios[0];
-  const currentResult = simulationResults[activeScenarioId];
-
-  const handleExecute = () => {
-    if (isExecuting) return;
-    setIsExecuting(true);
-    showToast(`Executing simulation for "${activeScenario.name}"...`, 'info', 'Simulation Started');
-
-    // Update result status to running
-    setSimulationResults(prev => ({
-      ...prev,
-      [activeScenarioId]: {
-        scenarioId: activeScenario.id,
-        scenarioName: activeScenario.name,
-        executedAt: '',
-        affectedInventory: [],
-        affectedPos: [],
-        affectedShipments: [],
-        financialExposure: 0,
-        riskIncreasePercent: 0,
-        affectedSkusCount: 0,
-        affectedPosCount: 0,
-        newStockoutsCount: 0,
-        status: 'RUNNING'
-      }
-    }));
-
-    setTimeout(() => {
-      try {
-        let affectedSkus = 0;
-        let affectedPos = 0;
-        let newStockouts = 0;
-        let financialExposure = 0;
-        let riskIncrease = 15;
-        let affectedInvList: any[] = [];
-        let affectedPoList: any[] = [];
-        let affectedShpList: any[] = [];
-
-
-        const engineResult = ScenarioEngine.runScenario(
-          activeScenario.type,
-          activeScenario.params,
-          inventory,
-          purchaseOrders,
-          shipments,
-          suppliers
-        );
-        
-        affectedSkus = engineResult.affectedSkus;
-        affectedPos = engineResult.affectedPosCount;
-        newStockouts = engineResult.projectedStockouts;
-        financialExposure = engineResult.financialExposure;
-        riskIncrease = engineResult.riskChange === 'Increased' ? 15 : 0;
-        affectedInvList = engineResult.affectedInventoryList;
-        affectedPoList = engineResult.affectedPosList;
-        affectedShpList = []; // Set count if needed
-
-
-
-        const result: SimulationResult = {
-          scenarioId: activeScenario.id,
-          scenarioName: activeScenario.name,
-          executedAt: new Date().toLocaleTimeString(),
-          affectedSkusCount: affectedSkus,
-          affectedPosCount: affectedPos,
-          baseStockouts: engineResult.baseStockouts,
-          newStockoutsCount: newStockouts,
-          baseExposure: engineResult.baseExposure,
-          financialExposure,
-          exposureDelta: engineResult.exposureDelta,
-          riskIncreasePercent: riskIncrease,
-          affectedInventory: affectedInvList,
-          affectedPos: affectedPoList,
-          affectedShipments: affectedShpList,
-          status: 'COMPLETE'
-        };
-
-
-        setSimulationResults(prev => ({ ...prev, [activeScenarioId]: result }));
-        setIsExecuting(false);
-        showToast('Simulation successfully completed. Review impact metrics below.', 'success', 'Simulation Complete');
-        
-        eventEngine.publish({
-          id: `EVT_SCEN_${Date.now()}`,
-          type: 'SCENARIO_COMPLETED',
-          eventType: 'SCENARIO_COMPLETED',
-          timestamp: new Date().toISOString(),
-          entityType: 'Scenario',
-          entityId: activeScenario.id,
-          companyId: 'ORG-001',
-          source: 'ScenarioEngine',
-          processed: false,
-          processingStatus: 'PENDING',
-          payload: { scenarioName: activeScenario.name, financialExposure }
-        });
-      } catch (err) {
-        setIsExecuting(false);
-        setSimulationResults(prev => ({
-          ...prev,
-          [activeScenarioId]: {
-            ...(prev[activeScenarioId] || {
-              scenarioId: activeScenario.id,
-              scenarioName: activeScenario.name,
-              executedAt: '',
-              affectedSkusCount: 0,
-              affectedPosCount: 0,
-              newStockoutsCount: 0,
-              financialExposure: 0,
-              riskIncreasePercent: 0,
-              affectedInventory: [],
-              affectedPos: [],
-              affectedShipments: []
-            }),
-            status: 'FAILED'
-          }
-        }));
-        showToast('Simulation execution failed due to data constraints.', 'error', 'Simulation Error');
-      }
-    }, 1200);
   };
 
-  const handleCreateScenario = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newName.trim()) {
-      showToast('Scenario name is required.', 'error');
-      return;
+  const handleGenerateAiPlaybooks = async (scenarioId: string) => {
+    setIsGeneratingPlaybooks(true);
+    showToast('Synthesizing neural contingency playbooks with cryptographic seals...', 'info', 'AI Reasoning');
+    try {
+      const playbooks = await generateContingencyPlaybooks(scenarioId);
+      showToast(`Generated ${playbooks.length} actionable mitigation playbooks.`, 'success', 'Playbooks Ready');
+      setActiveTab('playbooks');
+    } catch (err: any) {
+      showToast(err.message || 'Error generating playbooks', 'error', 'AI Synthesis Failed');
+    } finally {
+      setIsGeneratingPlaybooks(false);
     }
+  };
 
-    const newSc: ScenarioDefinition = {
-      id: `sc-${Date.now()}`,
-      name: newName,
-      type: newType,
-      params: newType === 'Supplier Delay' ? { delayDays: newParamVal } :
-              newType === 'Demand Spike' ? { demandIncreasePercent: newParamVal } :
-              { portName: 'Default Port', delayDays: newParamVal },
-      description: newDesc || `Custom simulation scenario testing ${newType}.`,
-      createdAt: new Date().toISOString().split('T')[0]
+  const handleDispatch = async (scenarioId: string, playbook: ContingencyPlaybook) => {
+    setIsDispatching(playbook.id);
+    try {
+      await dispatchContingencyPlan(scenarioId, playbook.id, 'Emergency Disruption Mitigation Response');
+      if (playbook.costToExecute > 50000 || playbook.requiresExecutiveApproval) {
+        showToast(`Playbook "${playbook.title}" routed to Unified Approval Center (Policy POL-SCN-001 gated).`, 'info', 'Approval Gated');
+      } else {
+        showToast(`Playbook "${playbook.title}" committed autonomously within $50,000 threshold.`, 'success', 'Mitigation Active');
+      }
+    } catch (err: any) {
+      showToast(err.message || 'Dispatch failed', 'error', 'Governance Error');
+    } finally {
+      setIsDispatching(null);
+    }
+  };
+
+  const handleCreateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formName.trim()) return;
+
+    const newScenario: EnterpriseScenario = {
+      id: `SCN-2026-00${scenarios.length + 1}`,
+      name: formName.trim(),
+      shockType: formShockType,
+      state: 'READY',
+      severity: formSeverity,
+      description: formDesc.trim() || `Enterprise stress test for ${formName}`,
+      targetEpicenter: formEpicenter,
+      durationDays: formDuration,
+      magnitudePercent: formMagnitude,
+      affectedNodeIds: ['NODE-PORT-01', 'NODE-WH-01'],
+      affectedPoIds: [],
+      affectedShipmentIds: [],
+      affectedSkus: [
+        {
+          sku: 'SKU-SEMI-001',
+          name: 'Orion Neural Coprocessor 4nm',
+          currentOnHand: 1420,
+          dailyBurnRate: 180,
+          daysOfSupplyRemaining: 7.8,
+          projectedStockoutDay: 8,
+          revenueImpact: 780000,
+          criticality: 'CRITICAL'
+        }
+      ],
+      financialExposure: 850000,
+      networkResilienceScore: 70,
+      cascadingFailureNodesCount: 3,
+      playbooks: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      createdBy: 'Risk Architect (Console)',
+      version: 1,
     };
 
-    setScenarios(prev => [...prev, newSc]);
-    setActiveScenarioId(newSc.id);
-    setShowNewModal(false);
-    setNewName('');
-    showToast('New scenario created and saved successfully.', 'success');
-    
-    eventEngine.publish({
-      id: `EVT_SCEN_CRE_${Date.now()}`,
-      type: 'SCENARIO_CREATED',
-      eventType: 'SCENARIO_CREATED',
-      timestamp: new Date().toISOString(),
-      entityType: 'Scenario',
-      entityId: newSc.id,
-      companyId: 'ORG-001',
-      source: 'ScenarioEngine',
-      processed: false,
-      processingStatus: 'PENDING',
-      payload: { scenarioName: newSc.name }
-    });
+    await addScenario(newScenario);
+    showToast(`Enterprise stress test "${newScenario.name}" initialized.`, 'success', 'Scenario Created');
+    setShowCreateModal(false);
+    setSelectedScenarioId(newScenario.id);
   };
-
-  return (
-    <div className="px-4 sm:px-6 lg:px-8 xl:px-10 py-6 w-full max-w-[1680px] mx-auto space-y-4 sm:space-y-6 box-border min-w-0">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-os-border">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-medium text-os-text-primary tracking-tight">Scenario Engine</h2>
-            <span className="text-[10px] uppercase font-mono px-2 py-0.5 bg-os-surface-elevated text-os-text-secondary border border-os-border rounded">
-              SIMULATION BASED ON: {dataMode === 'real' ? 'REAL DATA' : 'DEMO DATA'}
-            </span>
+﻿  return (
+    <div className="flex flex-col h-full w-full bg-[#080B11] text-slate-100 overflow-hidden select-none font-sans">
+      {/* TOP OPERATIONAL HUD */}
+      <div className="flex-none px-6 py-4 border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-md">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 text-[10px] font-mono uppercase bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 rounded">
+                INTELLIGENCE LAYER 2 & 7
+              </span>
+              <span className="text-[11px] font-mono text-slate-400 tracking-wider">
+                ORION-9 DISASTER SIMULATION TWIN & STRESS TESTING
+              </span>
+            </div>
+            <h1 className="text-xl font-bold tracking-tight text-white mt-1 flex items-center gap-2">
+              <Compass className="text-cyan-400" size={22} />
+              Scenario Lab & Digital Twin Stress Testing Engine
+            </h1>
           </div>
-          <p className="text-xs text-os-text-muted mt-1 hidden sm:block">Simulate supply chain shocks, supplier delays, and demand spikes without affecting live operational state.</p>
+
+          {/* Quick HUD Metrics */}
+          <div className="flex items-center gap-3 overflow-x-auto pb-1 md:pb-0">
+            <div className="px-3 py-2 bg-slate-900/80 border border-slate-800 rounded-lg flex items-center gap-3 min-w-[140px]">
+              <Activity size={18} className="text-cyan-400 flex-none" />
+              <div>
+                <div className="text-[10px] uppercase font-mono text-slate-400">Active Tests</div>
+                <div className="text-sm font-bold text-white">{scenarios.length} Scenarios</div>
+              </div>
+            </div>
+
+            <div className="px-3 py-2 bg-slate-900/80 border border-slate-800 rounded-lg flex items-center gap-3 min-w-[150px]">
+              <AlertTriangle size={18} className="text-amber-400 flex-none" />
+              <div>
+                <div className="text-[10px] uppercase font-mono text-slate-400">Exposure at Risk</div>
+                <div className="text-sm font-bold text-amber-400">{formatCurrency(totalExposure, currency)}</div>
+              </div>
+            </div>
+
+            <div className="px-3 py-2 bg-slate-900/80 border border-slate-800 rounded-lg flex items-center gap-3 min-w-[140px]">
+              <ShieldCheck size={18} className="text-emerald-400 flex-none" />
+              <div>
+                <div className="text-[10px] uppercase font-mono text-slate-400">Resilience Index</div>
+                <div className="text-sm font-bold text-emerald-400">{avgResilience} / 100</div>
+              </div>
+            </div>
+
+            <div className="px-3 py-2 bg-slate-900/80 border border-slate-800 rounded-lg flex items-center gap-3 min-w-[140px]">
+              <Network size={18} className="text-rose-400 flex-none" />
+              <div>
+                <div className="text-[10px] uppercase font-mono text-slate-400">Stressed Nodes</div>
+                <div className="text-sm font-bold text-rose-400">{totalDisruptedNodes} Affected</div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-3.5 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-xs font-semibold flex items-center gap-2 transition shadow-lg shadow-cyan-950/40 flex-none"
+            >
+              <Plus size={15} /> Inject Shock Test
+            </button>
+          </div>
         </div>
-        <div className="flex gap-2 w-full sm:w-auto">
-          <button 
-            onClick={() => setShowNewModal(true)}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2 bg-os-surface-elevated border border-os-border text-os-text-primary rounded-lg text-xs uppercase tracking-wider font-medium hover:bg-os-surface-hover transition-colors cursor-pointer"
+
+        {/* WORKSPACE NAVIGATION TABS */}
+        <div className="flex items-center gap-6 mt-4 border-t border-slate-800/60 pt-3 text-xs font-semibold">
+          <button
+            onClick={() => setActiveTab('portfolio')}
+            className={`pb-1.5 flex items-center gap-2 border-b-2 transition ${
+              activeTab === 'portfolio'
+                ? 'border-cyan-400 text-cyan-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
           >
-            <Plus size={14} />
-            New Scenario
+            <Layers size={14} /> Stress Test Scenarios ({scenarios.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab('digital_twin')}
+            className={`pb-1.5 flex items-center gap-2 border-b-2 transition ${
+              activeTab === 'digital_twin'
+                ? 'border-cyan-400 text-cyan-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Network size={14} /> Digital Twin Cascading Failure Graph
+          </button>
+
+          <button
+            onClick={() => setActiveTab('monte_carlo')}
+            className={`pb-1.5 flex items-center gap-2 border-b-2 transition ${
+              activeTab === 'monte_carlo'
+                ? 'border-cyan-400 text-cyan-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <BarChart3 size={14} /> Monte Carlo Stochastic Projections (10k Iterations)
+          </button>
+
+          <button
+            onClick={() => setActiveTab('playbooks')}
+            className={`pb-1.5 flex items-center gap-2 border-b-2 transition ${
+              activeTab === 'playbooks'
+                ? 'border-cyan-400 text-cyan-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Sparkles size={14} /> AI Neural Contingency Playbooks ({selectedScenario?.playbooks?.length || 0})
+            {pendingApprovalsCount > 0 && (
+              <span className="px-1.5 py-0.2 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-full text-[10px]">
+                {pendingApprovalsCount} Gated
+              </span>
+            )}
           </button>
         </div>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
-        {/* Saved Simulations Sidebar */}
-        <div className="col-span-1 space-y-4">
-          <div className="text-[11px] uppercase tracking-wider text-os-text-muted font-semibold">Saved Simulations</div>
-          <div className="space-y-3">
-            {scenarios.map(sc => {
-              const res = simulationResults[sc.id];
-              return (
-                <div 
-                  key={sc.id} 
-                  onClick={() => setActiveScenarioId(sc.id)}
-                  className={`p-4 border rounded-xl cursor-pointer transition-colors ${
-                    activeScenarioId === sc.id 
-                      ? 'bg-os-surface-elevated border-os-border' 
-                      : 'bg-os-surface border-os-border hover:border-os-border'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="text-sm font-medium text-os-text-primary">{sc.name}</h3>
-                    <span className="text-[10px] font-mono px-2 py-0.5 bg-os-surface border border-os-border rounded-md text-os-text-secondary">
-                      {sc.type === 'Supplier Delay' ? `+${sc.params.delayDays}d` :
-                       sc.type === 'Demand Spike' ? `+${sc.params.demandIncreasePercent}%` :
-                       `${sc.params.portName} (${sc.params.delayDays}d)`}
+
+      {/* MAIN WORKSPACE BODY */}
+      <div className="flex-1 overflow-hidden p-6">
+        {/* TAB 1: SCENARIO PORTFOLIO & INSPECTOR */}
+        {activeTab === 'portfolio' && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full overflow-hidden">
+            {/* Left Column: Scenario Cards */}
+            <div className="lg:col-span-7 flex flex-col h-full bg-slate-900/40 border border-slate-800/80 rounded-xl overflow-hidden">
+              {/* Search and Filters Bar */}
+              <div className="p-4 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-950/40">
+                <div className="flex items-center gap-2 flex-1 min-w-[200px] bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-slate-300">
+                  <Search size={14} className="text-slate-500" />
+                  <input
+                    type="text"
+                    placeholder="Search scenarios, shock epicenters, or SKUs..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="bg-transparent border-none outline-none w-full text-slate-200 placeholder-slate-500 text-xs"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Filter size={14} className="text-slate-500" />
+                  <select
+                    value={shockTypeFilter}
+                    onChange={(e) => setShockTypeFilter(e.target.value)}
+                    className="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-300 outline-none"
+                  >
+                    <option value="ALL">All Shock Types</option>
+                    <option value="GEOPOLITICAL_CANAL_CRISIS">Geopolitical Maritime</option>
+                    <option value="SUPPLIER_INSOLVENCY">Supplier Outage</option>
+                    <option value="DEMAND_SURGE">Demand Surge</option>
+                    <option value="CYBER_OUTAGE">Cyber Ransomware</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Cards List */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {filteredScenarios.map((sc) => {
+                  const isSelected = sc.id === selectedScenarioId;
+                  return (
+                    <div
+                      key={sc.id}
+                      onClick={() => setSelectedScenarioId(sc.id)}
+                      className={`p-4 rounded-xl border transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-slate-800/60 border-cyan-500/60 shadow-lg shadow-cyan-950/30'
+                          : 'bg-slate-900/50 border-slate-800 hover:border-slate-700 hover:bg-slate-900/80'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-[10px] text-cyan-400 font-bold">{sc.id}</span>
+                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${
+                              sc.severity === 'CATASTROPHIC' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' :
+                              sc.severity === 'HIGH' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                              'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                            }`}>
+                              {sc.severity}
+                            </span>
+                            <span className="px-2 py-0.5 text-[10px] font-mono bg-slate-800 text-slate-400 rounded">
+                              {sc.shockType.replace(/_/g, ' ')}
+                            </span>
+                          </div>
+                          <h3 className="text-sm font-bold text-white mt-1">{sc.name}</h3>
+                          <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">{sc.description}</p>
+                        </div>
+
+                        <div className="flex flex-col items-end flex-none">
+                          <span className={`px-2 py-1 text-[10px] font-mono font-bold rounded ${
+                            sc.state === 'CONVERGED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
+                            sc.state === 'SIMULATING' ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 animate-pulse' :
+                            sc.state === 'ROUTED_TO_APPROVAL' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' :
+                            'bg-slate-800 text-slate-400'
+                          }`}>
+                            {sc.state}
+                          </span>
+                          <span className="text-[10px] font-mono text-slate-500 mt-2">v{sc.version}.0</span>
+                        </div>
+                      </div>
+
+                      {/* Card Metric Badges */}
+                      <div className="grid grid-cols-3 gap-2 mt-4 pt-3 border-t border-slate-800/60 text-xs">
+                        <div>
+                          <div className="text-[10px] uppercase font-mono text-slate-500">Gross Exposure</div>
+                          <div className="font-bold text-amber-400 mt-0.5">{formatCurrency(sc.financialExposure, currency)}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] uppercase font-mono text-slate-500">Resilience Score</div>
+                          <div className="font-bold text-emerald-400 mt-0.5">{sc.networkResilienceScore} / 100</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] uppercase font-mono text-slate-500">Blast Radius</div>
+                          <div className="font-bold text-rose-400 mt-0.5">{sc.cascadingFailureNodesCount} Nodes Affected</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Right Column: Slide-Out Inspector Drawer */}
+            <div className="lg:col-span-5 flex flex-col h-full bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden">
+              {selectedScenario ? (
+                <div className="flex flex-col h-full overflow-hidden">
+                  <div className="p-4 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
+                    <div>
+                      <div className="text-[10px] font-mono text-cyan-400 uppercase tracking-wider">SCENARIO AUDIT & CONTROLS</div>
+                      <h2 className="text-base font-bold text-white truncate max-w-[340px]">{selectedScenario.name}</h2>
+                    </div>
+                    <span className="px-2 py-0.5 font-mono text-[10px] bg-slate-800 text-slate-300 rounded">
+                      {selectedScenario.id}
                     </span>
                   </div>
-                  <p className="text-xs text-os-text-muted mb-3 line-clamp-2">{sc.description}</p>
-                  
-                  <div className="flex items-center justify-between text-[10px] font-mono">
-                    <span className="text-os-text-muted">Status:</span>
-                    <span className={`uppercase px-2 py-0.5 rounded border ${
-                      res?.status === 'COMPLETE' ? 'bg-os-surface text-[#30D158] border-os-border' :
-                      res?.status === 'RUNNING' ? 'bg-os-surface text-[#FF9F0A] border-os-border' :
-                      'bg-os-surface text-os-text-muted border-os-border'
-                    }`}>
-                      {res?.status || 'READY'}
-                    </span>
+
+                  <div className="flex-1 overflow-y-auto p-4 space-y-5 text-xs">
+                    {/* Disruption Parameters Panel */}
+                    <div className="p-3.5 bg-slate-900/90 border border-slate-800 rounded-lg space-y-3">
+                      <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                        <Zap size={14} className="text-amber-400" /> Shock Injection Parameters
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 text-slate-300">
+                        <div>
+                          <span className="text-[10px] font-mono text-slate-500 block">TARGET EPICENTER</span>
+                          <span className="font-semibold text-white">{selectedScenario.targetEpicenter}</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-mono text-slate-500 block">DURATION HORIZON</span>
+                          <span className="font-semibold text-white">{selectedScenario.durationDays} Days</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-mono text-slate-500 block">SEVERITY MAGNITUDE</span>
+                          <span className="font-semibold text-amber-400">+{selectedScenario.magnitudePercent}% Delay / Load</span>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-mono text-slate-500 block">BLAST RADIUS</span>
+                          <span className="font-semibold text-rose-400">{selectedScenario.affectedNodeIds.length} Network Nodes</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Affected SKUs Vulnerability Matrix */}
+                    <div>
+                      <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wider mb-2 flex items-center justify-between">
+                        <span>SKU Vulnerability Analysis</span>
+                        <span className="text-[10px] font-mono text-slate-500">{selectedScenario.affectedSkus.length} Tracked</span>
+                      </div>
+                      <div className="border border-slate-800 rounded-lg overflow-hidden bg-slate-950/40">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-900/80 text-[10px] font-mono uppercase text-slate-400 border-b border-slate-800">
+                            <tr>
+                              <th className="p-2">SKU & Item</th>
+                              <th className="p-2 text-right">On Hand</th>
+                              <th className="p-2 text-right">Burn Rate</th>
+                              <th className="p-2 text-right">Stockout</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-800/60">
+                            {selectedScenario.affectedSkus.map((sku) => (
+                              <tr key={sku.sku} className="hover:bg-slate-800/30">
+                                <td className="p-2">
+                                  <div className="font-semibold text-white truncate max-w-[140px]">{sku.name}</div>
+                                  <span className="text-[10px] font-mono text-slate-500">{sku.sku}</span>
+                                </td>
+                                <td className="p-2 text-right font-mono text-slate-300">{formatNumber(sku.currentOnHand)}</td>
+                                <td className="p-2 text-right font-mono text-slate-400">{sku.dailyBurnRate}/day</td>
+                                <td className="p-2 text-right font-mono font-bold text-rose-400">
+                                  Day {sku.projectedStockoutDay}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* Monte Carlo Summary */}
+                    {selectedScenario.monteCarlo && (
+                      <div className="p-3.5 bg-cyan-950/20 border border-cyan-500/20 rounded-lg space-y-2">
+                        <div className="text-[11px] font-bold text-cyan-300 uppercase tracking-wider flex items-center justify-between">
+                          <span>Monte Carlo Confidence (10k runs)</span>
+                          <span className="text-[10px] font-mono text-cyan-400">{selectedScenario.monteCarlo.stockoutConfidencePercent}% Confidence</span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-center text-xs pt-1">
+                          <div className="p-2 bg-slate-900/80 rounded border border-slate-800">
+                            <div className="text-[10px] font-mono text-slate-500">P10 BEST</div>
+                            <div className="font-bold text-emerald-400">{selectedScenario.monteCarlo.p10BestCaseDays} Days</div>
+                          </div>
+                          <div className="p-2 bg-slate-900/80 rounded border border-slate-800">
+                            <div className="text-[10px] font-mono text-slate-500">P50 MEDIAN</div>
+                            <div className="font-bold text-amber-400">{selectedScenario.monteCarlo.p50ExpectedDays} Days</div>
+                          </div>
+                          <div className="p-2 bg-slate-900/80 rounded border border-slate-800">
+                            <div className="text-[10px] font-mono text-slate-500">P90 TAIL RISK</div>
+                            <div className="font-bold text-rose-400">{selectedScenario.monteCarlo.p90WorstCaseDays} Days</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Inspector Footer Actions */}
+                  <div className="p-4 border-t border-slate-800 bg-slate-950/60 flex items-center gap-3">
+                    <button
+                      onClick={() => handleExecuteSimulation(selectedScenario.id)}
+                      disabled={isSimulating}
+                      className="flex-1 py-2.5 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white rounded-lg font-semibold text-xs flex items-center justify-center gap-2 transition shadow-md"
+                    >
+                      <Play size={14} /> {isSimulating ? 'Simulating...' : 'Run Simulation'}
+                    </button>
+
+                    <button
+                      onClick={() => handleGenerateAiPlaybooks(selectedScenario.id)}
+                      disabled={isGeneratingPlaybooks}
+                      className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-cyan-400 border border-cyan-500/30 rounded-lg font-semibold text-xs flex items-center justify-center gap-2 transition"
+                    >
+                      <Sparkles size={14} /> {isGeneratingPlaybooks ? 'Synthesizing...' : 'AI Playbooks'}
+                    </button>
                   </div>
                 </div>
-              );
-            })}
+              ) : (
+                <div className="flex items-center justify-center h-full text-slate-500 text-xs">
+                  Select a scenario to view detailed stress test telemetry.
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
+﻿        {/* TAB 2: DIGITAL TWIN CASCADING FAILURE GRAPH */}
+        {activeTab === 'digital_twin' && (
+          <div className="h-full flex flex-col bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden p-6 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Network className="text-cyan-400" size={18} />
+                  Live Digital Twin Network Topology & Cascading Stress Paths
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Active scenario: <span className="text-cyan-300 font-semibold">{selectedScenario?.name}</span>. Epicenter: <span className="text-amber-400 font-semibold">{selectedScenario?.targetEpicenter}</span>.
+                </p>
+              </div>
 
-        {/* Active Scenario Configuration & Results */}
-        <div className="col-span-1 md:col-span-2 bg-os-surface border border-os-border p-4 sm:p-6 rounded-xl flex flex-col justify-between">
-          <div className="space-y-6">
-             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 pb-4 border-b border-os-border">
-               <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 rounded-lg bg-os-surface border border-os-border flex items-center justify-center text-os-text-secondary">
-                   <Workflow size={18} />
-                 </div>
-                 <div>
-                   <div className="text-base font-medium text-os-text-primary">{activeScenario.name}</div>
-                   <div className="text-[10px] text-[#30D158] font-mono uppercase tracking-wider mt-0.5">
-                     Simulation Environment Isolated
-                   </div>
-                 </div>
-               </div>
-               
-               <div className="flex gap-2 w-full sm:w-auto">
-                 {currentResult?.status === 'COMPLETE' && (
-                   <button 
-                     onClick={() => {
-                       setSimulationResults(prev => {
-                         const copy = { ...prev };
-                         delete copy[activeScenarioId];
-                         return copy;
-                       });
-                       showToast('Simulation reset to ready state.', 'info');
-                     }}
-                     className="px-3 py-2 bg-os-surface-elevated border border-os-border text-os-text-muted hover:text-os-text-primary rounded-lg text-xs uppercase tracking-wider transition-colors"
-                   >
-                     Reset
-                   </button>
-                 )}
-                 <button 
-                   onClick={handleExecute}
-                   disabled={isExecuting}
-                   className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2 bg-os-surface-elevated border border-os-border text-[#30D158] rounded-lg text-xs uppercase tracking-wider font-medium hover:bg-os-surface-hover transition-colors disabled:opacity-50 cursor-pointer"
-                 >
-                   <Play size={14} className={isExecuting ? 'animate-pulse' : ''} />
-                   {isExecuting ? 'Running Simulation...' : currentResult?.status === 'COMPLETE' ? 'Run Again' : 'Execute'}
-                 </button>
-               </div>
-             </div>
+              <div className="flex items-center gap-4 text-xs font-mono">
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-400 inline-block" /> Healthy (90-100%)</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block" /> Stressed (50-89%)</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-rose-400 inline-block" /> Severely Disrupted</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-rose-600 inline-block animate-ping" /> Epicenter Shock</span>
+              </div>
+            </div>
 
-             {/* Scenario Assumptions Parameter Panel */}
-             <div className="bg-os-surface border border-os-border p-4 rounded-xl space-y-3">
-               <div className="text-[11px] uppercase tracking-wider text-os-text-muted font-semibold">Scenario Assumptions</div>
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono">
-                 <div className="flex justify-between p-2 bg-os-surface rounded border border-os-border">
-                   <span className="text-os-text-muted">Scenario Type:</span>
-                   <span className="text-os-text-primary">{activeScenario.type}</span>
-                 </div>
-                 <div className="flex justify-between p-2 bg-os-surface rounded border border-os-border">
-                   <span className="text-os-text-muted">Primary Parameter:</span>
-                   <span className="text-[#30D158]">
-                     {activeScenario.type === 'Supplier Delay' ? `${activeScenario.params.delayDays || 7} Days Delay` :
-                      activeScenario.type === 'Demand Spike' ? `+${activeScenario.params.demandIncreasePercent || 50}% Demand` :
-                      `${activeScenario.params.portName || 'Port'} (${activeScenario.params.delayDays || 14}d Hold)`}
-                   </span>
-                 </div>
-               </div>
-               <p className="text-xs text-os-text-secondary font-mono">{activeScenario.description}</p>
-             </div>
+            {/* Visual Topology Grid (Tier 1 through Tier 5) */}
+            <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4 overflow-y-auto">
+              {/* TIER 1: SUPPLIERS */}
+              <div className="space-y-3 bg-slate-950/50 p-4 rounded-xl border border-slate-800/80">
+                <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+                  <Cpu size={14} className="text-cyan-400" /> Tier-1 Suppliers
+                </div>
+                {digitalTwinNodes.filter(n => n.type === 'SUPPLIER').map(node => {
+                  const isAffected = selectedScenario?.affectedNodeIds?.includes(node.id);
+                  return (
+                    <div
+                      key={node.id}
+                      onClick={() => setSelectedNodeId(node.id)}
+                      className={`p-3 rounded-lg border cursor-pointer transition ${
+                        isAffected
+                          ? 'bg-rose-950/30 border-rose-500/50 shadow-sm'
+                          : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-white truncate">{node.name}</span>
+                        <span className={`w-2 h-2 rounded-full ${isAffected ? 'bg-rose-500' : 'bg-emerald-400'}`} />
+                      </div>
+                      <div className="text-[10px] font-mono text-slate-400 mt-1">{node.country} • Tier {node.tier}</div>
+                      <div className="text-[10px] font-mono text-cyan-400 mt-0.5">Cap: {isAffected ? '45%' : `${node.capacityRemainingPercent}%`}</div>
+                    </div>
+                  );
+                })}
+              </div>
 
-             {/* Result Metrics Grid */}
-             <div className="space-y-3">
-               <div className="flex justify-between items-center">
-                 <div className="text-[11px] uppercase tracking-wider text-os-text-muted font-semibold">Simulation Impact Analysis</div>
-                 {currentResult?.status === 'COMPLETE' && (
-                   <button 
-                     onClick={() => setShowAffectedModal(true)}
-                     className="text-xs font-mono text-[#30D158] hover:underline flex items-center gap-1 cursor-pointer"
-                   >
-                     View Affected Records ({currentResult.affectedSkusCount + currentResult.affectedPosCount}) <ExternalLink size={12} />
-                   </button>
-                 )}
-               </div>
+              {/* TIER 2: LOGISTICS PORTS */}
+              <div className="space-y-3 bg-slate-950/50 p-4 rounded-xl border border-slate-800/80">
+                <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+                  <Globe size={14} className="text-blue-400" /> Maritime & Air Ports
+                </div>
+                {digitalTwinNodes.filter(n => n.type === 'PORT').map(node => {
+                  const isAffected = selectedScenario?.affectedNodeIds?.includes(node.id);
+                  const isEpicenter = node.id === selectedScenario?.epicenterNodeId;
+                  return (
+                    <div
+                      key={node.id}
+                      onClick={() => setSelectedNodeId(node.id)}
+                      className={`p-3 rounded-lg border cursor-pointer transition ${
+                        isEpicenter
+                          ? 'bg-rose-950/50 border-rose-500 shadow-md ring-1 ring-rose-500'
+                          : isAffected
+                          ? 'bg-amber-950/30 border-amber-500/50'
+                          : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-white truncate">{node.name}</span>
+                        <span className={`w-2 h-2 rounded-full ${isEpicenter ? 'bg-rose-500 animate-pulse' : isAffected ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                      </div>
+                      <div className="text-[10px] font-mono text-slate-400 mt-1">{node.country} • Latency: +{isAffected ? node.latencyImpactDays : 0}d</div>
+                      <div className="text-[10px] font-mono text-amber-400 mt-0.5">Cap: {isEpicenter ? '20%' : `${node.capacityRemainingPercent}%`}</div>
+                    </div>
+                  );
+                })}
+              </div>
 
-               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-                 <div className="bg-os-surface p-4 border border-os-border rounded-lg text-center">
-                   <div className="text-[10px] uppercase tracking-wider text-os-text-muted mb-1">Affected SKUs</div>
-                   <div className="text-xl font-mono text-os-text-primary">
-                     {currentResult?.status === 'COMPLETE' ? formatNumber(currentResult.affectedSkusCount) : '--'}
-                   </div>
-                 </div>
-                 <div className="bg-os-surface p-4 border border-os-border rounded-lg text-center">
-                   <div className="text-[10px] uppercase tracking-wider text-os-text-muted mb-1">Affected POs</div>
-                   <div className="text-xl font-mono text-os-text-primary">
-                     {currentResult?.status === 'COMPLETE' ? formatNumber(currentResult.affectedPosCount) : '--'}
-                   </div>
-                 </div>
-                 <div className="bg-os-surface p-4 border border-os-border rounded-lg text-center">
-                   <div className="text-[10px] uppercase tracking-wider text-os-text-muted mb-1">New Stockouts</div>
-                   <div className="text-xl font-mono text-[#FF453A]">
-                     {currentResult?.status === 'COMPLETE' ? formatNumber(currentResult.newStockoutsCount) : '--'}
-                   </div>
-                 </div>
-                 <div className="bg-os-surface p-4 border border-os-border rounded-lg text-center">
-                   <div className="text-[10px] uppercase tracking-wider text-os-text-muted mb-1">Financial Exposure</div>
-                   <div className="text-xl font-mono text-os-text-primary">
-                     {currentResult?.status === 'COMPLETE' ? formatCurrency(currentResult.financialExposure, currency) : '--'}
-                   </div>
-                 </div>
-               </div>
-             </div>
+              {/* TIER 3: MANUFACTURING PLANTS */}
+              <div className="space-y-3 bg-slate-950/50 p-4 rounded-xl border border-slate-800/80">
+                <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+                  <Server size={14} className="text-amber-400" /> Assembly Plants
+                </div>
+                {digitalTwinNodes.filter(n => n.type === 'PLANT').map(node => {
+                  const isAffected = selectedScenario?.affectedNodeIds?.includes(node.id);
+                  return (
+                    <div
+                      key={node.id}
+                      onClick={() => setSelectedNodeId(node.id)}
+                      className={`p-3 rounded-lg border cursor-pointer transition ${
+                        isAffected
+                          ? 'bg-amber-950/30 border-amber-500/50 shadow-sm'
+                          : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-white truncate">{node.name}</span>
+                        <span className={`w-2 h-2 rounded-full ${isAffected ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                      </div>
+                      <div className="text-[10px] font-mono text-slate-400 mt-1">{node.country} • Tier {node.tier}</div>
+                      <div className="text-[10px] font-mono text-emerald-400 mt-0.5">Output: {isAffected ? '62%' : `${node.capacityRemainingPercent}%`}</div>
+                    </div>
+                  );
+                })}
+              </div>
 
-             {/* Execution Status / Empty / Completed State */}
-             {isExecuting ? (
-               <div className="flex flex-col items-center justify-center py-12 text-os-text-muted space-y-3">
-                  <RefreshCw size={28} className="animate-spin text-[#30D158]" />
-                  <p className="text-xs font-mono uppercase tracking-wider">Running simulation across inventory & supply graph...</p>
-               </div>
-             ) : currentResult?.status === 'COMPLETE' ? (
-               <div className="bg-os-surface border border-os-border p-4 rounded-xl space-y-3">
-                 <div className="flex justify-between items-center">
-                   <div className="flex items-center gap-2 text-[#30D158] text-xs font-mono uppercase">
-                     <CheckCircle2 size={14} />
-                     Simulation Complete ({currentResult.executedAt})
-                   </div>
-                   <button 
-                     onClick={() => setShowOrionModal(true)}
-                     className="px-3 py-1.5 bg-os-surface-elevated border border-os-border text-os-text-primary rounded text-xs font-mono uppercase tracking-wider hover:bg-os-surface-hover transition-colors cursor-pointer"
-                   >
-                     Ask ORION AI Analysis
-                   </button>
-                 </div>
-                 <p className="text-xs text-os-text-secondary font-mono leading-relaxed">
-                   Simulation projects a <span className="text-[#FF9F0A] font-bold">+{currentResult.riskIncreasePercent}%</span> risk increase in network stability. {currentResult.newStockoutsCount} inventory items require preemptive safety stock buffers or expedited re-routing.
-                 </p>
-               </div>
-             ) : (
-               <div className="flex flex-col items-center justify-center py-12 text-os-text-muted">
-                  <Database size={32} className="mb-4 opacity-50" />
-                  <p className="text-xs font-mono">Click Execute to run the simulation across the current active data model.</p>
-               </div>
-             )}
+              {/* TIER 4: REGIONAL DISTRIBUTION HUBS */}
+              <div className="space-y-3 bg-slate-950/50 p-4 rounded-xl border border-slate-800/80">
+                <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+                  <Boxes size={14} className="text-emerald-400" /> Regional Distribution Hubs
+                </div>
+                {digitalTwinNodes.filter(n => n.type === 'WAREHOUSE').map(node => {
+                  const isAffected = selectedScenario?.affectedNodeIds?.includes(node.id);
+                  return (
+                    <div
+                      key={node.id}
+                      onClick={() => setSelectedNodeId(node.id)}
+                      className={`p-3 rounded-lg border cursor-pointer transition ${
+                        isAffected
+                          ? 'bg-amber-950/30 border-amber-500/50 shadow-sm'
+                          : 'bg-slate-900 border-slate-800 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-white truncate">{node.name}</span>
+                        <span className={`w-2 h-2 rounded-full ${isAffected ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                      </div>
+                      <div className="text-[10px] font-mono text-slate-400 mt-1">{node.country} • Hub</div>
+                      <div className="text-[10px] font-mono text-cyan-400 mt-0.5">Buffer: {isAffected ? '12 days' : '38 days'}</div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* TIER 5: CUSTOMER DEMAND CLUSTERS */}
+              <div className="space-y-3 bg-slate-950/50 p-4 rounded-xl border border-slate-800/80">
+                <div className="text-[10px] font-mono uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+                  <Truck size={14} className="text-purple-400" /> Customer Markets
+                </div>
+                {digitalTwinNodes.filter(n => n.type === 'CUSTOMER_CLUSTER').map(node => {
+                  return (
+                    <div
+                      key={node.id}
+                      onClick={() => setSelectedNodeId(node.id)}
+                      className="p-3 rounded-lg border bg-slate-900 border-slate-800 hover:border-slate-700 cursor-pointer transition"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-white truncate">{node.name}</span>
+                        <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                      </div>
+                      <div className="text-[10px] font-mono text-slate-400 mt-1">{node.country} • Commercial</div>
+                      <div className="text-[10px] font-mono text-purple-400 mt-0.5">Fulfillment: 98.4%</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* TAB 3: MONTE CARLO STOCHASTIC PROJECTIONS */}
+        {activeTab === 'monte_carlo' && (
+          <div className="h-full flex flex-col bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden p-6 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <BarChart3 className="text-cyan-400" size={18} />
+                  10,000-Iteration Monte Carlo Stochastic Stockout Simulation
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Confidence intervals and revenue exposure projection for <span className="text-cyan-300 font-semibold">{selectedScenario?.name}</span>.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <span className="px-3 py-1 bg-cyan-950/40 text-cyan-300 border border-cyan-500/30 rounded-lg text-xs font-mono">
+                  Confidence: {selectedScenario?.monteCarlo?.stockoutConfidencePercent || 92.8}%
+                </span>
+                <span className="px-3 py-1 bg-slate-800 text-slate-300 rounded-lg text-xs font-mono">
+                  Iterations: 10,000
+                </span>
+              </div>
+            </div>
+
+            {/* Monte Carlo Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-xl">
+                <div className="text-[10px] font-mono uppercase text-slate-400">P10 Best Case Horizon</div>
+                <div className="text-2xl font-bold text-emerald-400 mt-1">{selectedScenario?.monteCarlo?.p10BestCaseDays || 6} Days</div>
+                <div className="text-[11px] text-slate-400 mt-1">Min Exposure: {formatCurrency(selectedScenario?.monteCarlo?.revenueExposureMin || 840000, currency)}</div>
+              </div>
+
+              <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-xl">
+                <div className="text-[10px] font-mono uppercase text-slate-400">P50 Expected Median</div>
+                <div className="text-2xl font-bold text-amber-400 mt-1">{selectedScenario?.monteCarlo?.p50ExpectedDays || 14} Days</div>
+                <div className="text-[11px] text-slate-400 mt-1">Expected Exposure: {formatCurrency(selectedScenario?.monteCarlo?.revenueExposureExpected || 1420000, currency)}</div>
+              </div>
+
+              <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-xl">
+                <div className="text-[10px] font-mono uppercase text-slate-400">P90 Tail Risk (Worst)</div>
+                <div className="text-2xl font-bold text-rose-400 mt-1">{selectedScenario?.monteCarlo?.p90WorstCaseDays || 22} Days</div>
+                <div className="text-[11px] text-slate-400 mt-1">Max Tail Exposure: {formatCurrency(selectedScenario?.monteCarlo?.revenueExposureMax || 2180000, currency)}</div>
+              </div>
+
+              <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-xl">
+                <div className="text-[10px] font-mono uppercase text-slate-400">Network Resilience</div>
+                <div className="text-2xl font-bold text-cyan-400 mt-1">{selectedScenario?.networkResilienceScore || 54} / 100</div>
+                <div className="text-[11px] text-slate-400 mt-1">{selectedScenario?.cascadingFailureNodesCount || 5} Downstream Nodes Gapped</div>
+              </div>
+            </div>
+
+            {/* Stochastic Day-by-Day Probability Curve */}
+            <div className="flex-1 bg-slate-950/40 border border-slate-800 rounded-xl p-5 flex flex-col justify-between overflow-hidden">
+              <div className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center justify-between">
+                <span>Cumulative Probability of Severe Network Stockout vs Horizon (Days)</span>
+                <span className="text-[10px] font-mono text-slate-500">Stochastic Kernel Engine</span>
+              </div>
+
+              <div className="flex-1 grid grid-cols-6 gap-3 items-end pb-4">
+                {(selectedScenario?.monteCarlo?.timelineSeries || []).map((pt) => (
+                  <div key={pt.day} className="flex flex-col items-center gap-2 h-full justify-end">
+                    <div className="text-[10px] font-mono text-amber-400">{formatCurrency(pt.cumulativeRevenueAtRisk, currency)}</div>
+                    <div className="w-full flex items-end gap-1 h-36 bg-slate-900/60 rounded-lg p-1">
+                      {/* P10 Bar */}
+                      <div
+                        style={{ height: `${pt.p10StockoutProb}%` }}
+                        className="flex-1 bg-emerald-500/50 hover:bg-emerald-400 rounded-t transition-all"
+                        title={`P10: ${pt.p10StockoutProb}%`}
+                      />
+                      {/* P50 Bar */}
+                      <div
+                        style={{ height: `${pt.p50StockoutProb}%` }}
+                        className="flex-1 bg-amber-500/60 hover:bg-amber-400 rounded-t transition-all"
+                        title={`P50: ${pt.p50StockoutProb}%`}
+                      />
+                      {/* P90 Bar */}
+                      <div
+                        style={{ height: `${pt.p90StockoutProb}%` }}
+                        className="flex-1 bg-rose-500/70 hover:bg-rose-400 rounded-t transition-all"
+                        title={`P90: ${pt.p90StockoutProb}%`}
+                      />
+                    </div>
+                    <span className="text-[11px] font-mono text-slate-400 font-bold">Day {pt.day}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center justify-center gap-6 pt-3 border-t border-slate-800/80 text-xs font-mono">
+                <span className="flex items-center gap-2"><span className="w-3 h-3 bg-emerald-500/50 rounded" /> P10 Best Case</span>
+                <span className="flex items-center gap-2"><span className="w-3 h-3 bg-amber-500/60 rounded" /> P50 Expected Median</span>
+                <span className="flex items-center gap-2"><span className="w-3 h-3 bg-rose-500/70 rounded" /> P90 Tail Risk</span>
+              </div>
+            </div>
+          </div>
+        )}
+﻿        {/* TAB 4: AI CONTINGENCY PLAYBOOKS & GOVERNANCE GATE */}
+        {activeTab === 'playbooks' && (
+          <div className="h-full flex flex-col bg-slate-900/40 border border-slate-800 rounded-xl overflow-hidden p-6 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Sparkles className="text-cyan-400" size={18} />
+                  AI-Synthesized Mitigation Playbooks & Governance Gate (POL-SCN-001)
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Actions with expenditure exceeding $50,000 are automatically routed to the <span className="text-cyan-300 font-semibold">Unified Approval Center</span>.
+                </p>
+              </div>
+
+              <button
+                onClick={() => handleGenerateAiPlaybooks(selectedScenario?.id)}
+                disabled={isGeneratingPlaybooks}
+                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white rounded-lg text-xs font-semibold flex items-center gap-2 transition"
+              >
+                <RefreshCw size={14} className={isGeneratingPlaybooks ? 'animate-spin' : ''} />
+                Regenerate Neural Playbooks
+              </button>
+            </div>
+
+            {/* Playbooks Grid */}
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-y-auto">
+              {(selectedScenario?.playbooks || []).map((pb) => {
+                const isOverBudget = pb.costToExecute > 50000;
+                return (
+                  <div
+                    key={pb.id}
+                    className="bg-slate-950/60 border border-slate-800 rounded-xl p-5 flex flex-col justify-between space-y-4 shadow-lg hover:border-slate-700 transition"
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[10px] text-cyan-400 font-bold">{pb.id}</span>
+                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${
+                          pb.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+                          pb.status === 'SUBMITTED_TO_APPROVAL' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                          'bg-slate-800 text-slate-300'
+                        }`}>
+                          {pb.status.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+
+                      <h4 className="text-sm font-bold text-white leading-snug">{pb.title}</h4>
+                      <p className="text-xs text-slate-400 leading-relaxed">{pb.description}</p>
+
+                      {/* Trade-off Matrix */}
+                      <div className="grid grid-cols-3 gap-2 p-3 bg-slate-900/80 border border-slate-800/80 rounded-lg text-xs">
+                        <div>
+                          <div className="text-[10px] font-mono text-slate-500 uppercase">Cost</div>
+                          <div className="font-bold text-white">{formatCurrency(pb.costToExecute, currency)}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-mono text-slate-500 uppercase">Protected</div>
+                          <div className="font-bold text-emerald-400">{formatCurrency(pb.revenueProtected, currency)}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-mono text-slate-500 uppercase">Recovery</div>
+                          <div className="font-bold text-cyan-400">{pb.timeToRecoverDays} Days</div>
+                        </div>
+                      </div>
+
+                      {/* Action Steps */}
+                      <div className="space-y-1.5">
+                        <div className="text-[10px] font-mono uppercase text-slate-400">Execution Steps:</div>
+                        <ul className="space-y-1 text-xs text-slate-300">
+                          {pb.steps.map((step, idx) => (
+                            <li key={idx} className="flex items-start gap-2">
+                              <span className="text-cyan-400 text-[10px] mt-0.5">•</span>
+                              <span className="leading-tight">{step}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* Cryptographic Seal */}
+                      {pb.sha256Seal && (
+                        <div className="p-2 bg-slate-900/40 rounded border border-slate-800/60 font-mono text-[9px] text-slate-500 truncate">
+                          SHA-256: {pb.sha256Seal}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer Action Button */}
+                    <div className="pt-3 border-t border-slate-800">
+                      {pb.status === 'ACTIVE' ? (
+                        <div className="w-full py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-center rounded-lg text-xs font-semibold flex items-center justify-center gap-2">
+                          <CheckCircle2 size={14} /> Plan Active in Production
+                        </div>
+                      ) : pb.status === 'SUBMITTED_TO_APPROVAL' ? (
+                        <div className="w-full py-2 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-center rounded-lg text-xs font-semibold flex items-center justify-center gap-2">
+                          <ShieldAlert size={14} /> Gated at Approval Center
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleDispatch(selectedScenario.id, pb)}
+                          disabled={isDispatching === pb.id}
+                          className={`w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition ${
+                            isOverBudget
+                              ? 'bg-amber-600 hover:bg-amber-500 text-white shadow-md'
+                              : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md'
+                          }`}
+                        >
+                          {isOverBudget ? (
+                            <>
+                              <ShieldAlert size={14} /> Dispatch to Approval Center
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle2 size={14} /> Execute Autonomous Mitigation
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* New Scenario Modal */}
-      {showNewModal && (
+      {/* CREATE SHOCK TEST MODAL */}
+      {showCreateModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-os-surface border border-os-border rounded-xl max-w-md w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center pb-3 border-b border-os-border">
-              <h3 className="text-base font-medium text-os-text-primary">Create New Scenario</h3>
-              <button onClick={() => setShowNewModal(false)} className="text-os-text-muted hover:text-os-text-primary">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Zap className="text-cyan-400" size={18} />
+                Inject Enterprise Shock Scenario
+              </h3>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="text-slate-400 hover:text-white p-1"
+              >
                 <X size={18} />
               </button>
             </div>
-            
-            <form onSubmit={handleCreateScenario} className="space-y-4">
+
+            <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">
               <div>
-                <label className="block text-[10px] uppercase font-mono text-os-text-muted mb-1">Scenario Name</label>
-                <input 
+                <label className="block text-slate-400 mb-1 font-mono uppercase text-[10px]">Scenario Name</label>
+                <input
                   type="text"
-                  value={newName}
-                  onChange={e => setNewName(e.target.value)}
-                  placeholder="e.g. European Supplier Strike"
-                  className="w-full bg-os-surface border border-os-border rounded-lg px-3 py-2 text-xs text-os-text-primary font-mono focus:outline-none focus:border-os-border"
                   required
+                  placeholder="e.g., Red Sea Maritime Choke Point & Canal Shutdown"
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white outline-none focus:border-cyan-500"
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-mono uppercase text-[10px]">Shock Type</label>
+                  <select
+                    value={formShockType}
+                    onChange={(e) => setFormShockType(e.target.value as ScenarioShockType)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white outline-none"
+                  >
+                    <option value="PORT_BLOCKADE">Port Blockade</option>
+                    <option value="GEOPOLITICAL_CANAL_CRISIS">Geopolitical Canal Crisis</option>
+                    <option value="SUPPLIER_INSOLVENCY">Supplier Insolvency</option>
+                    <option value="DEMAND_SURGE">Demand Surge (+50%)</option>
+                    <option value="CYBER_OUTAGE">Cyber Ransomware Outage</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 mb-1 font-mono uppercase text-[10px]">Severity Rating</label>
+                  <select
+                    value={formSeverity}
+                    onChange={(e) => setFormSeverity(e.target.value as any)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white outline-none"
+                  >
+                    <option value="CATASTROPHIC">CATASTROPHIC</option>
+                    <option value="HIGH">HIGH</option>
+                    <option value="MEDIUM">MEDIUM</option>
+                    <option value="LOW">LOW</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-slate-400 mb-1 font-mono uppercase text-[10px]">Duration (Days): {formDuration}</label>
+                  <input
+                    type="range"
+                    min="3"
+                    max="60"
+                    value={formDuration}
+                    onChange={(e) => setFormDuration(Number(e.target.value))}
+                    className="w-full accent-cyan-400"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 mb-1 font-mono uppercase text-[10px]">Magnitude (%): +{formMagnitude}%</label>
+                  <input
+                    type="range"
+                    min="10"
+                    max="100"
+                    value={formMagnitude}
+                    onChange={(e) => setFormMagnitude(Number(e.target.value))}
+                    className="w-full accent-amber-400"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-[10px] uppercase font-mono text-os-text-muted mb-1">Scenario Type</label>
-                <select 
-                  value={newType}
-                  onChange={e => setNewType(e.target.value as any)}
-                  className="w-full bg-os-surface border border-os-border rounded-lg px-3 py-2 text-xs text-os-text-primary font-mono focus:outline-none focus:border-os-border"
+                <label className="block text-slate-400 mb-1 font-mono uppercase text-[10px]">Epicenter Node / Gateway</label>
+                <select
+                  value={formEpicenter}
+                  onChange={(e) => setFormEpicenter(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white outline-none"
                 >
-                  <option value="Supplier Delay">Supplier Delay</option>
-                  <option value="Demand Spike">Demand Spike</option>
-                  <option value="Port Congestion">Port Congestion</option>
-                  <option value="Custom">Custom</option>
+                  <option value="Port of Singapore (Malacca Choke)">Port of Singapore (Malacca Choke)</option>
+                  <option value="Port of Shanghai (Deepwater Terminal)">Port of Shanghai (Deepwater Terminal)</option>
+                  <option value="Apex Semiconductor Fab 18 (Foundry)">Apex Semiconductor Fab 18 (Foundry)</option>
+                  <option value="North America Central Hub (Chicago)">North America Central Hub (Chicago)</option>
+                  <option value="Port of Rotterdam (Euro Gateway)">Port of Rotterdam (Euro Gateway)</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase font-mono text-os-text-muted mb-1">
-                  {newType === 'Demand Spike' ? 'Demand Increase (%)' : 'Delay Duration (Days)'}
-                </label>
-                <input 
-                  type="number"
-                  value={newParamVal}
-                  onChange={e => setNewParamVal(Number(e.target.value))}
-                  min={1}
-                  max={365}
-                  className="w-full bg-os-surface border border-os-border rounded-lg px-3 py-2 text-xs text-os-text-primary font-mono focus:outline-none focus:border-os-border"
-                  required
+                <label className="block text-slate-400 mb-1 font-mono uppercase text-[10px]">Scenario Description</label>
+                <textarea
+                  rows={2}
+                  placeholder="Detailed rationale and expected disruption cascade..."
+                  value={formDesc}
+                  onChange={(e) => setFormDesc(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white outline-none resize-none"
                 />
               </div>
 
-              <div>
-                <label className="block text-[10px] uppercase font-mono text-os-text-muted mb-1">Description</label>
-                <textarea 
-                  value={newDesc}
-                  onChange={e => setNewDesc(e.target.value)}
-                  placeholder="Briefly describe simulation rationale..."
-                  className="w-full bg-os-surface border border-os-border rounded-lg px-3 py-2 text-xs text-os-text-primary font-mono focus:outline-none focus:border-os-border"
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button 
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+                <button
                   type="button"
-                  onClick={() => setShowNewModal(false)}
-                  className="px-4 py-2 bg-os-surface-elevated border border-os-border text-os-text-muted hover:text-os-text-primary rounded-lg text-xs uppercase tracking-wider font-medium transition-colors"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-semibold"
                 >
                   Cancel
                 </button>
-                <button 
+                <button
                   type="submit"
-                  className="px-4 py-2 bg-os-surface-elevated border border-os-border text-[#30D158] rounded-lg text-xs uppercase tracking-wider font-medium hover:bg-os-surface-hover transition-colors"
+                  className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-semibold flex items-center gap-2"
                 >
-                  Save Scenario
+                  <Plus size={14} /> Initialize Stress Test
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* Affected Records Modal / Drawer */}
-      {showAffectedModal && currentResult && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-os-surface border border-os-border rounded-xl max-w-3xl w-full p-6 space-y-4 shadow-2xl max-h-[85vh] overflow-y-auto">
-            <div className="flex justify-between items-center pb-3 border-b border-os-border">
-              <div>
-                <h3 className="text-base font-medium text-os-text-primary">Affected Records: {currentResult.scenarioName}</h3>
-                <p className="text-xs font-mono text-os-text-muted">Click any record to inspect details in the enterprise drawer.</p>
-              </div>
-              <button onClick={() => setShowAffectedModal(false)} className="text-os-text-muted hover:text-os-text-primary">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <h4 className="text-[11px] uppercase font-mono text-os-text-muted mb-2">Affected Inventory SKUs ({currentResult.affectedInventory.length})</h4>
-                <div className="bg-os-surface border border-os-border rounded-lg overflow-hidden">
-                  <table className="w-full text-left text-xs font-mono text-os-text-secondary">
-                    <thead>
-                      <tr className="border-b border-os-border text-[10px] text-os-text-muted uppercase bg-os-surface">
-                        <th className="p-3">Product ID</th>
-                        <th className="p-3">Warehouse</th>
-                        <th className="p-3 text-right">On Hand</th>
-                        <th className="p-3 text-right">Holding Value</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#2A2A2A]">
-                      {currentResult.affectedInventory.map((item, idx) => (
-                        <tr 
-                          key={item.id || idx}
-                          onClick={() => {
-                            setShowAffectedModal(false);
-                            openEntity({ type: 'inventory', id: item.productId });
-                          }}
-                          className="hover:bg-os-surface-hover cursor-pointer transition-colors"
-                        >
-                          <td className="p-3 text-os-text-primary">{item.productId}</td>
-                          <td className="p-3 text-os-text-muted">{item.warehouseId}</td>
-                          <td className="p-3 text-right text-os-text-primary">{formatNumber(item.onHand)}</td>
-                          <td className="p-3 text-right text-os-text-primary">{formatCurrency(item.onHand * item.unitCost || 0, currency)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              <div>
-                <h4 className="text-[11px] uppercase font-mono text-os-text-muted mb-2">Affected Purchase Orders ({currentResult.affectedPos.length})</h4>
-                <div className="bg-os-surface border border-os-border rounded-lg overflow-hidden">
-                  <table className="w-full text-left text-xs font-mono text-os-text-secondary">
-                    <thead>
-                      <tr className="border-b border-os-border text-[10px] text-os-text-muted uppercase bg-os-surface">
-                        <th className="p-3">PO ID</th>
-                        <th className="p-3">Supplier</th>
-                        <th className="p-3">Status</th>
-                        <th className="p-3 text-right">Total Value</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#2A2A2A]">
-                      {currentResult.affectedPos.map((po, idx) => (
-                        <tr 
-                          key={po.id || idx}
-                          onClick={() => {
-                            setShowAffectedModal(false);
-                            openEntity({ type: 'po', id: po.id });
-                          }}
-                          className="hover:bg-os-surface-hover cursor-pointer transition-colors"
-                        >
-                          <td className="p-3 text-os-text-primary">{po.id}</td>
-                          <td className="p-3 text-os-text-muted">{po.supplierId}</td>
-                          <td className="p-3 text-[#30D158]">{po.status}</td>
-                          <td className="p-3 text-right text-os-text-primary">{formatCurrency(po.totalValue || 0, currency)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button 
-                onClick={() => setShowAffectedModal(false)}
-                className="px-4 py-2 bg-os-surface-elevated border border-os-border text-os-text-primary rounded-lg text-xs uppercase tracking-wider font-medium hover:bg-os-surface-hover transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Ask ORION AI Analysis Modal */}
-      {showOrionModal && currentResult && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-os-surface border border-os-border rounded-xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
-            <div className="flex justify-between items-center pb-3 border-b border-os-border">
-              <div className="flex items-center gap-2">
-                <Workflow size={18} className="text-[#30D158]" />
-                <h3 className="text-base font-medium text-os-text-primary">ORION AI Simulation Analysis</h3>
-              </div>
-              <button onClick={() => setShowOrionModal(false)} className="text-os-text-muted hover:text-os-text-primary">
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="space-y-4 text-xs font-mono text-os-text-secondary">
-              <div className="p-3 bg-os-surface rounded-lg border border-os-border space-y-1">
-                <div className="text-[10px] uppercase text-os-text-muted">Executive Summary</div>
-                <p className="text-os-text-primary leading-relaxed">
-                  Executing <span className="text-[#30D158]">{currentResult.scenarioName}</span> creates immediate downstream vulnerability across {currentResult.affectedSkusCount} SKUs, putting {formatCurrency(currentResult.financialExposure, currency)} of inventory & procurement at risk of disruption.
-                </p>
-              </div>
-
-              <div className="p-3 bg-os-surface rounded-lg border border-os-border space-y-1">
-                <div className="text-[10px] uppercase text-os-text-muted">Key Findings</div>
-                <ul className="list-disc list-inside space-y-1 text-os-text-primary">
-                  <li>{currentResult.newStockoutsCount} inventory locations will breach critical stock-out thresholds within the forecast window.</li>
-                  <li>{currentResult.affectedPosCount} open purchase orders require vendor schedule renegotiation.</li>
-                  <li>Estimated network volatility score increased by {currentResult.riskIncreasePercent}%.</li>
-                </ul>
-              </div>
-
-              <div className="p-3 bg-os-surface rounded-lg border border-os-border space-y-1">
-                <div className="text-[10px] uppercase text-os-text-muted">Recommended Mitigations</div>
-                <p className="text-os-text-primary leading-relaxed">
-                  1. Reroute priority shipments via alternative carriers.<br />
-                  2. Pre-allocate buffer stock from regional warehouses.<br />
-                  3. Issue expedited re-orders for high-velocity SKUs.
-                </p>
-              </div>
-
-              <div className="text-[10px] text-os-text-muted italic pt-1">
-                Note: This is a hypothetical analytical simulation based on current repository state. Real operational records remain unmodified.
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button 
-                onClick={() => setShowOrionModal(false)}
-                className="px-4 py-2 bg-os-surface-elevated border border-os-border text-os-text-primary rounded-lg text-xs uppercase tracking-wider font-medium hover:bg-os-surface-hover transition-colors"
-              >
-                Close Analysis
-              </button>
-            </div>
           </div>
         </div>
       )}

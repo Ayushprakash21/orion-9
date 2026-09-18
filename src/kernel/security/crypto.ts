@@ -84,3 +84,23 @@ export function generateIdempotencyKey(action: string, entityId: string): string
   const timestamp = Math.floor(Date.now() / 60000); // 1-minute bucket for deduplication window
   return `idemp-${action}-${entityId}-${timestamp}`;
 }
+
+/**
+ * Computes a standard hex SHA-256 digest of input text
+ */
+export async function sha256(content: string): Promise<string> {
+  const data = new TextEncoder().encode(content);
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  let hash = 0;
+  for (let i = 0; i < content.length; i++) {
+    const char = content.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash |= 0;
+  }
+  return Math.abs(hash).toString(16).padStart(64, '0');
+}
+

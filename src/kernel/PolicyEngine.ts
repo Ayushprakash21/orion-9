@@ -120,17 +120,106 @@ export class KernelPolicyEngine {
     this.addPolicy({
       id: 'POL-SEC-001',
       name: 'Restricted Data Protection Rule',
-      description: 'Restricted classification entities must be masked for non-administrator actors.',
+      description: 'Prevents unauthorized actors from exporting or transmitting RESTRICTED supply chain records.',
       enabled: true,
       version: '1.0',
-      targetActions: ['EXPORT_DATA', 'READ_SENSITIVE', 'AI_CONTEXT_INGEST'],
+      targetActions: ['EXPORT_DATA', 'BROADCAST_TELEMETRY'],
       targetEntities: ['*'],
+      conditions: {},
+      outcome: 'BLOCK',
+      reason: 'Classification is RESTRICTED: External transmission blocked without explicit cryptographic clearance.',
+    });
+
+    // 6. High-Value Strategic Contract Threshold ($100,000)
+    this.addPolicy({
+      id: 'POL-CTR-001',
+      name: 'High-Value Contract Commitment Threshold',
+      description: 'Contracts or RFQ awards exceeding $100,000 commitment require legal and executive approval.',
+      enabled: true,
+      version: '1.0',
+      targetActions: ['APPROVE_CONTRACT', 'EXECUTE_CONTRACT', 'AWARD_RFQ'],
+      targetEntities: ['contract', 'rfq'],
       conditions: {
-        dataClassification: ['RESTRICTED'],
-        restrictedRoles: ['viewer', 'user'],
+        maxMonetaryAmount: 100000,
       },
-      outcome: 'MASK',
-      reason: 'Data classification is RESTRICTED. Entity details masked for standard operators.',
+      outcome: 'REQUIRE_APPROVAL',
+      reason: 'Contract value exceeds $100,000 threshold. Legal counsel and Executive sign-off required.',
+    });
+
+    // 7. Stress Test Disruption Contingency Expenditure Gate ($50,000)
+    this.addPolicy({
+      id: 'POL-SCN-001',
+      name: 'Stress Test Contingency Expenditure Gate',
+      description: 'Scenario contingency plans exceeding $50,000 mitigation expenditure or rerouting critical network nodes require Executive Approval Center authorization.',
+      enabled: true,
+      version: '1.0',
+      targetActions: ['COMMIT_CONTINGENCY_PLAN', 'DISPATCH_CONTINGENCY_TO_APPROVAL'],
+      targetEntities: ['scenario', 'contingency_plan'],
+      conditions: {
+        maxMonetaryAmount: 50000,
+      },
+      outcome: 'REQUIRE_APPROVAL',
+      reason: 'Contingency plan execution expenditure exceeds $50,000 autonomous threshold. Executive governance authorization required.',
+    });
+
+    // 8. Multimodal Expedited Freight & Reroute Gate ($20,000)
+    this.addPolicy({
+      id: 'POL-LOG-001',
+      name: 'Multimodal Expedited Freight & Reroute Gate',
+      description: 'Expedited multimodal air bookings or emergency reroute authorizations exceeding $20,000 require transportation management approval.',
+      enabled: true,
+      version: '1.0',
+      targetActions: ['DISPATCH_FREIGHT_CONSIGNMENT', 'APPROVE_CONSOLIDATION_PLAN', 'TRIGGER_EMERGENCY_REROUTE'],
+      targetEntities: ['freight_consignment', 'freight_consolidation', 'shipment'],
+      conditions: {
+        maxMonetaryAmount: 20000,
+      },
+      outcome: 'REQUIRE_APPROVAL',
+      reason: 'Expedited multimodal freight expenditure or emergency reroute exceeds $20,000 autonomous threshold. Transportation Director approval required.',
+    });
+
+    // 9. Cold Chain & Tamper Integrity Gate
+    this.addPolicy({
+      id: 'POL-LOG-002',
+      name: 'Cold Chain & Tamper Integrity Quarantine Gate',
+      description: 'Automatically flags consignments for immediate physical quarantine if temperature boundaries or cryptographic tamper seals are compromised.',
+      enabled: true,
+      version: '1.0',
+      targetActions: ['RECORD_IOT_TELEMETRY', 'VERIFY_COLD_CHAIN'],
+      targetEntities: ['freight_consignment', 'telemetry'],
+      conditions: {},
+      outcome: 'REQUIRE_APPROVAL',
+      reason: 'Cold chain temperature excursion or cryptographic tamper seal violation detected. Consignment quarantined pending Quality Inspection release.',
+    });
+
+    // 10. Autonomous Replenishment & Reorder Capital Gate ($25,000)
+    this.addPolicy({
+      id: 'POL-MEIO-001',
+      name: 'Autonomous Replenishment & Reorder Capital Gate',
+      description: 'Autonomous purchase requisitions and stock transfers exceeding $25,000 require human authorization in Unified Approval Center.',
+      enabled: true,
+      version: '1.0',
+      targetActions: ['GENERATE_REPLENISHMENT_ORDER', 'DISPATCH_REPLENISHMENT_TO_APPROVAL', 'REBALANCE_ECHELON_STOCK'],
+      targetEntities: ['replenishment_order', 'sku_buffer'],
+      conditions: {
+        maxMonetaryAmount: 25000,
+      },
+      outcome: 'REQUIRE_APPROVAL',
+      reason: 'Autonomous replenishment requisition exceeds $25,000 threshold. Vice President of Supply Chain sign-off required.',
+    });
+
+    // 11. Critical Echelon Decoupling Buffer Excursion
+    this.addPolicy({
+      id: 'POL-MEIO-002',
+      name: 'Critical Echelon Decoupling Buffer Excursion',
+      description: 'Flags critical buffer breach when effective stock falls below 40% of safety stock, requiring mandatory inter-echelon STO rebalance.',
+      enabled: true,
+      version: '1.0',
+      targetActions: ['OVERRIDE_SAFETY_STOCK', 'REBALANCE_ECHELON_STOCK'],
+      targetEntities: ['sku_buffer'],
+      conditions: {},
+      outcome: 'REQUIRE_APPROVAL',
+      reason: 'Decoupling buffer breached safety thresholds. Dynamic rebalancing or expedited replenishment required.',
     });
   }
 

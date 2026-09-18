@@ -97,8 +97,17 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  // ORION OS always starts powered off. The user must explicitly press TURN ON.
-  const [bootState, setBootState] = useState<BootState>('POWERED_OFF');
+  // ORION OS boot state (preserves active power-on state and session across navigations)
+  const [bootState, setBootState] = useState<BootState>(() => {
+    if (typeof window !== 'undefined') {
+      const powerState = sessionStorage.getItem('orion_os_power_state');
+      const hasAuth = localStorage.getItem('orion_auth_session');
+      if (powerState === 'ON' || hasAuth) {
+        return hasAuth ? 'READY' : 'LOGIN_REQUIRED';
+      }
+    }
+    return 'POWERED_OFF';
+  });
 
   const [state, setState] = useState<SessionState>(() => {
     if (typeof window !== 'undefined') {

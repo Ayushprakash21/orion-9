@@ -12,6 +12,39 @@ import {
   demoWarehouseDetails, demoContracts, demoDocuments,
   demoSupplierCommunications, demoKpis
 } from '../data/normalizedModel';
+import { EnterpriseContract, SourcingRfq } from '../types/contract';
+import { demoEnterpriseContracts, demoSourcingRfqs } from '../data/db/contractSeed';
+import { contractService } from '../services/contractService';
+import { EnterpriseScenario, DigitalTwinNode, ContingencyPlaybook } from '../types/scenario';
+import { INITIAL_ENTERPRISE_SCENARIOS, INITIAL_DIGITAL_TWIN_NODES } from '../data/db/scenarioSeed';
+import { scenarioService } from '../services/scenarioService';
+import { 
+  MultimodalFreightShipment, 
+  YardDockAppointment, 
+  FreightConsolidationPlan, 
+  LaneCongestionMetric, 
+  IoTTelemetrySample 
+} from '../types/logistics';
+import { 
+  INITIAL_FREIGHT_CONSIGNMENTS, 
+  INITIAL_YARD_APPOINTMENTS, 
+  INITIAL_CONSOLIDATION_PLANS, 
+  INITIAL_LANE_CONGESTION 
+} from '../data/db/logisticsSeed';
+import { logisticsService } from '../services/logisticsService';
+import { 
+  EchelonNode, 
+  SKUBuffer, 
+  ReplenishmentOrder, 
+  BullwhipMetric 
+} from '../types/inventoryOptimization';
+import { 
+  initialEchelonNodes, 
+  initialSKUBuffers, 
+  initialReplenishmentOrders, 
+  initialBullwhipMetrics 
+} from '../data/db/inventoryOptimizationSeed';
+import { inventoryOptimizationService } from '../services/inventoryOptimizationService';
 import { db, loadData, saveData, clearRealData } from '../data/db';
 
 import { ExceptionEngine } from '../services/ExceptionEngine';
@@ -50,10 +83,22 @@ interface SupplyChainState {
   carriers: Carrier[];
   routes: Route[];
   warehouseDetails: WarehouseDetail[];
-  contracts: Contract[];
+  contracts: (Contract | EnterpriseContract)[];
+  rfqs: SourcingRfq[];
+  scenarios: EnterpriseScenario[];
+  digitalTwinNodes: DigitalTwinNode[];
+  contingencyPlans: ContingencyPlaybook[];
   documents: DocumentRecord[];
   supplierCommunications: SupplierCommunication[];
   kpiRecords: KpiRecord[];
+  freightShipments: MultimodalFreightShipment[];
+  yardAppointments: YardDockAppointment[];
+  consolidationPlans: FreightConsolidationPlan[];
+  laneCongestion: LaneCongestionMetric[];
+  echelonNodes: EchelonNode[];
+  skuBuffers: SKUBuffer[];
+  replenishmentOrders: ReplenishmentOrder[];
+  bullwhipMetrics: BullwhipMetric[];
 
   currency: string;
   timezone: string;
@@ -81,9 +126,34 @@ interface SupplyChainState {
   approveSupplierCommunication: (commId: string) => void;
   dispatchSupplierCommunication: (commId: string) => void;
   addDocumentRecord: (doc: DocumentRecord) => void;
-  updateContract: (contractId: string, updates: Partial<Contract>) => void;
+  addContract: (contract: EnterpriseContract) => void;
+  updateContract: (contractId: string, updates: Partial<EnterpriseContract | Contract>) => void;
+  addRfq: (rfq: SourcingRfq) => void;
+  updateRfq: (rfqId: string, updates: Partial<SourcingRfq>) => void;
+  awardRfqBid: (rfqId: string, bidId: string) => Promise<void>;
+  addScenario: (scenario: EnterpriseScenario) => Promise<void>;
+  updateScenario: (scenarioId: string, updates: Partial<EnterpriseScenario>) => Promise<void>;
+  runScenarioSimulation: (scenarioId: string) => Promise<EnterpriseScenario>;
+  generateContingencyPlaybooks: (scenarioId: string) => Promise<ContingencyPlaybook[]>;
+  dispatchContingencyPlan: (scenarioId: string, playbookId: string, justification?: string) => Promise<void>;
+  commitContingencyPlan: (scenarioId: string, playbookId: string) => Promise<void>;
   updateCustomerOrder: (orderId: string, updates: Partial<CustomerOrder>) => void;
   repairDataQuality: (repairs: Array<{ entityType: string; id: string; fixes: Record<string, any> }>) => Promise<void>;
+
+  // Multimodal Logistics & Yard Handlers
+  dispatchFreightConsignment: (consignment: MultimodalFreightShipment) => Promise<MultimodalFreightShipment>;
+  recordIoTTelemetry: (consignmentId: string, sample: IoTTelemetrySample) => Promise<MultimodalFreightShipment>;
+  scheduleYardAppointment: (appointment: YardDockAppointment) => Promise<YardDockAppointment>;
+  checkInYardGate: (appointmentId: string, targetStatus?: string) => Promise<YardDockAppointment>;
+  dispatchConsolidationPlan: (planId: string) => Promise<void>;
+  approveConsolidationPlan: (planId: string) => Promise<void>;
+  triggerEmergencyReroute: (consignmentId: string, newRouteName: string, additionalCost: number, reason: string) => Promise<MultimodalFreightShipment>;
+
+  // MEIO & Autonomous Replenishment Handlers
+  recalculateBuffer: (bufferId: string, targetSlaPct?: number, leadTimeVarMultiplier?: number) => Promise<SKUBuffer>;
+  generateReplenishmentOrder: (params: Partial<ReplenishmentOrder>) => Promise<ReplenishmentOrder>;
+  approveReplenishmentOrder: (orderId: string) => Promise<ReplenishmentOrder>;
+  rebalanceEchelonStock: (sourceBufferId: string, targetBufferId: string, transferUnits: number) => Promise<{ sourceBuffer: SKUBuffer; targetBuffer: SKUBuffer; order: ReplenishmentOrder }>;
 }
 
 const SupplyChainContext = createContext<SupplyChainState | undefined>(undefined);
@@ -109,10 +179,22 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [carriers, setCarriers] = useState<Carrier[]>(demoCarriers);
   const [routes, setRoutes] = useState<Route[]>(demoRoutes);
   const [warehouseDetails, setWarehouseDetails] = useState<WarehouseDetail[]>(demoWarehouseDetails);
-  const [contracts, setContracts] = useState<Contract[]>(demoContracts);
+  const [contracts, setContracts] = useState<EnterpriseContract[]>(demoEnterpriseContracts);
+  const [rfqs, setRfqs] = useState<SourcingRfq[]>(demoSourcingRfqs);
+  const [scenarios, setScenarios] = useState<EnterpriseScenario[]>(INITIAL_ENTERPRISE_SCENARIOS);
+  const [digitalTwinNodes, setDigitalTwinNodes] = useState<DigitalTwinNode[]>(INITIAL_DIGITAL_TWIN_NODES);
+  const [contingencyPlans, setContingencyPlans] = useState<ContingencyPlaybook[]>(INITIAL_ENTERPRISE_SCENARIOS.flatMap(s => s.playbooks || []));
   const [documents, setDocuments] = useState<DocumentRecord[]>(demoDocuments);
   const [supplierCommunications, setSupplierCommunications] = useState<SupplierCommunication[]>(demoSupplierCommunications);
   const [kpiRecords, setKpiRecords] = useState<KpiRecord[]>(demoKpis);
+  const [freightShipments, setFreightShipments] = useState<MultimodalFreightShipment[]>(INITIAL_FREIGHT_CONSIGNMENTS);
+  const [yardAppointments, setYardAppointments] = useState<YardDockAppointment[]>(INITIAL_YARD_APPOINTMENTS);
+  const [consolidationPlans, setConsolidationPlans] = useState<FreightConsolidationPlan[]>(INITIAL_CONSOLIDATION_PLANS);
+  const [laneCongestion, setLaneCongestion] = useState<LaneCongestionMetric[]>(INITIAL_LANE_CONGESTION);
+  const [echelonNodes, setEchelonNodes] = useState<EchelonNode[]>(initialEchelonNodes);
+  const [skuBuffers, setSkuBuffers] = useState<SKUBuffer[]>(initialSKUBuffers);
+  const [replenishmentOrders, setReplenishmentOrders] = useState<ReplenishmentOrder[]>(initialReplenishmentOrders);
+  const [bullwhipMetrics, setBullwhipMetrics] = useState<BullwhipMetric[]>(initialBullwhipMetrics);
   
   
   const [currency, setCurrency] = useState(DEFAULT_SYSTEM_SETTINGS.currency);
@@ -153,14 +235,87 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (loadedCarriers.length > 0) setCarriers(loadedCarriers);
     const loadedRoutes = await loadData<Route>(db.routes);
     if (loadedRoutes.length > 0) setRoutes(loadedRoutes);
-    const loadedContracts = await loadData<Contract>(db.contracts);
+    const loadedContracts = await loadData<EnterpriseContract>(db.contracts);
     if (loadedContracts.length > 0) setContracts(loadedContracts);
+    else {
+      setContracts(demoEnterpriseContracts);
+      await saveData(db.contracts, demoEnterpriseContracts);
+    }
+    const loadedRfqs = await loadData<SourcingRfq>(db.rfqs);
+    if (loadedRfqs.length > 0) setRfqs(loadedRfqs);
+    else {
+      setRfqs(demoSourcingRfqs);
+      await saveData(db.rfqs, demoSourcingRfqs);
+    }
+    const loadedScenarios = await loadData<EnterpriseScenario>(db.scenarios);
+    if (loadedScenarios.length > 0) setScenarios(loadedScenarios);
+    else {
+      setScenarios(INITIAL_ENTERPRISE_SCENARIOS);
+      await saveData(db.scenarios, INITIAL_ENTERPRISE_SCENARIOS);
+    }
+    const loadedContingencies = await loadData<ContingencyPlaybook>(db.contingencyPlans);
+    if (loadedContingencies.length > 0) setContingencyPlans(loadedContingencies);
+    else {
+      const initialPb = INITIAL_ENTERPRISE_SCENARIOS.flatMap(s => s.playbooks || []);
+      setContingencyPlans(initialPb);
+      await saveData(db.contingencyPlans, initialPb);
+    }
     const loadedDocs = await loadData<DocumentRecord>(db.documents);
     if (loadedDocs.length > 0) setDocuments(loadedDocs);
     const loadedComms = await loadData<SupplierCommunication>(db.supplierCommunications);
     if (loadedComms.length > 0) setSupplierCommunications(loadedComms);
     const loadedWarehouseDetails = await loadData<WarehouseDetail>(db.warehouseDetails);
     if (loadedWarehouseDetails.length > 0) setWarehouseDetails(loadedWarehouseDetails);
+
+    const loadedFreight = await loadData<MultimodalFreightShipment>(db.freightConsignments);
+    if (loadedFreight.length > 0) setFreightShipments(loadedFreight);
+    else {
+      setFreightShipments(INITIAL_FREIGHT_CONSIGNMENTS);
+      await saveData(db.freightConsignments, INITIAL_FREIGHT_CONSIGNMENTS);
+    }
+    const loadedYard = await loadData<YardDockAppointment>(db.yardAppointments);
+    if (loadedYard.length > 0) setYardAppointments(loadedYard);
+    else {
+      setYardAppointments(INITIAL_YARD_APPOINTMENTS);
+      await saveData(db.yardAppointments, INITIAL_YARD_APPOINTMENTS);
+    }
+    const loadedConsolidation = await loadData<FreightConsolidationPlan>(db.consolidationPlans);
+    if (loadedConsolidation.length > 0) setConsolidationPlans(loadedConsolidation);
+    else {
+      setConsolidationPlans(INITIAL_CONSOLIDATION_PLANS);
+      await saveData(db.consolidationPlans, INITIAL_CONSOLIDATION_PLANS);
+    }
+    const loadedLanes = await loadData<LaneCongestionMetric>(db.laneCongestionMetrics);
+    if (loadedLanes.length > 0) setLaneCongestion(loadedLanes);
+    else {
+      setLaneCongestion(INITIAL_LANE_CONGESTION);
+      await saveData(db.laneCongestionMetrics, INITIAL_LANE_CONGESTION);
+    }
+
+    const loadedEchelons = await loadData<EchelonNode>(db.echelonNodes);
+    if (loadedEchelons.length > 0) setEchelonNodes(loadedEchelons);
+    else {
+      setEchelonNodes(initialEchelonNodes);
+      await saveData(db.echelonNodes, initialEchelonNodes);
+    }
+    const loadedBuffers = await loadData<SKUBuffer>(db.skuBuffers);
+    if (loadedBuffers.length > 0) setSkuBuffers(loadedBuffers);
+    else {
+      setSkuBuffers(initialSKUBuffers);
+      await saveData(db.skuBuffers, initialSKUBuffers);
+    }
+    const loadedReplenishments = await loadData<ReplenishmentOrder>(db.replenishmentOrders);
+    if (loadedReplenishments.length > 0) setReplenishmentOrders(loadedReplenishments);
+    else {
+      setReplenishmentOrders(initialReplenishmentOrders);
+      await saveData(db.replenishmentOrders, initialReplenishmentOrders);
+    }
+    const loadedBullwhip = await loadData<BullwhipMetric>(db.bullwhipMetrics);
+    if (loadedBullwhip.length > 0) setBullwhipMetrics(loadedBullwhip);
+    else {
+      setBullwhipMetrics(initialBullwhipMetrics);
+      await saveData(db.bullwhipMetrics, initialBullwhipMetrics);
+    }
   };
 
   const loadSettings = async () => {
@@ -268,10 +423,22 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
     setCarriers([...demoCarriers]);
     setRoutes([...demoRoutes]);
     setWarehouseDetails([...demoWarehouseDetails]);
-    setContracts([...demoContracts]);
+    setContracts([...demoEnterpriseContracts]);
+    setRfqs([...demoSourcingRfqs]);
+    setScenarios([...INITIAL_ENTERPRISE_SCENARIOS]);
+    setDigitalTwinNodes([...INITIAL_DIGITAL_TWIN_NODES]);
+    setContingencyPlans(INITIAL_ENTERPRISE_SCENARIOS.flatMap(s => s.playbooks || []));
     setDocuments([...demoDocuments]);
     setSupplierCommunications([...demoSupplierCommunications]);
     setKpiRecords([...demoKpis]);
+    setFreightShipments([...INITIAL_FREIGHT_CONSIGNMENTS]);
+    setYardAppointments([...INITIAL_YARD_APPOINTMENTS]);
+    setConsolidationPlans([...INITIAL_CONSOLIDATION_PLANS]);
+    setLaneCongestion([...INITIAL_LANE_CONGESTION]);
+    setEchelonNodes([...initialEchelonNodes]);
+    setSkuBuffers([...initialSKUBuffers]);
+    setReplenishmentOrders([...initialReplenishmentOrders]);
+    setBullwhipMetrics([...initialBullwhipMetrics]);
 
     dataEngine.setData({
       products: clonedProducts,
@@ -341,8 +508,10 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
       if (loadedCarriers.length > 0) setCarriers(loadedCarriers);
       const loadedRoutes = (await loadData(db.routes) as Route[]) || [];
       if (loadedRoutes.length > 0) setRoutes(loadedRoutes);
-      const loadedContracts = (await loadData(db.contracts) as Contract[]) || [];
+      const loadedContracts = (await loadData(db.contracts) as EnterpriseContract[]) || [];
       if (loadedContracts.length > 0) setContracts(loadedContracts);
+      const loadedRfqs = (await loadData(db.rfqs) as SourcingRfq[]) || [];
+      if (loadedRfqs.length > 0) setRfqs(loadedRfqs);
       const loadedDocs = (await loadData(db.documents) as DocumentRecord[]) || [];
       if (loadedDocs.length > 0) setDocuments(loadedDocs);
       const loadedComms = (await loadData(db.supplierCommunications) as SupplierCommunication[]) || [];
@@ -977,10 +1146,141 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   };
 
-  const updateContract = (contractId: string, updates: Partial<Contract>) => {
+  const addContract = (contract: EnterpriseContract) => {
     setContracts(prev => {
-      const next = prev.map(c => c.id === contractId ? { ...c, ...updates } : c);
+      const next = [contract, ...prev];
       saveData(db.contracts, next);
+      return next;
+    });
+  };
+
+  const updateContract = (contractId: string, updates: Partial<EnterpriseContract | Contract>) => {
+    setContracts(prev => {
+      const next = prev.map(c => c.id === contractId ? { ...c, ...updates } as EnterpriseContract : c);
+      saveData(db.contracts, next);
+      return next;
+    });
+  };
+
+  const addRfq = (rfq: SourcingRfq) => {
+    setRfqs(prev => {
+      const next = [rfq, ...prev];
+      saveData(db.rfqs, next);
+      return next;
+    });
+  };
+
+  const updateRfq = (rfqId: string, updates: Partial<SourcingRfq>) => {
+    setRfqs(prev => {
+      const next = prev.map(r => r.id === rfqId ? { ...r, ...updates } : r);
+      saveData(db.rfqs, next);
+      return next;
+    });
+  };
+
+  const awardRfqBid = async (rfqId: string, bidId: string) => {
+    const result = await contractService.handleAwardRfq(rfqId, bidId);
+    setRfqs(prev => {
+      const next = prev.map(r => {
+        if (r.id !== rfqId) return r;
+        return {
+          ...r,
+          status: 'AWARDED' as const,
+          awardedContractId: result.generatedContractId,
+          awardedSupplierId: r.bids.find(b => b.id === bidId)?.supplierId,
+          bids: r.bids.map(b => ({
+            ...b,
+            awarded: b.id === bidId
+          }))
+        };
+      });
+      saveData(db.rfqs, next);
+      return next;
+    });
+  };
+
+  const addScenario = async (scenario: EnterpriseScenario) => {
+    const created = await scenarioService.handleCreateScenario(scenario, {
+      headers: { actorRole: userProfile?.role || 'Supply Chain Risk Architect', actorId: userProfile?.id || 'USR-ACT-SCN' }
+    });
+    setScenarios(prev => {
+      const next = [created, ...prev.filter(s => s.id !== created.id)];
+      saveData(db.scenarios, next);
+      return next;
+    });
+  };
+
+  const updateScenario = async (scenarioId: string, updates: Partial<EnterpriseScenario>) => {
+    setScenarios(prev => {
+      const next = prev.map(s => s.id === scenarioId ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s);
+      saveData(db.scenarios, next);
+      return next;
+    });
+  };
+
+  const runScenarioSimulation = async (scenarioId: string) => {
+    const updatedScenario = await scenarioService.handleRunSimulation(
+      scenarioId,
+      digitalTwinNodes,
+      inventory,
+      purchaseOrders,
+      shipments,
+      suppliers,
+      { headers: { actorRole: userProfile?.role || 'System AI Kernel', actorId: userProfile?.id || 'ORION-SIM-KERNEL' } }
+    );
+    setScenarios(prev => {
+      const next = prev.map(s => s.id === scenarioId ? updatedScenario : s);
+      saveData(db.scenarios, next);
+      return next;
+    });
+    return updatedScenario;
+  };
+
+  const generateContingencyPlaybooks = async (scenarioId: string) => {
+    const playbooks = await scenarioService.handleGeneratePlaybooks(scenarioId, {
+      headers: { actorRole: userProfile?.role || 'AI Contingency Synthesizer', actorId: userProfile?.id || 'ORION-AGENT-RESILIENCE' }
+    });
+    setScenarios(prev => {
+      const next = prev.map(s => s.id === scenarioId ? { ...s, playbooks, state: 'CONTINGENCY_DRAFTED' as const } : s);
+      saveData(db.scenarios, next);
+      return next;
+    });
+    setContingencyPlans(prev => {
+      const next = [...playbooks, ...prev.filter(p => p.scenarioId !== scenarioId)];
+      saveData(db.contingencyPlans, next);
+      return next;
+    });
+    return playbooks;
+  };
+
+  const dispatchContingencyPlan = async (scenarioId: string, playbookId: string, justification?: string) => {
+    const { scenario: updatedScenario, playbook: updatedPb } = await scenarioService.handleDispatchContingency(
+      scenarioId,
+      playbookId,
+      justification || 'Emergency Disruption Response',
+      { headers: { actorRole: userProfile?.role || 'Operations Director', actorId: userProfile?.id || 'USR-OPR-DIR' } }
+    );
+    setScenarios(prev => {
+      const next = prev.map(s => s.id === scenarioId ? updatedScenario : s);
+      saveData(db.scenarios, next);
+      return next;
+    });
+    setContingencyPlans(prev => {
+      const next = prev.map(p => p.id === playbookId ? updatedPb : p);
+      saveData(db.contingencyPlans, next);
+      return next;
+    });
+  };
+
+  const commitContingencyPlan = async (scenarioId: string, playbookId: string) => {
+    const updatedScenario = await scenarioService.handleCommitContingency(
+      scenarioId,
+      playbookId,
+      { headers: { actorRole: userProfile?.role || 'VP Supply Chain', actorId: userProfile?.id || 'USR-VP-SCM' } }
+    );
+    setScenarios(prev => {
+      const next = prev.map(s => s.id === scenarioId ? updatedScenario : s);
+      saveData(db.scenarios, next);
       return next;
     });
   };
@@ -1035,6 +1335,149 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   };
 
+  // Multimodal Logistics & Yard Management Handlers
+  const dispatchFreightConsignment = async (consignment: MultimodalFreightShipment) => {
+    const updated = await logisticsService.handleDispatchConsignment(consignment, {
+      actor: { id: userProfile?.id || 'usr-logistics', type: 'USER', role: userProfile?.role || 'supply_chain_manager' }
+    });
+    setFreightShipments(prev => {
+      const idx = prev.findIndex(c => c.id === updated.id);
+      const next = idx >= 0 ? prev.map(c => c.id === updated.id ? updated : c) : [updated, ...prev];
+      saveData(db.freightConsignments, next);
+      return next;
+    });
+    return updated;
+  };
+
+  const recordIoTTelemetry = async (consignmentId: string, sample: IoTTelemetrySample) => {
+    const updated = await logisticsService.handleRecordTelemetry(consignmentId, sample, {
+      actor: { id: 'iot-telemetry-feed', type: 'SYSTEM', role: 'telemetry_agent' }
+    });
+    setFreightShipments(prev => {
+      const next = prev.map(c => c.id === consignmentId ? updated : c);
+      saveData(db.freightConsignments, next);
+      return next;
+    });
+    return updated;
+  };
+
+  const scheduleYardAppointment = async (appointment: YardDockAppointment) => {
+    const updated = await logisticsService.handleScheduleAppointment(appointment, {
+      actor: { id: userProfile?.id || 'usr-dock-lead', type: 'USER', role: 'warehouse_lead' }
+    });
+    setYardAppointments(prev => {
+      const idx = prev.findIndex(a => a.id === updated.id);
+      const next = idx >= 0 ? prev.map(a => a.id === updated.id ? updated : a) : [updated, ...prev];
+      saveData(db.yardAppointments, next);
+      return next;
+    });
+    return updated;
+  };
+
+  const checkInYardGate = async (appointmentId: string, targetStatus?: string) => {
+    const updated = await logisticsService.handleCheckInGate(appointmentId, targetStatus, {
+      actor: { id: userProfile?.id || 'usr-gate-guard', type: 'USER', role: 'receiving_operator' }
+    });
+    setYardAppointments(prev => {
+      const next = prev.map(a => a.id === appointmentId ? updated : a);
+      saveData(db.yardAppointments, next);
+      return next;
+    });
+    return updated;
+  };
+
+  const dispatchConsolidationPlan = async (planId: string) => {
+    const updated = await logisticsService.handleDispatchConsolidation(planId, {
+      actor: { id: userProfile?.id || 'usr-logistics-dir', type: 'USER', role: 'supply_chain_manager' }
+    });
+    setConsolidationPlans(prev => {
+      const next = prev.map(p => p.id === planId ? updated : p);
+      saveData(db.consolidationPlans, next);
+      return next;
+    });
+  };
+
+  const approveConsolidationPlan = async (planId: string) => {
+    const updated = await logisticsService.handleApproveConsolidation(planId, {
+      actor: { id: userProfile?.id || 'usr-exec-vp', type: 'USER', role: 'platform_admin' }
+    });
+    setConsolidationPlans(prev => {
+      const next = prev.map(p => p.id === planId ? updated : p);
+      saveData(db.consolidationPlans, next);
+      return next;
+    });
+  };
+
+  const triggerEmergencyReroute = async (consignmentId: string, newRouteName: string, additionalCost: number, reason: string) => {
+    const updated = await logisticsService.handleEmergencyReroute(consignmentId, newRouteName, additionalCost, reason, {
+      actor: { id: userProfile?.id || 'usr-traffic-mgr', type: 'USER', role: 'supply_chain_manager' }
+    });
+    setFreightShipments(prev => {
+      const next = prev.map(c => c.id === consignmentId ? updated : c);
+      saveData(db.freightConsignments, next);
+      return next;
+    });
+    return updated;
+  };
+
+  // MEIO & Autonomous Replenishment Handlers
+  const recalculateBuffer = async (bufferId: string, targetSlaPct?: number, leadTimeVarMultiplier?: number) => {
+    const updated = await inventoryOptimizationService.handleRecalculateBuffer(bufferId, targetSlaPct, leadTimeVarMultiplier, {
+      actor: { id: userProfile?.id || 'usr-planner', type: 'USER', role: userProfile?.role || 'supply_chain_manager' }
+    });
+    setSkuBuffers(prev => {
+      const next = prev.map(b => b.id === bufferId ? updated : b);
+      saveData(db.skuBuffers, next);
+      return next;
+    });
+    return updated;
+  };
+
+  const generateReplenishmentOrder = async (params: Partial<ReplenishmentOrder>) => {
+    const created = await inventoryOptimizationService.handleGenerateReplenishmentOrder(params, {
+      actor: { id: userProfile?.id || 'usr-planner', type: 'USER', role: userProfile?.role || 'supply_chain_manager' }
+    });
+    setReplenishmentOrders(prev => {
+      const next = [created, ...prev];
+      saveData(db.replenishmentOrders, next);
+      return next;
+    });
+    return created;
+  };
+
+  const approveReplenishmentOrder = async (orderId: string) => {
+    const updated = await inventoryOptimizationService.handleApproveReplenishmentOrder(orderId, {
+      actor: { id: userProfile?.id || 'usr-approver', type: 'USER', role: userProfile?.role || 'supply_chain_manager' }
+    });
+    setReplenishmentOrders(prev => {
+      const next = prev.map(o => o.id === orderId ? updated : o);
+      saveData(db.replenishmentOrders, next);
+      return next;
+    });
+    return updated;
+  };
+
+  const rebalanceEchelonStock = async (sourceBufferId: string, targetBufferId: string, transferUnits: number) => {
+    const result = await inventoryOptimizationService.handleRebalanceEchelonStock(sourceBufferId, targetBufferId, transferUnits, {
+      actor: { id: userProfile?.id || 'usr-planner', type: 'USER', role: userProfile?.role || 'supply_chain_manager' }
+    });
+    setSkuBuffers(prev => {
+      const next = prev.map(b => {
+        if (b.id === sourceBufferId) return result.sourceBuffer;
+        if (b.id === targetBufferId) return result.targetBuffer;
+        return b;
+      });
+      saveData(db.skuBuffers, next);
+      return next;
+    });
+    setReplenishmentOrders(prev => {
+      const next = [result.order, ...prev];
+      saveData(db.replenishmentOrders, next);
+      return next;
+    });
+    return result;
+  };
+
   const value = useMemo(() => ({
     products,
     warehouses,
@@ -1057,9 +1500,21 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
     routes,
     warehouseDetails,
     contracts,
+    rfqs,
+    scenarios,
+    digitalTwinNodes,
+    contingencyPlans,
     documents,
     supplierCommunications,
     kpiRecords,
+    freightShipments,
+    yardAppointments,
+    consolidationPlans,
+    laneCongestion,
+    echelonNodes,
+    skuBuffers,
+    replenishmentOrders,
+    bullwhipMetrics,
     
     currency,
     timezone,
@@ -1084,14 +1539,40 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
     approveSupplierCommunication,
     dispatchSupplierCommunication,
     addDocumentRecord,
+    addContract,
     updateContract,
+    addRfq,
+    updateRfq,
+    awardRfqBid,
+    addScenario,
+    updateScenario,
+    runScenarioSimulation,
+    generateContingencyPlaybooks,
+    dispatchContingencyPlan,
+    commitContingencyPlan,
     updateCustomerOrder,
-    repairDataQuality
+    repairDataQuality,
+
+    // Multimodal Logistics & Yard Handlers
+    dispatchFreightConsignment,
+    recordIoTTelemetry,
+    scheduleYardAppointment,
+    checkInYardGate,
+    dispatchConsolidationPlan,
+    approveConsolidationPlan,
+    triggerEmergencyReroute,
+
+    // MEIO & Autonomous Replenishment Handlers
+    recalculateBuffer,
+    generateReplenishmentOrder,
+    approveReplenishmentOrder,
+    rebalanceEchelonStock
   }), [
     products, warehouses, inventory, suppliers, purchaseOrders, shipments, exceptions,
     importHistory, userProfile, organizationProfile, currency, timezone, dataMode, isInitializing,
     settings, actions, decisions, auditEvents, customers, customerOrders, carriers,
-    routes, warehouseDetails, contracts, documents, supplierCommunications, kpiRecords
+    routes, warehouseDetails, contracts, rfqs, scenarios, digitalTwinNodes, contingencyPlans, documents, supplierCommunications, kpiRecords,
+    freightShipments, yardAppointments, consolidationPlans, laneCongestion, echelonNodes, skuBuffers, replenishmentOrders, bullwhipMetrics
   ]);
 
   

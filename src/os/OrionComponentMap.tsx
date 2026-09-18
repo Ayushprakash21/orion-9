@@ -16,6 +16,7 @@ import { AICopilot } from '../components/AICopilot';
 import { DataCenter } from '../components/DataCenter';
 import { Integrations } from '../components/Integrations';
 import { Reports } from '../components/Reports';
+import { DocumentWorkspace } from '../components/DocumentWorkspace';
 import { Settings } from '../components/Settings';
 import { Inbound } from '../components/Inbound';
 import { Outbound } from '../components/Outbound';
@@ -86,6 +87,7 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'vendor-onboarding': VendorOnboardingCenter,
   'orion-ai': AICopilot,
   'reports': Reports,
+  'documents': DocumentWorkspace,
   'settings': Settings,
   'inbound': Inbound,
   'outbound': Outbound,

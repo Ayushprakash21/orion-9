@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useSupplyChain } from '../store/SupplyChainContext';
+import { useToast } from '../store/ToastContext';
 import { Network, Server, Database, Truck, Boxes, Shield, ArrowRight, X, Play, RotateCcw } from 'lucide-react';
 
 export const DigitalTwin: React.FC = () => {
   const { suppliers, inventory, shipments } = useSupplyChain();
+  const { showToast } = useToast();
   const [selectedEntity, setSelectedEntity] = useState<any | null>(null);
   const [simulationRunning, setSimulationRunning] = useState<boolean>(false);
   const [simScenario, setSimScenario] = useState<string>('demand-spike');
@@ -12,7 +14,7 @@ export const DigitalTwin: React.FC = () => {
     setSimulationRunning(true);
     setTimeout(() => {
       setSimulationRunning(false);
-      alert(`Simulation completed for scenario: ${simScenario}. Digital twin rebalanced inventory buffers.`);
+      showToast(`Simulation completed for scenario: ${simScenario}. Digital twin rebalanced inventory buffers.`, 'success', 'Digital Twin');
     }, 1500);
   };
 
