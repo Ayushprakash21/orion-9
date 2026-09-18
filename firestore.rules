@@ -1,49 +1,8 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-    
-    function isUser(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
-    }
-    
-    function isAdmin() {
-      return isAuthenticated() && (
-        request.auth.token.role == 'platform_admin' || 
-        request.auth.token.role == 'organization_admin'
-      );
-    }
-    
-    function isPlatformAdmin() {
-      return isAuthenticated() && request.auth.token.role == 'platform_admin';
-    }
-
-    // Profiles: users read/write own, admins read/manage all
-    match /profiles/{userId} {
-      allow read: if isAuthenticated();
-      allow create, update: if isUser(userId) || isAdmin();
-      allow delete: if isPlatformAdmin();
-    }
-
-    // Organizations: members read, admins manage
-    match /organizations/{orgId} {
-      allow read: if isAuthenticated();
-      allow write: if isAdmin();
-    }
-
-    // Audit Logs: append-only for authenticated, readable by admins, immutable (no update/delete)
-    match /audit_logs/{logId} {
-      allow read: if isAdmin();
-      allow create: if isAuthenticated();
-      allow update, delete: if false; // Strict immutability
-    }
-
-    // Default deny for unspecified paths
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if true;
     }
   }
 }
