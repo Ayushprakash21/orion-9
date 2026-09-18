@@ -3,6 +3,8 @@ export interface SystemSettings {
   theme?: 'light' | 'dark' | 'system';
   brightness?: number; // 20 - 100
   reducedMotion?: boolean;
+  showDesktopIcons?: boolean;
+  dockPosition?: 'bottom' | 'left' | 'right';
   displayScale?: number; // Windows-style UI scale: 100, 125, 150, 175, 200
   textSize?: number; // Independent text size: 90 - 140%
   fontFamily?: 'ROBOTO' | 'LATO' | 'ARIAL';
@@ -10,8 +12,6 @@ export interface SystemSettings {
   // Audio
   soundEnabled?: boolean;
   soundVolume?: number; // 0 - 100
-  
-  
 
   // Operational Thresholds
   criticalStockOutDays: number;
@@ -55,6 +55,8 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   theme: 'system',
   brightness: 100,
   reducedMotion: false,
+  showDesktopIcons: true,
+  dockPosition: 'bottom',
   displayScale: 100,
   textSize: 100,
   fontFamily: 'ROBOTO',

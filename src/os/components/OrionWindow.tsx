@@ -4,6 +4,7 @@ import { ORION_REGISTRY } from '../OrionApplicationRegistry';
 import { getAppComponent } from '../OrionComponentMap';
 import { useOrionContextMenu, ContextMenuItem } from '../contextMenu/OrionContextMenuContext';
 import { useToast } from '../../store/ToastContext';
+import OrionAppIcon from '../../components/brand/OrionAppIcon';
 import { Minus, Square, X, RotateCcw, AlertTriangle, Move, Maximize2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { motion } from 'motion/react';
@@ -497,10 +498,10 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
       >
         {/* Left: Window Controls & App Identity */}
         <div className="flex items-center min-w-0 h-full">
-          {/* macOS style Window Controls */}
+          {/* Original Orion-9 Window Controls (Minimal OS style) */}
           <div 
             data-window-controls="true"
-            className="flex items-center gap-2 group/controls mr-3 z-[120] pointer-events-auto h-full"
+            className="flex items-center gap-1.5 group/controls mr-3 z-[120] pointer-events-auto h-full"
             onPointerDown={(e) => e.stopPropagation()}
             onMouseDown={(e) => e.stopPropagation()}
             onContextMenu={(e) => e.stopPropagation()}
@@ -510,15 +511,15 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
             <button
               type="button"
               aria-label={`Close ${app.name}`}
-              title="Close"
+              title="Close (⌘W)"
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();
                 closeApplication(win.id);
               }}
-              className="w-3 h-3 rounded-full bg-[#FF5F57] border border-[#E0443E]/50 flex items-center justify-center transition-all cursor-pointer"
+              className="w-3.5 h-3.5 rounded-full bg-red-500/80 hover:bg-red-500 border border-red-600/40 flex items-center justify-center transition-all cursor-pointer shadow-sm"
             >
-              <X className="w-2 h-2 text-[#4D0000] opacity-0 group-hover/controls:opacity-100" />
+              <X className="w-2 h-2 text-white opacity-0 group-hover/controls:opacity-100" />
             </button>
             <button
               type="button"
@@ -529,9 +530,9 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
                 e.preventDefault();
                 minimizeApplication(win.id);
               }}
-              className="w-3 h-3 rounded-full bg-[#FEBC2E] border border-[#D89E24]/50 flex items-center justify-center transition-all cursor-pointer"
+              className="w-3.5 h-3.5 rounded-full bg-amber-500/80 hover:bg-amber-500 border border-amber-600/40 flex items-center justify-center transition-all cursor-pointer shadow-sm"
             >
-              <Minus className="w-2 h-2 text-[#5D4200] opacity-0 group-hover/controls:opacity-100" />
+              <Minus className="w-2 h-2 text-white opacity-0 group-hover/controls:opacity-100" />
             </button>
             {!isMobile && (
               <button
@@ -547,27 +548,22 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
                     maximizeApplication(win.id);
                   }
                 }}
-                className="w-3 h-3 rounded-full bg-[#28C840] border border-[#1AAB29]/50 flex items-center justify-center transition-all cursor-pointer"
+                className="w-3.5 h-3.5 rounded-full bg-emerald-500/80 hover:bg-emerald-500 border border-emerald-600/40 flex items-center justify-center transition-all cursor-pointer shadow-sm"
               >
-                <Maximize2 className="w-2 h-2 text-[#004D00] opacity-0 group-hover/controls:opacity-100" />
+                <Maximize2 className="w-2 h-2 text-white opacity-0 group-hover/controls:opacity-100" />
               </button>
             )}
           </div>
 
           <div className="flex items-center gap-2 min-w-0 pointer-events-none">
-            <div
-              className="w-4 h-4 rounded flex items-center justify-center shrink-0"
-              style={{ color: app.color }}
-            >
-              <Icon className="w-3.5 h-3.5" />
-            </div>
+            <OrionAppIcon app={win.id} size={18} showContainer={false} />
             <span className={cn(
               "text-[12px] font-medium tracking-wide truncate",
               isActive ? "text-os-text-primary" : "text-os-text-muted"
             )}>
               {app.name}
             </span>
-            <span className="text-[10px] text-slate-500 font-mono uppercase tracking-widest hidden sm:inline-block ml-1">
+            <span className="text-[10px] text-os-text-muted font-mono uppercase tracking-widest hidden sm:inline-block ml-1 opacity-70">
               • {app.category}
             </span>
           </div>

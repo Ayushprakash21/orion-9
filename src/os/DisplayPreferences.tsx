@@ -111,6 +111,50 @@ export function DisplayPreferencesControls({
     height: typeof window !== 'undefined' ? window.innerHeight : 1080,
   }));
 
+  // Read live supply chain settings for theme & desktop icons
+  let currentTheme = 'system';
+  let showDesktopIcons = true;
+  try {
+    const raw = localStorage.getItem('sc_settings');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.theme) currentTheme = parsed.theme;
+      if (parsed.showDesktopIcons !== undefined) showDesktopIcons = parsed.showDesktopIcons;
+    }
+  } catch (e) {}
+
+  const [activeTheme, setActiveTheme] = React.useState<string>(currentTheme);
+  const [desktopIconsVisible, setDesktopIconsVisible] = React.useState<boolean>(showDesktopIcons);
+
+  const handleThemeChange = (nextTheme: 'light' | 'dark' | 'system') => {
+    setActiveTheme(nextTheme);
+    const prefersDark = nextTheme === 'dark' ||
+      (nextTheme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(prefersDark ? 'dark' : 'light');
+    document.documentElement.style.colorScheme = prefersDark ? 'dark' : 'light';
+
+    try {
+      const raw = localStorage.getItem('sc_settings');
+      const parsed = raw ? JSON.parse(raw) : {};
+      parsed.theme = nextTheme;
+      localStorage.setItem('sc_settings', JSON.stringify(parsed));
+      window.dispatchEvent(new CustomEvent('orion-settings-updated', { detail: parsed }));
+    } catch (e) {}
+  };
+
+  const handleDesktopIconsToggle = (visible: boolean) => {
+    setDesktopIconsVisible(visible);
+    try {
+      const raw = localStorage.getItem('sc_settings');
+      const parsed = raw ? JSON.parse(raw) : {};
+      parsed.showDesktopIcons = visible;
+      localStorage.setItem('sc_settings', JSON.stringify(parsed));
+      window.dispatchEvent(new CustomEvent('orion-settings-updated', { detail: parsed }));
+    } catch (e) {}
+  };
+
   React.useEffect(() => {
     setPreferences(readDisplayPreferences(effectiveUserId));
   }, [effectiveUserId]);
@@ -140,12 +184,66 @@ export function DisplayPreferencesControls({
   const labelClass = compact
     ? 'text-[9px] uppercase tracking-[0.16em] text-os-text-muted font-semibold'
     : 'text-[10px] uppercase tracking-[0.16em] text-os-text-muted font-semibold';
-  const controlClass = compact
-    ? 'h-9 rounded-md bg-os-surface border border-os-border px-3 text-xs text-os-text-primary outline-none focus:border-os-accent'
-    : 'h-10 rounded-md bg-os-surface border border-os-border px-3 text-sm text-os-text-primary outline-none focus:border-os-accent';
 
   return (
     <div className={compact ? 'space-y-4' : 'space-y-6'}>
+      {/* Theme Mode Selector (LIGHT / DARK / SYSTEM) */}
+      <div className="flex flex-col gap-3 p-4 rounded-lg bg-os-input-bg border border-os-border">
+        <div>
+          <div className="text-sm font-medium text-os-text-primary">Theme Mode</div>
+          <div className="text-xs text-os-text-muted mt-1">Select visual theme preference across all Orion-9 applications.</div>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { id: 'light', label: 'Light', desc: 'Clean & crisp' },
+            { id: 'dark', label: 'Dark', desc: 'Deep & focused' },
+            { id: 'system', label: 'System', desc: 'Match OS' },
+          ].map(t => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => handleThemeChange(t.id as any)}
+              className={`p-3 rounded-xl border flex flex-col items-start gap-1 transition-all cursor-pointer ${
+                activeTheme === t.id
+                  ? 'border-os-accent bg-os-accent/10 text-os-accent font-semibold shadow-sm'
+                  : 'border-os-border bg-os-surface text-os-text-secondary hover:bg-os-surface-hover hover:text-os-text-primary'
+              }`}
+            >
+              <span className="text-sm">{t.label}</span>
+              <span className="text-[10px] text-os-text-muted font-normal">{t.desc}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Show/Hide Desktop Icons Toggle */}
+      <div className="flex items-center justify-between p-4 rounded-lg bg-os-input-bg border border-os-border">
+        <div>
+          <div className="text-sm font-medium text-os-text-primary">Desktop Icons</div>
+          <div className="text-xs text-os-text-muted mt-1">Show application shortcuts directly on the desktop background.</div>
+        </div>
+        <div className="flex bg-os-surface border border-os-border rounded-lg p-1 gap-1 w-36 shrink-0">
+          <button
+            type="button"
+            onClick={() => handleDesktopIconsToggle(true)}
+            className={`flex-1 py-1 text-xs font-medium rounded-md transition-colors ${
+              desktopIconsVisible ? 'bg-os-surface-hover text-os-text-primary shadow-sm font-semibold' : 'text-os-text-muted hover:text-os-text-primary'
+            }`}
+          >
+            SHOW
+          </button>
+          <button
+            type="button"
+            onClick={() => handleDesktopIconsToggle(false)}
+            className={`flex-1 py-1 text-xs font-medium rounded-md transition-colors ${
+              !desktopIconsVisible ? 'bg-os-surface-hover text-os-text-primary shadow-sm font-semibold' : 'text-os-text-muted hover:text-os-text-primary'
+            }`}
+          >
+            HIDE
+          </button>
+        </div>
+      </div>
+
       {showResolution && (
         <div className="flex flex-col gap-3 p-4 rounded-lg bg-os-input-bg border border-os-border">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -157,7 +255,7 @@ export function DisplayPreferencesControls({
               <span className="px-3 py-1.5 rounded-md bg-os-surface border border-os-border text-xs font-mono text-os-text-secondary">
                 {viewport.width} × {viewport.height}
               </span>
-              <button type="button" onClick={enterFullscreen} className="px-3 py-1.5 rounded-md bg-os-surface border border-os-border text-xs font-medium text-os-text-primary hover:bg-os-surface-hover transition-colors">
+              <button type="button" onClick={enterFullscreen} className="px-3 py-1.5 rounded-md bg-os-surface border border-os-border text-xs font-medium text-os-text-primary hover:bg-os-surface-hover transition-colors cursor-pointer">
                 {typeof document !== 'undefined' && document.fullscreenElement ? 'Exit Fullscreen' : 'Fullscreen'}
               </button>
             </div>

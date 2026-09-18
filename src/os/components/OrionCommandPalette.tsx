@@ -40,10 +40,10 @@ export function OrionCommandPalette() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Global hotkey: Cmd/Ctrl + K and Escape
+  // Global hotkey: Cmd/Ctrl + Space or Cmd/Ctrl + K and Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K' || e.code === 'Space' || e.key === ' ')) {
         e.preventDefault();
         setCommandPaletteOpen(!commandPaletteOpen);
       }

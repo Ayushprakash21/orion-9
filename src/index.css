@@ -17,6 +17,19 @@
   --color-os-border-strong: var(--os-border-strong);
   --color-os-input-bg: var(--os-input-bg);
   --color-os-accent: var(--os-accent);
+
+  /* Semantic --orion-* token mappings */
+  --color-orion-bg: var(--orion-background);
+  --color-orion-surface: var(--orion-surface);
+  --color-orion-surface-elevated: var(--orion-surface-elevated);
+  --color-orion-text: var(--orion-text);
+  --color-orion-text-secondary: var(--orion-text-secondary);
+  --color-orion-text-muted: var(--orion-text-muted);
+  --color-orion-border: var(--orion-border);
+  --color-orion-accent: var(--orion-accent);
+  --color-orion-success: var(--orion-success);
+  --color-orion-warning: var(--orion-warning);
+  --color-orion-critical: var(--orion-critical);
 }
 
 :root, :root.dark {
@@ -24,7 +37,7 @@
   --os-bg: #090A0B;
   --os-surface: #111214;
   --os-surface-secondary: #16181A;
-  --os-surface-elevated: #16181A;
+  --os-surface-elevated: #181A1D;
   --os-surface-hover: #1E2023;
   --os-surface-active: #2A2C30;
   --os-border: #292C2F;
@@ -36,33 +49,102 @@
   --os-text-primary-inverse: #0A0A0A;
   --os-input-bg: #111214;
   --os-accent: #00F2FE;
+
+  /* Semantic --orion-* Tokens */
+  --orion-background: #090A0B;
+  --orion-surface: #111214;
+  --orion-surface-secondary: #16181A;
+  --orion-surface-elevated: #181A1D;
+  --orion-surface-hover: #1E2023;
+  --orion-surface-active: #2A2C30;
+  --orion-text: #E7E5E0;
+  --orion-text-secondary: #A7A6A1;
+  --orion-text-muted: #777873;
+  --orion-border: #292C2F;
+  --orion-border-strong: #3F4449;
+  --orion-accent: #00F2FE;
+  --orion-success: #10B981;
+  --orion-warning: #F59E0B;
+  --orion-critical: #EF4444;
+  --orion-radius: 10px;
+  --orion-blur: blur(16px);
+
   background-color: var(--os-bg);
   color: var(--os-text-primary);
-  /* Typography preferences */
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  transition: background-color 0.25s ease, color 0.25s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 :root.light {
-  --os-bg: #F5F5F7;
+  /* LIGHT MODE (Dedicated Premium Light Theme) */
+  --os-bg: #F4F5F7;
   --os-surface: #FFFFFF;
-  --os-surface-secondary: #F0F0F2;
+  --os-surface-secondary: #F0F2F5;
   --os-surface-elevated: #FFFFFF;
-  --os-surface-hover: #E8E8EC;
-  --os-surface-active: #DDDDE1;
-  --os-border: #D1D1D6;
-  --os-border-strong: #B0B0B8;
-  --os-border-inverse: #1D1D1F;
-  --os-text-primary: #1D1D1F;
-  --os-text-secondary: #6E6E73;
-  --os-text-muted: #98989D;
-  --os-text-primary-inverse: #F5F5F7;
+  --os-surface-hover: #E4E7EB;
+  --os-surface-active: #D8DCE2;
+  --os-border: #D0D5DD;
+  --os-border-strong: #98A2B3;
+  --os-border-inverse: #1D2939;
+  --os-text-primary: #101828;
+  --os-text-secondary: #475467;
+  --os-text-muted: #667085;
+  --os-text-primary-inverse: #F4F5F7;
   --os-input-bg: #FFFFFF;
-  --os-accent: #007AFF;
+  --os-accent: #0066FF;
+
+  /* Semantic --orion-* Tokens */
+  --orion-background: #F4F5F7;
+  --orion-surface: #FFFFFF;
+  --orion-surface-secondary: #F0F2F5;
+  --orion-surface-elevated: #FFFFFF;
+  --orion-surface-hover: #E4E7EB;
+  --orion-surface-active: #D8DCE2;
+  --orion-text: #101828;
+  --orion-text-secondary: #475467;
+  --orion-text-muted: #667085;
+  --orion-border: #D0D5DD;
+  --orion-border-strong: #98A2B3;
+  --orion-accent: #0066FF;
+  --orion-success: #12B76A;
+  --orion-warning: #F79009;
+  --orion-critical: #F04438;
+  --orion-radius: 10px;
+  --orion-blur: blur(16px);
+
   background-color: var(--os-bg);
   color: var(--os-text-primary);
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  transition: background-color 0.25s ease, color 0.25s ease;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Custom OS Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+:root.dark ::-webkit-scrollbar-track,
+:root:not(.light) ::-webkit-scrollbar-track {
+  background: transparent;
+}
+:root.dark ::-webkit-scrollbar-thumb,
+:root:not(.light) ::-webkit-scrollbar-thumb {
+  background: #2D323E;
+  border-radius: 4px;
+}
+:root.dark ::-webkit-scrollbar-thumb:hover,
+:root:not(.light) ::-webkit-scrollbar-thumb:hover {
+  background: #414859;
+}
+:root.light ::-webkit-scrollbar-track {
+  background: transparent;
+}
+:root.light ::-webkit-scrollbar-thumb {
+  background: #C1C5CD;
+  border-radius: 4px;
+}
+:root.light ::-webkit-scrollbar-thumb:hover {
+  background: #98A2B3;
 }
 
 

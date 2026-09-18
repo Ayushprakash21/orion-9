@@ -4,6 +4,7 @@ import { ORION_REGISTRY } from '../OrionApplicationRegistry';
 import { useOrionContextMenu, ContextMenuItem } from '../contextMenu/OrionContextMenuContext';
 import { useToast } from '../../store/ToastContext';
 import { cn } from '../../lib/utils';
+import OrionAppIcon from '../../components/brand/OrionAppIcon';
 import { 
   Grid, 
   Pin, 
@@ -500,12 +501,10 @@ export function OrionDock() {
           const isActive = isOpen && activeAppId === id && !isMinimized;
           const isPinned = dockPinnedApps.includes(id);
 
-          const Icon = app.icon;
-
           // Smooth magnification
           const hoveredIndex = hoveredApp ? dockApps.indexOf(hoveredApp) : -1;
           const distance = hoveredIndex !== -1 ? Math.abs(hoveredIndex - index) : 100;
-          const scale = distance === 0 ? 1.05 : distance === 1 ? 1.02 : 1;
+          const scale = distance === 0 ? 1.08 : distance === 1 ? 1.03 : 1;
 
           return (
             <button
@@ -533,39 +532,36 @@ export function OrionDock() {
               onContextMenu={(e) => handleDockItemContextMenu(e, id)}
               onMouseEnter={() => setHoveredApp(id)}
               className={cn(
-                "relative group flex flex-col items-center justify-center transition-all duration-300 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00F2FE] hover:-translate-y-1",
+                "relative group flex flex-col items-center justify-center transition-all duration-300 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-os-accent hover:-translate-y-1.5",
                 draggedApp === id && "opacity-50",
-                dragOverApp === id && "scale-110 mx-4" // Visual feedback for drop target
+                dragOverApp === id && "scale-110 mx-4"
               )}
               style={{ transform: dragOverApp !== id && hoveredApp ? `scale(${scale})` : undefined, width: '48px', height: '48px' }}
               title={app.name}
             >
-              <div 
-                className={cn(
-                  "flex items-center justify-center w-full h-full rounded-[16px] shadow-inner transition-all duration-200",
-                  "border border-black/10 dark:border-white/[0.08] group-hover:border-black/20 dark:group-hover:border-white/[0.2] bg-gradient-to-b",
-                  isMinimized && "opacity-50 saturate-50",
-                  isActive && "border-[#00F2FE]/50 ring-1 ring-[#00F2FE]/30 shadow-[0_0_12px_rgba(0,242,254,0.2)]"
-                )}
-                style={{ 
-                  backgroundColor: `${app.color}15`, 
-                  color: app.color,
-                  backgroundImage: `linear-gradient(180deg, ${app.color}25 0%, transparent 100%)`
-                }}
-              >
-                <Icon className="w-5 h-5 drop-shadow-sm transition-transform duration-300 group-hover:scale-110" />
+              <div className={cn(
+                "flex items-center justify-center w-full h-full transition-all duration-200",
+                isMinimized && "opacity-50 saturate-50",
+                isActive && "scale-105"
+              )}>
+                <OrionAppIcon
+                  app={id}
+                  size={46}
+                  active={isActive}
+                  showContainer={true}
+                />
               </div>
               
-              {/* Active / Open / Minimized Indicator */}
+              {/* Active / Open / Minimized Indicator Dot */}
               {isOpen && (
                 <div 
                   className={cn(
                     "absolute -bottom-1.5 transition-all duration-200",
                     isActive 
-                      ? "w-1.5 h-1.5 rounded-full bg-os-accent" 
+                      ? "w-2 h-1.5 rounded-full bg-os-accent shadow-[0_0_8px_var(--os-accent)]" 
                       : isMinimized
-                      ? "w-1 h-1 rounded-full bg-os-text-muted/50"
-                      : "w-1 h-1 rounded-full bg-os-text-muted"
+                      ? "w-1 h-1 rounded-full bg-os-text-muted/40"
+                      : "w-1.5 h-1.5 rounded-full bg-os-text-secondary"
                   )}
                 />
               )}

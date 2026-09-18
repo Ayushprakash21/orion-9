@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useAuth } from '../../store/AuthContext';
 import { useLocation } from "react-router-dom";
+import { OrionLiveLoginBackground } from "../brand/OrionLiveLoginBackground";
 import {
   Eye,
   EyeOff,
@@ -23,6 +24,27 @@ export const Login: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimerRef = React.useRef<any>(null);
+
+  const handleInputChange = () => {
+    setIsTyping(true);
+    if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+    typingTimerRef.current = setTimeout(() => {
+      setIsTyping(false);
+    }, 1200);
+  };
+
+  const authState = isSubmitting
+    ? 'SIGNING_IN'
+    : errorMsg
+    ? 'ERROR'
+    : isTyping
+    ? 'TYPING'
+    : isInputFocused
+    ? 'FOCUSED'
+    : 'INITIAL';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,14 +69,12 @@ export const Login: React.FC = () => {
   return (
     <div className="w-screen h-[100dvh] max-h-[100dvh] flex flex-col overflow-hidden font-sans relative selection:bg-blue-500/30">
       
-      {/* Background Image & Vignette */}
-      <div 
-        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: 'url("/orion-login-wallpaper.jpg")' }}
-      >
-        <div className="absolute inset-0 bg-black/40 sm:bg-black/20" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.6)_100%)]" />
-      </div>
+      {/* Live Ambient Background */}
+      <OrionLiveLoginBackground 
+        authState={authState}
+        isInputFocused={isInputFocused} 
+        isTyping={isTyping}
+      />
 
       {/* Top Bar */}
       <header className="relative z-10 w-full flex items-center justify-between px-6 py-4">
@@ -115,8 +135,11 @@ export const Login: React.FC = () => {
                 value={username}
                 onChange={(e) => {
                   setUsername(e.target.value);
+                  handleInputChange();
                   if (errorMsg) setErrorMsg("");
                 }}
+                onFocus={() => setIsInputFocused(true)}
+                onBlur={() => setIsInputFocused(false)}
                 className="w-full pl-11 pr-4 py-3.5 bg-white/40 dark:bg-white/10 border border-white/20 rounded-xl text-sm text-white placeholder:text-white/60 focus:outline-none focus:bg-white/50 focus:border-white/50 transition-all shadow-sm"
                 placeholder="Username or email"
               />
@@ -136,8 +159,11 @@ export const Login: React.FC = () => {
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
+                  handleInputChange();
                   if (errorMsg) setErrorMsg("");
                 }}
+                onFocus={() => setIsInputFocused(true)}
+                onBlur={() => setIsInputFocused(false)}
                 className="w-full pl-11 pr-11 py-3.5 bg-white/40 dark:bg-white/10 border border-white/20 rounded-xl text-sm text-white placeholder:text-white/60 focus:outline-none focus:bg-white/50 focus:border-white/50 transition-all shadow-sm"
                 placeholder="Password"
               />

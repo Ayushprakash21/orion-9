@@ -1,4 +1,5 @@
 import React from 'react';
+import OrionAppIcon, { OrionAppIconSize } from './OrionAppIcon';
 import { 
   LayoutDashboard, 
   Boxes, 
@@ -18,12 +19,12 @@ import {
   BarChart3, 
   Settings,
   Info,
-  HelpCircle,
-  FileBarChart,
-  ShieldAlert,
   Clock,
   Check,
-  BrainCircuit
+  BrainCircuit,
+  Lock,
+  Search,
+  Folder
 } from 'lucide-react';
 
 export type IconType = 
@@ -57,21 +58,41 @@ export type IconType =
   | 'warehouse'
   | 'logistics'
   | 'comms'
-  | 'observability';
+  | 'observability'
+  | 'admin';
 
 interface OrionIconProps {
   name: IconType | string;
   size?: number;
   className?: string;
   color?: string;
+  container?: boolean;
 }
 
-export const OrionIcon: React.FC<OrionIconProps> = ({ name, size = 18, className = '', color }) => {
+export const OrionIcon: React.FC<OrionIconProps> = ({
+  name,
+  size = 20,
+  className = '',
+  color,
+  container = false
+}) => {
+  if (container) {
+    return (
+      <OrionAppIcon
+        app={name}
+        size={size as OrionAppIconSize}
+        className={className}
+        showContainer={true}
+      />
+    );
+  }
+
   const defaultClassName = className || "text-os-text-secondary hover:text-os-text-primary transition-colors";
   const style = color ? { color } : undefined;
 
-  switch (name) {
-    case 'dashboard': return <LayoutDashboard size={size} className={defaultClassName} style={style} />;
+  switch (name.toLowerCase()) {
+    case 'dashboard':
+    case 'command-center': return <LayoutDashboard size={size} className={defaultClassName} style={style} />;
     case 'inventory': return <Boxes size={size} className={defaultClassName} style={style} />;
     case 'inbound': return <ArrowDownLeft size={size} className={defaultClassName} style={style} />;
     case 'procurement': return <FileText size={size} className={defaultClassName} style={style} />;
@@ -89,17 +110,23 @@ export const OrionIcon: React.FC<OrionIconProps> = ({ name, size = 18, className
     case 'predictions': return <TrendingUp size={size} className={defaultClassName} style={style} />;
     case 'scenarios': return <GitBranch size={size} className={defaultClassName} style={style} />;
     case 'decisions': return <BrainCircuit size={size} className={defaultClassName} style={style} />;
-    case 'ai': return <Sparkles size={size} className={defaultClassName} style={style} />;
+    case 'ai':
+    case 'orion-ai': return <Sparkles size={size} className={defaultClassName} style={style} />;
     case 'integrations': return <Share2 size={size} className={defaultClassName} style={style} />;
-    case 'datacenter': return <Database size={size} className={defaultClassName} style={style} />;
+    case 'datacenter':
+    case 'data': return <Database size={size} className={defaultClassName} style={style} />;
     case 'quality': return <CheckCircle2 size={size} className={defaultClassName} style={style} />;
     case 'sync': return <RefreshCw size={size} className={defaultClassName} style={style} />;
-    case 'reports': return <FileBarChart size={size} className={defaultClassName} style={style} />;
+    case 'reports':
+    case 'documents': return <Folder size={size} className={defaultClassName} style={style} />;
     case 'analytics': return <BarChart3 size={size} className={defaultClassName} style={style} />;
     case 'settings': return <Settings size={size} className={defaultClassName} style={style} />;
     case 'about': return <Info size={size} className={defaultClassName} style={style} />;
     case 'success': return <Check size={size} className={defaultClassName} style={style} />;
     case 'clock': return <Clock size={size} className={defaultClassName} style={style} />;
+    case 'search': return <Search size={size} className={defaultClassName} style={style} />;
+    case 'admin':
+    case 'admin-console': return <Lock size={size} className={defaultClassName} style={style} />;
     default: return <Boxes size={size} className={defaultClassName} style={style} />;
   }
 };

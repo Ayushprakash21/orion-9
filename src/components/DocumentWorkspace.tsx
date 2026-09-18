@@ -3,7 +3,7 @@ import {
   FileText, Upload, Shield, Eye, Download, CheckCircle2, AlertTriangle, 
   Search, Filter, Clock, Link as LinkIcon, RefreshCw, FileCheck, Lock,
   ChevronRight, ArrowUpRight, Cpu, Tag, Calendar, Database, ShieldAlert,
-  ShieldCheck
+  ShieldCheck, Star, LayoutGrid, List, Folder, DollarSign, PackageCheck, FileSearch, Network
 } from 'lucide-react';
 import { useToast } from '../store/ToastContext';
 import { KernelAuditEngine } from '../kernel/AuditEngine';
@@ -153,7 +153,24 @@ export const DocumentWorkspace: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedClassification, setSelectedClassification] = useState<string>('ALL');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+  const [activeFolder, setActiveFolder] = useState<string>('documents');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [isUploading, setIsUploading] = useState(false);
+
+  const sidebarFolders = [
+    { id: 'all', label: 'All Documents', icon: Folder, count: documents.length },
+    { id: 'favorites', label: 'Favorites', icon: Star, count: 2 },
+    { id: 'recent', label: 'Recent', icon: Clock, count: documents.length },
+    { id: 'documents', label: 'Documents', icon: FileText, count: documents.length },
+    { id: 'downloads', label: 'Downloads', icon: Download, count: 4 },
+    { id: 'supply_chain', label: 'Supply Chain', icon: Database, count: documents.length },
+    { id: 'suppliers', label: 'Suppliers', icon: Network, count: 2 },
+    { id: 'contracts', label: 'Contracts', icon: FileCheck, count: 1 },
+    { id: 'invoices', label: 'Invoices', icon: DollarSign, count: 1 },
+    { id: 'shipments', label: 'Shipments', icon: PackageCheck, count: 1 },
+    { id: 'quality', label: 'Quality', icon: ShieldCheck, count: 1 },
+    { id: 'reports', label: 'Reports', icon: FileSearch, count: 3 },
+  ];
 
   const filteredDocs = documents.filter(doc => {
     const matchesSearch = doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
