@@ -1,31 +1,64 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
-  RefreshCw, Play, Pause, ChevronRight, ArrowRight, Sparkles, AlertTriangle 
+  RefreshCw, Play, Pause, ChevronRight, ArrowRight, Sparkles, AlertTriangle, Clock, ShieldCheck
 } from 'lucide-react';
 import { OrionDataTrust, OrionConfidence } from './OrionIntelligenceComponents';
 import { cn } from '../../lib/utils';
+import { decisionReplayEngine } from '../../intelligence';
 
 export const DecisionReplayView: React.FC = () => {
-  const [selectedReplay, setSelectedReplay] = useState<number>(0);
+  const [selectedReplayId, setSelectedReplayId] = useState<string>('REP-01');
   const [isPlaying, setIsPlaying] = useState(false);
 
-  const replays = [
-    {
-      id: 'REP-01',
-      title: 'Disruption Response: Ocean Transit Delay (Sept 1st)',
-      time: 'Sept 1, 2026, 09:12 AM',
-      stateAtTime: 'Inbound raw materials vessel delayed at Aden Gulf (+4 days). Safety stock down to 2.1 days.',
-      infoAvailable: 'API Maersk GPS Coordinate + Custom Clearance Speed estimates.',
-      alternatives: [
-        { name: 'Option A: Do Nothing', cost: '$0', consequence: 'High Stockout Risk (84% chance in 4 days)' },
-        { name: 'Option B: Expedite via Airfreight', cost: '+$14,500', consequence: 'Saves Siemens assembly lines (96% certainty)' }
-      ],
-      chosen: 'Option B: Expedite via Airfreight',
-      outcome: 'Actual: Batch arrived Sept 6th. Zero manufacturing lines disrupted. Siemens SLA protected.'
-    }
-  ];
+  const engineReplays = useMemo(() => {
+    return decisionReplayEngine.getReplays('org-global');
+  }, []);
 
-  const activeRep = replays[selectedReplay];
+  const defaultReplay = {
+    id: 'REP-01',
+    title: 'Disruption Response: Ocean Transit Delay (Sept 1st)',
+    time: 'Sept 1, 2026, 09:12 AM',
+    stateAtTime: 'Inbound raw materials vessel delayed at Aden Gulf (+4 days). Safety stock down to 2.1 days.',
+    infoAvailable: 'API Maersk GPS Coordinate + Custom Clearance Speed estimates.',
+    alternatives: [
+      { name: 'Option A: Do Nothing', cost: '$0', consequence: 'High Stockout Risk (84% chance in 4 days)' },
+      { name: 'Option B: Expedite via Airfreight', cost: '+$14,500', consequence: 'Saves Siemens assembly lines (96% certainty)' }
+    ],
+    chosen: 'Option B: Expedite via Airfreight',
+    outcome: 'Actual: Batch arrived Sept 6th. Zero manufacturing lines disrupted. Siemens SLA protected.'
+  };
+
+  const activeEngineReplay = useMemo(() => {
+    return engineReplays.find(r => r.replayId === selectedReplayId || r.decisionId === selectedReplayId);
+  }, [engineReplays, selectedReplayId]);
+
+  const reconstructedTimeline = useMemo(() => {
+    if (activeEngineReplay) {
+      try {
+        return decisionReplayEngine.reconstructTimeline(activeEngineReplay.tenantId, activeEngineReplay.replayId).reconstructedTimeline;
+      } catch (err) {
+        return [];
+      }
+    }
+    return [];
+  }, [activeEngineReplay]);
+
+  const activeRep = activeEngineReplay
+    ? {
+        id: activeEngineReplay.replayId,
+        title: `Decision Replay: ${activeEngineReplay.decisionId}`,
+        time: new Date(activeEngineReplay.snapshotTimestamp).toLocaleString(),
+        stateAtTime: `Historical decision state captured at ${activeEngineReplay.snapshotTimestamp}`,
+        infoAvailable: `${activeEngineReplay.contextSnapshot?.signals?.length || 0} signals, exception: ${activeEngineReplay.contextSnapshot?.exception?.type || 'N/A'}`,
+        alternatives: activeEngineReplay.optionsSnapshot.map(o => ({
+          name: o.actionType,
+          cost: `₹${o.expectedCost}`,
+          consequence: o.expectedServiceImpact,
+        })),
+        chosen: activeEngineReplay.recommendationSnapshot.recommendedOption.actionType,
+        outcome: activeEngineReplay.outcomeSnapshot ? `Recorded: ${activeEngineReplay.outcomeSnapshot.actualBenefit}` : 'Outcome pending post-execution feedback.',
+      }
+    : defaultReplay;
 
   return (
     <div className="space-y-6 p-6 max-w-7xl mx-auto font-sans text-os-text-muted">
@@ -92,6 +125,26 @@ export const DecisionReplayView: React.FC = () => {
                 <p className="text-os-text-primary font-sans text-xs font-bold">{activeRep.chosen}</p>
                 <p className="text-os-text-secondary font-sans text-xs mt-1">{activeRep.outcome}</p>
               </div>
+
+              {reconstructedTimeline.length > 0 && (
+                <div className="p-4 bg-slate-900/30 border border-slate-900 rounded-xl space-y-3">
+                  <span className="text-slate-500 block uppercase font-bold text-[8px]">RECONSTRUCTED TIMELINE STAGES ({reconstructedTimeline.length} STAGES):</span>
+                  <div className="space-y-2">
+                    {reconstructedTimeline.map((stg, sIdx) => (
+                      <div key={sIdx} className="flex items-start gap-3 p-2 bg-slate-950/60 rounded border border-slate-900 text-[10px]">
+                        <span className="text-cyan-400 font-mono font-bold shrink-0">{sIdx + 1}.</span>
+                        <div className="space-y-0.5 flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-os-text-primary uppercase tracking-wider">{stg.stage}</span>
+                            <span className="text-slate-500 font-mono text-[9px]">{stg.timestamp}</span>
+                          </div>
+                          <p className="text-os-text-secondary font-sans text-xs">{stg.summary}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
