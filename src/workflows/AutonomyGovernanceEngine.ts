@@ -176,6 +176,26 @@ export class AutonomyGovernanceEngine {
     return AutonomyGovernanceEngine.evaluateActionAutonomy(autonomyLevel, action, actor);
   }
 
+  /**
+   * Validates if an actor is authorized to elevate autonomy level
+   */
+  public static canElevateAutonomy(
+    currentLevel: AutonomyLevel,
+    targetLevel: AutonomyLevel,
+    actor: { id: string; role: string; isAi: boolean }
+  ): boolean {
+    if (actor.isAi) {
+      return false; // AI can NEVER elevate autonomy
+    }
+    const privilegedRoles = ['platform_admin', 'organization_admin', 'admin', 'procurement_director'];
+    if (!privilegedRoles.includes(actor.role)) {
+      return false;
+    }
+    const currentVal = AUTONOMY_LEVEL_VALUES[currentLevel];
+    const targetVal = AUTONOMY_LEVEL_VALUES[targetLevel];
+    return targetVal >= currentVal;
+  }
+
   public canElevateAutonomy(
     currentLevel: AutonomyLevel,
     targetLevel: AutonomyLevel,
