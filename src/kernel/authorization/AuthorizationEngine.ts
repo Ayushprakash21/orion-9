@@ -78,7 +78,88 @@ const RESOURCE_PERMISSION_MAP: Record<
     actorTypes: ['USER', 'ADMIN'],
     roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer'],
   },
+  'purchase_order:release': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer'],
+  },
+  'supplier:create': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+  },
+  'supplier:qualify': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager'],
+  },
+  'supplier:approve': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager'],
+  },
+  'pr:create': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+  },
+  'pr:approve': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager'],
+  },
+  'rfq:create': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer'],
+  },
+  'rfq:publish': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer'],
+  },
+  'rfq:evaluate': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer'],
+  },
+  'quotation:submit': {
+    actorTypes: ['USER', 'ADMIN', 'EXTERNAL_INTEGRATION'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+  },
+  'supplier_selection:approve': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager'],
+  },
+  'asn:create': {
+    actorTypes: ['USER', 'ADMIN', 'EXTERNAL_INTEGRATION'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+  },
+  'shipment:update': {
+    actorTypes: ['USER', 'ADMIN', 'EXTERNAL_INTEGRATION'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+  },
+  'receiving:create': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+  },
+  'grn:post': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+  },
+  'quality:inspect': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+  },
+  'inventory:adjust': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+  },
+  'invoice:create': {
+    actorTypes: ['USER', 'ADMIN', 'EXTERNAL_INTEGRATION'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+  },
+  'invoice:approve': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager'],
+  },
+  'payment_handoff:create': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+  },
 };
+
 
 export class AuthorizationEngine {
   /**
