@@ -172,6 +172,16 @@ export class RecommendationEngine {
     return results;
   }
 
+  public getRecommendations(tenantId: string): Recommendation[] {
+    const results: Recommendation[] = [];
+    for (const [key, rec] of this.recommendations.entries()) {
+      if (rec.tenantId === tenantId) {
+        results.push(rec);
+      }
+    }
+    return results;
+  }
+
   public reset(): void {
     this.decisions.clear();
     this.recommendations.clear();

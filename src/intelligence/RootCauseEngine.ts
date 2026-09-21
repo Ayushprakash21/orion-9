@@ -230,6 +230,16 @@ export class RootCauseEngine {
     return rc;
   }
 
+  public getRootCauses(tenantId: string): RootCause[] {
+    const results: RootCause[] = [];
+    for (const [key, rc] of this.rootCauses.entries()) {
+      if (rc.tenantId === tenantId) {
+        results.push(rc);
+      }
+    }
+    return results;
+  }
+
   public getRootCause(tenantId: string, rootCauseId: string): RootCause | undefined {
     return this.rootCauses.get(`${tenantId}:${rootCauseId}`);
   }

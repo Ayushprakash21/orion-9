@@ -154,6 +154,14 @@ export class SupplyChainRiskGraph {
     };
   }
 
+  public getGraph(tenantId: string): { tenantId: string; nodes: RiskNode[]; edges: RiskEdge[] } {
+    return {
+      tenantId,
+      nodes: Array.from(this.nodes.values()).filter(n => n.tenantId === tenantId),
+      edges: Array.from(this.edges.values()).filter(e => e.tenantId === tenantId),
+    };
+  }
+
   public reset(): void {
     this.nodes.clear();
     this.edges.clear();
