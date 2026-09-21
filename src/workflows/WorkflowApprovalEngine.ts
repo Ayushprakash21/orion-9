@@ -152,6 +152,26 @@ export class WorkflowApprovalEngine {
     return JSON.parse(JSON.stringify(approval));
   }
 
+  public evaluateApprovalEligibility(
+    approval: WorkflowApproval,
+    actor: { id: string; role: string; isAi: boolean }
+  ): { eligible: boolean; reason?: string } {
+    if (actor.isAi) {
+      return { eligible: false, reason: 'AI agents are strictly forbidden from approving' };
+    }
+    const authorizedRoles = [
+      approval.requiredRole,
+      'platform_admin',
+      'organization_admin',
+      'admin',
+      'procurement_director'
+    ];
+    if (!authorizedRoles.includes(actor.role)) {
+      return { eligible: false, reason: `Role ${actor.role} is not authorized` };
+    }
+    return { eligible: true };
+  }
+
   public clear(): void {
     this.approvals.clear();
   }

@@ -108,6 +108,10 @@ export class WorkflowAuditEngine {
     return JSON.parse(JSON.stringify(list));
   }
 
+  public getAuditLog(tenantId: string, workflowInstanceId?: string): WorkflowAuditRecord[] {
+    return this.getRecords(tenantId, workflowInstanceId);
+  }
+
   public clear(): void {
     this.records.clear();
   }

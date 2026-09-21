@@ -36,6 +36,15 @@ export class WorkflowObservability {
     return JSON.parse(JSON.stringify(this.executions.get(tenantId) || []));
   }
 
+  public getWorkflowMetrics(tenantId: string): { totalTriggered: number; totalCompleted: number; totalFailed: number } {
+    const execs = this.executions.get(tenantId) || [];
+    return {
+      totalTriggered: execs.length,
+      totalCompleted: execs.filter(e => e.status === 'SUCCESS').length,
+      totalFailed: execs.filter(e => e.status === 'FAILED').length
+    };
+  }
+
   public clear(): void {
     this.executions.clear();
   }

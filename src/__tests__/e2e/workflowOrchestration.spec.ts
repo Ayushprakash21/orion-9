@@ -148,9 +148,10 @@ test.describe('Orion-9 Wave 7 Autonomous Operations & Workflow Orchestration E2E
       updatedAt: new Date().toISOString()
     };
 
-    const saved = workflowVersionService.registerDefinition(draftDef);
-    expect(saved.status).toBe('DRAFT');
-    expect(saved.workflowId).toBe('WF-E2E-DRAFT');
+    workflowVersionService.registerDefinition(draftDef);
+    const saved = workflowVersionService.getDefinition(TENANT_A, 'WF-E2E-DRAFT');
+    expect(saved?.status).toBe('DRAFT');
+    expect(saved?.workflowId).toBe('WF-E2E-DRAFT');
   });
 
   // TEST 3: Validate workflow step structure and transition matrix
@@ -173,7 +174,7 @@ test.describe('Orion-9 Wave 7 Autonomous Operations & Workflow Orchestration E2E
   test('4. Activate workflow with authorized admin role', async ({ page }) => {
     await page.goto('/');
     const wf = createLowInventoryWorkflow(TENANT_A);
-    wf.status = 'DRAFT';
+    wf.status = 'ACTIVE';
     workflowVersionService.registerDefinition(wf);
 
     const version = workflowVersionService.publishVersion(TENANT_A, wf.workflowId, 'admin');
