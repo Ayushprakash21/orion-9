@@ -29,6 +29,7 @@
     "vite.config.ts"
   ],
   "exclude": [
+    "src/__tests__/e2e",
     "dist",
     "node_modules",
     "app",
