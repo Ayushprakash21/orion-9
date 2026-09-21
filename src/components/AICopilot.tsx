@@ -21,11 +21,15 @@ export const AICopilot = () => {
     role: 'user' | 'assistant', 
     content: string,
     evidence?: string,
-    recommendation?: string
+    recommendation?: string,
+    governanceStatus?: 'ANSWER' | 'RECOMMENDATION' | 'DRAFT' | 'ACTION REQUEST' | 'PENDING APPROVAL' | 'EXECUTED' | 'REJECTED',
+    approvalId?: string,
+    commandId?: string
   }[]>([
     {
       role: 'assistant',
-      content: 'I am ORION AI, the platform intelligence core. How can I assist you with supply chain analysis today?'
+      content: 'I am ORION AI, the platform intelligence core. How can I assist you with supply chain analysis today?',
+      governanceStatus: 'ANSWER'
     }
   ]);
   const [input, setInput] = useState('');
@@ -83,11 +87,20 @@ export const AICopilot = () => {
         parsedResponse = null;
       }
 
+      let govStatus: any = 'ANSWER';
+      const pLower = promptText.toLowerCase();
+      if (pLower.includes('release') || pLower.includes('create po') || pLower.includes('order')) {
+        govStatus = 'PENDING APPROVAL';
+      } else if (pLower.includes('recommend') || pLower.includes('suggest') || parsedResponse?.strategicRoadmap?.length) {
+        govStatus = 'RECOMMENDATION';
+      }
+
       setMessages(prev => [...prev, { 
         role: 'assistant', 
         content: parsedResponse ? (parsedResponse.executiveSummary || response) : response,
         evidence: parsedResponse?.telemetryEvidence || undefined,
-        recommendation: parsedResponse?.strategicRoadmap?.[0]?.actionDetails || undefined
+        recommendation: parsedResponse?.strategicRoadmap?.[0]?.actionDetails || undefined,
+        governanceStatus: govStatus
       }]);
     } catch (error: any) {
       setMessages(prev => [...prev, { 
@@ -169,7 +182,23 @@ export const AICopilot = () => {
                   "text-[10px] font-mono tracking-widest uppercase mb-1.5 flex items-center gap-2",
                   message.role === 'user' ? "justify-end text-os-text-muted" : "text-[#00F2FE]"
                 )}>
-                  {message.role === 'user' ? 'Operator' : 'ORION AI'}
+                  {message.role === 'user' ? 'Operator' : (
+                    <>
+                      <span>ORION AI</span>
+                      {message.governanceStatus && (
+                        <span className={cn(
+                          "px-2 py-0.5 rounded text-[9px] font-bold border",
+                          message.governanceStatus === 'EXECUTED' && "bg-[#30D158]/10 text-[#30D158] border-[#30D158]/30",
+                          message.governanceStatus === 'PENDING APPROVAL' && "bg-[#FF9F0A]/10 text-[#FF9F0A] border-[#FF9F0A]/30",
+                          message.governanceStatus === 'RECOMMENDATION' && "bg-[#00F2FE]/10 text-[#00F2FE] border-[#00F2FE]/30",
+                          message.governanceStatus === 'REJECTED' && "bg-[#FF453A]/10 text-[#FF453A] border-[#FF453A]/30",
+                          message.governanceStatus === 'ANSWER' && "bg-white/5 text-os-text-muted border-white/10"
+                        )}>
+                          {message.governanceStatus}
+                        </span>
+                      )}
+                    </>
+                  )}
                 </div>
                 
                 <div className={cn(

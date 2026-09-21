@@ -95,24 +95,24 @@ const RESOURCE_PERMISSION_MAP: Record<
     roles: ['platform_admin', 'organization_admin', 'procurement_manager'],
   },
   'pr:create': {
-    actorTypes: ['USER', 'ADMIN'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+    actorTypes: ['USER', 'ADMIN', 'AI_AGENT'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member', 'ai_agent'],
   },
   'pr:approve': {
     actorTypes: ['USER', 'ADMIN'],
     roles: ['platform_admin', 'organization_admin', 'procurement_manager'],
   },
   'rfq:create': {
-    actorTypes: ['USER', 'ADMIN'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer'],
+    actorTypes: ['USER', 'ADMIN', 'AI_AGENT'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'ai_agent'],
   },
   'rfq:publish': {
     actorTypes: ['USER', 'ADMIN'],
     roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer'],
   },
   'rfq:evaluate': {
-    actorTypes: ['USER', 'ADMIN'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer'],
+    actorTypes: ['USER', 'ADMIN', 'AI_AGENT'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'ai_agent'],
   },
   'quotation:submit': {
     actorTypes: ['USER', 'ADMIN', 'EXTERNAL_INTEGRATION'],
@@ -123,8 +123,16 @@ const RESOURCE_PERMISSION_MAP: Record<
     roles: ['platform_admin', 'organization_admin', 'procurement_manager'],
   },
   'asn:create': {
-    actorTypes: ['USER', 'ADMIN', 'EXTERNAL_INTEGRATION'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+    actorTypes: ['USER', 'ADMIN', 'EXTERNAL_INTEGRATION', 'AI_AGENT'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member', 'ai_agent'],
+  },
+  'exception:create': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'AI_AGENT'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member', 'ai_agent'],
+  },
+  'approval:request': {
+    actorTypes: ['USER', 'ADMIN', 'AI_AGENT'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member', 'ai_agent'],
   },
   'shipment:update': {
     actorTypes: ['USER', 'ADMIN', 'EXTERNAL_INTEGRATION'],

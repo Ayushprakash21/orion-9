@@ -14,3 +14,4 @@ export * from './useKernel';
 export * from './authorization/AuthorizationEngine';
 export * from './policy/purchaseOrderPolicy';
 export * from './handlers/PurchaseOrderHandler';
+export * from './handlers/ScmCommandHandler';

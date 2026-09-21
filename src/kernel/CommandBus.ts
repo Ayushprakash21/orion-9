@@ -46,6 +46,22 @@ export class KernelCommandBus {
   }
 
   /**
+   * Executes a pre-constructed CommandEnvelope directly through the complete canonical pipeline
+   */
+  public async execute<T = any, R = any>(command: CommandEnvelope<T>): Promise<CommandResult<R>> {
+    return this.dispatch<T, R>(command.commandType, command.payload, {
+      actor: command.actor,
+      tenant: command.tenant,
+      entityType: command.entityType,
+      entityId: command.entityId,
+      amount: (command.payload as any)?.amount ?? (command.payload as any)?.estimatedTotal,
+      correlationId: command.correlationId,
+      idempotencyKey: command.idempotencyKey,
+      requiredPermission: command.requiredPermission,
+    });
+  }
+
+  /**
    * Dispatches a command through the complete canonical pipeline
    */
   public async dispatch<T = any, R = any>(
@@ -60,6 +76,7 @@ export class KernelCommandBus {
       correlationId?: string;
       idempotencyKey?: string;
       beforeState?: any;
+      requiredPermission?: string;
     }
   ): Promise<CommandResult<R>> {
     const correlationId = context.correlationId || generateCorrelationId('cmd');
@@ -121,7 +138,22 @@ export class KernelCommandBus {
 
     // 3. FAIL-CLOSED AUTHORIZATION GATE
     try {
-      const requiredPermission = `${context.entityType || 'generic'}:${commandType.replace('_PURCHASE_ORDER', '').toLowerCase()}`;
+      const permMap: Record<string, string> = {
+        'CREATE_PURCHASE_ORDER': 'purchase_order:create',
+        'APPROVE_PURCHASE_ORDER': 'purchase_order:approve',
+        'REJECT_PURCHASE_ORDER': 'purchase_order:reject',
+        'RELEASE_PURCHASE_ORDER': 'purchase_order:release',
+        'CANCEL_PURCHASE_ORDER': 'purchase_order:cancel',
+        'CREATE_PURCHASE_REQUISITION': 'pr:create',
+        'CREATE_RFQ': 'rfq:create',
+        'CREATE_ASN': 'asn:create',
+        'CREATE_EXCEPTION': 'exception:create',
+        'CREATE_PAYMENT_HANDOFF': 'payment_handoff:create',
+      };
+      const requiredPermission =
+        context.requiredPermission ||
+        permMap[commandType] ||
+        `${context.entityType || 'generic'}:${commandType.toLowerCase()}`;
       authorizationEngine.authorize({
         actor: {
           id: context.actor.id,

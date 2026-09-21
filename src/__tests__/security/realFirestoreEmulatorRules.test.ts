@@ -260,4 +260,65 @@ describe('Real Firebase Emulator Security Rules Gate', () => {
       );
     });
   });
+
+  // ── 5. WAVE 5 — AI AGENT GOVERNANCE SECURITY RULES ─────────────────────────
+
+  describe('Wave 5 AI Agent Governance Security', () => {
+    it('denies unauthenticated read to agents and ai_decisions', async () => {
+      const unauthDb = testEnv.unauthenticatedContext().firestore();
+      await assertFails(unauthDb.collection('agents').get());
+      await assertFails(unauthDb.collection('ai_decisions').get());
+    });
+
+    it('denies standard buyer from creating or modifying agents collection', async () => {
+      const buyerDb = testEnv.authenticatedContext('user-buyer', {
+        organizationId: 'org-tenant-a',
+        role: 'buyer',
+      }).firestore();
+
+      await assertFails(
+        buyerDb.collection('agents').doc('agent-rogue').set({
+          agentId: 'agent-rogue',
+          tenantId: 'org-tenant-a',
+          operatingMode: 'GOVERNED',
+        })
+      );
+    });
+
+    it('allows platform_admin to register a new agent', async () => {
+      const adminDb = testEnv.authenticatedContext('user-admin', {
+        organizationId: 'org-tenant-a',
+        role: 'admin',
+      }).firestore();
+
+      await assertSucceeds(
+        adminDb.collection('agents').doc('agent-gov-01').set({
+          agentId: 'agent-gov-01',
+          tenantId: 'org-tenant-a',
+          operatingMode: 'APPROVAL_GATED',
+        })
+      );
+    });
+
+    it('denies TENANT_A user from reading TENANT_B agent_memory', async () => {
+      // First seed Tenant B memory as admin
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await context.firestore().collection('agent_memory').doc('mem-b-01').set({
+          memoryId: 'mem-b-01',
+          tenantId: 'org-tenant-b',
+          content: 'Secret sourcing plan',
+        });
+      });
+
+      const tenantADb = testEnv.authenticatedContext('user-tenant-a', {
+        organizationId: 'org-tenant-a',
+        role: 'buyer',
+      }).firestore();
+
+      await assertFails(
+        tenantADb.collection('agent_memory').doc('mem-b-01').get()
+      );
+    });
+  });
 });
+
