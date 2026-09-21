@@ -70,6 +70,8 @@ export const db = {
   skuBuffers: createSafeInstance({ name: 'SC_DB', storeName: 'skuBuffers' }),
   replenishmentOrders: createSafeInstance({ name: 'SC_DB', storeName: 'replenishmentOrders' }),
   bullwhipMetrics: createSafeInstance({ name: 'SC_DB', storeName: 'bullwhipMetrics' }),
+  connectors: createSafeInstance({ name: 'SC_DB', storeName: 'connectors' }),
+  dlqMessages: createSafeInstance({ name: 'SC_DB', storeName: 'dlqMessages' }),
 };
 
 export const saveData = async <T>(store: LocalForage, data: T[]): Promise<void> => {

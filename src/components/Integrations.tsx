@@ -1,16 +1,49 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Network, Database, Globe, Cpu, ArrowRight, ShieldCheck, AlertCircle, 
-  RefreshCw, Layers, CheckCircle2, X, Settings, Terminal, ShieldAlert, FileText, Play, Check 
+  RefreshCw, Layers, CheckCircle2, X, Settings, Terminal, ShieldAlert, FileText, Play, Check,
+  AlertTriangle, RotateCcw, Trash2, CheckSquare, Layers2, FileJson
 } from 'lucide-react';
 import { createDefaultConnectors, BaseConnector, DataDomain, SyncJobRecord } from '../services/ConnectorFramework';
+import { useIntegrationFabric } from '../integration/useIntegrationFabric';
 
 export const Integrations = () => {
+  const {
+    connectors: fabricConnectors,
+    dlqRecords,
+    reports,
+    discrepancies,
+    isReconciling,
+    retryDLQMessage,
+    discardDLQMessage,
+    resolveDLQMessage,
+    runReconciliation,
+    resolveDiscrepancy,
+  } = useIntegrationFabric('org-tenant-a');
+
   const [connectors, setConnectors] = useState<BaseConnector[]>(() => createDefaultConnectors());
   const [selectedConnector, setSelectedConnector] = useState<BaseConnector | null>(null);
   const [modalMode, setModalMode] = useState<'wizard' | 'detail' | null>(null);
   
-  // Wizard state (Expanded for SAP hardening and monitoring purposes)
+  // Fabric Main View Tab
+  const [fabricTab, setFabricTab] = useState<'connectors' | 'syncJobs' | 'dlq' | 'reconciliation' | 'contracts'>('connectors');
+  const {
+    connectors: fabricConnectors,
+    dlqRecords,
+    reports,
+    discrepancies,
+    syncJobs,
+    isReconciling,
+    testConnectorConnection,
+    triggerSyncJob,
+    retryDLQMessage,
+    discardDLQMessage,
+    resolveDLQMessage,
+    runReconciliation,
+    resolveDiscrepancy,
+  } = useIntegrationFabric('org-tenant-a');
+
+  // Wizard state
   const [wizardStep, setWizardStep] = useState(1);
   const [monitoringPurposes, setMonitoringPurposes] = useState<string[]>(['Inventory', 'Procurement']);
   const [configForm, setConfigForm] = useState({
@@ -37,7 +70,7 @@ export const Integrations = () => {
   const activeDataSourcesCount = connectors.filter(c => c.connectionStatus === 'CONNECTED').length;
   const enterpriseConnectionsCount = connectors.filter(c => c.category === 'Enterprise Systems' && c.connectionStatus === 'CONNECTED').length;
   const fileSourcesCount = connectors.filter(c => c.type === 'FILE' && c.connectionStatus === 'CONNECTED').length;
-  const failedSyncsCount = connectors.reduce((acc, c) => acc + c.errorCount, 0);
+  const dlqCount = dlqRecords.filter(r => r.status === 'UNRESOLVED').length;
 
   const handleCardClick = (connector: BaseConnector) => {
     setSelectedConnector(connector);
@@ -72,7 +105,6 @@ export const Integrations = () => {
     setIsTesting(true);
     setTestResult(null);
 
-    // Validate endpoint before calling
     if (!configForm.baseUrl || configForm.baseUrl.trim() === '' || configForm.baseUrl.includes('<customer-sap-endpoint>')) {
       setIsTesting(false);
       setTestResult({ success: false, latency: '-', message: 'Missing endpoint or invalid URL. Please provide a valid SAP API endpoint.' });
@@ -134,8 +166,8 @@ export const Integrations = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-light text-os-text-primary tracking-wide">INTEGRATION HUB</h2>
-          <p className="text-sm text-os-text-secondary mt-1">Data Ingestion & Enterprise Integration Gateway</p>
+          <h2 className="text-2xl font-light text-os-text-primary tracking-wide">ENTERPRISE INTEGRATION FABRIC</h2>
+          <p className="text-sm text-os-text-secondary mt-1">Layer 8 Gateway: Connectors, DLQ Engine & State Reconciliation</p>
         </div>
         <div className="flex gap-2">
           <button 
@@ -171,8 +203,8 @@ export const Integrations = () => {
             <Globe size={18} />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-widest text-os-text-muted mb-1">Active Data Sources</div>
-            <div className="text-xl font-mono text-os-text-primary">{activeDataSourcesCount}</div>
+            <div className="text-[10px] uppercase tracking-widest text-os-text-muted mb-1">Active Connectors</div>
+            <div className="text-xl font-mono text-os-text-primary">{fabricConnectors.length}</div>
           </div>
         </div>
         <div className="bg-os-bg/50 border border-os-border p-4 rounded-sm flex items-center gap-4">
@@ -180,17 +212,17 @@ export const Integrations = () => {
             <Layers size={18} />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-widest text-os-text-muted mb-1">Enterprise Connections</div>
+            <div className="text-[10px] uppercase tracking-widest text-os-text-muted mb-1">Enterprise Systems</div>
             <div className="text-xl font-mono text-os-text-primary">{enterpriseConnectionsCount}</div>
           </div>
         </div>
         <div className="bg-os-bg/50 border border-os-border p-4 rounded-sm flex items-center gap-4">
-          <div className="w-10 h-10 rounded-sm bg-emerald-500/20 border border-emerald-500/50 flex items-center justify-center text-emerald-400">
-            <Database size={18} />
+          <div className="w-10 h-10 rounded-sm bg-amber-500/20 border border-amber-500/50 flex items-center justify-center text-amber-400">
+            <AlertTriangle size={18} />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-widest text-os-text-muted mb-1">File Sources</div>
-            <div className="text-xl font-mono text-os-text-primary">{fileSourcesCount}</div>
+            <div className="text-[10px] uppercase tracking-widest text-os-text-muted mb-1">DLQ Unresolved Messages</div>
+            <div className="text-xl font-mono text-amber-400">{dlqCount}</div>
           </div>
         </div>
         <div className="bg-os-bg/50 border border-os-border p-4 rounded-sm flex items-center gap-4">
@@ -198,69 +230,319 @@ export const Integrations = () => {
             <AlertCircle size={18} />
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-widest text-os-text-muted mb-1">Failed Syncs</div>
-            <div className="text-xl font-mono text-os-text-primary">{failedSyncsCount}</div>
+            <div className="text-[10px] uppercase tracking-widest text-os-text-muted mb-1">State Discrepancies</div>
+            <div className="text-xl font-mono text-rose-400">{discrepancies.length}</div>
           </div>
         </div>
       </div>
 
-      {/* Connector Categories */}
-      <div className="space-y-8">
-        {['Enterprise Systems', 'B2B & External', 'Data & Storage'].map((catName) => {
-          const sectionItems = connectors.filter(c => c.category === catName);
-          return (
-            <div key={catName}>
-              <h3 className="text-xs uppercase tracking-[0.2em] text-os-text-muted font-bold mb-4 border-b border-os-border pb-2">{catName}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {sectionItems.map((item) => {
-                  let statusColor = "text-os-text-muted bg-slate-500/10 border-slate-500/20";
-                  if (item.connectionStatus === 'CONNECTED') statusColor = "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
-                  if (item.connectionStatus === 'SYNCING') statusColor = "text-os-text-primary bg-os-surface-elevated border-os-border animate-pulse";
-                  if (item.connectionStatus === 'FAILED') statusColor = "text-rose-400 bg-rose-500/10 border-rose-500/20";
-                  if (item.connectionStatus === 'WARNING') statusColor = "text-amber-400 bg-amber-500/10 border-amber-500/20";
-                  if (item.connectionStatus === 'NOT CONFIGURED') statusColor = "text-os-text-muted bg-slate-500/10 border-slate-500/20";
-
-                  return (
-                    <div 
-                      key={item.id} 
-                      onClick={() => handleCardClick(item)}
-                      className="bg-os-surface-secondary border border-os-border p-5 rounded-sm hover:border-os-border/40 transition-all group cursor-pointer relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 p-3 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity">
-                         <Layers size={64} />
-                      </div>
-                      <div className="flex justify-between items-start mb-4">
-                        <div className="w-10 h-10 rounded-sm bg-white/5 border border-os-border flex items-center justify-center text-os-text-secondary group-hover:text-os-text-primary group-hover:border-os-border transition-colors">
-                          <Cpu size={18} />
-                        </div>
-                        <div className="flex flex-col items-end gap-1">
-                          <span className="text-[10px] uppercase tracking-widest font-mono text-os-text-muted">
-                            CONNECTOR: {item.connectionStatus === 'CONNECTED' ? 'CONNECTED' : 'AVAILABLE'}
-                          </span>
-                          <span className={`text-[10px] uppercase tracking-widest font-mono px-2 py-1 border rounded-sm ${statusColor}`}>
-                            {item.connectionStatus}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <h4 className="text-sm font-medium text-os-text-primary mb-1">{item.name}</h4>
-                      <p className="text-xs text-os-text-muted h-8 line-clamp-2">{item.description}</p>
-                      
-                      <div className="mt-4 pt-4 border-t border-os-border flex items-center justify-between">
-                        <span className="text-[10px] uppercase tracking-widest text-os-text-muted font-mono">TYPE: {item.type} | {item.records} RECS</span>
-                        <div className="flex items-center gap-1 text-slate-600 group-hover:text-os-text-primary transition-colors text-xs font-mono">
-                          <span>{item.connectionStatus === 'CONNECTED' ? 'MANAGE' : 'CONFIGURE'}</span>
-                          <ArrowRight size={14} />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
+      {/* Fabric View Navigation Tabs */}
+      <div className="flex gap-2 border-b border-os-border pb-2 text-xs font-mono overflow-x-auto">
+        <button
+          onClick={() => setFabricTab('connectors')}
+          className={`px-4 py-2 rounded-sm uppercase tracking-widest flex items-center gap-2 transition-colors ${fabricTab === 'connectors' ? 'bg-os-surface-hover text-cyan-300 border border-os-border/40 font-bold' : 'text-os-text-secondary hover:text-os-text-primary'}`}
+        >
+          <Network size={14} />
+          Connectors ({fabricConnectors.length})
+        </button>
+        <button
+          onClick={() => setFabricTab('syncJobs')}
+          className={`px-4 py-2 rounded-sm uppercase tracking-widest flex items-center gap-2 transition-colors ${fabricTab === 'syncJobs' ? 'bg-os-surface-hover text-cyan-300 border border-os-border/40 font-bold' : 'text-os-text-secondary hover:text-os-text-primary'}`}
+        >
+          <RefreshCw size={14} />
+          Sync Jobs ({syncJobs.length})
+        </button>
+        <button
+          onClick={() => setFabricTab('dlq')}
+          className={`px-4 py-2 rounded-sm uppercase tracking-widest flex items-center gap-2 transition-colors ${fabricTab === 'dlq' ? 'bg-os-surface-hover text-amber-300 border border-os-border/40 font-bold' : 'text-os-text-secondary hover:text-os-text-primary'}`}
+        >
+          <AlertTriangle size={14} />
+          Dead Letter Queue ({dlqRecords.length})
+        </button>
+        <button
+          onClick={() => setFabricTab('reconciliation')}
+          className={`px-4 py-2 rounded-sm uppercase tracking-widest flex items-center gap-2 transition-colors ${fabricTab === 'reconciliation' ? 'bg-os-surface-hover text-cyan-300 border border-os-border/40 font-bold' : 'text-os-text-secondary hover:text-os-text-primary'}`}
+        >
+          <RotateCcw size={14} />
+          State Reconciliation ({discrepancies.length})
+        </button>
       </div>
+
+      {/* TAB 1: CONNECTORS GRID */}
+      {fabricTab === 'connectors' && (
+        <div className="space-y-8">
+          {['Enterprise Systems', 'B2B & External', 'Data & Storage'].map((catName) => {
+            const sectionItems = connectors.filter(c => c.category === catName);
+            return (
+              <div key={catName}>
+                <h3 className="text-xs uppercase tracking-[0.2em] text-os-text-muted font-bold mb-4 border-b border-os-border pb-2">{catName}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {sectionItems.map((item) => {
+                    let statusColor = "text-os-text-muted bg-slate-500/10 border-slate-500/20";
+                    if (item.connectionStatus === 'CONNECTED') statusColor = "text-emerald-400 bg-emerald-500/10 border-emerald-500/20";
+                    if (item.connectionStatus === 'SYNCING') statusColor = "text-os-text-primary bg-os-surface-elevated border-os-border animate-pulse";
+                    if (item.connectionStatus === 'FAILED') statusColor = "text-rose-400 bg-rose-500/10 border-rose-500/20";
+                    if (item.connectionStatus === 'WARNING') statusColor = "text-amber-400 bg-amber-500/10 border-amber-500/20";
+                    if (item.connectionStatus === 'NOT CONFIGURED') statusColor = "text-os-text-muted bg-slate-500/10 border-slate-500/20";
+
+                    return (
+                      <div 
+                        key={item.id} 
+                        onClick={() => handleCardClick(item)}
+                        className="bg-os-surface-secondary border border-os-border p-5 rounded-sm hover:border-os-border/40 transition-all group cursor-pointer relative overflow-hidden"
+                      >
+                        <div className="absolute top-0 right-0 p-3 opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity">
+                           <Layers size={64} />
+                        </div>
+                        <div className="flex justify-between items-start mb-4">
+                          <div className="w-10 h-10 rounded-sm bg-white/5 border border-os-border flex items-center justify-center text-os-text-secondary group-hover:text-os-text-primary group-hover:border-os-border transition-colors">
+                            <Cpu size={18} />
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="text-[10px] uppercase tracking-widest font-mono text-os-text-muted">
+                              TYPE: {item.type}
+                            </span>
+                            <span className={`text-[10px] uppercase tracking-widest font-mono px-2 py-1 border rounded-sm ${statusColor}`}>
+                              {item.connectionStatus}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <h4 className="text-sm font-medium text-os-text-primary mb-1">{item.name}</h4>
+                        <p className="text-xs text-os-text-muted h-8 line-clamp-2">{item.description}</p>
+                        
+                        <div className="mt-4 pt-4 border-t border-os-border flex items-center justify-between">
+                          <span className="text-[10px] uppercase tracking-widest text-os-text-muted font-mono">HEALTH: OK | {item.records} RECS</span>
+                          <div className="flex items-center gap-1 text-slate-600 group-hover:text-os-text-primary transition-colors text-xs font-mono">
+                            <span>{item.connectionStatus === 'CONNECTED' ? 'MANAGE' : 'CONFIGURE'}</span>
+                            <ArrowRight size={14} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* TAB 1.5: SYNC JOBS ENGINE */}
+      {fabricTab === 'syncJobs' && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-sm font-mono text-os-text-primary">DURABLE SYNC JOB ENGINE</h3>
+              <p className="text-xs text-os-text-muted">Watermarking, pagination tracking, and entity ingress history</p>
+            </div>
+            <button
+              onClick={() => triggerSyncJob({ connectorId: 'conn-sap-s4hana-01', entityType: 'PurchaseOrder', mode: 'INCREMENTAL' })}
+              className="px-4 py-2 bg-cyan-500 text-black text-xs font-bold uppercase tracking-widest rounded-sm hover:bg-cyan-400"
+            >
+              Trigger SAP Sync Job
+            </button>
+          </div>
+
+          <div className="border border-os-border rounded-sm overflow-hidden bg-os-surface-secondary">
+            <table className="w-full text-left text-xs font-mono border-collapse">
+              <thead>
+                <tr className="border-b border-os-border bg-os-bg/50 text-os-text-muted">
+                  <th className="p-3">SYNC JOB ID</th>
+                  <th className="p-3">CONNECTOR</th>
+                  <th className="p-3">ENTITY</th>
+                  <th className="p-3">MODE</th>
+                  <th className="p-3">READ / PROCESSED</th>
+                  <th className="p-3">WATERMARK / CURSOR</th>
+                  <th className="p-3">STATUS</th>
+                  <th className="p-3">STARTED</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5 text-os-text-secondary">
+                {syncJobs.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="p-8 text-center text-os-text-muted">No sync job records found.</td>
+                  </tr>
+                ) : (
+                  syncJobs.map(job => (
+                    <tr key={job.syncJobId} className="hover:bg-os-surface-hover/30">
+                      <td className="p-3 font-bold text-os-text-primary">{job.syncJobId}</td>
+                      <td className="p-3">{job.connectorId}</td>
+                      <td className="p-3 text-cyan-300">{job.entityType}</td>
+                      <td className="p-3"><span className="px-1.5 py-0.5 border border-os-border rounded-sm text-[10px]">{job.mode}</span></td>
+                      <td className="p-3">{job.recordsRead} read / {job.recordsProcessed} processed</td>
+                      <td className="p-3 text-os-text-muted">{job.watermark?.lastModifiedAt ? `Modified: ${new Date(job.watermark.lastModifiedAt).toLocaleTimeString()}` : job.watermark?.pageToken || 'Cursor OK'}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-0.5 border rounded-sm text-[10px] ${job.status === 'COMPLETED' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : job.status === 'RUNNING' ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-300 animate-pulse' : 'bg-rose-500/10 border-rose-500/30 text-rose-400'}`}>
+                          {job.status}
+                        </span>
+                      </td>
+                      <td className="p-3 text-os-text-muted">{new Date(job.startedAt).toLocaleTimeString()}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {fabricTab === 'dlq' && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-sm font-mono text-os-text-primary">INTEGRATION DEAD LETTER QUEUE (DLQ)</h3>
+              <p className="text-xs text-os-text-muted">Unprocessable integration payloads requiring operator intervention</p>
+            </div>
+          </div>
+
+          <div className="border border-os-border rounded-sm overflow-hidden bg-os-surface-secondary">
+            <table className="w-full text-left text-xs font-mono border-collapse">
+              <thead>
+                <tr className="border-b border-os-border bg-os-bg/50 text-os-text-muted">
+                  <th className="p-3">MESSAGE ID</th>
+                  <th className="p-3">CONNECTOR</th>
+                  <th className="p-3">ENTITY</th>
+                  <th className="p-3">ERROR CODE</th>
+                  <th className="p-3">ATTEMPTS</th>
+                  <th className="p-3">FAILED AT</th>
+                  <th className="p-3">STATUS</th>
+                  <th className="p-3 text-right">ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5 text-os-text-secondary">
+                {dlqRecords.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="p-8 text-center text-os-text-muted">No unresolved messages in Dead Letter Queue.</td>
+                  </tr>
+                ) : (
+                  dlqRecords.map(rec => (
+                    <tr key={rec.messageId} className="hover:bg-os-surface-hover/30">
+                      <td className="p-3 font-bold text-os-text-primary">{rec.messageId}</td>
+                      <td className="p-3">{rec.connectorId}</td>
+                      <td className="p-3 text-cyan-300">{rec.entityType}</td>
+                      <td className="p-3 text-rose-400">{rec.errorCode}</td>
+                      <td className="p-3">{rec.attemptCount} / 3</td>
+                      <td className="p-3 text-os-text-muted">{new Date(rec.lastFailedAt).toLocaleTimeString()}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-0.5 border rounded-sm text-[10px] ${rec.status === 'UNRESOLVED' ? 'bg-amber-500/10 border-amber-500/30 text-amber-300' : rec.status === 'RETRIED' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'bg-slate-500/10 border-slate-500/30 text-os-text-muted'}`}>
+                          {rec.status}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button 
+                            onClick={() => retryDLQMessage(rec.messageId, 'Operator')}
+                            className="px-2 py-1 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/30 rounded-sm text-[10px] uppercase font-bold flex items-center gap-1"
+                          >
+                            <RotateCcw size={10} />
+                            Retry
+                          </button>
+                          <button 
+                            onClick={() => discardDLQMessage(rec.messageId, 'Operator')}
+                            className="px-2 py-1 bg-rose-500/20 border border-rose-500/40 text-rose-300 hover:bg-rose-500/30 rounded-sm text-[10px] uppercase font-bold flex items-center gap-1"
+                          >
+                            <Trash2 size={10} />
+                            Discard
+                          </button>
+                          <button 
+                            onClick={() => resolveDLQMessage(rec.messageId, 'Operator')}
+                            className="px-2 py-1 bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/30 rounded-sm text-[10px] uppercase font-bold flex items-center gap-1"
+                          >
+                            <CheckSquare size={10} />
+                            Resolve
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB 3: RECONCILIATION ENGINE */}
+      {fabricTab === 'reconciliation' && (
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-sm font-mono text-os-text-primary">BIDIRECTIONAL STATE RECONCILIATION</h3>
+              <p className="text-xs text-os-text-muted">State drift detection between Orion canonical models and ERP sources</p>
+            </div>
+            <button 
+              onClick={() => runReconciliation({
+                sourceSystem: 'SAP',
+                purchaseOrders: [],
+                inventory: [],
+                shipments: [],
+                suppliers: [],
+                actor: 'Operator'
+              })}
+              disabled={isReconciling}
+              className="px-4 py-2 bg-cyan-500 text-black text-xs font-bold uppercase tracking-widest rounded-sm hover:bg-cyan-400"
+            >
+              {isReconciling ? 'Reconciling...' : 'Run Reconciliation Cycle'}
+            </button>
+          </div>
+
+          <div className="border border-os-border rounded-sm overflow-hidden bg-os-surface-secondary">
+            <table className="w-full text-left text-xs font-mono border-collapse">
+              <thead>
+                <tr className="border-b border-os-border bg-os-bg/50 text-os-text-muted">
+                  <th className="p-3">DISCREPANCY ID</th>
+                  <th className="p-3">SYSTEM</th>
+                  <th className="p-3">ENTITY</th>
+                  <th className="p-3">DRIFT TYPE</th>
+                  <th className="p-3">ORION VAL</th>
+                  <th className="p-3">ERP VAL</th>
+                  <th className="p-3">SEVERITY</th>
+                  <th className="p-3 text-right">ACTION</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5 text-os-text-secondary">
+                {discrepancies.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="p-8 text-center text-os-text-muted">All ERP & Orion states are 100% matched. Zero drift detected.</td>
+                  </tr>
+                ) : (
+                  discrepancies.map(disc => (
+                    <tr key={disc.id} className="hover:bg-os-surface-hover/30">
+                      <td className="p-3 font-bold text-os-text-primary">{disc.id}</td>
+                      <td className="p-3">{disc.sourceSystem}</td>
+                      <td className="p-3 text-cyan-300">{disc.entityType} ({disc.entityId})</td>
+                      <td className="p-3 text-amber-300">{disc.type}</td>
+                      <td className="p-3 font-mono">{String(disc.orionValue)}</td>
+                      <td className="p-3 font-mono">{String(disc.externalValue)}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-0.5 border rounded-sm text-[10px] ${disc.severity === 'HIGH' || disc.severity === 'CRITICAL' ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' : 'bg-amber-500/10 border-amber-500/30 text-amber-300'}`}>
+                          {disc.severity}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button 
+                            onClick={() => resolveDiscrepancy(disc.id, 'ALIGN_TO_ERP', 'Operator')}
+                            className="px-2 py-1 bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/30 rounded-sm text-[10px] uppercase font-bold"
+                          >
+                            Align to ERP
+                          </button>
+                          <button 
+                            onClick={() => resolveDiscrepancy(disc.id, 'DISMISS', 'Operator')}
+                            className="px-2 py-1 bg-slate-500/20 border border-slate-500/40 text-os-text-muted hover:bg-slate-500/30 rounded-sm text-[10px] uppercase font-bold"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* CONNECTION WIZARD MODAL */}
       {modalMode === 'wizard' && selectedConnector && (
@@ -288,7 +570,7 @@ export const Integrations = () => {
               <div className={wizardStep >= 5 ? 'text-os-text-primary font-bold' : 'text-os-text-muted'}><span className="sm:hidden">5.</span><span className="hidden sm:inline">5. ACTIVATE</span></div>
             </div>
 
-            {/* STEP <span className="sm:hidden">1.</span><span className="hidden sm:inline">1. PURPOSE</span> */}
+            {/* STEP 1: PURPOSE */}
             {wizardStep === 1 && (
               <div className="space-y-4">
                 <div>
@@ -329,7 +611,7 @@ export const Integrations = () => {
               </div>
             )}
 
-            {/* STEP <span className="sm:hidden">2.</span><span className="hidden sm:inline">2. SYSTEM</span> */}
+            {/* STEP 2: SYSTEM */}
             {wizardStep === 2 && (
               <div className="space-y-4">
                 <div>
@@ -377,38 +659,6 @@ export const Integrations = () => {
                   />
                   <p className="text-[10px] text-os-text-muted mt-1">Enter the API endpoint supplied by your SAP environment administrator.</p>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-[10px] uppercase tracking-wider text-os-text-secondary mb-1">Tenant / Client (Opt)</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. 100"
-                      value={configForm.clientTenant} 
-                      onChange={e => setConfigForm({...configForm, clientTenant: e.target.value})}
-                      className="w-full bg-os-surface-secondary border border-os-border rounded-sm p-2 text-xs font-mono text-os-text-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase tracking-wider text-os-text-secondary mb-1">Company Code (Opt)</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. US01"
-                      value={configForm.companyCode} 
-                      onChange={e => setConfigForm({...configForm, companyCode: e.target.value})}
-                      className="w-full bg-os-surface-secondary border border-os-border rounded-sm p-2 text-xs font-mono text-os-text-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] uppercase tracking-wider text-os-text-secondary mb-1">Environment ID (Opt)</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. PRD_01"
-                      value={configForm.environmentId} 
-                      onChange={e => setConfigForm({...configForm, environmentId: e.target.value})}
-                      className="w-full bg-os-surface-secondary border border-os-border rounded-sm p-2 text-xs font-mono text-os-text-primary"
-                    />
-                  </div>
-                </div>
                 <div className="flex justify-between pt-4">
                   <button 
                     onClick={() => setWizardStep(1)}
@@ -426,7 +676,7 @@ export const Integrations = () => {
               </div>
             )}
 
-            {/* STEP <span className="sm:hidden">3.</span><span className="hidden sm:inline">3. AUTH & TEST</span> */}
+            {/* STEP 3: AUTH & TEST */}
             {wizardStep === 3 && (
               <div className="space-y-6">
                 <div>
@@ -498,7 +748,7 @@ export const Integrations = () => {
               </div>
             )}
 
-            {/* STEP <span className="sm:hidden">4.</span><span className="hidden sm:inline">4. DISCOVER & MAP</span> */}
+            {/* STEP 4: DISCOVER & MAP */}
             {wizardStep === 4 && (
               <div className="space-y-6">
                 <div className="space-y-3">
@@ -530,30 +780,6 @@ export const Integrations = () => {
                       </div>
                     ))}
                   </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="text-xs uppercase font-mono text-os-text-primary">Field Mapping Verification</div>
-                  <table className="w-full text-left text-xs font-mono border-collapse">
-                    <thead>
-                      <tr className="border-b border-os-border text-os-text-muted">
-                        <th className="p-2">SOURCE FIELD</th>
-                        <th className="p-2">→</th>
-                        <th className="p-2">ORION FIELD</th>
-                        <th className="p-2">TRANSFORMATION</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5 text-os-text-secondary">
-                      {selectedConnector.fieldMappings.map((m, idx) => (
-                        <tr key={idx}>
-                          <td className="p-2 text-os-text-primary">{m.sourceField}</td>
-                          <td className="p-2 text-os-text-muted">→</td>
-                          <td className="p-2">{m.orionField}</td>
-                          <td className="p-2 text-os-text-muted">{m.transformation || 'direct'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
                 </div>
 
                 {validationResult && (
@@ -592,7 +818,7 @@ export const Integrations = () => {
               </div>
             )}
 
-            {/* STEP <span className="sm:hidden">5.</span><span className="hidden sm:inline">5. ACTIVATE</span> */}
+            {/* STEP 5: ACTIVATE */}
             {wizardStep === 5 && (
               <div className="space-y-6 text-center py-6">
                 <div className="w-16 h-16 bg-emerald-500/20 border border-emerald-500/50 rounded-full flex items-center justify-center mx-auto text-emerald-400">
@@ -602,11 +828,6 @@ export const Integrations = () => {
                   <h4 className="text-lg font-medium text-os-text-primary">Ready for Activation & Initial Sync</h4>
                   <p className="text-xs text-os-text-secondary mt-1">Connection verified, schemas mapped, and data domains selected.</p>
                 </div>
-                {configForm.environment === 'Production' && !prodConfirmed && (
-                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-sm text-xs font-mono text-amber-300">
-                    Production activation requires explicit confirmation in Step 2.
-                  </div>
-                )}
                 <div className="flex justify-center gap-4 pt-4">
                   <button 
                     onClick={() => setWizardStep(4)}
@@ -625,8 +846,7 @@ export const Integrations = () => {
                         console.warn('Initial sync failed:', err);
                       }
                     }}
-                    disabled={configForm.environment === 'Production' && !prodConfirmed}
-                    className={`px-6 py-2.5 text-xs font-bold uppercase tracking-widest rounded-sm transition-colors ${configForm.environment === 'Production' && !prodConfirmed ? 'bg-white/10 text-os-text-muted cursor-not-allowed' : 'bg-cyan-500 text-black hover:bg-cyan-400'}`}
+                    className="px-6 py-2.5 bg-cyan-500 text-black text-xs font-bold uppercase tracking-widest rounded-sm hover:bg-cyan-400"
                   >
                     Activate & Execute Initial Sync
                   </button>
@@ -637,195 +857,6 @@ export const Integrations = () => {
           </div>
         </div>
       )}
-
-      {/* CONNECTION DETAIL MODAL */}
-      {modalMode === 'detail' && selectedConnector && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-os-bg border border-os-border w-full max-w-4xl rounded-sm p-6 space-y-6 relative max-h-[90vh] overflow-y-auto">
-            <button 
-              onClick={() => setModalMode(null)}
-              className="absolute top-4 right-4 text-os-text-muted hover:text-os-text-secondary"
-            >
-              <X size={20} />
-            </button>
-
-            <div className="flex justify-between items-start border-b border-os-border pb-4">
-              <div>
-                <div className="text-[10px] uppercase font-mono tracking-widest text-os-text-primary">{selectedConnector.category}</div>
-                <h3 className="text-xl font-light text-os-text-primary">{selectedConnector.name} Connection Summary</h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-[10px] uppercase font-mono px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 rounded-sm">
-                  {selectedConnector.connectionStatus}
-                </span>
-                <button 
-                  onClick={handleRunSync}
-                  disabled={isSyncing}
-                  className="flex items-center gap-1.5 px-3 py-1 bg-cyan-500 text-black text-xs font-bold uppercase tracking-widest rounded-sm hover:bg-cyan-400"
-                >
-                  <RefreshCw size={12} className={isSyncing ? 'animate-spin' : ''} />
-                  {isSyncing ? 'Syncing...' : 'Run Sync'}
-                </button>
-              </div>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex gap-2 border-b border-os-border pb-2 text-xs font-mono">
-              {(['overview', 'domains', 'mapping', 'history', 'logs', 'settings'] as const).map(tab => (
-                <button 
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-3 py-1.5 rounded-sm uppercase tracking-widest transition-colors ${activeTab === tab ? 'bg-os-surface-hover text-os-text-primary border border-os-border/40' : 'text-os-text-secondary hover:text-os-text-primary'}`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            {/* Tab Contents */}
-            <div className="min-h-[250px] space-y-4">
-              {activeTab === 'overview' && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-os-surface-secondary border border-os-border p-4 rounded-sm">
-                    <div className="text-[10px] text-os-text-muted uppercase tracking-widest mb-1">Environment</div>
-                    <div className="text-sm font-mono text-os-text-primary">{selectedConnector.config?.environment || 'Sandbox / Test'}</div>
-                  </div>
-                  <div className="bg-os-surface-secondary border border-os-border p-4 rounded-sm">
-                    <div className="text-[10px] text-os-text-muted uppercase tracking-widest mb-1">Status</div>
-                    <div className="text-sm font-mono text-emerald-400">{selectedConnector.connectionStatus}</div>
-                  </div>
-                  <div className="bg-os-surface-secondary border border-os-border p-4 rounded-sm">
-                    <div className="text-[10px] text-os-text-muted uppercase tracking-widest mb-1">Records Ingested</div>
-                    <div className="text-lg font-mono text-os-text-primary">{selectedConnector.records}</div>
-                  </div>
-                  <div className="bg-os-surface-secondary border border-os-border p-4 rounded-sm">
-                    <div className="text-[10px] text-os-text-muted uppercase tracking-widest mb-1">Last Sync</div>
-                    <div className="text-xs font-mono text-os-text-secondary truncate">{selectedConnector.lastSync ? new Date(selectedConnector.lastSync).toLocaleTimeString() : 'Not Synced'}</div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'domains' && (
-                <div className="space-y-2">
-                  <div className="text-xs uppercase font-mono text-os-text-secondary mb-2">Selected Data Domains</div>
-                  {selectedConnector.domains.map(d => (
-                    <div key={d.id} className="bg-os-surface-secondary border border-os-border p-3 rounded-sm flex justify-between items-center text-xs font-mono">
-                      <div className="flex items-center gap-3">
-                        <span className={`w-2 h-2 rounded-full ${d.enabled ? 'bg-emerald-400' : 'bg-slate-600'}`}></span>
-                        <span className="text-os-text-primary">{d.name}</span>
-                      </div>
-                      <span className="text-os-text-secondary">{d.availableRecords} records</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {activeTab === 'mapping' && (
-                <div className="space-y-2">
-                  <div className="text-xs uppercase font-mono text-os-text-secondary mb-2">Source to Orion Schema Mappings</div>
-                  <table className="w-full text-left text-xs font-mono border-collapse">
-                    <thead>
-                      <tr className="border-b border-os-border text-os-text-muted">
-                        <th className="p-2">SOURCE FIELD</th>
-                        <th className="p-2">→</th>
-                        <th className="p-2">ORION FIELD</th>
-                        <th className="p-2">TRANSFORMATION</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/5 text-os-text-secondary">
-                      {selectedConnector.fieldMappings.map((m, idx) => (
-                        <tr key={idx}>
-                          <td className="p-2 text-os-text-primary">{m.sourceField}</td>
-                          <td className="p-2 text-os-text-muted">→</td>
-                          <td className="p-2">{m.orionField}</td>
-                          <td className="p-2 text-os-text-muted">{m.transformation || 'direct'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {activeTab === 'history' && (
-                <div className="space-y-2">
-                  <div className="text-xs uppercase font-mono text-os-text-secondary mb-2">Sync Job History</div>
-                  {selectedConnector.syncHistory.length === 0 ? (
-                    <div className="text-xs text-os-text-muted text-center py-8">No sync jobs recorded yet.</div>
-                  ) : (
-                    selectedConnector.syncHistory.map(job => (
-                      <div key={job.id} className="bg-os-surface-secondary border border-os-border p-3 rounded-sm flex justify-between items-center text-xs font-mono">
-                        <div>
-                          <span className="text-os-text-primary font-bold">{job.id}</span>
-                          <span className="text-os-text-secondary ml-3">{new Date(job.startedAt).toLocaleString()}</span>
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <span className="text-emerald-400">{job.recordsRead} records</span>
-                          <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 rounded-sm">{job.status}</span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'logs' && (
-                <div className="space-y-2 bg-black p-4 rounded-sm font-mono text-xs max-h-60 overflow-y-auto">
-                  {selectedConnector.logs.map(log => (
-                    <div key={log.id} className="flex gap-3 text-os-text-secondary pb-1 border-b border-os-border">
-                      <span className="text-os-text-muted">{new Date(log.timestamp).toLocaleTimeString()}</span>
-                      <span className={log.level === 'ERROR' ? 'text-rose-400' : log.level === 'SUCCESS' ? 'text-emerald-400' : 'text-os-text-primary'}>[{log.action}]</span>
-                      <span>{log.message}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {activeTab === 'settings' && (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs uppercase tracking-wider text-os-text-secondary mb-1">Connection Name</label>
-                    <input type="text" defaultValue={selectedConnector.name} className="w-full bg-os-surface-secondary border border-os-border rounded-sm p-2.5 text-xs font-mono text-os-text-primary" />
-                  </div>
-                  <div>
-                    <label className="block text-xs uppercase tracking-wider text-os-text-secondary mb-1">Polling Frequency</label>
-                    <select className="w-full bg-os-surface-secondary border border-os-border rounded-sm p-2.5 text-xs font-mono text-os-text-primary">
-                      <option>Every 15 Minutes</option>
-                      <option>Hourly</option>
-                      <option>Daily</option>
-                      <option>Manual Only</option>
-                    </select>
-                  </div>
-                  <div className="pt-4 flex justify-between">
-                    <button 
-                      onClick={async () => {
-                        try {
-                          await selectedConnector.disconnect();
-                          setConnectors([...connectors]);
-                          setModalMode(null);
-                        } catch (err) {
-                          console.warn('Disconnect failed:', err);
-                        }
-                      }}
-                      className="px-4 py-2 bg-rose-500/20 border border-rose-500/40 text-rose-400 text-xs uppercase tracking-widest rounded-sm hover:bg-rose-500/30"
-                    >
-                      Disconnect
-                    </button>
-                    <button 
-                      onClick={() => setModalMode(null)}
-                      className="px-6 py-2 bg-cyan-500 text-black text-xs font-bold uppercase tracking-widest rounded-sm hover:bg-cyan-400"
-                    >
-                      Save Settings
-                    </button>
-                  </div>
-                </div>
-              )}
-
-            </div>
-
-          </div>
-        </div>
-      )}
-
     </div>
   );
 };

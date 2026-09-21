@@ -41,6 +41,10 @@ export class KernelCommandBus {
     this.handlers.set(commandType, handler);
   }
 
+  public hasHandler(commandType: string): boolean {
+    return this.handlers.has(commandType);
+  }
+
   /**
    * Dispatches a command through the complete canonical pipeline
    */
