@@ -6,7 +6,8 @@ import {
   Map, Target, Zap, LayoutDashboard, Globe, Network, Users,
   Clock, History, Sliders, ShieldAlert, Eye, HelpCircle, GitBranch,
   Compass, UserCheck, HeartPulse, RefreshCw, Info, User, Building2,
-  ShieldCheck, DollarSign, PackageCheck, FlaskConical, TrendingUp
+  ShieldCheck, DollarSign, PackageCheck, FlaskConical, TrendingUp,
+  FileCheck, RotateCcw
 } from 'lucide-react';
 
 export interface OrionApp {
@@ -705,6 +706,56 @@ export const ORION_REGISTRY: Record<string, OrionApp> = {
     icon: TrendingUp,
     color: '#EC4899',
     description: 'Analytical impact inspector, risk contagion paths, and Wave 7 workflow bridge.',
+    dockDefault: false,
+  },
+  'outcome-center': {
+    id: 'outcome-center',
+    name: 'Outcome Center',
+    route: '/admin/outcomes',
+    category: 'Control',
+    icon: FileCheck,
+    color: '#10B981',
+    description: 'Closed-loop expected vs actual telemetry, variance calculation, and decision effectiveness.',
+    dockDefault: true,
+  },
+  'learning-center': {
+    id: 'learning-center',
+    name: 'Learning Center',
+    route: '/admin/learning',
+    category: 'Intelligence',
+    icon: Brain,
+    color: '#6366F1',
+    description: 'Systemic learning signals, governed improvement proposals, and versioned releases.',
+    dockDefault: true,
+  },
+  'drift-center': {
+    id: 'drift-center',
+    name: 'Drift Center',
+    route: '/admin/drift',
+    category: 'Intelligence',
+    icon: Compass,
+    color: '#3B82F6',
+    description: 'Continuous concept and data drift monitoring across operational variables.',
+    dockDefault: false,
+  },
+  'rollback-center': {
+    id: 'rollback-center',
+    name: 'Rollback Center',
+    route: '/admin/rollback',
+    category: 'Control',
+    icon: RotateCcw,
+    color: '#F59E0B',
+    description: 'Governed configuration version ledger and 1-click rollback engine.',
+    dockDefault: false,
+  },
+  'production-readiness': {
+    id: 'production-readiness',
+    name: 'Production Readiness',
+    route: '/admin/readiness',
+    category: 'Platform',
+    icon: ShieldCheck,
+    color: '#10B981',
+    description: 'Production control plane for security gates, latencies, and zero-regression health.',
     dockDefault: false,
   },
 };

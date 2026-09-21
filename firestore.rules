@@ -517,6 +517,74 @@ service cloud.firestore {
       allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
       allow update, delete: if false; // Outcome tracking is append-only
     }
+
+    // =========================================================================
+    // Wave 9 Closed-Loop Outcome Intelligence & Enterprise Learning Collections
+    // Strict tenant isolation and immutability rules
+    // =========================================================================
+
+    match /outcomes/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false; // Evaluated outcomes are permanently immutable
+    }
+
+    match /outcome_observations/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false; // Raw external observations are permanently immutable
+    }
+
+    match /outcome_variances/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false; // Computed variances are permanently immutable
+    }
+
+    match /outcome_attributions/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update: if isAuthenticated() && (isAdmin() || (isOrgMember(resource.data.tenantId) && request.resource.data.confidence == 'CONFIRMED_ROOT_CAUSE'));
+      allow delete: if false;
+    }
+
+    match /learning_signals/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /improvement_proposals/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        (isOrgMember(resource.data.tenantId) && request.resource.data.status in ['DRAFT', 'SIMULATED'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /intelligence_versions/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update, delete: if isAdmin(); // Versions can only be promoted or rolled back by Admin
+    }
+
+    match /intelligence_experiments/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /intelligence_metrics/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false;
+    }
+
+    match /drift_signals/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false; // Drift telemetry is append-only audit trail
+    }
   }
 }
 
