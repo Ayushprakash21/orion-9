@@ -6,7 +6,7 @@ import {
   Map, Target, Zap, LayoutDashboard, Globe, Network, Users,
   Clock, History, Sliders, ShieldAlert, Eye, HelpCircle, GitBranch,
   Compass, UserCheck, HeartPulse, RefreshCw, Info, User, Building2,
-  ShieldCheck, DollarSign, PackageCheck
+  ShieldCheck, DollarSign, PackageCheck, FlaskConical, TrendingUp
 } from 'lucide-react';
 
 export interface OrionApp {
@@ -676,5 +676,35 @@ export const ORION_REGISTRY: Record<string, OrionApp> = {
     color: '#10B981',
     description: 'Live instance trace spans, execution timelines, and failure analysis.',
     dockDefault: true,
+  },
+  'digital-twin-center': {
+    id: 'digital-twin-center',
+    name: 'Digital Twin Center',
+    route: '/digital-twin-center',
+    category: 'Intelligence',
+    icon: Network,
+    color: '#06B6D4',
+    description: 'Enterprise multi-relational supply chain topology and state reconciliation.',
+    dockDefault: true,
+  },
+  'scenario-lab': {
+    id: 'scenario-lab',
+    name: 'Scenario Lab',
+    route: '/scenario-lab',
+    category: 'Intelligence',
+    icon: FlaskConical,
+    color: '#A855F7',
+    description: 'Deterministic what-if scenario simulations and multi-scenario trade-off analysis.',
+    dockDefault: true,
+  },
+  'scenario-result': {
+    id: 'scenario-result',
+    name: 'Scenario Results',
+    route: '/scenario-result',
+    category: 'Intelligence',
+    icon: TrendingUp,
+    color: '#EC4899',
+    description: 'Analytical impact inspector, risk contagion paths, and Wave 7 workflow bridge.',
+    dockDefault: false,
   },
 };

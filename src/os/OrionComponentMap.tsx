@@ -70,6 +70,9 @@ import { PlatformIntelligence } from '../components/admin/PlatformIntelligence';
 import { WorkflowBuilder as AdminWorkflowBuilder } from '../components/admin/WorkflowBuilder';
 import { AutonomyCenter as AdminAutonomyCenter } from '../components/admin/AutonomyCenter';
 import { WorkflowMonitor } from '../components/admin/WorkflowMonitor';
+import { DigitalTwinCenter } from '../components/admin/DigitalTwinCenter';
+import { ScenarioLab } from '../components/admin/ScenarioLab';
+import { ScenarioResultView } from '../components/admin/ScenarioResultView';
 
 const ProfileUserView: React.FC = () => <Profile initialTab="profile" />;
 const ProfileOrgView: React.FC = () => <Profile initialTab="organization" />;
@@ -145,6 +148,9 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'platform-intelligence': PlatformIntelligence,
   'workflow-builder': AdminWorkflowBuilder,
   'workflow-monitor': WorkflowMonitor,
+  'digital-twin-center': DigitalTwinCenter,
+  'scenario-lab': ScenarioLab,
+  'scenario-result': ScenarioResultView,
 };
 
 export function getAppComponent(appId: string): React.ComponentType<any> | null {
