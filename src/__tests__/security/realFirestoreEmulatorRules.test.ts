@@ -443,14 +443,15 @@ describe('Real Firebase Emulator Security Rules Gate', () => {
     });
 
     it('denies update or deletion of decision_replays (immutable historical snapshots)', async () => {
+      const docId = `rep-tenant-a-${Date.now()}`;
       const tenantADb = testEnv.authenticatedContext('user-tenant-a', {
         organizationId: 'org-tenant-a',
         role: 'admin',
       }).firestore();
 
       await assertSucceeds(
-        tenantADb.collection('decision_replays').doc('rep-tenant-a-01').set({
-          replayId: 'rep-tenant-a-01',
+        tenantADb.collection('decision_replays').doc(docId).set({
+          replayId: docId,
           tenantId: 'org-tenant-a',
           decisionId: 'dec-tenant-a-01',
           snapshotTimestamp: new Date().toISOString(),
@@ -459,26 +460,27 @@ describe('Real Firebase Emulator Security Rules Gate', () => {
 
       // Attempt update -> DENY
       await assertFails(
-        tenantADb.collection('decision_replays').doc('rep-tenant-a-01').update({
+        tenantADb.collection('decision_replays').doc(docId).update({
           tampered: true,
         })
       );
 
       // Attempt delete -> DENY
       await assertFails(
-        tenantADb.collection('decision_replays').doc('rep-tenant-a-01').delete()
+        tenantADb.collection('decision_replays').doc(docId).delete()
       );
     });
 
     it('denies update or deletion of decision_outcomes (append-only ledger)', async () => {
+      const docId = `out-tenant-a-${Date.now()}`;
       const tenantADb = testEnv.authenticatedContext('user-tenant-a', {
         organizationId: 'org-tenant-a',
         role: 'admin',
       }).firestore();
 
       await assertSucceeds(
-        tenantADb.collection('decision_outcomes').doc('out-tenant-a-01').set({
-          outcomeId: 'out-tenant-a-01',
+        tenantADb.collection('decision_outcomes').doc(docId).set({
+          outcomeId: docId,
           tenantId: 'org-tenant-a',
           decisionId: 'dec-tenant-a-01',
           costVariance: 120,
@@ -487,14 +489,14 @@ describe('Real Firebase Emulator Security Rules Gate', () => {
 
       // Attempt update -> DENY
       await assertFails(
-        tenantADb.collection('decision_outcomes').doc('out-tenant-a-01').update({
+        tenantADb.collection('decision_outcomes').doc(docId).update({
           costVariance: 0,
         })
       );
 
       // Attempt delete -> DENY
       await assertFails(
-        tenantADb.collection('decision_outcomes').doc('out-tenant-a-01').delete()
+        tenantADb.collection('decision_outcomes').doc(docId).delete()
       );
     });
   });

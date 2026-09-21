@@ -17,16 +17,19 @@ service cloud.firestore {
 
     function isOrgMember(orgId) {
       return isAuthenticated() && (
-        getUserData().organizationId == orgId ||
-        getUserData().tenantId == orgId ||
-        request.auth.token.organizationId == orgId
+        (request.auth.token != null && request.auth.token.organizationId == orgId) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
+          getUserData().organizationId == orgId ||
+          getUserData().tenantId == orgId
+        ))
       );
     }
 
     function isAdmin() {
       return isAuthenticated() && (
-        getUserData().role in ['platform_admin', 'organization_admin', 'admin'] ||
-        request.auth.token.role in ['platform_admin', 'organization_admin', 'admin']
+        (request.auth.token != null && request.auth.token.role in ['platform_admin', 'organization_admin', 'admin']) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          getUserData().role in ['platform_admin', 'organization_admin', 'admin'])
       );
     }
 
