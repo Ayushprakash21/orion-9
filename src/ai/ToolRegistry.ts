@@ -20,6 +20,13 @@ import {
   outcomeIntelligence,
   priorityEngine,
 } from '../intelligence';
+import {
+  workflowEngine,
+  workflowVersionService,
+  WorkflowSimulationEngine,
+  workflowApprovalEngine,
+  WorkflowDefinition
+} from '../workflows';
 
 export class ToolRegistry {
   private static instance: ToolRegistry;
@@ -600,6 +607,180 @@ export class ToolRegistry {
           return decisionReplayEngine.reconstructTimeline(context.tenantId, params.replayId);
         }
         return decisionReplayEngine.getReplays(context.tenantId);
+      },
+    });
+
+    // -------------------------------------------------------------
+    // WAVE 7 WORKFLOW ORCHESTRATION TOOLS (GOVERNED)
+    // -------------------------------------------------------------
+    this.registerTool({
+      toolId: 'evaluate_workflow',
+      name: 'Evaluate Workflow Simulation',
+      description: 'Run dry-run simulation of a workflow definition with zero mutations',
+      version: '1.0.0',
+      tenantScope: true,
+      requiredPermissions: ['workflows:read'],
+      riskLevel: 'LOW',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          workflowId: { type: 'string' },
+          testPayload: { type: 'object' },
+        },
+        required: ['workflowId'],
+      },
+      outputSchema: { type: 'object' },
+      allowedModes: ['OBSERVE', 'ASSIST', 'RECOMMEND', 'APPROVAL_GATED', 'GOVERNED'],
+      enabled: true,
+      execute: async (params, context) => {
+        const def = workflowVersionService.getDefinition(context.tenantId, params.workflowId);
+        if (!def) {
+          throw new Error(`Workflow '${params.workflowId}' not found in tenant '${context.tenantId}'`);
+        }
+        return WorkflowSimulationEngine.simulate(def, params.testPayload || {}, {
+          id: context.agent.agentId,
+          role: 'ai_agent',
+          isAi: true,
+        });
+      },
+    });
+
+    this.registerTool({
+      toolId: 'explain_workflow',
+      name: 'Explain Workflow',
+      description: 'Generate structured explanation of workflow steps, conditions, and governance rules',
+      version: '1.0.0',
+      tenantScope: true,
+      requiredPermissions: ['workflows:read'],
+      riskLevel: 'LOW',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          workflowId: { type: 'string' },
+        },
+        required: ['workflowId'],
+      },
+      outputSchema: { type: 'object' },
+      allowedModes: ['OBSERVE', 'ASSIST', 'RECOMMEND', 'APPROVAL_GATED', 'GOVERNED'],
+      enabled: true,
+      execute: async (params, context) => {
+        const def = workflowVersionService.getDefinition(context.tenantId, params.workflowId);
+        if (!def) {
+          throw new Error(`Workflow '${params.workflowId}' not found`);
+        }
+        return {
+          workflowId: def.workflowId,
+          name: def.name,
+          version: def.version,
+          autonomyLevel: def.autonomyLevel,
+          riskClass: def.riskClass,
+          trigger: def.trigger.eventType,
+          stepsCount: def.steps.length,
+          steps: def.steps.map(s => ({
+            id: s.stepId,
+            name: s.name,
+            type: s.type,
+            requiresApproval: !!s.approval,
+            approvalRole: s.approval?.requiredRole,
+          })),
+        };
+      },
+    });
+
+    this.registerTool({
+      toolId: 'draft_workflow',
+      name: 'Draft Workflow Definition',
+      description: 'Draft a new workflow definition in DRAFT status for administrator review',
+      version: '1.0.0',
+      tenantScope: true,
+      requiredPermissions: ['workflows:write'],
+      riskLevel: 'MEDIUM',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          workflowId: { type: 'string' },
+          name: { type: 'string' },
+          description: { type: 'string' },
+          trigger: { type: 'object' },
+          steps: { type: 'array' },
+        },
+        required: ['workflowId', 'name'],
+      },
+      outputSchema: { type: 'object' },
+      allowedModes: ['ASSIST', 'RECOMMEND', 'APPROVAL_GATED', 'GOVERNED'],
+      enabled: true,
+      execute: async (params, context) => {
+        const draftDef: WorkflowDefinition = {
+          workflowId: params.workflowId,
+          tenantId: context.tenantId,
+          name: params.name,
+          description: params.description || '',
+          version: '1.0.0-draft',
+          status: 'DRAFT', // AI CAN ONLY DRAFT, NEVER ACTIVATE
+          trigger: params.trigger || {
+            triggerId: `TRIG-${params.workflowId}`,
+            tenantId: context.tenantId,
+            sourceType: 'MANUAL',
+            sourceId: context.agent.agentId,
+            eventType: 'MANUAL_REQUEST',
+            correlationId: `CORR-${Date.now()}`,
+            timestamp: new Date().toISOString(),
+            payloadReference: {},
+          },
+          steps: params.steps || [],
+          riskClass: 'MEDIUM',
+          autonomyLevel: 'LEVEL_2_DRAFT',
+          createdBy: context.agent.agentId,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        workflowVersionService.registerDefinition(draftDef);
+        return {
+          status: 'DRAFT_CREATED',
+          workflowId: draftDef.workflowId,
+          version: draftDef.version,
+          message: 'Workflow drafted successfully. Activation requires authorized human administrator approval.',
+        };
+      },
+    });
+
+    this.registerTool({
+      toolId: 'request_workflow_approval',
+      name: 'Request Workflow Approval',
+      description: 'Request human authorization for an approval-gated workflow step',
+      version: '1.0.0',
+      tenantScope: true,
+      requiredPermissions: ['workflows:write'],
+      riskLevel: 'MEDIUM',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          workflowInstanceId: { type: 'string' },
+          stepId: { type: 'string' },
+          actionId: { type: 'string' },
+          requiredRole: { type: 'string' },
+        },
+        required: ['workflowInstanceId', 'stepId', 'actionId'],
+      },
+      outputSchema: { type: 'object' },
+      allowedModes: ['ASSIST', 'RECOMMEND', 'APPROVAL_GATED', 'GOVERNED'],
+      enabled: true,
+      execute: async (params, context) => {
+        const approval = workflowApprovalEngine.createApprovalRequest(
+          context.tenantId,
+          params.workflowInstanceId,
+          params.stepId,
+          params.actionId,
+          params.requiredRole || 'admin',
+          { id: context.agent.agentId, type: 'AGENT', name: context.agent.agentId }
+        );
+        return {
+          status: 'APPROVAL_REQUESTED',
+          approvalId: approval.approvalId,
+          workflowInstanceId: params.workflowInstanceId,
+          requiredRole: approval.requiredRole,
+        };
       },
     });
   }

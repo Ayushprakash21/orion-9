@@ -199,4 +199,29 @@ describe('Orion-9 Demo / Local Authentication Engine', () => {
       'Access denied. Administrator privileges required.'
     );
   });
+
+  // 13. Case-insensitive and email login support
+  it('13. allows case-insensitive and email identifiers for user and admin', async () => {
+    const adminByEmail = await authService.authenticate('admin@orion.network', 'admin');
+    expect(adminByEmail.role).toBe('platform_admin');
+
+    const adminCased = await authService.authenticate('Admin', 'admin');
+    expect(adminCased.role).toBe('platform_admin');
+
+    const userByEmail = await authService.authenticate('user@orion.network', 'user');
+    expect(userByEmail.role).toBe('user');
+
+    const userCased = await authService.authenticate('User', 'user');
+    expect(userCased.role).toBe('user');
+  });
+
+  // 14. Hardened/alternate demo passwords support
+  it('14. supports hardened demo passwords OrionAdmin2026! and OrionUser2026!', async () => {
+    const adminHardened = await authService.authenticate('admin', 'OrionAdmin2026!');
+    expect(adminHardened.role).toBe('platform_admin');
+
+    const userHardened = await authService.authenticate('user', 'OrionUser2026!');
+    expect(userHardened.role).toBe('user');
+  });
 });
+

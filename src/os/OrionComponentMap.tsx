@@ -67,6 +67,9 @@ import { ManualCenter } from '../components/ManualCenter';
 
 import { AdminControlCenter } from '../components/admin/AdminControlCenter';
 import { PlatformIntelligence } from '../components/admin/PlatformIntelligence';
+import { WorkflowBuilder as AdminWorkflowBuilder } from '../components/admin/WorkflowBuilder';
+import { AutonomyCenter as AdminAutonomyCenter } from '../components/admin/AutonomyCenter';
+import { WorkflowMonitor } from '../components/admin/WorkflowMonitor';
 
 const ProfileUserView: React.FC = () => <Profile initialTab="profile" />;
 const ProfileOrgView: React.FC = () => <Profile initialTab="organization" />;
@@ -117,7 +120,7 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'supplier-comms': SupplierCommunication,
   'logistics': LogisticsIntelligence,
   'event-fabric': EventFabricView,
-  'autonomy-center': AutonomyView,
+  'autonomy-center': AdminAutonomyCenter,
   'causal-intelligence': CausalIntelligenceView,
   'counterfactual': CounterfactualView,
   'decision-economics': DecisionEconomicsView,
@@ -140,6 +143,8 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'organization': ProfileOrgView,
   'control-center': AdminControlCenter,
   'platform-intelligence': PlatformIntelligence,
+  'workflow-builder': AdminWorkflowBuilder,
+  'workflow-monitor': WorkflowMonitor,
 };
 
 export function getAppComponent(appId: string): React.ComponentType<any> | null {

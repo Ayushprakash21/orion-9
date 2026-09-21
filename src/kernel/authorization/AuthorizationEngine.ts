@@ -82,6 +82,30 @@ const RESOURCE_PERMISSION_MAP: Record<
     actorTypes: ['USER', 'ADMIN', 'SYSTEM'],
     roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer'],
   },
+  'purchase_order:update': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'AI_AGENT'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'procurement_director', 'buyer', 'admin', 'ai_agent'],
+  },
+  'shipment:expedite': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'AI_AGENT'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'procurement_director', 'buyer', 'admin', 'ai_agent'],
+  },
+  'shipment:reroute': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'AI_AGENT'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'procurement_director', 'buyer', 'admin', 'ai_agent'],
+  },
+  'supplier:confirm': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'AI_AGENT'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'procurement_director', 'buyer', 'admin', 'ai_agent'],
+  },
+  'compensation:execute': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'AI_AGENT'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'procurement_director', 'admin'],
+  },
+  'workflow:execute': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'AI_AGENT', 'EXTERNAL_INTEGRATION'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'procurement_director', 'buyer', 'admin', 'ai_agent'],
+  },
   'supplier:create': {
     actorTypes: ['USER', 'ADMIN', 'SYSTEM'],
     roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
