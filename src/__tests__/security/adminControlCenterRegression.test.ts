@@ -234,7 +234,7 @@ describe('Admin AI + Manual Control Center Regression Suite', () => {
         id: 'admin-usr-1',
         name: 'Chief Admin',
         role: 'ADMIN',
-        type: 'HUMAN'
+        isAi: false
       });
 
       expect(approved.status).toBe('APPROVED');
@@ -293,9 +293,9 @@ describe('Admin AI + Manual Control Center Regression Suite', () => {
           id: 'agent-ai-copilot',
           name: 'Orion AI',
           role: 'ai_copilot',
-          type: 'AI'
+          isAi: true
         });
-      }).toThrow(/not authorized to approve/i);
+      }).toThrow(/AI agents cannot approve/i);
     });
 
     it('22. prevents AI from elevating autonomy levels', () => {
@@ -333,7 +333,7 @@ describe('Admin AI + Manual Control Center Regression Suite', () => {
         'STEP_B',
         'CONFIRM_SHIPMENT',
         'MEDIUM',
-        'Tenant B approval'
+        { id: 'tenant-b-user', type: 'USER', name: 'Tenant B Operator' }
       );
 
       // Tenant A cannot view or approve Tenant B's request
@@ -345,7 +345,7 @@ describe('Admin AI + Manual Control Center Regression Suite', () => {
           id: 'admin-a',
           name: 'Admin A',
           role: 'platform_admin',
-          type: 'HUMAN'
+          isAi: false
         });
       }).toThrow(/not found/i);
     });

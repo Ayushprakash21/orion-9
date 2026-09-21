@@ -6,7 +6,8 @@ import { BrandingConfig } from '../../types/auth';
 import { 
   Users, Activity, Settings, 
   Palette, LayoutDashboard, Menu, X,
-  Building2, Shield, BrainCircuit, BookOpen
+  Building2, Shield, BrainCircuit, BookOpen,
+  FileCheck, Sliders, Compass, RotateCcw, ShieldCheck
 } from 'lucide-react';
 import { AccountMenu } from '../layout/AccountMenu';
 import { cn } from '../../lib/utils';
@@ -55,6 +56,11 @@ export const AdminLayout = () => {
   const menuItems: MenuItem[] = [
     { name: 'Overview', path: '/admin', icon: LayoutDashboard, exact: true },
     { name: 'AI + Manual Control Center', path: '/admin/control-center', icon: BrainCircuit },
+    { name: 'Outcome Center', path: '/admin/outcomes', icon: FileCheck },
+    { name: 'Learning Center', path: '/admin/learning', icon: Sliders },
+    { name: 'Drift Center', path: '/admin/drift', icon: Compass },
+    { name: 'Rollback Center', path: '/admin/rollback', icon: RotateCcw },
+    { name: 'Production Readiness', path: '/admin/readiness', icon: ShieldCheck },
     { name: 'Platform Intelligence', path: '/admin/platform-intelligence', icon: BrainCircuit },
     { name: 'Users', path: '/admin/users', icon: Users },
     { name: 'Organizations', path: '/admin/organizations', icon: Building2 },

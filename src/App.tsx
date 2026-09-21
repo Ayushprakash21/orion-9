@@ -79,6 +79,11 @@ import { AdminSettings } from './components/admin/AdminSettings';
 import { AdminDemoData } from './components/admin/AdminDemoData';
 import { PlatformIntelligence } from './components/admin/PlatformIntelligence';
 import { AdminControlCenter, ControlCenterApprovals, ControlCenterSimulations, ControlCenterAudit, ControlCenterPolicies } from './components/admin/AdminControlCenter';
+import { OutcomeCenter } from './components/admin/OutcomeCenter';
+import { LearningCenter } from './components/admin/LearningCenter';
+import { DriftCenter } from './components/admin/DriftCenter';
+import { RollbackCenter } from './components/admin/RollbackCenter';
+import { ProductionReadinessCenter } from './components/admin/ProductionReadinessCenter';
 import { ManualCenter } from './components/ManualCenter';
 import { LoadingScreen } from './components/LoadingScreen';
 import { OrionBootSequence } from './os/components/OrionBootSequence';
@@ -161,6 +166,11 @@ function AuthenticatedApplication() {
           <Route path="control-center/approvals" element={<ControlCenterApprovals />} />
           <Route path="control-center/simulations" element={<ControlCenterSimulations />} />
           <Route path="control-center/audit" element={<ControlCenterAudit />} />
+          <Route path="outcomes" element={<OutcomeCenter />} />
+          <Route path="learning" element={<LearningCenter />} />
+          <Route path="drift" element={<DriftCenter />} />
+          <Route path="rollback" element={<RollbackCenter />} />
+          <Route path="readiness" element={<ProductionReadinessCenter />} />
           <Route path="manual" element={<ManualCenter admin />} />
           <Route path="platform-intelligence" element={<PlatformIntelligence />} />
           <Route path="users" element={<AdminUsers />} />

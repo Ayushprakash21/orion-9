@@ -73,6 +73,11 @@ import { WorkflowMonitor } from '../components/admin/WorkflowMonitor';
 import { DigitalTwinCenter } from '../components/admin/DigitalTwinCenter';
 import { ScenarioLab } from '../components/admin/ScenarioLab';
 import { ScenarioResultView } from '../components/admin/ScenarioResultView';
+import { OutcomeCenter } from '../components/admin/OutcomeCenter';
+import { LearningCenter } from '../components/admin/LearningCenter';
+import { DriftCenter } from '../components/admin/DriftCenter';
+import { RollbackCenter } from '../components/admin/RollbackCenter';
+import { ProductionReadinessCenter } from '../components/admin/ProductionReadinessCenter';
 
 const ProfileUserView: React.FC = () => <Profile initialTab="profile" />;
 const ProfileOrgView: React.FC = () => <Profile initialTab="organization" />;
@@ -151,6 +156,11 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'digital-twin-center': DigitalTwinCenter,
   'scenario-lab': ScenarioLab,
   'scenario-result': ScenarioResultView,
+  'outcome-center': OutcomeCenter,
+  'learning-center': LearningCenter,
+  'drift-center': DriftCenter,
+  'rollback-center': RollbackCenter,
+  'production-readiness': ProductionReadinessCenter,
 };
 
 export function getAppComponent(appId: string): React.ComponentType<any> | null {
