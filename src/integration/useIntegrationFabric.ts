@@ -22,6 +22,20 @@ import { kernelEventBus } from '../kernel/EventBus';
 import { syncJobEngine } from './SyncJobEngine';
 import { SyncJobRecord } from './types';
 
+import { transportRegistry } from './transport/TransportRegistry';
+import { tradingPartnerRegistry } from './tradingPartner/TradingPartnerRegistry';
+import { messageLifecycleManager } from './messaging/MessageLifecycleManager';
+import { incidentManager } from './incidents/IncidentManager';
+import { integrationScheduler } from './scheduling/IntegrationScheduler';
+import { integrationTelemetry, IntegrationFabricSummary } from './observability/IntegrationTelemetry';
+import {
+  TransportRecord,
+  TradingPartnerRecord,
+  DurableMessageRecord,
+  IncidentRecord,
+  ScheduleRecord
+} from './types';
+
 export function useIntegrationFabric(tenantId: string = 'org-tenant-a') {
   const [connectors, setConnectors] = useState<ConnectorRecord[]>(() => connectorRegistry.listConnectors(tenantId));
   const [dlqRecords, setDlqRecords] = useState<DLQRecord[]>(() => integrationDLQ.listDLQ(tenantId));
@@ -32,6 +46,14 @@ export function useIntegrationFabric(tenantId: string = 'org-tenant-a') {
   const [syncJobs, setSyncJobs] = useState<SyncJobRecord[]>(() => syncJobEngine.listSyncJobs(tenantId));
   const [isReconciling, setIsReconciling] = useState<boolean>(false);
 
+  // Wave 3.3 State
+  const [transports, setTransports] = useState<TransportRecord[]>(() => transportRegistry.getTransportRecords(tenantId));
+  const [tradingPartners, setTradingPartners] = useState<TradingPartnerRecord[]>(() => tradingPartnerRegistry.listPartners(tenantId));
+  const [durableMessages, setDurableMessages] = useState<DurableMessageRecord[]>(() => messageLifecycleManager.listMessages(tenantId));
+  const [incidents, setIncidents] = useState<IncidentRecord[]>(() => incidentManager.listIncidents(tenantId));
+  const [schedules, setSchedules] = useState<ScheduleRecord[]>(() => integrationScheduler.listSchedules(tenantId));
+  const [summary, setSummary] = useState<IntegrationFabricSummary>(() => integrationTelemetry.getTenantSummary(tenantId));
+
   const refresh = useCallback(() => {
     setConnectors(connectorRegistry.listConnectors(tenantId));
     setDlqRecords(integrationDLQ.listDLQ(tenantId));
@@ -40,6 +62,13 @@ export function useIntegrationFabric(tenantId: string = 'org-tenant-a') {
     setReports(reconciliationEngine.getReports());
     setDiscrepancies(reconciliationEngine.getOpenDiscrepancies());
     setSyncJobs(syncJobEngine.listSyncJobs(tenantId));
+
+    setTransports(transportRegistry.getTransportRecords(tenantId));
+    setTradingPartners(tradingPartnerRegistry.listPartners(tenantId));
+    setDurableMessages(messageLifecycleManager.listMessages(tenantId));
+    setIncidents(incidentManager.listIncidents(tenantId));
+    setSchedules(integrationScheduler.listSchedules(tenantId));
+    setSummary(integrationTelemetry.getTenantSummary(tenantId));
   }, [tenantId]);
 
   useEffect(() => {
@@ -173,6 +202,36 @@ export function useIntegrationFabric(tenantId: string = 'org-tenant-a') {
     return res;
   }, [refresh]);
 
+  const registerTradingPartner = useCallback((partner: Omit<TradingPartnerRecord, 'tenantId'>) => {
+    const rec = tradingPartnerRegistry.registerPartner({ ...partner, tenantId });
+    refresh();
+    return rec;
+  }, [tenantId, refresh]);
+
+  const reportIncident = useCallback((incident: Omit<IncidentRecord, 'incidentId' | 'tenantId' | 'status' | 'createdAt'>) => {
+    const rec = incidentManager.reportIncident({ ...incident, tenantId });
+    refresh();
+    return rec;
+  }, [tenantId, refresh]);
+
+  const resolveIncident = useCallback((incidentId: string, actor: string) => {
+    const res = incidentManager.resolveIncident(tenantId, incidentId, actor);
+    refresh();
+    return res;
+  }, [tenantId, refresh]);
+
+  const createSchedule = useCallback((schedule: Omit<ScheduleRecord, 'scheduleId' | 'tenantId' | 'createdAt' | 'updatedAt'>) => {
+    const rec = integrationScheduler.createSchedule({ ...schedule, tenantId });
+    refresh();
+    return rec;
+  }, [tenantId, refresh]);
+
+  const triggerSchedule = useCallback((scheduleId: string) => {
+    const res = integrationScheduler.triggerSchedule(tenantId, scheduleId);
+    refresh();
+    return res;
+  }, [tenantId, refresh]);
+
   return {
     connectors,
     dlqRecords,
@@ -182,6 +241,12 @@ export function useIntegrationFabric(tenantId: string = 'org-tenant-a') {
     discrepancies,
     syncJobs,
     isReconciling,
+    transports,
+    tradingPartners,
+    durableMessages,
+    incidents,
+    schedules,
+    summary,
     registerConnector,
     testConnectorConnection,
     triggerSyncJob,
@@ -191,6 +256,12 @@ export function useIntegrationFabric(tenantId: string = 'org-tenant-a') {
     runIngest,
     runReconciliation,
     resolveDiscrepancy,
+    registerTradingPartner,
+    reportIncident,
+    resolveIncident,
+    createSchedule,
+    triggerSchedule,
     refresh
   };
 }
+

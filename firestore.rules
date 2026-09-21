@@ -127,5 +127,36 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
+
+    // Wave 3.3 Enterprise Integration Fabric collections
+    match /transports/{transportId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow write: if isAdmin();
+    }
+
+    match /trading_partners/{partnerId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /integration_messages/{messageId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && isOrgMember(request.resource.data.tenantId);
+      allow update: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /integration_incidents/{incidentId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /integration_schedules/{scheduleId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow write: if isAdmin();
+    }
   }
 }
+

@@ -391,3 +391,258 @@ export interface EDIMessageRecord {
   mappingStatus?: 'MAPPED' | 'FAILED_MAPPING';
 }
 
+// ── WAVE 3.3 PRODUCTION INTEGRATION TRANSPORT & TRADING PARTNER TYPES ───────
+
+export type TransportProtocol = 'HTTPS' | 'REST' | 'WEBHOOK' | 'SFTP' | 'AS2' | 'FILE';
+
+export type TransportStatus =
+  | 'UNCONFIGURED'
+  | 'CONFIGURING'
+  | 'CONNECTING'
+  | 'CONNECTED'
+  | 'DEGRADED'
+  | 'DISCONNECTED'
+  | 'AUTH_FAILED'
+  | 'CERTIFICATE_ERROR'
+  | 'ERROR'
+  | 'MAINTENANCE'
+  | 'DISABLED';
+
+export interface TransportTelemetry {
+  lastConnectionAttempt?: string;
+  lastSuccessfulConnection?: string;
+  lastFailure?: string;
+  totalMessagesSent: number;
+  totalMessagesReceived: number;
+  totalErrors: number;
+  averageLatencyMs: number;
+}
+
+export interface TransportRecord {
+  transportId: string;
+  tenantId: string;
+  connectorId: string;
+  name: string;
+  protocol: TransportProtocol;
+  status: TransportStatus;
+  config: Record<string, any>;
+  credentialRef?: string; // secret://...
+  certificateRef?: string; // certificate://...
+  telemetry: TransportTelemetry;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TransportConnectionResult {
+  success: boolean;
+  status: TransportStatus;
+  latencyMs: number;
+  errorMessage?: string;
+  errorCode?: string;
+  timestamp: string;
+}
+
+export interface TransportSendOptions {
+  payload: string | Record<string, any>;
+  headers?: Record<string, string>;
+  correlationId?: string;
+  destinationPath?: string;
+  timeoutMs?: number;
+}
+
+export interface TransportSendResult {
+  success: boolean;
+  messageId: string;
+  statusCode?: number;
+  rawResponse?: string;
+  latencyMs: number;
+  errorMessage?: string;
+  timestamp: string;
+}
+
+export interface TransportReceiveOptions {
+  sourcePath?: string;
+  maxMessages?: number;
+  timeoutMs?: number;
+}
+
+export interface TransportReceiveResult {
+  success: boolean;
+  messages: Array<{
+    messageId: string;
+    payload: string;
+    headers?: Record<string, string>;
+    sourcePath?: string;
+    receivedAt: string;
+  }>;
+  errorMessage?: string;
+  timestamp: string;
+}
+
+export interface WebhookHeaderValidationResult {
+  valid: boolean;
+  tenantId?: string;
+  signatureVerified?: boolean;
+  error?: string;
+  timestamp: string;
+  nonce?: string;
+}
+
+export interface SFTPConfig {
+  host: string;
+  port: number;
+  username: string;
+  hostKeyRef?: string;
+  authMethod: 'PASSWORD' | 'PRIVATE_KEY' | 'KEY_PAIR';
+  secretRef: string;
+  remoteDirectory: string;
+  timeoutMs?: number;
+}
+
+export interface FileChecksumResult {
+  fileName: string;
+  checksum: string;
+  algorithm: 'SHA256' | 'MD5';
+  sizeBytes: number;
+  isValid: boolean;
+}
+
+export interface AS2Config {
+  as2From: string;
+  as2To: string;
+  targetUrl: string;
+  signingCertRef?: string;
+  encryptionCertRef?: string;
+  mdnRequired: boolean;
+  mdnAsync?: boolean;
+  signAlgorithm?: 'SHA256' | 'SHA1';
+  encryptAlgorithm?: 'AES256' | '3DES';
+}
+
+export interface AS2MDNResult {
+  mdnId: string;
+  originalMessageId: string;
+  status: 'PROCESSED' | 'FAILED' | 'REJECTED';
+  micMatched: boolean;
+  receivedMic: string;
+  calculatedMic: string;
+  timestamp: string;
+}
+
+export type TradingPartnerStatus = 'DRAFT' | 'ACTIVE' | 'SUSPENDED' | 'INACTIVE';
+
+export interface TransactionCapability {
+  transactionType: EDITransactionType | string;
+  direction: 'INBOUND' | 'OUTBOUND' | 'BIDIRECTIONAL';
+  transportId: string;
+  mappingContractId: string;
+  active: boolean;
+}
+
+export interface TradingPartnerRecord {
+  partnerId: string;
+  tenantId: string;
+  name: string;
+  code: string;
+  ediQualifier: string;
+  ediIdentifier: string;
+  status: TradingPartnerStatus;
+  supportedCapabilities: TransactionCapability[];
+  contactEmail?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type AckType = 'TRANSPORT_997' | 'FUNCTIONAL_999' | 'APPLICATION_VALIDATION';
+
+export interface EDIAckRecord {
+  ackId: string;
+  tenantId: string;
+  originalMessageId: string;
+  originalControlNumber: string;
+  ackType: AckType;
+  status: 'ACCEPTED' | 'ACCEPTED_WITH_ERRORS' | 'REJECTED';
+  errorDetails?: Array<{ code: string; message: string; segmentPosition?: number }>;
+  generatedPayload?: string;
+  createdAt: string;
+}
+
+export type MessageState =
+  | 'RECEIVED'
+  | 'AUTHENTICATING'
+  | 'VALIDATING'
+  | 'MAPPED'
+  | 'PROCESSING'
+  | 'COMPLETED'
+  | 'FAILED'
+  | 'DLQ'
+  | 'REJECTED';
+
+export interface DurableMessageRecord {
+  messageId: string;
+  tenantId: string;
+  partnerId?: string;
+  connectorId?: string;
+  transportId?: string;
+  externalId?: string;
+  controlNumber?: string;
+  idempotencyKey: string;
+  direction: 'INBOUND' | 'OUTBOUND';
+  state: MessageState;
+  payloadReference?: string;
+  rawPayload?: string;
+  mappedPayload?: any;
+  stateHistory: Array<{ state: MessageState; timestamp: string; detail?: string }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ScheduleType = 'ON_DEMAND' | 'INTERVAL' | 'CRON' | 'EVENT_DRIVEN';
+
+export interface ScheduleRecord {
+  scheduleId: string;
+  tenantId: string;
+  name: string;
+  connectorId: string;
+  transportId?: string;
+  type: ScheduleType;
+  cronExpression?: string;
+  intervalMinutes?: number;
+  active: boolean;
+  lastRunAt?: string;
+  nextRunAt?: string;
+  lastRunStatus?: 'SUCCESS' | 'FAILED';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type IncidentSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+export type IncidentCategory =
+  | 'CONNECTIVITY'
+  | 'AUTH'
+  | 'CERTIFICATE'
+  | 'VALIDATION'
+  | 'MAPPING'
+  | 'TIMEOUT'
+  | 'RATE_LIMIT'
+  | 'SYSTEM';
+
+export interface IncidentRecord {
+  incidentId: string;
+  tenantId: string;
+  connectorId?: string;
+  transportId?: string;
+  partnerId?: string;
+  severity: IncidentSeverity;
+  category: IncidentCategory;
+  title: string;
+  description: string;
+  status: 'OPEN' | 'INVESTIGATING' | 'RESOLVED' | 'MUTED';
+  autoCreated: boolean;
+  createdAt: string;
+  resolvedAt?: string;
+  resolvedBy?: string;
+}
+
+

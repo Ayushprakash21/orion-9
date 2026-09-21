@@ -216,11 +216,12 @@ export class SyncJobEngine {
             payload: item,
             actor: {
               id: actor,
-              type: 'USER',
+              type: 'USER' as any,
               name: actor,
               roles: ['organization_admin'],
               organizationId: params.tenantId,
             },
+
           });
           if (res.success || res.status === 'PROCESSED' || res.status === 'DUPLICATE_SKIPPED') {
             syncJob.recordsSucceeded++;
