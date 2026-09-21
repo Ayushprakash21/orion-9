@@ -20,6 +20,7 @@ const DEFAULT_ORGANIZATIONS: Organization[] = [
 ];
 
 const getLocalOrgs = (): Organization[] => {
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return DEFAULT_ORGANIZATIONS;
   const data = localStorage.getItem('orion_organizations');
   if (!data) {
     localStorage.setItem('orion_organizations', JSON.stringify(DEFAULT_ORGANIZATIONS));
@@ -34,7 +35,9 @@ const getLocalOrgs = (): Organization[] => {
 };
 
 const saveLocalOrgs = (orgs: Organization[]): void => {
-  localStorage.setItem('orion_organizations', JSON.stringify(orgs));
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    localStorage.setItem('orion_organizations', JSON.stringify(orgs));
+  }
 };
 
 export const organizationService = {

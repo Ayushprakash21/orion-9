@@ -59,79 +59,56 @@ export const authService = {
   },
 
   /**
-   * Authenticates user via Firebase Auth Authority (or local identity verification).
-   * Universal bypasses, empty passwords, and 'admin' shortcuts are strictly forbidden.
+   * Authenticates user via DEMO / LOCAL credentials.
+   *
+   * DEMO/LOCAL ONLY — hard-coded credentials. Do not use for production.
+   * Required demo credentials:
+   * Normal User: username === "user" AND password === "user"
+   * Admin:       username === "admin" AND password === "admin"
+   * Any other combination: DENY LOGIN.
    */
   authenticate: async (identifier: string, passwordString: string): Promise<AuthSessionDetails> => {
     const correlationId = generateCorrelationId('auth-login');
 
-    if (!identifier || !identifier.trim()) {
+    if (!identifier || typeof identifier !== 'string' || !identifier.trim()) {
       throw new Error('Enter your username or email.');
     }
-    if (!passwordString || !passwordString.trim()) {
+    if (!passwordString || typeof passwordString !== 'string' || !passwordString.trim()) {
       throw new Error('Enter your password.');
     }
 
-    const cleanIdentifier = identifier.trim().toLowerCase();
-    const resolvedEmail = await authService.resolveIdentity(cleanIdentifier).catch(() => cleanIdentifier);
+    // DEMO/LOCAL ONLY — hard-coded credentials. Do not use for production.
+    const isNormalUser = (identifier === 'user' || identifier.trim() === 'user') && passwordString === 'user';
+    const isAdminUser = (identifier === 'admin' || identifier.trim() === 'admin') && passwordString === 'admin';
 
-    // 1. Try Firebase Auth first
-    try {
-      const auth = getFirebaseAuth();
-      if (auth && resolvedEmail.includes('@')) {
-        const userCredential = await signInWithEmailAndPassword(auth, resolvedEmail, passwordString);
-        if (userCredential?.user) {
-          const fbUser = userCredential.user;
-          const details = await authService.loadFullSession(fbUser.uid, fbUser.email || resolvedEmail);
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('orion_auth_session', JSON.stringify(details));
-          }
-          await auditService.log({
-            actorUserId: fbUser.uid,
-            actorName: details.profile.fullName || resolvedEmail,
-            actorRole: details.role,
-            organizationId: details.organization?.id,
-            action: 'LOGIN_SUCCESS',
-            operation: 'FIREBASE_AUTH',
-            resourceType: 'auth_session',
-            resourceId: fbUser.uid,
-            status: 'success',
-            correlationId,
-          });
-          return details;
-        }
-      }
-    } catch (fbErr: any) {
-      // If Firebase Auth throws wrong password, reject immediately
-      if (fbErr?.code === 'auth/wrong-password' || fbErr?.code === 'auth/user-not-found' || fbErr?.code === 'auth/invalid-credential') {
-        await auditService.log({
-          actorUserId: cleanIdentifier,
-          actorName: cleanIdentifier,
-          action: 'LOGIN_FAILURE',
-          operation: 'FIREBASE_CREDENTIAL_REJECTED',
-          resourceType: 'auth_session',
-          status: 'failure',
-          correlationId,
-        });
-        throw new Error('Invalid username or password.');
-      }
-      console.warn('[FIREBASE_AUTH_NOTICE] Remote auth notice, attempting local identity verification:', fbErr.message);
-    }
-
-    // 2. Local verification against salted hashes
-    const verifiedUser = await userService.verifyCredentials(cleanIdentifier, passwordString);
-
-    if (!verifiedUser) {
-      // Log failed login audit attempt
+    if (!isNormalUser && !isAdminUser) {
       await auditService.log({
-        actorUserId: cleanIdentifier,
-        actorName: cleanIdentifier,
+        actorUserId: identifier,
+        actorName: identifier,
         action: 'LOGIN_FAILURE',
         operation: 'CREDENTIAL_REJECTED',
         resourceType: 'auth_session',
         status: 'failure',
         correlationId,
-        metadata: { identifier: cleanIdentifier, reason: 'Invalid username or password' }
+        metadata: { identifier, reason: 'Invalid username or password' }
+      });
+      throw new Error('Invalid username or password.');
+    }
+
+    // Resolve authoritative demo identity
+    const targetUsername = isAdminUser ? 'admin' : 'user';
+    const verifiedUser = await userService.verifyCredentials(targetUsername, passwordString);
+
+    if (!verifiedUser) {
+      await auditService.log({
+        actorUserId: targetUsername,
+        actorName: targetUsername,
+        action: 'LOGIN_FAILURE',
+        operation: 'CREDENTIAL_REJECTED',
+        resourceType: 'auth_session',
+        status: 'failure',
+        correlationId,
+        metadata: { identifier: targetUsername, reason: 'Invalid username or password' }
       });
       throw new Error('Invalid username or password.');
     }
@@ -151,9 +128,21 @@ export const authService = {
       throw new Error('Account inactive. Please contact your administrator.');
     }
 
-    // Load full session details (passwords are NOT contained in profile)
+    // Admin privilege establishment
+    if (isAdminUser) {
+      privilegedSessionManager.issuePrivilegedSession(
+        verifiedUser.id,
+        verifiedUser.organizationId || 'ORION_PLATFORM',
+        verifiedUser.role,
+        'step_up_password'
+      );
+    } else {
+      privilegedSessionManager.revoke('Normal user login');
+    }
+
+    // Load full session details (passwords are NOT contained in profile or session)
     const details = await authService.loadFullSession(verifiedUser.id, verifiedUser.email);
-    
+
     // Save session locally (contains ONLY public identity and short-lived session token)
     if (typeof window !== 'undefined') {
       localStorage.setItem('orion_auth_session', JSON.stringify(details));
@@ -165,7 +154,7 @@ export const authService = {
       actorRole: verifiedUser.role,
       organizationId: verifiedUser.organizationId,
       action: 'LOGIN_SUCCESS',
-      operation: 'LOCAL_SECURE_AUTH',
+      operation: 'DEMO_LOCAL_AUTH',
       resourceType: 'auth_session',
       resourceId: verifiedUser.id,
       status: 'success',
@@ -325,12 +314,15 @@ export const authService = {
    * Retrieves the current authenticated user profile.
    */
   getCurrentUser: (): UserProfile | null => {
-    if (typeof window === 'undefined') return null;
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') return null;
     const sessionStr = localStorage.getItem('orion_auth_session');
     if (!sessionStr) return null;
     try {
       const details = JSON.parse(sessionStr) as AuthSessionDetails;
-      return details.profile || null;
+      if (!details?.user?.id) return null;
+      // Cross-verify with authoritative userService record to prevent client tampering
+      const authoritativeUser = userService.getUserById(details.user.id);
+      return authoritativeUser || details.profile || null;
     } catch (e) {
       return null;
     }

@@ -4,12 +4,14 @@ import path from 'path';
 import { defineConfig } from 'vite';
 import dotenv from 'dotenv';
 
+import { cloudflare } from "@cloudflare/vite-plugin";
+
 // Force load .env overriding process environment for Vite build
 dotenv.config({ override: true });
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), cloudflare()],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

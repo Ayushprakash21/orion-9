@@ -23,7 +23,7 @@ class PrivilegedSessionManager {
   }
 
   private restoreFromStorage(): void {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') return;
     try {
       const raw = sessionStorage.getItem(SESSION_STORAGE_KEY);
       if (raw) {
@@ -77,7 +77,7 @@ class PrivilegedSessionManager {
     };
 
     this.currentSession = session;
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
       sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
     }
 
@@ -125,7 +125,7 @@ class PrivilegedSessionManager {
    */
   public revoke(reason?: string): void {
     this.currentSession = null;
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
       sessionStorage.removeItem(SESSION_STORAGE_KEY);
     }
     this.notifyListeners();

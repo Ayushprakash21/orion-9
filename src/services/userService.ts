@@ -1,16 +1,17 @@
 import { UserProfile, RoleCode } from '../types/auth';
 import { hashPassword, verifyPassword } from '../kernel/security/crypto';
 
+// DEMO/LOCAL ONLY — hard-coded credentials. Do not use for production.
 // Initial local seed identities with pre-hashed salted credentials (SHA-256 with PBKDF2 salt)
 // Plaintext passwords are NEVER stored in source code, localStorage, or state.
-// Credentials for initial setup:
-// - admin: OrionAdmin2026!
-// - user:  OrionUser2026!
+// Credentials for initial demo setup:
+// - admin: admin
+// - user:  user
 const DEFAULT_USERS: any[] = [
   {
     id: "local-admin",
     username: "admin",
-    passwordHash: "sha256:orionsec9:82087f08ada158f3a0f3e08219de34e54b1ddeb4299767cac4dce151dbed98e6",
+    passwordHash: "sha256:orionsec9:57d4ea22adfd18f3299c7186eaf68bd55cca5de988576c1023a3bf15e14d9729",
     fullName: "Orion-9 Administrator",
     displayName: "Admin",
     email: "admin@orion.network",
@@ -27,7 +28,7 @@ const DEFAULT_USERS: any[] = [
   {
     id: "local-user",
     username: "user",
-    passwordHash: "sha256:orionsec9:11cc14227bd1aead6a19de1ccb4f25820aae1fea79e3be7959714c9f4956583d",
+    passwordHash: "sha256:orionsec9:f837ac57a28288625d79600d4448deede1403945fe497ec891a9a3a2ee06f08d",
     fullName: "Orion-9 User",
     displayName: "User",
     email: "user@orion.network",
@@ -77,28 +78,27 @@ const getLocalUsers = (): any[] => {
         }
       });
 
-      // Ensure platform admin identity exists
+      // DEMO/LOCAL ONLY — hard-coded credentials. Do not use for production.
+      // Ensure platform admin identity exists with valid demo credentials
       const adminIndex = parsed.findIndex(u => (u.username || '').toLowerCase() === 'admin');
       if (adminIndex === -1) {
         parsed.unshift(DEFAULT_USERS[0]);
         needsSave = true;
       } else {
-        if (!parsed[adminIndex].passwordHash) {
-          parsed[adminIndex].passwordHash = DEFAULT_USERS[0].passwordHash;
-          needsSave = true;
-        }
+        parsed[adminIndex].passwordHash = DEFAULT_USERS[0].passwordHash;
+        parsed[adminIndex].role = DEFAULT_USERS[0].role;
+        needsSave = true;
       }
 
-      // Ensure standard user identity exists
+      // Ensure standard user identity exists with valid demo credentials
       const userIndex = parsed.findIndex(u => (u.username || '').toLowerCase() === 'user');
       if (userIndex === -1) {
         parsed.push(DEFAULT_USERS[1]);
         needsSave = true;
       } else {
-        if (!parsed[userIndex].passwordHash) {
-          parsed[userIndex].passwordHash = DEFAULT_USERS[1].passwordHash;
-          needsSave = true;
-        }
+        parsed[userIndex].passwordHash = DEFAULT_USERS[1].passwordHash;
+        parsed[userIndex].role = DEFAULT_USERS[1].role;
+        needsSave = true;
       }
 
       if (needsSave) {
