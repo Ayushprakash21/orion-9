@@ -8,19 +8,6 @@ import { createDefaultConnectors, BaseConnector, DataDomain, SyncJobRecord } fro
 import { useIntegrationFabric } from '../integration/useIntegrationFabric';
 
 export const Integrations = () => {
-  const {
-    connectors: fabricConnectors,
-    dlqRecords,
-    reports,
-    discrepancies,
-    isReconciling,
-    retryDLQMessage,
-    discardDLQMessage,
-    resolveDLQMessage,
-    runReconciliation,
-    resolveDiscrepancy,
-  } = useIntegrationFabric('org-tenant-a');
-
   const [connectors, setConnectors] = useState<BaseConnector[]>(() => createDefaultConnectors());
   const [selectedConnector, setSelectedConnector] = useState<BaseConnector | null>(null);
   const [modalMode, setModalMode] = useState<'wizard' | 'detail' | null>(null);

@@ -247,6 +247,26 @@ export class ReconciliationEngine {
   }
 
   /**
+   * Helper for SyncJobEngine reconciliation pass
+   */
+  public generateReconciliationReport(params: {
+    tenantId: string;
+    sourceSystem: SourceSystemType;
+    entityType: string;
+    sourceRecords: any[];
+    actor?: string;
+  }): ReconciliationReport {
+    return this.runReconciliation({
+      sourceSystem: params.sourceSystem,
+      purchaseOrders: [],
+      inventory: [],
+      shipments: [],
+      suppliers: [],
+      actor: params.actor,
+    });
+  }
+
+  /**
    * Runs bidirectional reconciliation comparing Orion live data vs ERP snapshots
    */
   public runReconciliation(params: {
