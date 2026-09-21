@@ -45,6 +45,20 @@ export class ExceptionEngine {
   }
 
   /**
+   * Evaluates active signals and creates governed exceptions
+   */
+  public async evaluateSignals(tenantId: string, signals: Signal[]): Promise<ExceptionIntelligence[]> {
+    const created: ExceptionIntelligence[] = [];
+    for (const sig of signals) {
+      if (sig.severity === 'CRITICAL' || sig.severity === 'HIGH' || sig.severity === 'MEDIUM') {
+        const ex = await this.createFromSignal(sig);
+        created.push(ex);
+      }
+    }
+    return created;
+  }
+
+  /**
    * Promotes an operational signal to a governed exception
    */
   public async createFromSignal(signal: Signal, additionalContext?: Partial<CreateExceptionParams>): Promise<ExceptionIntelligence> {
@@ -76,7 +90,7 @@ export class ExceptionEngine {
     }
 
     const priority = signal.severity === 'CRITICAL' ? 'CRITICAL' : (signal.severity === 'HIGH' ? 'HIGH' : 'MEDIUM');
-    const slaHours = signal.severity === 'CRITICAL' ? 4 : (signal.severity === 'HIGH' ? 24 : 72);
+    const slaHours = signal.severity === 'CRITICAL' ? 2 : (signal.severity === 'HIGH' ? 24 : 72);
 
     return this.createException({
       tenantId: signal.tenantId,
@@ -87,7 +101,7 @@ export class ExceptionEngine {
       entityReferences: [{ entityType: signal.entityType, entityId: signal.entityId }],
       businessImpact: signal.evidence.join(' '),
       financialImpact,
-      customerImpact: signal.severity === 'CRITICAL' ? 'Immediate SLA breach and line stoppage risk' : 'Elevated risk of service level degradation',
+      customerImpact: signal.severity === 'CRITICAL' ? 'Production stoppage and immediate SLA breach risk' : 'Elevated risk of service level degradation',
       serviceImpact: `${signal.signalType} active on ${signal.entityType}:${signal.entityId}`,
       slaHours,
       recommendedAction: additionalContext?.recommendedAction || `Investigate ${signal.signalType} condition.`,
@@ -122,6 +136,7 @@ export class ExceptionEngine {
       serviceImpact: params.serviceImpact,
       detectedAt: now.toISOString(),
       dueAt,
+      slaMinutes: (params.slaHours || 24) * 60,
       rootCauseStatus: 'UNKNOWN',
       recommendedAction: params.recommendedAction,
       riskScore,

@@ -29,6 +29,14 @@ export class SupplyChainRiskGraph {
     return SupplyChainRiskGraph.instance;
   }
 
+  public async upsertNode(node: RiskNode): Promise<RiskNode> {
+    return this.setNode(node);
+  }
+
+  public async upsertEdge(edge: RiskEdge): Promise<RiskEdge> {
+    return this.setEdge(edge);
+  }
+
   /**
    * Adds or updates a risk node in the tenant graph
    */

@@ -80,6 +80,10 @@ export interface AIExecutionContext {
   correlationId: string;
   mode: AIOperatingMode;
   causationId?: string;
+  requestId?: string;
+  conversationId?: string;
+  startedAt?: string;
+  timeoutMs?: number;
 }
 
 /**

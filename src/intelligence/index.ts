@@ -23,4 +23,5 @@ export * from './RecommendationEngine';
 export * from './DecisionReplayEngine';
 export * from './OutcomeIntelligence';
 export * from './PriorityEngine';
+export type { EventEnvelope } from '../kernel/types';
 

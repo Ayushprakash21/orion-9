@@ -24,10 +24,11 @@ import { doc, setDoc } from 'firebase/firestore';
 export interface PredictionInput {
   tenantId: string;
   inventory?: Array<{
-    productId: string;
+    id?: string;
+    productId?: string;
     onHand: number;
-    safetyStock: number;
-    dailyDemand: number;
+    safetyStock?: number;
+    dailyDemand?: number;
     openInboundQuantity?: number;
   }>;
   purchaseOrders?: Array<{

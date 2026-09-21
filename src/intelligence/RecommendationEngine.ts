@@ -28,7 +28,7 @@ export interface FormulateRecommendationParams {
   exception: ExceptionIntelligence;
   rootCause?: RootCause;
   prediction?: Prediction;
-  caller: {
+  caller?: {
     id: string;
     type: 'USER' | 'AI_AGENT' | 'SYSTEM';
     name: string;

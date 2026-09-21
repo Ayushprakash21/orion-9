@@ -40,7 +40,7 @@ export interface EventEnvelope<T = any> {
   eventType: string;
   version: string;
   timestamp: string;
-  actor: {
+  actor?: {
     id: string;
     type: 'USER' | 'AI_AGENT' | 'SYSTEM' | 'EXTERNAL_INTEGRATION';
     role?: RoleCode | string;
@@ -48,17 +48,19 @@ export interface EventEnvelope<T = any> {
     agentId?: string;
     model?: string;
   };
-  tenant: {
+  tenant?: {
     organizationId: string;
     organizationName?: string;
   };
-  source: string;
-  correlationId: string;
+  source?: string;
+  correlationId?: string;
   causationId?: string;
   entityId?: string;
   entityType?: string;
-  payload: T;
-  schemaVersion: string;
+  aggregateId?: string;
+  aggregateType?: string;
+  payload?: T;
+  schemaVersion?: string;
   classification?: DataClassification;
   isReplay?: boolean;
 }

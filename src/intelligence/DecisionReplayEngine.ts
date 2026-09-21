@@ -11,7 +11,7 @@
  * Chain-of-thought is excluded; only empirical evidence and material rationale are preserved.
  */
 
-import { DecisionReplay, DecisionIntelligence } from './types';
+import { DecisionReplay, DecisionIntelligence, DecisionOption } from './types';
 import { getFirebaseFirestore } from '../lib/firebaseClient';
 import { doc, setDoc } from 'firebase/firestore';
 
@@ -37,6 +37,54 @@ export class DecisionReplayEngine {
       DecisionReplayEngine.instance = new DecisionReplayEngine();
     }
     return DecisionReplayEngine.instance;
+  }
+
+  /**
+   * Captures an immutable historical replay snapshot
+   */
+  public async createSnapshot(params: {
+    replayId?: string;
+    decisionId: string;
+    tenantId: string;
+    contextSnapshot?: any;
+    optionsSnapshot?: DecisionOption[];
+    evaluationSnapshot?: any[];
+    recommendationSnapshot: any;
+    approvalSnapshot?: any;
+    commandSnapshot?: any;
+    executionSnapshot?: any;
+    outcomeSnapshot?: any;
+    decision?: any;
+    eventSnapshot?: any;
+  }): Promise<DecisionReplay> {
+    const replayId = params.replayId || `rep-${params.tenantId}-${params.decisionId}`;
+    const nowIso = new Date().toISOString();
+    const replay: DecisionReplay = {
+      replayId,
+      tenantId: params.tenantId,
+      decisionId: params.decisionId,
+      snapshotTimestamp: nowIso,
+      contextSnapshot: JSON.parse(JSON.stringify(params.contextSnapshot || {})),
+      optionsSnapshot: JSON.parse(JSON.stringify(params.optionsSnapshot || params.decision?.options || [])),
+      evaluationSnapshot: JSON.parse(JSON.stringify(params.evaluationSnapshot || params.decision?.evaluations || [])),
+      recommendationSnapshot: JSON.parse(JSON.stringify(params.recommendationSnapshot || params.decision?.recommendation)),
+      approvalSnapshot: params.approvalSnapshot ? JSON.parse(JSON.stringify(params.approvalSnapshot)) : undefined,
+      commandSnapshot: params.commandSnapshot ? JSON.parse(JSON.stringify(params.commandSnapshot)) : undefined,
+      executionSnapshot: params.executionSnapshot ? JSON.parse(JSON.stringify(params.executionSnapshot)) : undefined,
+      outcomeSnapshot: params.outcomeSnapshot ? JSON.parse(JSON.stringify(params.outcomeSnapshot)) : undefined,
+      isImmutable: true,
+      createdAt: nowIso,
+    };
+    this.replays.set(`${params.tenantId}:${replayId}`, replay);
+
+    try {
+      const db = getFirebaseFirestore();
+      if (db) {
+        await setDoc(doc(db, 'decision_replays', `${params.tenantId}_${replayId}`), replay);
+      }
+    } catch (err) {}
+
+    return replay;
   }
 
   /**
@@ -93,6 +141,12 @@ export class DecisionReplayEngine {
     }
 
     const timeline = [
+      {
+        stage: 'SIGNAL_DETECTED',
+        timestamp: replay.snapshotTimestamp,
+        summary: `Operational telemetry signals detected in tenant ${tenantId}.`,
+        details: replay.contextSnapshot?.signals || 'Telemetry signal details preserved.',
+      },
       {
         stage: 'EXCEPTION_DETECTED',
         timestamp: replay.snapshotTimestamp,

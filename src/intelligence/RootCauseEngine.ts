@@ -44,6 +44,10 @@ export class RootCauseEngine {
     return RootCauseEngine.instance;
   }
 
+  public async diagnoseRootCause(exception: ExceptionIntelligence, signals?: Signal[]): Promise<RootCause> {
+    return this.analyzeRootCause({ exception, signals });
+  }
+
   /**
    * Analyzes an exception and builds an evidence-backed RootCauseGraph
    */

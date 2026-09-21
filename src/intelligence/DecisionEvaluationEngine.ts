@@ -31,6 +31,37 @@ export class DecisionEvaluationEngine {
   }
 
   /**
+   * Evaluates a single decision option against the operational dimensions
+   */
+  public evaluateOption(option: DecisionOption, exception?: Partial<ExceptionIntelligence>): DecisionEvaluation {
+    const dummyEx: ExceptionIntelligence = {
+      exceptionId: 'EX-EVAL',
+      tenantId: 'tenant',
+      type: 'DISRUPTION',
+      category: 'INVENTORY',
+      severity: 'HIGH',
+      priority: 'HIGH',
+      status: 'OPEN',
+      businessImpact: 'Evaluation baseline',
+      financialImpact: 25000,
+      customerImpact: 'Standard exposure',
+      serviceImpact: 'Standard service level buffer',
+      detectedAt: new Date().toISOString(),
+      dueAt: new Date(Date.now() + 86400000).toISOString(),
+      entityReferences: [],
+      rootCauseStatus: 'UNKNOWN',
+      riskScore: 60,
+      confidence: 0.9,
+      correlationId: 'corr-eval',
+      signalIds: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      ...exception,
+    };
+    return this.evaluateOptions([option], dummyEx)[0];
+  }
+
+  /**
    * Evaluates an array of decision options against the 10 operational dimensions
    */
   public evaluateOptions(options: DecisionOption[], exception: ExceptionIntelligence): DecisionEvaluation[] {

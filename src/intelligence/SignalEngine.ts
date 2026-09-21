@@ -89,10 +89,14 @@ export class SignalEngine {
     return SignalEngine.instance;
   }
 
+  public async scan(input: SignalScanInput): Promise<Signal[]> {
+    return this.scanSignals(input);
+  }
+
   /**
    * Deterministically scans tenant data to detect active signals across the 13 canonical types
    */
-  public async scan(input: SignalScanInput): Promise<Signal[]> {
+  public async scanSignals(input: SignalScanInput): Promise<Signal[]> {
     const { tenantId } = input;
     const detected: Signal[] = [];
     const now = new Date();

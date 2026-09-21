@@ -294,24 +294,29 @@ export interface ExceptionIntelligence {
   type: string;
   category: ExceptionCategory;
   severity: SignalSeverity;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   status: ExceptionStatus;
   owner?: string;
-  entityReferences: Array<{ entityType: string; entityId: string }>;
-  businessImpact: string;
-  financialImpact: number;
-  customerImpact: string;
-  serviceImpact: string;
+  entityReferences?: Array<{ entityType: string; entityId: string }>;
+  signalReferences?: Array<string | { signalId: string; type?: string; severity?: string }>;
+  priorityScore?: number;
+  priorityTier?: 'P1' | 'P2' | 'P3' | 'P4';
+  businessImpact?: string;
+  financialImpact?: number;
+  customerImpact?: string;
+  serviceImpact?: string;
   detectedAt: string;
   dueAt?: string;
-  rootCauseStatus: 'UNKNOWN' | 'ANALYZING' | 'IDENTIFIED' | 'CONFIRMED';
+  slaMinutes?: number;
+  summary?: string;
+  rootCauseStatus?: 'UNKNOWN' | 'ANALYZING' | 'IDENTIFIED' | 'CONFIRMED';
   recommendedAction?: string;
-  riskScore: number; // 0 to 100
-  confidence: number; // 0.0 to 1.0
-  correlationId: string;
-  signalIds: string[];
-  createdAt: string;
-  updatedAt: string;
+  riskScore?: number; // 0 to 100
+  confidence?: number; // 0.0 to 1.0
+  correlationId?: string;
+  signalIds?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 /**
@@ -359,19 +364,25 @@ export type RiskNodeType =
   | 'PO'
   | 'SHIPMENT'
   | 'WAREHOUSE'
-  | 'CUSTOMER_ORDER';
+  | 'CUSTOMER_ORDER'
+  | 'PORT'
+  | 'MANUFACTURING_PLANT'
+  | 'CUSTOMER_SITE'
+  | 'DISTRIBUTION_CENTER';
 
 export interface RiskNode {
   nodeId: string;
   tenantId: string;
-  type: RiskNodeType;
-  entityId: string;
-  label: string;
+  type?: RiskNodeType;
+  nodeType?: RiskNodeType;
+  entityId?: string;
+  label?: string;
+  name?: string;
   baseRiskScore: number; // 0 to 100
   propagatedRiskScore: number; // 0 to 100
   status: string;
   metadata?: Record<string, any>;
-  lastUpdated: string;
+  lastUpdated?: string;
 }
 
 export interface RiskEdge {
@@ -379,9 +390,11 @@ export interface RiskEdge {
   tenantId: string;
   fromNodeId: string;
   toNodeId: string;
-  relationship: string;
+  relationship?: string;
+  relationshipType?: string;
   weight: number; // 0.0 to 1.0
-  riskTransmissionFactor: number; // 0.0 to 1.0
+  riskTransmissionFactor?: number; // 0.0 to 1.0
+  factor?: number;
 }
 
 export interface SupplyChainRiskGraphState {
@@ -552,6 +565,7 @@ export interface DecisionReplay {
   commandSnapshot?: any;
   executionSnapshot?: any;
   outcomeSnapshot?: any;
+  isImmutable?: boolean;
   createdAt: string;
 }
 
@@ -562,21 +576,29 @@ export interface OutcomeVariance {
   varianceId: string;
   tenantId: string;
   decisionId: string;
-  predictedOutcome: Record<string, any>;
-  actualOutcome: Record<string, any>;
-  predictionVariance: number;
-  decisionVariance: string;
+  predictedOutcome?: Record<string, any>;
+  actualOutcome?: Record<string, any>;
+  predictionVariance?: number;
+  decisionVariance?: string;
   expectedCost: number;
   actualCost: number;
   costVariance: number;
+  costVariancePct?: number;
   expectedServiceImpact: string;
   actualServiceImpact: string;
-  serviceVariance: number;
+  serviceVariance?: number;
   expectedDelayDays: number;
   actualDelayDays: number;
-  delayVariance: number;
-  executionVariance: 'ON_TRACK' | 'DEVIATED' | 'FAILED';
-  calculatedAt: string;
+  delayVariance?: number;
+  delayVarianceDays?: number;
+  predictionAccuracyPct?: number;
+  decisionQualityRating?: 'HIGH' | 'MEDIUM' | 'LOW';
+  expectedServiceDays?: number;
+  actualServiceDays?: number;
+  serviceVarianceDays?: number;
+  executionVariance?: 'ON_TRACK' | 'DEVIATED' | 'FAILED';
+  calculatedAt?: string;
+  recordedAt?: string;
 }
 
 /**
@@ -587,7 +609,9 @@ export interface PriorityAssessment {
   entityId: string;
   tenantId: string;
   priorityScore: number; // 0 to 100
+  compositeScore?: number;
   priorityTier: 'P1' | 'P2' | 'P3' | 'P4';
+  tier?: 'P1' | 'P2' | 'P3' | 'P4';
   factors: {
     businessImpact: number;
     urgency: number;
@@ -597,6 +621,11 @@ export interface PriorityAssessment {
     confidence: number;
     timeToBreachDays: number;
     dependencyCount: number;
+  };
+  breakdown?: {
+    revenueFactor?: number;
+    productionFactor?: number;
+    urgencyFactor?: number;
   };
   explanation: string;
   assessedAt: string;

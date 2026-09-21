@@ -22,6 +22,7 @@ export interface EventLineageNode {
   tenantId: string;
   timestamp: string;
   correlationId: string;
+  originSystem?: string;
   causationId?: string;
   parentEntity?: { entityType: string; entityId: string };
   childEntities: Array<{ entityType: string; entityId: string }>;
@@ -48,6 +49,31 @@ export class EventIntelligenceEngine {
     kernelEventBus.subscribe('*', async (event: EventEnvelope) => {
       await this.processEvent(event);
     });
+  }
+
+  public async ingestEvent(event: EventEnvelope): Promise<any> {
+    const res = await this.processEvent(event);
+    return {
+      eventId: event.eventId,
+      eventType: event.eventType,
+      tenantId: event.tenant?.organizationId || 'org-global',
+      lineage: res.lineageNode || { originSystem: 'ORION_KERNEL' },
+      ...res,
+    };
+  }
+
+  public correlateEvents(tenantId: string, correlationId: string): EventEnvelope[] {
+    const chain = this.getCorrelationChain(correlationId);
+    if (chain.length > 0) return chain;
+    const all: EventEnvelope[] = [];
+    for (const [key, evts] of this.correlationChains.entries()) {
+      for (const e of evts) {
+        if ((e as any).aggregateId === correlationId || (e as any).aggregate?.aggregateId === correlationId || e.payload?.poId === correlationId || key === correlationId) {
+          all.push(e);
+        }
+      }
+    }
+    return all;
   }
 
   /**
@@ -83,6 +109,7 @@ export class EventIntelligenceEngine {
       tenantId,
       timestamp: event.timestamp,
       correlationId,
+      originSystem: (event as any).metadata?.originSystem || 'ORION_KERNEL',
       causationId: event.causationId,
       childEntities: [],
     };
