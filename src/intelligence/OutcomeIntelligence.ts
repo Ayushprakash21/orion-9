@@ -131,6 +131,10 @@ export class OutcomeIntelligence {
     return results;
   }
 
+  public getOutcomes(tenantId: string): OutcomeVariance[] {
+    return this.getVariances(tenantId);
+  }
+
   public reset(): void {
     this.variances.clear();
   }

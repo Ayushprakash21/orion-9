@@ -163,6 +163,16 @@ export class DecisionReplayEngine {
     return results;
   }
 
+  public reconstructTimeline(tenantId: string, replayOrDecisionId: string) {
+    const replay = Array.from(this.replays.values()).find(
+      r => r.tenantId === tenantId && (r.replayId === replayOrDecisionId || r.decisionId === replayOrDecisionId)
+    );
+    if (!replay) {
+      throw new Error(`Decision replay not found for: ${replayOrDecisionId} in tenant: ${tenantId}`);
+    }
+    return this.replayDecision(tenantId, replay.decisionId);
+  }
+
   public reset(): void {
     this.replays.clear();
   }

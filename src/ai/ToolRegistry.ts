@@ -8,6 +8,18 @@
 
 import { AITool, AIExecutionContext, AIRiskClass, AIOperatingMode } from './types';
 import { aiSecurityGuard } from './AISecurityGuard';
+import {
+  signalEngine,
+  exceptionEngine,
+  rootCauseEngine,
+  supplyChainRiskGraph,
+  predictionEngine,
+  decisionOptionEngine,
+  recommendationEngine,
+  decisionReplayEngine,
+  outcomeIntelligence,
+  priorityEngine,
+} from '../intelligence';
 
 export class ToolRegistry {
   private static instance: ToolRegistry;
@@ -414,6 +426,181 @@ export class ToolRegistry {
       outputSchema: { type: 'object' },
       allowedModes: ['APPROVAL_GATED'],
       enabled: true,
+    });
+
+    // -------------------------------------------------------------
+    // WAVE 6 CONTROL TOWER INTELLIGENCE READ TOOLS
+    // -------------------------------------------------------------
+    this.registerTool({
+      toolId: 'query_signals',
+      name: 'Query Signals',
+      description: 'Retrieve active and historical supply chain signals for the current tenant',
+      version: '1.0.0',
+      tenantScope: true,
+      requiredPermissions: ['signals:read'],
+      riskLevel: 'LOW',
+      inputSchema: { type: 'object', properties: {} },
+      outputSchema: { type: 'array' },
+      allowedModes: ['OBSERVE', 'ASSIST', 'RECOMMEND', 'APPROVAL_GATED', 'GOVERNED'],
+      enabled: true,
+      execute: async (_params, context) => signalEngine.getSignals(context.tenantId),
+    });
+
+    this.registerTool({
+      toolId: 'query_exceptions',
+      name: 'Query Exceptions',
+      description: 'Retrieve governed supply chain exceptions for the current tenant',
+      version: '1.0.0',
+      tenantScope: true,
+      requiredPermissions: ['exceptions:read'],
+      riskLevel: 'LOW',
+      inputSchema: { type: 'object', properties: {} },
+      outputSchema: { type: 'array' },
+      allowedModes: ['OBSERVE', 'ASSIST', 'RECOMMEND', 'APPROVAL_GATED', 'GOVERNED'],
+      enabled: true,
+      execute: async (_params, context) => exceptionEngine.getExceptions(context.tenantId),
+    });
+
+    this.registerTool({
+      toolId: 'query_root_causes',
+      name: 'Query Root Causes',
+      description: 'Retrieve evidence-backed root cause analyses and causality chains',
+      version: '1.0.0',
+      tenantScope: true,
+      requiredPermissions: ['root_causes:read'],
+      riskLevel: 'LOW',
+      inputSchema: { type: 'object', properties: {} },
+      outputSchema: { type: 'array' },
+      allowedModes: ['OBSERVE', 'ASSIST', 'RECOMMEND', 'APPROVAL_GATED', 'GOVERNED'],
+      enabled: true,
+      execute: async (_params, context) => rootCauseEngine.getRootCauses(context.tenantId),
+    });
+
+    this.registerTool({
+      toolId: 'query_risk_graph',
+      name: 'Query Supply Chain Risk Graph',
+      description: 'Retrieve topological risk nodes, propagation paths, and edge weights',
+      version: '1.0.0',
+      tenantScope: true,
+      requiredPermissions: ['risk_graph:read'],
+      riskLevel: 'LOW',
+      inputSchema: { type: 'object', properties: {} },
+      outputSchema: { type: 'object' },
+      allowedModes: ['OBSERVE', 'ASSIST', 'RECOMMEND', 'APPROVAL_GATED', 'GOVERNED'],
+      enabled: true,
+      execute: async (_params, context) => supplyChainRiskGraph.getGraph(context.tenantId),
+    });
+
+    this.registerTool({
+      toolId: 'query_predictions',
+      name: 'Query Predictions',
+      description: 'Retrieve calibrated probability predictions across shipments, inventory, and suppliers',
+      version: '1.0.0',
+      tenantScope: true,
+      requiredPermissions: ['predictions:read'],
+      riskLevel: 'LOW',
+      inputSchema: { type: 'object', properties: {} },
+      outputSchema: { type: 'array' },
+      allowedModes: ['OBSERVE', 'ASSIST', 'RECOMMEND', 'APPROVAL_GATED', 'GOVERNED'],
+      enabled: true,
+      execute: async (_params, context) => predictionEngine.getPredictions(context.tenantId),
+    });
+
+    this.registerTool({
+      toolId: 'query_decisions',
+      name: 'Query Decisions',
+      description: 'Retrieve governed decision intelligence records and evaluations',
+      version: '1.0.0',
+      tenantScope: true,
+      requiredPermissions: ['decisions:read'],
+      riskLevel: 'LOW',
+      inputSchema: { type: 'object', properties: {} },
+      outputSchema: { type: 'array' },
+      allowedModes: ['OBSERVE', 'ASSIST', 'RECOMMEND', 'APPROVAL_GATED', 'GOVERNED'],
+      enabled: true,
+      execute: async (_params, context) => recommendationEngine.getDecisions(context.tenantId),
+    });
+
+    this.registerTool({
+      toolId: 'query_decision_options',
+      name: 'Query Decision Options',
+      description: 'Retrieve candidate decision options and trade-off vectors for an exception',
+      version: '1.0.0',
+      tenantScope: true,
+      requiredPermissions: ['decisions:read'],
+      riskLevel: 'LOW',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          exceptionId: { type: 'string' },
+        },
+      },
+      outputSchema: { type: 'array' },
+      allowedModes: ['OBSERVE', 'ASSIST', 'RECOMMEND', 'APPROVAL_GATED', 'GOVERNED'],
+      enabled: true,
+      execute: async (params, context) => {
+        const exception = params.exceptionId ? exceptionEngine.getException(context.tenantId, params.exceptionId) : undefined;
+        if (!exception) return [];
+        return decisionOptionEngine.generateOptions({
+          decisionId: `dec-preview-${exception.exceptionId}`,
+          exception,
+        });
+      },
+    });
+
+    this.registerTool({
+      toolId: 'query_recommendations',
+      name: 'Query Recommendations',
+      description: 'Retrieve evidence-backed recommendation proposals and policy compliance justifications',
+      version: '1.0.0',
+      tenantScope: true,
+      requiredPermissions: ['recommendations:read'],
+      riskLevel: 'LOW',
+      inputSchema: { type: 'object', properties: {} },
+      outputSchema: { type: 'array' },
+      allowedModes: ['OBSERVE', 'ASSIST', 'RECOMMEND', 'APPROVAL_GATED', 'GOVERNED'],
+      enabled: true,
+      execute: async (_params, context) => recommendationEngine.getRecommendations(context.tenantId),
+    });
+
+    this.registerTool({
+      toolId: 'query_outcomes',
+      name: 'Query Decision Outcomes',
+      description: 'Retrieve post-decision outcome variances, empirical accuracy, and actual vs expected metrics',
+      version: '1.0.0',
+      tenantScope: true,
+      requiredPermissions: ['outcomes:read'],
+      riskLevel: 'LOW',
+      inputSchema: { type: 'object', properties: {} },
+      outputSchema: { type: 'array' },
+      allowedModes: ['OBSERVE', 'ASSIST', 'RECOMMEND', 'APPROVAL_GATED', 'GOVERNED'],
+      enabled: true,
+      execute: async (_params, context) => outcomeIntelligence.getOutcomes(context.tenantId),
+    });
+
+    this.registerTool({
+      toolId: 'query_decision_replay',
+      name: 'Query Decision Replay',
+      description: 'Replay point-in-time decision context and reconstructed execution timeline',
+      version: '1.0.0',
+      tenantScope: true,
+      requiredPermissions: ['decision_replays:read'],
+      riskLevel: 'LOW',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          replayId: { type: 'string' },
+        },
+      },
+      outputSchema: { type: 'object' },
+      allowedModes: ['OBSERVE', 'ASSIST', 'RECOMMEND', 'APPROVAL_GATED', 'GOVERNED'],
+      enabled: true,
+      execute: async (params, context) => {
+        if (params.replayId) {
+          return decisionReplayEngine.reconstructTimeline(context.tenantId, params.replayId);
+        }
+        return decisionReplayEngine.getReplays(context.tenantId);
+      },
     });
   }
 
