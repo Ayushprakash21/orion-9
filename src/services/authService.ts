@@ -77,9 +77,15 @@ export const authService = {
       throw new Error('Enter your password.');
     }
 
+    // Normalize credentials (trim and case-insensitive identifier)
+    const cleanId = (identifier || '').trim().toLowerCase();
+    const cleanPass = (passwordString || '').trim();
+
     // DEMO/LOCAL ONLY — hard-coded credentials. Do not use for production.
-    const isNormalUser = (identifier === 'user' || identifier.trim() === 'user') && passwordString === 'user';
-    const isAdminUser = (identifier === 'admin' || identifier.trim() === 'admin') && passwordString === 'admin';
+    const isNormalUser = (cleanId === 'user' || cleanId === 'user@orion.network' || cleanId === 'user@orion.local') && 
+      (cleanPass === 'user' || cleanPass === 'OrionUser2026!');
+    const isAdminUser = (cleanId === 'admin' || cleanId === 'admin@orion.network' || cleanId === 'admin@orion.local') && 
+      (cleanPass === 'admin' || cleanPass === 'OrionAdmin2026!');
 
     if (!isNormalUser && !isAdminUser) {
       await auditService.log({
@@ -97,7 +103,7 @@ export const authService = {
 
     // Resolve authoritative demo identity
     const targetUsername = isAdminUser ? 'admin' : 'user';
-    const verifiedUser = await userService.verifyCredentials(targetUsername, passwordString);
+    const verifiedUser = await userService.verifyCredentials(targetUsername, cleanPass);
 
     if (!verifiedUser) {
       await auditService.log({
