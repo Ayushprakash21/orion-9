@@ -451,6 +451,72 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
       allow create, update, delete: if isAdmin();
     }
+
+    // =========================================================================
+    // Wave 8 Enterprise Digital Twin & Scenario Simulation Collections
+    // Strict tenant isolation and immutability rules
+    // =========================================================================
+
+    match /digital_twins/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    match /twin_snapshots/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false; // Snapshots are permanently immutable
+    }
+
+    match /twin_events/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false; // Twin events are immutable append-only
+    }
+
+    match /twin_relationships/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /twin_reconciliation/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false; // Reconciliation discrepancies are immutable audit records
+    }
+
+    match /scenarios/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /scenario_runs/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false; // Simulation runs are immutable audit logs
+    }
+
+    match /scenario_results/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false; // Simulation results are permanently immutable
+    }
+
+    match /scenario_assumptions/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /scenario_outcomes/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false; // Outcome tracking is append-only
+    }
   }
 }
 

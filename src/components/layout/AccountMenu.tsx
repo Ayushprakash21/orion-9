@@ -89,7 +89,7 @@ export const AccountMenu = ({ closeSidebar }: { closeSidebar?: () => void }) => 
           {isAdmin && (
             <button
               type="button"
-              onClick={() => handleAction('/settings', 'settings')}
+              onClick={() => handleAction('/admin')}
               className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-accent text-os-text-primary transition-colors flex items-center gap-2 uppercase"
             >
               <Shield size={14} className="text-os-text-muted" /> Admin Panel

@@ -68,6 +68,7 @@ import { About } from './components/About';
 import { Login } from './components/auth/Login';
 import { Profile } from './components/Profile';
 
+import { AdminLayout } from './components/admin/AdminLayout';
 import { AdminOverview } from './components/admin/AdminOverview';
 import { AdminUsers } from './components/admin/AdminUsers';
 import { AdminOrganizations } from './components/admin/AdminOrganizations';
@@ -149,9 +150,36 @@ function AuthenticatedApplication() {
       <Route path="/admin/login" element={<Navigate to="/admin" replace />} />
       <Route path="/admin-login" element={<Navigate to="/admin" replace />} />
 
-      {/* All admin interfaces are now hosted within the Settings app, accessible via the OS Desktop */}
-      <Route path="/admin" element={<Navigate to="/" replace />} />
-      <Route path="/admin/*" element={<Navigate to="/" replace />} />
+      {/* Admin Application routes */}
+      {isAdmin && (
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminOverview />} />
+          <Route path="control-center" element={<AdminControlCenter />} />
+          <Route path="control-center/domains/:domainId" element={<AdminControlCenter />} />
+          <Route path="control-center/capabilities/:domainId/:capabilityId" element={<AdminControlCenter />} />
+          <Route path="control-center/policies" element={<ControlCenterPolicies />} />
+          <Route path="control-center/approvals" element={<ControlCenterApprovals />} />
+          <Route path="control-center/simulations" element={<ControlCenterSimulations />} />
+          <Route path="control-center/audit" element={<ControlCenterAudit />} />
+          <Route path="manual" element={<ManualCenter admin />} />
+          <Route path="platform-intelligence" element={<PlatformIntelligence />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="organizations" element={<AdminOrganizations />} />
+          <Route path="roles" element={<AdminRoles />} />
+          <Route path="audit-logs" element={<AdminAuditLogs />} />
+          <Route path="demo-data" element={<AdminDemoData />} />
+          <Route path="settings" element={<AdminSettings />} />
+          <Route path="branding" element={<AdminBranding />} />
+        </Route>
+      )}
+
+      {/* If non-admin attempts /admin routes, redirect to root */}
+      {!isAdmin && (
+        <>
+          <Route path="/admin" element={<Navigate to="/" replace />} />
+          <Route path="/admin/*" element={<Navigate to="/" replace />} />
+        </>
+      )}
 
       {/* User Manual: standard users have access only to the User Manual. */}
       {!isAdmin && (

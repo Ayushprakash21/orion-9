@@ -3,7 +3,7 @@ import { useSupplyChain } from '../store/SupplyChainContext';
 import { useAuth } from '../store/AuthContext';
 import { 
   Save, Shield, Globe, CheckCircle2, RotateCcw, Settings as SettingsIcon, 
-  Sliders, Eye, Search, User, Building2, ShieldCheck, Activity, Database, Brush, Key, Lock, Unlock, Users, Clock
+  Sliders, Eye, Search, User, Building2, ShieldCheck, Activity, Database, Brush, Key, Lock, Unlock, Users, Clock, BrainCircuit
 } from 'lucide-react';
 import { SearchableDropdown } from './ui/SearchableDropdown';
 import { FXRateService } from '../services/FXRateService';
@@ -16,6 +16,7 @@ import { userService } from '../services/userService';
 
 // Admin Components
 import { AdminOverview } from './admin/AdminOverview';
+import { AdminControlCenter } from './admin/AdminControlCenter';
 import { AdminUsers } from './admin/AdminUsers';
 import { AdminOrganizations } from './admin/AdminOrganizations';
 import { AdminRoles } from './admin/AdminRoles';
@@ -31,7 +32,7 @@ type SettingsCategory =
   // SYSTEM
   | 'operational' | 'appearance' | 'localization' | 'sound' | 'privacy'
   // ADMINISTRATION
-  | 'admin_overview' | 'admin_users' | 'admin_orgs' | 'admin_roles' | 'admin_branding' | 'admin_audit' | 'admin_demo' | 'admin_security' | 'admin_database';
+  | 'admin_overview' | 'admin_control_center' | 'admin_users' | 'admin_orgs' | 'admin_roles' | 'admin_branding' | 'admin_audit' | 'admin_demo' | 'admin_security' | 'admin_database';
 
 export const Settings = () => {
   const { user, profile, hasRole } = useAuth();
@@ -209,6 +210,7 @@ export const Settings = () => {
         
         <div className="flex-1 bg-os-surface border border-os-border rounded-xl overflow-hidden relative">
           {activeCategory === 'admin_overview' && <AdminOverview />}
+          {activeCategory === 'admin_control_center' && <AdminControlCenter />}
           {activeCategory === 'admin_users' && <AdminUsers />}
           {activeCategory === 'admin_orgs' && <AdminOrganizations />}
           {activeCategory === 'admin_roles' && <AdminRoles />}
@@ -418,6 +420,7 @@ export const Settings = () => {
 
   const adminItems = [
     { id: 'admin_overview', label: 'Overview', icon: SettingsIcon, group: 'admin' },
+    { id: 'admin_control_center', label: 'AI + Manual Control Center', icon: BrainCircuit, group: 'admin' },
     { id: 'admin_users', label: 'Users', icon: Users, group: 'admin' },
     { id: 'admin_orgs', label: 'Organizations', icon: Building2, group: 'admin' },
     { id: 'admin_roles', label: 'Roles', icon: Key, group: 'admin' },

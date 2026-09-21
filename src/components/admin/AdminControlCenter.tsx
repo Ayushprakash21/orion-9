@@ -1,15 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, BrainCircuit, CheckCircle2, ChevronRight, FileText, History, Play, Save, Shield, SlidersHorizontal, Sparkles, XCircle } from 'lucide-react';
+import { Link, useNavigate, useParams, Navigate } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, BrainCircuit, ChevronRight, Play, Save, Shield } from 'lucide-react';
+import { useAuth } from '../../store/AuthContext';
+import { KernelAuditEngine } from '../../kernel/AuditEngine';
+import { AutonomyGovernanceEngine } from '../../workflows/AutonomyGovernanceEngine';
 
-type Mode = 'Manual' | 'AI Copilot' | 'AI Autopilot';
-type Policy = 'Strict' | 'Standard';
-type Scope = 'Capability' | 'Domain' | 'Organization';
+export type Mode = 'Manual' | 'AI Copilot' | 'AI Autopilot';
+export type Policy = 'Strict' | 'Standard';
+export type Scope = 'Capability' | 'Domain' | 'Organization';
 
-type Capability = { id: string; name: string; description: string; defaultMode: Mode; risk: 'Low' | 'Medium' | 'High' };
-type Domain = { id: string; name: string; priority: string; description: string; capabilities: Capability[] };
+export type Capability = { id: string; name: string; description: string; defaultMode: Mode; risk: 'Low' | 'Medium' | 'High' };
+export type Domain = { id: string; name: string; priority: string; description: string; capabilities: Capability[] };
 
-const DOMAINS: Domain[] = [
+export const DOMAINS: Domain[] = [
   { id:'users-rbac', name:'Users & RBAC', priority:'P0', description:'Identity, roles, permissions, sessions and access governance.', capabilities:[
     {id:'role-management',name:'Role Management',description:'Create and govern roles and permissions.',defaultMode:'Manual',risk:'High'},
     {id:'mfa-policy',name:'MFA Policy',description:'Control multi-factor authentication requirements.',defaultMode:'Manual',risk:'High'},
@@ -64,16 +67,33 @@ const DOMAINS: Domain[] = [
     {id:'offline-policy',name:'Offline Policy',description:'Define offline data and synchronization rules.',defaultMode:'AI Copilot',risk:'Medium'}]},
 ];
 
-const readJSON = <T,>(key:string, fallback:T):T => { try { const v=localStorage.getItem(key); return v ? JSON.parse(v) as T : fallback; } catch { return fallback; } };
+const readJSON = <T,>(key: string, fallback: T): T => {
+  try {
+    if (typeof localStorage === 'undefined') return fallback;
+    const v = localStorage.getItem(key);
+    return v ? JSON.parse(v) as T : fallback;
+  } catch {
+    return fallback;
+  }
+};
 
 export function AdminControlCenter() {
   const navigate = useNavigate();
   const { domainId, capabilityId } = useParams();
+  const { profile, user, hasRole, organization } = useAuth();
+
+  // Admin access gate: Only authorized Admin / privileged roles may access Control Center
+  const isPlatformAdmin = profile?.role === 'platform_admin' || hasRole(['platform_admin']);
+  const isOrgAdmin = profile?.role === 'organization_admin' || hasRole(['organization_admin']);
+
+  const currentTenant = organization?.id || profile?.organizationId || 'default-tenant';
+  const tenantKey = (k: string) => `${k}_${currentTenant}`;
+
   const initialDomain = DOMAINS.find(d => d.id === domainId) || DOMAINS[0];
   const initialCapability = initialDomain.capabilities.find(c => c.id === capabilityId) || initialDomain.capabilities[0];
   const [selectedDomain, setSelectedDomain] = useState(initialDomain);
   const [selectedCapability, setSelectedCapability] = useState(initialCapability);
-  const [mode, setMode] = useState<Mode>(() => readJSON<Record<string,Mode>>('orion_control_policies', {})[initialCapability.id] || initialCapability.defaultMode);
+  const [mode, setMode] = useState<Mode>(() => readJSON<Record<string, Mode>>(tenantKey('orion_control_policies'), {})[initialCapability.id] || initialCapability.defaultMode);
   const [policy, setPolicy] = useState<Policy>('Standard');
   const [scope, setScope] = useState<Scope>('Capability');
   const [approval, setApproval] = useState(true);
@@ -81,42 +101,577 @@ export function AdminControlCenter() {
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [query, setQuery] = useState('');
 
+  // Authoritative Audit Logger
+  const audit = (action: string, detail: string) => {
+    try {
+      const events = readJSON<any[]>(tenantKey('orion_control_audit'), []);
+      events.unshift({
+        id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `aud-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        actor: profile?.fullName || profile?.displayName || 'Admin',
+        action,
+        detail,
+        domain: selectedDomain.name,
+        capability: selectedCapability.name,
+      });
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(tenantKey('orion_control_audit'), JSON.stringify(events.slice(0, 200)));
+      }
+
+      KernelAuditEngine.getInstance().record({
+        actor: { id: user?.id || profile?.id || 'admin', type: 'USER', name: profile?.fullName || 'Admin' },
+        tenantId: currentTenant,
+        action,
+        entityType: 'policy',
+        entityId: selectedCapability.id,
+        result: 'SUCCESS',
+        classification: 'INTERNAL',
+        details: { domain: selectedDomain.name, capability: selectedCapability.name, detail }
+      }).catch(err => console.warn('[ControlCenter] Kernel audit record warning:', err));
+    } catch (e) {
+      console.warn('[ControlCenter] Audit logging error:', e);
+    }
+  };
+
+  // Record initial view audit
+  useEffect(() => {
+    if (isPlatformAdmin || isOrgAdmin) {
+      audit('CONTROL_CENTER_OPENED', `Control Center opened by ${profile?.fullName || 'Admin'}`);
+    }
+  }, []);
+
   useEffect(() => {
     const d = DOMAINS.find(x => x.id === domainId) || DOMAINS[0];
     const c = d.capabilities.find(x => x.id === capabilityId) || d.capabilities[0];
     setSelectedDomain(d);
     setSelectedCapability(c);
-    const saved = readJSON<Record<string,any>>('orion_control_policies', {})[c.id];
+    const saved = readJSON<Record<string, any>>(tenantKey('orion_control_policies'), {})[c.id];
     setMode(saved?.mode || c.defaultMode);
-    if (saved) { setPolicy(saved.policy || 'Standard'); setScope(saved.scope || 'Capability'); setApproval(saved.approval !== false); setEnabled(saved.enabled !== false); }
-  }, [domainId, capabilityId]);
+    if (saved) {
+      setPolicy(saved.policy || 'Standard');
+      setScope(saved.scope || 'Capability');
+      setApproval(saved.approval !== false);
+      setEnabled(saved.enabled !== false);
+    }
+    if (isPlatformAdmin || isOrgAdmin) {
+      audit('POLICY_VIEWED', `Viewed policy for ${c.name}`);
+      audit('AUTONOMY_SETTING_VIEWED', `Viewed autonomy setting for ${c.name}: ${saved?.mode || c.defaultMode}`);
+    }
+  }, [domainId, capabilityId, currentTenant]);
 
   const matches = useMemo(() => {
-    const q=query.trim().toLowerCase(); if(!q) return DOMAINS;
-    return DOMAINS.map(d => ({...d, capabilities:d.capabilities.filter(c=>`${d.name} ${d.description} ${c.name} ${c.description}`.toLowerCase().includes(q))})).filter(d=>d.capabilities.length || `${d.name} ${d.description}`.toLowerCase().includes(q));
-  },[query]);
+    const q = query.trim().toLowerCase();
+    if (!q) return DOMAINS;
+    return DOMAINS.map(d => ({
+      ...d,
+      capabilities: d.capabilities.filter(c => `${d.name} ${d.description} ${c.name} ${c.description}`.toLowerCase().includes(q))
+    })).filter(d => d.capabilities.length || `${d.name} ${d.description}`.toLowerCase().includes(q));
+  }, [query]);
 
-  const selectDomain = (d:Domain) => { setSelectedDomain(d); const c=d.capabilities[0]; setSelectedCapability(c); setMode(readJSON<Record<string,Mode>>('orion_control_policies',{})[c.id] || c.defaultMode); navigate(`/admin/control-center/domains/${d.id}`); };
-  const selectCapability = (d:Domain,c:Capability) => { setSelectedDomain(d); setSelectedCapability(c); setMode(readJSON<Record<string,Mode>>('orion_control_policies',{})[c.id] || c.defaultMode); navigate(`/admin/control-center/capabilities/${d.id}/${c.id}`); };
-  const audit = (action:string, detail:string) => { const events=readJSON<any[]>('orion_control_audit',[]); events.unshift({id:crypto.randomUUID(),timestamp:new Date().toISOString(),actor:'Admin',action,detail,domain:selectedDomain.name,capability:selectedCapability.name}); localStorage.setItem('orion_control_audit',JSON.stringify(events.slice(0,200))); };
-  const save = () => { const policies=readJSON<Record<string,any>>('orion_control_policies',{}); policies[selectedCapability.id]={mode,policy,scope,approval,enabled,updatedAt:new Date().toISOString()}; localStorage.setItem('orion_control_policies',JSON.stringify(policies)); audit('POLICY_SAVED',`${mode} / ${policy} / ${scope}`); setSavedAt(new Date().toLocaleTimeString()); };
-  const reset = () => { setMode(selectedCapability.defaultMode); setPolicy('Standard'); setScope('Capability'); setApproval(true); setEnabled(true); audit('POLICY_RESET','Restored capability defaults'); setSavedAt(new Date().toLocaleTimeString()); };
-  const propose = () => { const proposals=readJSON<any[]>('orion_control_proposals',[]); const p={id:`PROP-${Date.now()}`,createdAt:new Date().toISOString(),domain:selectedDomain.name,capability:selectedCapability.name,risk:selectedCapability.risk,recommendedMode:selectedCapability.defaultMode,reason:`Review ${selectedCapability.name} using current ${mode} policy before execution.`,status:'Pending'}; proposals.unshift(p); localStorage.setItem('orion_control_proposals',JSON.stringify(proposals)); audit('AI_PROPOSAL_CREATED',p.id); navigate('/admin/control-center/approvals'); };
-  const simulate = () => { const runs=readJSON<any[]>('orion_control_simulations',[]); runs.unshift({id:`SIM-${Date.now()}`,timestamp:new Date().toISOString(),domain:selectedDomain.name,capability:selectedCapability.name,mode,policy,scope,result:'No operational data changed'}); localStorage.setItem('orion_control_simulations',JSON.stringify(runs.slice(0,100))); audit('SIMULATION_RUN','No operational data changed'); navigate('/admin/control-center/simulations'); };
+  const selectDomain = (d: Domain) => {
+    setSelectedDomain(d);
+    const c = d.capabilities[0];
+    setSelectedCapability(c);
+    setMode(readJSON<Record<string, Mode>>(tenantKey('orion_control_policies'), {})[c.id] || c.defaultMode);
+    navigate(`/admin/control-center/domains/${d.id}`);
+  };
 
-  return <div className="space-y-5">
-    <div className="flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-2xl font-light text-os-text-primary">AI + Manual Control Center</h1><p className="text-sm text-os-text-secondary mt-1">One governed path from domain policy to approved execution and audit.</p></div><div className="flex gap-2"><Link to="/admin/control-center/approvals" className="px-3 py-2 rounded-md border border-os-border text-xs hover:bg-white/5">Approval Queue</Link><Link to="/admin/control-center/audit" className="px-3 py-2 rounded-md border border-os-border text-xs hover:bg-white/5">Audit</Link></div></div>
-    <div className="grid grid-cols-1 xl:grid-cols-[300px_minmax(0,1fr)_330px] gap-4">
-      <section className="rounded-lg border border-os-border bg-os-bg overflow-hidden"><div className="p-3 border-b border-os-border"><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search domains or capabilities..." className="w-full rounded-md border border-os-border bg-black/20 px-3 py-2 text-xs outline-none focus:border-cyan-500/50"/></div><div className="max-h-[680px] overflow-y-auto p-2">{matches.map(d=><div key={d.id} className="mb-1"><button onClick={()=>selectDomain(d)} className={`w-full text-left rounded-md px-3 py-2 text-xs ${selectedDomain.id===d.id?'bg-blue-500/10 text-blue-400 border border-blue-500/20':'hover:bg-white/5 text-os-text-secondary'}`}><span className="font-medium">{d.name}</span><span className="float-right font-mono text-[10px] opacity-60">{d.priority}</span></button>{selectedDomain.id===d.id && <div className="ml-3 mt-1 border-l border-os-border pl-2 space-y-1">{d.capabilities.map(c=><button key={c.id} onClick={()=>selectCapability(d,c)} className={`w-full text-left rounded px-2 py-1.5 text-[11px] ${selectedCapability.id===c.id?'text-cyan-400 bg-cyan-500/5':'text-os-text-muted hover:text-os-text-primary'}`}>{c.name}</button>)}</div>}</div>)}</div></section>
-      <section className="rounded-lg border border-os-border bg-os-bg overflow-hidden"><div className="p-4 border-b border-os-border"><div className="text-[10px] uppercase tracking-widest text-cyan-400">{selectedDomain.priority} · {selectedDomain.name}</div><div className="flex items-center gap-2 mt-1"><h2 className="text-lg text-os-text-primary">{selectedCapability.name}</h2><ChevronRight size={14} className="text-os-text-muted"/><span className="text-xs text-os-text-secondary">Policy Editor</span></div><p className="text-xs text-os-text-muted mt-1">{selectedCapability.description}</p></div><div className="p-4 space-y-5"><div><div className="text-[10px] uppercase tracking-widest text-os-text-muted mb-2">Operating Mode</div><div className="grid grid-cols-3 gap-2">{(['Manual','AI Copilot','AI Autopilot'] as Mode[]).map(m=><button key={m} onClick={()=>setMode(m)} className={`rounded-md border p-3 text-left ${mode===m?'border-cyan-500/50 bg-cyan-500/10 text-cyan-400':'border-os-border hover:bg-white/5 text-os-text-secondary'}`}><div className="text-xs font-medium">{m}</div><div className="text-[10px] opacity-60 mt-1">{m==='Manual'?'Human executes':m==='AI Copilot'?'AI proposes, human decides':'AI executes within policy'}</div></button>)}</div></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><label className="text-xs text-os-text-secondary">Policy<select value={policy} onChange={e=>setPolicy(e.target.value as Policy)} className="mt-1 w-full rounded-md border border-os-border bg-black/20 p-2 text-xs"><option>Standard</option><option>Strict</option></select></label><label className="text-xs text-os-text-secondary">Execution Scope<select value={scope} onChange={e=>setScope(e.target.value as Scope)} className="mt-1 w-full rounded-md border border-os-border bg-black/20 p-2 text-xs"><option>Capability</option><option>Domain</option><option>Organization</option></select></label></div><div className="flex flex-wrap gap-3"><button onClick={()=>setApproval(!approval)} className={`px-3 py-2 rounded-md border text-xs ${approval?'border-green-500/30 text-green-400':'border-os-border text-os-text-muted'}`}>{approval?'✓ Human approval required':'Human approval not required'}</button><button onClick={()=>setEnabled(!enabled)} className={`px-3 py-2 rounded-md border text-xs ${enabled?'border-green-500/30 text-green-400':'border-red-500/30 text-red-400'}`}>{enabled?'Enabled':'Disabled'}</button></div><div className="flex flex-wrap gap-2 pt-2 border-t border-os-border"><button onClick={save} className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-xs"><Save size={14}/>Save Policy</button><button onClick={reset} className="px-4 py-2 rounded-md border border-os-border text-xs hover:bg-white/5">Reset</button><button onClick={simulate} className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-cyan-500/30 text-cyan-400 text-xs hover:bg-cyan-500/5"><Play size={14}/>Simulate</button>{savedAt&&<span className="text-[10px] text-green-400 self-center">Saved {savedAt}</span>}</div></div></section>
-      <aside className="space-y-4"><div className="rounded-lg border border-os-border bg-os-bg p-4"><div className="flex items-center gap-2 text-xs uppercase tracking-wider text-os-text-secondary"><Shield size={14}/> Governance</div><div className="mt-4 space-y-3 text-xs"><div className="flex justify-between"><span className="text-os-text-muted">Risk</span><span className="text-amber-400">{selectedCapability.risk}</span></div><div className="flex justify-between"><span className="text-os-text-muted">Scope</span><span>{scope}</span></div><div className="flex justify-between"><span className="text-os-text-muted">Approval</span><span>{approval?'Required':'Not required'}</span></div><div className="flex justify-between"><span className="text-os-text-muted">Status</span><span className={enabled?'text-green-400':'text-red-400'}>{enabled?'Enabled':'Disabled'}</span></div></div></div><div className="rounded-lg border border-os-border bg-os-bg p-4"><div className="flex items-center gap-2 text-xs uppercase tracking-wider text-os-text-secondary"><BrainCircuit size={14}/> AI Actions</div><p className="text-[11px] text-os-text-muted mt-2">AI never bypasses the policy. Copilot creates a proposal; Autopilot requires a permitted execution path.</p><div className="space-y-2 mt-3"><button onClick={propose} className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-cyan-500/20 text-cyan-400 text-xs hover:bg-cyan-500/5">Create AI Proposal<ArrowRight size={13}/></button><Link to="/admin/control-center/approvals" className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-os-border text-xs hover:bg-white/5">Review Approvals<ArrowRight size={13}/></Link><Link to="/admin/control-center/audit" className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-os-border text-xs hover:bg-white/5">View Audit<ArrowRight size={13}/></Link></div></div></aside>
+  const selectCapability = (d: Domain, c: Capability) => {
+    setSelectedDomain(d);
+    setSelectedCapability(c);
+    setMode(readJSON<Record<string, Mode>>(tenantKey('orion_control_policies'), {})[c.id] || c.defaultMode);
+    navigate(`/admin/control-center/capabilities/${d.id}/${c.id}`);
+  };
+
+  const save = () => {
+    const policies = readJSON<Record<string, any>>(tenantKey('orion_control_policies'), {});
+    policies[selectedCapability.id] = {
+      mode,
+      policy,
+      scope,
+      approval,
+      enabled,
+      updatedAt: new Date().toISOString()
+    };
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(tenantKey('orion_control_policies'), JSON.stringify(policies));
+    }
+    audit('POLICY_CHANGE_REQUESTED', `${mode} / ${policy} / ${scope}`);
+    audit('AUTONOMY_SETTING_CHANGE_REQUESTED', `Operating mode set to ${mode} with approval=${approval}`);
+    setSavedAt(new Date().toLocaleTimeString());
+  };
+
+  const reset = () => {
+    setMode(selectedCapability.defaultMode);
+    setPolicy('Standard');
+    setScope('Capability');
+    setApproval(true);
+    setEnabled(true);
+    audit('POLICY_RESET', 'Restored capability defaults');
+    setSavedAt(new Date().toLocaleTimeString());
+  };
+
+  const propose = () => {
+    const proposals = readJSON<any[]>(tenantKey('orion_control_proposals'), []);
+    const p = {
+      id: `PROP-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      domain: selectedDomain.name,
+      capability: selectedCapability.name,
+      risk: selectedCapability.risk,
+      recommendedMode: selectedCapability.defaultMode,
+      reason: `Review ${selectedCapability.name} using current ${mode} policy before execution.`,
+      status: 'Pending',
+      requiresApproval: true,
+      proposerType: 'AI',
+      tenantId: currentTenant,
+    };
+    proposals.unshift(p);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(tenantKey('orion_control_proposals'), JSON.stringify(proposals));
+    }
+    audit('AI_PROPOSAL_CREATED', p.id);
+    audit('APPROVAL_REQUESTED', `Human approval required for AI proposal ${p.id}`);
+    navigate('/admin/control-center/approvals');
+  };
+
+  const simulate = () => {
+    // Deterministic simulation strictly isolated from production data
+    const simResult = `SIMULATION ONLY · NO PRODUCTION MUTATION: Evaluated ${selectedCapability.name} under ${mode} (${policy} / ${scope}). 0 production records modified.`;
+    const runs = readJSON<any[]>(tenantKey('orion_control_simulations'), []);
+    runs.unshift({
+      id: `SIM-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      domain: selectedDomain.name,
+      capability: selectedCapability.name,
+      mode,
+      policy,
+      scope,
+      result: simResult,
+      simulationMode: true,
+      tenantId: currentTenant,
+    });
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(tenantKey('orion_control_simulations'), JSON.stringify(runs.slice(0, 100)));
+    }
+    audit('POLICY_SIMULATED', `Simulated ${selectedCapability.name} (0 production mutations)`);
+    navigate('/admin/control-center/simulations');
+  };
+
+  // Deny access if unauthorized user
+  if (!isPlatformAdmin && !isOrgAdmin) {
+    return (
+      <div className="p-8 rounded-lg border border-red-500/30 bg-red-500/10 text-center" data-testid="access-denied">
+        <h2 className="text-lg font-semibold text-red-400">Access Denied</h2>
+        <p className="text-xs text-os-text-secondary mt-2">Administrator privileges required for platform control plane.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-light text-os-text-primary">AI + Manual Control Center</h1>
+          <p className="text-sm text-os-text-secondary mt-1">One governed path from domain policy to approved execution and audit.</p>
+        </div>
+        <div className="flex gap-2">
+          <Link to="/admin/control-center/approvals" className="px-3 py-2 rounded-md border border-os-border text-xs hover:bg-white/5">
+            Approval Queue
+          </Link>
+          <Link to="/admin/control-center/audit" className="px-3 py-2 rounded-md border border-os-border text-xs hover:bg-white/5">
+            Audit
+          </Link>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-[300px_minmax(0,1fr)_330px] gap-4">
+        {/* Left Column: Domain / Capability Navigator */}
+        <section className="rounded-lg border border-os-border bg-os-bg overflow-hidden">
+          <div className="p-3 border-b border-os-border">
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Search domains or capabilities..."
+              className="w-full rounded-md border border-os-border bg-black/20 px-3 py-2 text-xs outline-none focus:border-cyan-500/50"
+            />
+          </div>
+          <div className="max-h-[680px] overflow-y-auto p-2">
+            {matches.map(d => (
+              <div key={d.id} className="mb-1">
+                <button
+                  onClick={() => selectDomain(d)}
+                  className={`w-full text-left rounded-md px-3 py-2 text-xs ${selectedDomain.id === d.id ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' : 'hover:bg-white/5 text-os-text-secondary'}`}
+                >
+                  <span className="font-medium">{d.name}</span>
+                  <span className="float-right font-mono text-[10px] opacity-60">{d.priority}</span>
+                </button>
+                {selectedDomain.id === d.id && (
+                  <div className="ml-3 mt-1 border-l border-os-border pl-2 space-y-1">
+                    {d.capabilities.map(c => (
+                      <button
+                        key={c.id}
+                        onClick={() => selectCapability(d, c)}
+                        className={`w-full text-left rounded px-2 py-1.5 text-[11px] ${selectedCapability.id === c.id ? 'text-cyan-400 bg-cyan-500/5' : 'text-os-text-muted hover:text-os-text-primary'}`}
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Center Panel: Policy Editor */}
+        <section className="rounded-lg border border-os-border bg-os-bg overflow-hidden">
+          <div className="p-4 border-b border-os-border">
+            <div className="text-[10px] uppercase tracking-widest text-cyan-400">
+              {selectedDomain.priority} · {selectedDomain.name}
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <h2 className="text-lg text-os-text-primary">{selectedCapability.name}</h2>
+              <ChevronRight size={14} className="text-os-text-muted" />
+              <span className="text-xs text-os-text-secondary">Policy Editor</span>
+            </div>
+            <p className="text-xs text-os-text-muted mt-1">{selectedCapability.description}</p>
+          </div>
+
+          <div className="p-4 space-y-5">
+            <div>
+              <div className="text-[10px] uppercase tracking-widest text-os-text-muted mb-2">Operating Mode</div>
+              <div className="grid grid-cols-3 gap-2">
+                {(['Manual', 'AI Copilot', 'AI Autopilot'] as Mode[]).map(m => (
+                  <button
+                    key={m}
+                    onClick={() => setMode(m)}
+                    className={`rounded-md border p-3 text-left ${mode === m ? 'border-cyan-500/50 bg-cyan-500/10 text-cyan-400' : 'border-os-border hover:bg-white/5 text-os-text-secondary'}`}
+                  >
+                    <div className="text-xs font-medium">{m}</div>
+                    <div className="text-[10px] opacity-60 mt-1">
+                      {m === 'Manual' ? 'Human executes' : m === 'AI Copilot' ? 'AI proposes, human decides' : 'AI executes within policy'}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="text-xs text-os-text-secondary">
+                Policy
+                <select
+                  value={policy}
+                  onChange={e => setPolicy(e.target.value as Policy)}
+                  className="mt-1 w-full rounded-md border border-os-border bg-black/20 p-2 text-xs"
+                >
+                  <option>Standard</option>
+                  <option>Strict</option>
+                </select>
+              </label>
+              <label className="text-xs text-os-text-secondary">
+                Execution Scope
+                <select
+                  value={scope}
+                  onChange={e => setScope(e.target.value as Scope)}
+                  className="mt-1 w-full rounded-md border border-os-border bg-black/20 p-2 text-xs"
+                >
+                  <option>Capability</option>
+                  <option>Domain</option>
+                  <option>Organization</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => setApproval(!approval)}
+                className={`px-3 py-2 rounded-md border text-xs ${approval ? 'border-green-500/30 text-green-400' : 'border-os-border text-os-text-muted'}`}
+              >
+                {approval ? '✓ Human approval required' : 'Human approval not required'}
+              </button>
+              <button
+                onClick={() => setEnabled(!enabled)}
+                className={`px-3 py-2 rounded-md border text-xs ${enabled ? 'border-green-500/30 text-green-400' : 'border-red-500/30 text-red-400'}`}
+              >
+                {enabled ? 'Enabled' : 'Disabled'}
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 pt-2 border-t border-os-border">
+              <button
+                onClick={save}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-blue-600 hover:bg-blue-500 text-white text-xs"
+              >
+                <Save size={14} />
+                Save Policy
+              </button>
+              <button
+                onClick={reset}
+                className="px-4 py-2 rounded-md border border-os-border text-xs hover:bg-white/5"
+              >
+                Reset
+              </button>
+              <button
+                onClick={simulate}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-cyan-500/30 text-cyan-400 text-xs hover:bg-cyan-500/5"
+              >
+                <Play size={14} />
+                Simulate
+              </button>
+              {savedAt && <span className="text-[10px] text-green-400 self-center">Saved {savedAt}</span>}
+            </div>
+          </div>
+        </section>
+
+        {/* Right Column: Governance & AI Actions */}
+        <aside className="space-y-4">
+          <div className="rounded-lg border border-os-border bg-os-bg p-4">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-os-text-secondary">
+              <Shield size={14} /> Governance
+            </div>
+            <div className="mt-4 space-y-3 text-xs">
+              <div className="flex justify-between">
+                <span className="text-os-text-muted">Risk</span>
+                <span className="text-amber-400">{selectedCapability.risk}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-os-text-muted">Scope</span>
+                <span>{scope}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-os-text-muted">Approval</span>
+                <span>{approval ? 'Required' : 'Not required'}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-os-text-muted">Status</span>
+                <span className={enabled ? 'text-green-400' : 'text-red-400'}>{enabled ? 'Enabled' : 'Disabled'}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-os-border bg-os-bg p-4">
+            <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-os-text-secondary">
+              <BrainCircuit size={14} /> AI Actions
+            </div>
+            <p className="text-[11px] text-os-text-muted mt-2">
+              AI never bypasses the policy. Copilot creates a proposal; Autopilot requires a permitted execution path.
+            </p>
+            <div className="space-y-2 mt-3">
+              <button
+                onClick={propose}
+                className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-cyan-500/20 text-cyan-400 text-xs hover:bg-cyan-500/5"
+              >
+                Create AI Proposal
+                <ArrowRight size={13} />
+              </button>
+              <Link
+                to="/admin/control-center/approvals"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-os-border text-xs hover:bg-white/5"
+              >
+                Review Approvals
+                <ArrowRight size={13} />
+              </Link>
+              <Link
+                to="/admin/control-center/audit"
+                className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-os-border text-xs hover:bg-white/5"
+              >
+                View Audit
+                <ArrowRight size={13} />
+              </Link>
+            </div>
+          </div>
+        </aside>
+      </div>
     </div>
-  </div>;
+  );
 }
 
-export function ControlCenterApprovals(){ const [items,setItems]=useState(()=>readJSON<any[]>('orion_control_proposals',[])); const act=(id:string,status:string)=>{const next=items.map(p=>p.id===id?{...p,status,reviewedAt:new Date().toISOString(),reviewedBy:'Admin'}:p);setItems(next);localStorage.setItem('orion_control_proposals',JSON.stringify(next));const events=readJSON<any[]>('orion_control_audit',[]);events.unshift({id:crypto.randomUUID(),timestamp:new Date().toISOString(),actor:'Admin',action:status==='Approved'?'PROPOSAL_APPROVED':'PROPOSAL_REJECTED',detail:id});localStorage.setItem('orion_control_audit',JSON.stringify(events.slice(0,200)));}; return <SubPage title="Approval Queue" subtitle="Human review is the gate for high-impact AI actions."><div className="space-y-3">{items.length===0?<Empty text="No pending AI proposals."/>:items.map(p=><div key={p.id} className="rounded-lg border border-os-border bg-os-bg p-4 flex flex-wrap items-center justify-between gap-3"><div><div className="text-sm text-os-text-primary">{p.capability}</div><div className="text-xs text-os-text-muted">{p.domain} · {p.risk} risk · {p.id}</div><p className="text-xs text-os-text-secondary mt-2">{p.reason}</p></div><div className="flex gap-2"><button disabled={p.status!=='Pending'} onClick={()=>act(p.id,'Approved')} className="px-3 py-2 rounded-md border border-green-500/30 text-green-400 text-xs disabled:opacity-40">Approve</button><button disabled={p.status!=='Pending'} onClick={()=>act(p.id,'Rejected')} className="px-3 py-2 rounded-md border border-red-500/30 text-red-400 text-xs disabled:opacity-40">Reject</button></div></div>)}</div></SubPage> }
-export function ControlCenterSimulations(){const items=readJSON<any[]>('orion_control_simulations',[]);return <SubPage title="Safe Simulation" subtitle="Simulations test policy outcomes without changing operational data."><div className="space-y-3">{items.length===0?<Empty text="No simulations have been run yet."/>:items.map(x=><div key={x.id} className="rounded-lg border border-os-border bg-os-bg p-4"><div className="text-sm">{x.capability}</div><div className="text-xs text-os-text-muted">{x.domain} · {x.mode} · {x.policy} · {x.scope}</div><div className="text-xs text-green-400 mt-2">{x.result}</div></div>)}</div></SubPage>}
-export function ControlCenterAudit(){const items=readJSON<any[]>('orion_control_audit',[]);return <SubPage title="Control Center Audit" subtitle="Every policy, AI proposal, approval and simulation is recorded here."><div className="space-y-2">{items.length===0?<Empty text="No Control Center events yet."/>:items.map(x=><div key={x.id} className="rounded-md border border-os-border bg-os-bg px-4 py-3"><div className="flex justify-between gap-3"><span className="text-xs text-cyan-400 font-mono">{x.action}</span><span className="text-[10px] text-os-text-muted">{new Date(x.timestamp).toLocaleString()}</span></div><div className="text-xs text-os-text-secondary mt-1">{x.domain||'System'} · {x.capability||'Control Plane'} · {x.detail}</div></div>)}</div></SubPage>}
-export function ControlCenterPolicies(){return <SubPage title="Policy Registry" subtitle="Review the saved policy state for every governed capability."><div className="grid grid-cols-1 lg:grid-cols-2 gap-3">{DOMAINS.flatMap(d=>d.capabilities.map(c=>({d,c}))).map(({d,c})=>{const p=readJSON<Record<string,any>>('orion_control_policies',{})[c.id]||{mode:c.defaultMode,policy:'Standard',scope:'Capability',approval:true,enabled:true};return <Link key={c.id} to={`/admin/control-center/capabilities/${d.id}/${c.id}`} className="rounded-lg border border-os-border bg-os-bg p-4 hover:border-cyan-500/30"><div className="flex justify-between"><span className="text-sm">{c.name}</span><span className="text-[10px] text-os-text-muted">{d.name}</span></div><div className="mt-2 text-xs text-cyan-400">{p.mode}</div><div className="text-[10px] text-os-text-muted mt-1">{p.policy} · {p.scope} · {p.approval?'approval required':'approval not required'}</div></Link>})}</div></SubPage>}
-function SubPage({title,subtitle,children}:{title:string;subtitle:string;children:React.ReactNode}){return <div className="space-y-5"><div><Link to="/admin/control-center" className="inline-flex items-center gap-1 text-xs text-os-text-muted hover:text-os-text-primary mb-3"><ArrowLeft size={13}/> Control Center</Link><h1 className="text-2xl font-light">{title}</h1><p className="text-sm text-os-text-secondary mt-1">{subtitle}</p></div>{children}</div>}
-function Empty({text}:{text:string}){return <div className="rounded-lg border border-dashed border-os-border p-10 text-center text-xs text-os-text-muted">{text}</div>}
+export function ControlCenterApprovals() {
+  const { profile, organization } = useAuth();
+  const currentTenant = organization?.id || profile?.organizationId || 'default-tenant';
+  const tenantKey = (k: string) => `${k}_${currentTenant}`;
+  const [items, setItems] = useState(() => readJSON<any[]>(tenantKey('orion_control_proposals'), []));
+
+  const act = (id: string, status: 'Approved' | 'Rejected') => {
+    const next = items.map(p => p.id === id ? { ...p, status, reviewedAt: new Date().toISOString(), reviewedBy: profile?.fullName || 'Admin' } : p);
+    setItems(next);
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(tenantKey('orion_control_proposals'), JSON.stringify(next));
+    }
+    const events = readJSON<any[]>(tenantKey('orion_control_audit'), []);
+    events.unshift({
+      id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `aud-${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      actor: profile?.fullName || 'Admin',
+      action: status === 'Approved' ? 'APPROVAL_REVIEWED' : 'APPROVAL_REJECTED',
+      detail: `${status} proposal ${id}`
+    });
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(tenantKey('orion_control_audit'), JSON.stringify(events.slice(0, 200)));
+    }
+
+    KernelAuditEngine.getInstance().record({
+      actor: { id: profile?.id || 'admin', type: 'USER', name: profile?.fullName || 'Admin' },
+      tenantId: currentTenant,
+      action: 'APPROVAL_REVIEWED',
+      entityType: 'approval',
+      entityId: id,
+      result: status === 'Approved' ? 'SUCCESS' : 'BLOCKED',
+      classification: 'INTERNAL',
+      details: { decision: status, proposalId: id }
+    }).catch(err => console.warn('[ControlCenter] Kernel audit record warning:', err));
+  };
+
+  return (
+    <SubPage title="Approval Queue" subtitle="Human review is the gate for high-impact AI actions.">
+      <div className="space-y-3">
+        {items.length === 0 ? (
+          <Empty text="No pending AI proposals." />
+        ) : (
+          items.map(p => (
+            <div key={p.id} className="rounded-lg border border-os-border bg-os-bg p-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-sm text-os-text-primary">{p.capability}</div>
+                <div className="text-xs text-os-text-muted">{p.domain} · {p.risk} risk · {p.id}</div>
+                <p className="text-xs text-os-text-secondary mt-2">{p.reason}</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  disabled={p.status !== 'Pending'}
+                  onClick={() => act(p.id, 'Approved')}
+                  className="px-3 py-2 rounded-md border border-green-500/30 text-green-400 text-xs disabled:opacity-40"
+                >
+                  Approve
+                </button>
+                <button
+                  disabled={p.status !== 'Pending'}
+                  onClick={() => act(p.id, 'Rejected')}
+                  className="px-3 py-2 rounded-md border border-red-500/30 text-red-400 text-xs disabled:opacity-40"
+                >
+                  Reject
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </SubPage>
+  );
+}
+
+export function ControlCenterSimulations() {
+  const { profile, organization } = useAuth();
+  const currentTenant = organization?.id || profile?.organizationId || 'default-tenant';
+  const tenantKey = (k: string) => `${k}_${currentTenant}`;
+  const items = readJSON<any[]>(tenantKey('orion_control_simulations'), []);
+
+  return (
+    <SubPage title="Safe Simulation" subtitle="Simulations test policy outcomes without changing operational data.">
+      <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-semibold">
+        SIMULATION ONLY · NO PRODUCTION MUTATION
+      </div>
+      <div className="space-y-3 mt-4">
+        {items.length === 0 ? (
+          <Empty text="No simulations have been run yet." />
+        ) : (
+          items.map(x => (
+            <div key={x.id} className="rounded-lg border border-os-border bg-os-bg p-4">
+              <div className="text-sm">{x.capability}</div>
+              <div className="text-xs text-os-text-muted">{x.domain} · {x.mode} · {x.policy} · {x.scope}</div>
+              <div className="text-xs text-green-400 mt-2">{x.result}</div>
+            </div>
+          ))
+        )}
+      </div>
+    </SubPage>
+  );
+}
+
+export function ControlCenterAudit() {
+  const { profile, organization } = useAuth();
+  const currentTenant = organization?.id || profile?.organizationId || 'default-tenant';
+  const tenantKey = (k: string) => `${k}_${currentTenant}`;
+  const items = readJSON<any[]>(tenantKey('orion_control_audit'), []);
+
+  return (
+    <SubPage title="Control Center Audit" subtitle="Every policy, AI proposal, approval and simulation is recorded here.">
+      <div className="space-y-2">
+        {items.length === 0 ? (
+          <Empty text="No Control Center events yet." />
+        ) : (
+          items.map(x => (
+            <div key={x.id} className="rounded-md border border-os-border bg-os-bg px-4 py-3">
+              <div className="flex justify-between gap-3">
+                <span className="text-xs text-cyan-400 font-mono">{x.action}</span>
+                <span className="text-[10px] text-os-text-muted">{new Date(x.timestamp).toLocaleString()}</span>
+              </div>
+              <div className="text-xs text-os-text-secondary mt-1">{x.domain || 'System'} · {x.capability || 'Control Plane'} · {x.detail}</div>
+            </div>
+          ))
+        )}
+      </div>
+    </SubPage>
+  );
+}
+
+export function ControlCenterPolicies() {
+  const { profile, organization } = useAuth();
+  const currentTenant = organization?.id || profile?.organizationId || 'default-tenant';
+  const tenantKey = (k: string) => `${k}_${currentTenant}`;
+
+  return (
+    <SubPage title="Policy Registry" subtitle="Review the saved policy state for every governed capability.">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        {DOMAINS.flatMap(d => d.capabilities.map(c => ({ d, c }))).map(({ d, c }) => {
+          const p = readJSON<Record<string, any>>(tenantKey('orion_control_policies'), {})[c.id] || {
+            mode: c.defaultMode,
+            policy: 'Standard',
+            scope: 'Capability',
+            approval: true,
+            enabled: true
+          };
+          return (
+            <Link
+              key={c.id}
+              to={`/admin/control-center/capabilities/${d.id}/${c.id}`}
+              className="rounded-lg border border-os-border bg-os-bg p-4 hover:border-cyan-500/30"
+            >
+              <div className="flex justify-between">
+                <span className="text-sm">{c.name}</span>
+                <span className="text-[10px] text-os-text-muted">{d.name}</span>
+              </div>
+              <div className="mt-2 text-xs text-cyan-400">{p.mode}</div>
+              <div className="text-[10px] text-os-text-muted mt-1">
+                {p.policy} · {p.scope} · {p.approval ? 'approval required' : 'approval not required'}
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+    </SubPage>
+  );
+}
+
+function SubPage({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-5">
+      <div>
+        <Link to="/admin/control-center" className="inline-flex items-center gap-1 text-xs text-os-text-muted hover:text-os-text-primary mb-3">
+          <ArrowLeft size={13} /> Control Center
+        </Link>
+        <h1 className="text-2xl font-light">{title}</h1>
+        <p className="text-sm text-os-text-secondary mt-1">{subtitle}</p>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Empty({ text }: { text: string }) {
+  return (
+    <div className="rounded-lg border border-dashed border-os-border p-10 text-center text-xs text-os-text-muted">
+      {text}
+    </div>
+  );
+}
