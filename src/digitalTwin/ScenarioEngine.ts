@@ -17,6 +17,7 @@ import {
 
 export class ScenarioEngine {
   private static instance: ScenarioEngine;
+  private static idCounter = 0;
   private scenarios: Map<string, Scenario> = new Map(); // key: `${tenantId}:${scenarioId}`
 
   private constructor() {}
@@ -87,7 +88,8 @@ export class ScenarioEngine {
       }
     }
 
-    const scenarioId = `SCEN-${params.tenantId}-${Date.now()}-${Math.floor(Date.now() % 10000)}`;
+    const seq = ++ScenarioEngine.idCounter;
+    const scenarioId = `SCEN-${params.tenantId}-${Date.now()}-${seq}-${params.scenarioType || 'CUSTOM'}`;
     const now = new Date().toISOString();
 
     const scenario: Scenario = {
