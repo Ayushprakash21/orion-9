@@ -309,7 +309,82 @@ service cloud.firestore {
       allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
       allow delete: if isAdmin();
     }
+
+    // ========================================================================
+    // WAVE 6 — CONTROL TOWER INTELLIGENCE & DECISION ENGINE COLLECTIONS
+    // ========================================================================
+
+    match /signals/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /exceptions/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /root_causes/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    match /risk_nodes/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /risk_edges/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /predictions/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    match /decisions/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /decision_options/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    match /recommendations/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /decision_replays/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false; // Replays are immutable historical records
+    }
+
+    match /decision_outcomes/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false; // Outcome records are append-only
+    }
   }
 }
+
 
 

@@ -320,5 +320,184 @@ describe('Real Firebase Emulator Security Rules Gate', () => {
       );
     });
   });
+
+  // ── 6. WAVE 6 — CONTROL TOWER INTELLIGENCE & DECISION SECURITY ───────────
+
+  describe('Wave 6 Control Tower & Decision Engine Security', () => {
+    it('denies unauthenticated read to signals and decisions', async () => {
+      const unauthDb = testEnv.unauthenticatedContext().firestore();
+      await assertFails(unauthDb.collection('signals').doc('sig-01').get());
+      await assertFails(unauthDb.collection('decisions').doc('dec-01').get());
+    });
+
+    it('allows TENANT_A user to create and read signals within TENANT_A', async () => {
+      const tenantADb = testEnv.authenticatedContext('user-tenant-a', {
+        organizationId: 'org-tenant-a',
+        role: 'buyer',
+      }).firestore();
+
+      await assertSucceeds(
+        tenantADb.collection('signals').doc('sig-tenant-a-01').set({
+          signalId: 'sig-tenant-a-01',
+          tenantId: 'org-tenant-a',
+          signalType: 'STOCKOUT_RISK',
+          severity: 'HIGH',
+        })
+      );
+
+      const docSnap = await tenantADb.collection('signals').doc('sig-tenant-a-01').get();
+      expect(docSnap.exists).toBe(true);
+    });
+
+    it('denies TENANT_A user from reading TENANT_B signals', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await context.firestore().collection('signals').doc('sig-tenant-b-01').set({
+          signalId: 'sig-tenant-b-01',
+          tenantId: 'org-tenant-b',
+          signalType: 'SUPPLIER_DELAY',
+        });
+      });
+
+      const tenantADb = testEnv.authenticatedContext('user-tenant-a', {
+        organizationId: 'org-tenant-a',
+        role: 'buyer',
+      }).firestore();
+
+      await assertFails(
+        tenantADb.collection('signals').doc('sig-tenant-b-01').get()
+      );
+    });
+
+    it('allows TENANT_A user to create and read decisions within TENANT_A', async () => {
+      const tenantADb = testEnv.authenticatedContext('user-tenant-a', {
+        organizationId: 'org-tenant-a',
+        role: 'buyer',
+      }).firestore();
+
+      await assertSucceeds(
+        tenantADb.collection('decisions').doc('dec-tenant-a-01').set({
+          decisionId: 'dec-tenant-a-01',
+          tenantId: 'org-tenant-a',
+          title: 'Expedite Critical PO',
+          status: 'PENDING_APPROVAL',
+        })
+      );
+
+      const docSnap = await tenantADb.collection('decisions').doc('dec-tenant-a-01').get();
+      expect(docSnap.exists).toBe(true);
+    });
+
+    it('denies TENANT_A user from reading TENANT_B decisions', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await context.firestore().collection('decisions').doc('dec-tenant-b-01').set({
+          decisionId: 'dec-tenant-b-01',
+          tenantId: 'org-tenant-b',
+          title: 'Confidential B Sourcing',
+        });
+      });
+
+      const tenantADb = testEnv.authenticatedContext('user-tenant-a', {
+        organizationId: 'org-tenant-a',
+        role: 'buyer',
+      }).firestore();
+
+      await assertFails(
+        tenantADb.collection('decisions').doc('dec-tenant-b-01').get()
+      );
+    });
+
+    it('denies TENANT_A user from reading TENANT_B risk_nodes', async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await context.firestore().collection('risk_nodes').doc('node-tenant-b-01').set({
+          nodeId: 'node-tenant-b-01',
+          tenantId: 'org-tenant-b',
+          type: 'SUPPLIER',
+          baseRiskScore: 85,
+        });
+      });
+
+      const tenantADb = testEnv.authenticatedContext('user-tenant-a', {
+        organizationId: 'org-tenant-a',
+        role: 'buyer',
+      }).firestore();
+
+      await assertFails(
+        tenantADb.collection('risk_nodes').doc('node-tenant-b-01').get()
+      );
+    });
+
+    it('allows TENANT_A user to record recommendations within TENANT_A', async () => {
+      const tenantADb = testEnv.authenticatedContext('user-tenant-a', {
+        organizationId: 'org-tenant-a',
+        role: 'buyer',
+      }).firestore();
+
+      await assertSucceeds(
+        tenantADb.collection('recommendations').doc('rec-tenant-a-01').set({
+          recommendationId: 'rec-tenant-a-01',
+          tenantId: 'org-tenant-a',
+          rationale: 'Reroute via airfreight to preserve SLA',
+          confidence: 0.92,
+        })
+      );
+    });
+
+    it('denies update or deletion of decision_replays (immutable historical snapshots)', async () => {
+      const tenantADb = testEnv.authenticatedContext('user-tenant-a', {
+        organizationId: 'org-tenant-a',
+        role: 'admin',
+      }).firestore();
+
+      await assertSucceeds(
+        tenantADb.collection('decision_replays').doc('rep-tenant-a-01').set({
+          replayId: 'rep-tenant-a-01',
+          tenantId: 'org-tenant-a',
+          decisionId: 'dec-tenant-a-01',
+          snapshotTimestamp: new Date().toISOString(),
+        })
+      );
+
+      // Attempt update -> DENY
+      await assertFails(
+        tenantADb.collection('decision_replays').doc('rep-tenant-a-01').update({
+          tampered: true,
+        })
+      );
+
+      // Attempt delete -> DENY
+      await assertFails(
+        tenantADb.collection('decision_replays').doc('rep-tenant-a-01').delete()
+      );
+    });
+
+    it('denies update or deletion of decision_outcomes (append-only ledger)', async () => {
+      const tenantADb = testEnv.authenticatedContext('user-tenant-a', {
+        organizationId: 'org-tenant-a',
+        role: 'admin',
+      }).firestore();
+
+      await assertSucceeds(
+        tenantADb.collection('decision_outcomes').doc('out-tenant-a-01').set({
+          outcomeId: 'out-tenant-a-01',
+          tenantId: 'org-tenant-a',
+          decisionId: 'dec-tenant-a-01',
+          costVariance: 120,
+        })
+      );
+
+      // Attempt update -> DENY
+      await assertFails(
+        tenantADb.collection('decision_outcomes').doc('out-tenant-a-01').update({
+          costVariance: 0,
+        })
+      );
+
+      // Attempt delete -> DENY
+      await assertFails(
+        tenantADb.collection('decision_outcomes').doc('out-tenant-a-01').delete()
+      );
+    });
+  });
 });
+
 
