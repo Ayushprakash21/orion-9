@@ -78,6 +78,10 @@ import { LearningCenter } from '../components/admin/LearningCenter';
 import { DriftCenter } from '../components/admin/DriftCenter';
 import { RollbackCenter } from '../components/admin/RollbackCenter';
 import { ProductionReadinessCenter } from '../components/admin/ProductionReadinessCenter';
+import { OperationsCenter } from '../components/admin/OperationsCenter';
+import { IncidentCenter } from '../components/admin/IncidentCenter';
+import { ConfigurationCenter } from '../components/admin/ConfigurationCenter';
+import { ReleaseCenter } from '../components/admin/ReleaseCenter';
 
 const ProfileUserView: React.FC = () => <Profile initialTab="profile" />;
 const ProfileOrgView: React.FC = () => <Profile initialTab="organization" />;
@@ -161,6 +165,10 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'drift-center': DriftCenter,
   'rollback-center': RollbackCenter,
   'production-readiness': ProductionReadinessCenter,
+  'operations-center': OperationsCenter,
+  'incident-center': IncidentCenter,
+  'configuration-center': ConfigurationCenter,
+  'release-center': ReleaseCenter,
 };
 
 export function getAppComponent(appId: string): React.ComponentType<any> | null {

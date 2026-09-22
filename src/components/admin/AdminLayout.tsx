@@ -7,7 +7,8 @@ import {
   Users, Activity, Settings, 
   Palette, LayoutDashboard, Menu, X,
   Building2, Shield, BrainCircuit, BookOpen,
-  FileCheck, Sliders, Compass, RotateCcw, ShieldCheck
+  FileCheck, Sliders, Compass, RotateCcw, ShieldCheck,
+  AlertOctagon, GitCommit
 } from 'lucide-react';
 import { AccountMenu } from '../layout/AccountMenu';
 import { cn } from '../../lib/utils';
@@ -55,6 +56,10 @@ export const AdminLayout = () => {
 
   const menuItems: MenuItem[] = [
     { name: 'Overview', path: '/admin', icon: LayoutDashboard, exact: true },
+    { name: 'Operations Center', path: '/admin/operations', icon: Activity },
+    { name: 'Incident Center', path: '/admin/incidents', icon: AlertOctagon },
+    { name: 'Configuration Center', path: '/admin/configurations', icon: Sliders },
+    { name: 'Release Center', path: '/admin/releases', icon: GitCommit },
     { name: 'AI + Manual Control Center', path: '/admin/control-center', icon: BrainCircuit },
     { name: 'Outcome Center', path: '/admin/outcomes', icon: FileCheck },
     { name: 'Learning Center', path: '/admin/learning', icon: Sliders },

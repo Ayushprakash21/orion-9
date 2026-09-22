@@ -7,7 +7,7 @@ import {
   Clock, History, Sliders, ShieldAlert, Eye, HelpCircle, GitBranch,
   Compass, UserCheck, HeartPulse, RefreshCw, Info, User, Building2,
   ShieldCheck, DollarSign, PackageCheck, FlaskConical, TrendingUp,
-  FileCheck, RotateCcw
+  FileCheck, RotateCcw, AlertOctagon, GitCommit
 } from 'lucide-react';
 
 export interface OrionApp {
@@ -756,6 +756,46 @@ export const ORION_REGISTRY: Record<string, OrionApp> = {
     icon: ShieldCheck,
     color: '#10B981',
     description: 'Production control plane for security gates, latencies, and zero-regression health.',
+    dockDefault: false,
+  },
+  'operations-center': {
+    id: 'operations-center',
+    name: 'Operations Center',
+    route: '/admin/operations',
+    category: 'Control',
+    icon: Activity,
+    color: '#00F2FE',
+    description: 'Real-time telemetry, deep diagnostic probes, emergency safety locks, and circuit breakers.',
+    dockDefault: false,
+  },
+  'incident-center': {
+    id: 'incident-center',
+    name: 'Incident Center',
+    route: '/admin/incidents',
+    category: 'Control',
+    icon: AlertOctagon,
+    color: '#EF4444',
+    description: 'Enterprise SEV1-SEV4 incident triage, blast radius scoring, and timeline ledgers.',
+    dockDefault: false,
+  },
+  'configuration-center': {
+    id: 'configuration-center',
+    name: 'Configuration Center',
+    route: '/admin/configurations',
+    category: 'Platform',
+    icon: Sliders,
+    color: '#3B82F6',
+    description: 'Immutable parameter governance, side-by-side diffs, 1-click rollback, and secret masking.',
+    dockDefault: false,
+  },
+  'release-center': {
+    id: 'release-center',
+    name: 'Release Center',
+    route: '/admin/releases',
+    category: 'Platform',
+    icon: GitCommit,
+    color: '#10B981',
+    description: 'Release verification gates, deployment evidence, and 1-click rollback linkage.',
     dockDefault: false,
   },
 };

@@ -585,6 +585,68 @@ service cloud.firestore {
       allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
       allow update, delete: if false; // Drift telemetry is append-only audit trail
     }
+
+    // =========================================================================
+    // Wave 10 Enterprise Production Control Plane Collections
+    // Strict tenant isolation, admin-only mutation & immutability gates
+    // =========================================================================
+
+    match /system_configs/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /config_versions/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAdmin();
+      allow update, delete: if false; // Version snapshots are permanently immutable
+    }
+
+    match /feature_flags/{id} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /incidents/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if false; // Incidents cannot be deleted
+    }
+
+    match /alerts/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /runtime_jobs/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /backups/{id} {
+      allow read: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if false; // Backups cannot be deleted
+    }
+
+    match /releases/{id} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /integrity_findings/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if false;
+    }
+
+    match /environment_controls/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
   }
 }
 
