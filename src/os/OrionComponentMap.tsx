@@ -90,6 +90,11 @@ import { TradingPartnerCenter } from '../components/admin/TradingPartnerCenter';
 import { ReconciliationCenter } from '../components/admin/ReconciliationCenter';
 import { FailoverCenter } from '../components/admin/FailoverCenter';
 import { ScalePerformanceCenter } from '../components/admin/ScalePerformanceCenter';
+import { ManufacturingCenter } from '../components/ManufacturingCenter';
+import { ReturnsCenter } from '../components/ReturnsCenter';
+import { SupplyPlanningCenter } from '../components/SupplyPlanningCenter';
+import { PlatformMaturityCenter } from '../components/PlatformMaturityCenter';
+
 
 const ProfileUserView: React.FC = () => <Profile initialTab="profile" />;
 const ProfileOrgView: React.FC = () => <Profile initialTab="organization" />;
@@ -185,7 +190,12 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'reconciliation-center': ReconciliationCenter,
   'failover-center': FailoverCenter,
   'scale-performance': ScalePerformanceCenter,
+  'manufacturing': ManufacturingCenter,
+  'returns': ReturnsCenter,
+  'supply-planning': SupplyPlanningCenter,
+  'platform-maturity': PlatformMaturityCenter,
 };
+
 
 export function getAppComponent(appId: string): React.ComponentType<any> | null {
   return ORION_COMPONENT_MAP[appId] || null;

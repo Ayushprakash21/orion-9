@@ -7,8 +7,9 @@ import {
   Clock, History, Sliders, ShieldAlert, Eye, HelpCircle, GitBranch,
   Compass, UserCheck, HeartPulse, RefreshCw, Info, User, Building2,
   ShieldCheck, DollarSign, PackageCheck, FlaskConical, TrendingUp,
-  FileCheck, RotateCcw, AlertOctagon, GitCommit
+  FileCheck, RotateCcw, AlertOctagon, GitCommit, Factory, BarChart3
 } from 'lucide-react';
+
 
 export interface OrionApp {
   id: string;
@@ -879,4 +880,35 @@ export const ORION_REGISTRY: Record<string, OrionApp> = {
     description: 'Distributed workload orchestrator, scale load simulation, and chaos fault injection.',
     dockDefault: false,
   },
+  'manufacturing': {
+    id: 'manufacturing',
+    name: 'Manufacturing & MRP',
+    route: '/manufacturing',
+    category: 'Operations',
+    icon: Factory,
+    color: '#F59E0B',
+    description: 'Multi-level BOMs, work center capacity, production routing, and shop floor order execution.',
+    dockDefault: true,
+  },
+  'returns': {
+    id: 'returns',
+    name: 'Returns & Reverse Logistics',
+    route: '/returns',
+    category: 'Operations',
+    icon: RotateCcw,
+    color: '#EF4444',
+    description: 'RMA processing, receiving inspection, disposition routing, and customer credit notes.',
+    dockDefault: true,
+  },
+  'supply-planning': {
+    id: 'supply-planning',
+    name: 'Supply Planning & MRP',
+    route: '/supply-planning',
+    category: 'Operations',
+    icon: BarChart3,
+    color: '#06B6D4',
+    description: 'Gross-to-net demand netting, time-phased master supply schedules, and planned order conversions.',
+    dockDefault: true,
+  },
 };
+

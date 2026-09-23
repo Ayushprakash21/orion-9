@@ -598,7 +598,11 @@ export type InventoryTransactionType =
   | 'ORDER_ALLOCATION'
   | 'ORDER_FULFILLMENT'
   | 'CYCLE_COUNT_ADJUSTMENT'
-  | 'RETURN_RESTOCK';
+  | 'RETURN_RESTOCK'
+  | 'PRODUCTION_ISSUE'
+  | 'PRODUCTION_RECEIPT'
+  | 'BIN_TRANSFER'
+  | 'SCRAP_WRITEOFF';
 
 export interface InventoryTransactionRecord {
   transactionId: string;
@@ -606,10 +610,10 @@ export interface InventoryTransactionRecord {
   transactionType: InventoryTransactionType;
   productId: string;
   warehouseId: string;
-  quantityDelta: number; // positive for receipt, negative for fulfillment
+  quantityDelta: number; // positive for receipt, negative for deduction
   balanceBefore: number;
   balanceAfter: number;
-  referenceEntityType: 'GRN' | 'PUTAWAY' | 'CUSTOMER_ORDER' | 'CYCLE_COUNT' | 'TRANSFER';
+  referenceEntityType: 'GRN' | 'PUTAWAY' | 'CUSTOMER_ORDER' | 'CYCLE_COUNT' | 'TRANSFER' | 'PRODUCTION_ORDER' | 'RMA';
   referenceEntityId: string;
   lotNumber?: string;
   batchNumber?: string;
@@ -617,4 +621,372 @@ export interface InventoryTransactionRecord {
   correlationId: string;
   timestamp: string;
 }
+
+// ── 9-STATE INVENTORY LEDGER ──────────────────────────────────────────────────
+
+export type InventoryState =
+  | 'ON_HAND'
+  | 'RESERVED'
+  | 'ALLOCATED'
+  | 'AVAILABLE'
+  | 'BLOCKED'
+  | 'QUALITY'
+  | 'QUARANTINED'
+  | 'IN_TRANSIT'
+  | 'PROJECTED';
+
+export interface InventoryBalanceRecord {
+  balanceId: string;
+  tenantId: string;
+  productId: string;
+  warehouseId: string;
+  onHand: number;
+  reserved: number;
+  allocated: number;
+  available: number;
+  blocked: number;
+  quality: number;
+  quarantined: number;
+  inTransit: number;
+  projected: number;
+  reorderPoint: number;
+  safetyStock: number;
+  maxStock: number;
+  unitOfMeasure: string;
+  lastUpdatedAt: string;
+}
+
+// ── MANUFACTURING / MRP / BOM / ROUTING / WORK CENTER ─────────────────────────
+
+export interface BOMComponent {
+  componentProductId: string;
+  componentName: string;
+  quantityPerUnit: number;
+  unitOfMeasure: string;
+  scrapFactorPercent: number; // e.g. 2% scrap
+  isCritical: boolean;
+  leadTimeDays: number;
+}
+
+export interface BOMRecord {
+  bomId: string;
+  tenantId: string;
+  bomNumber: string;
+  finishedProductId: string;
+  finishedProductName: string;
+  version: number;
+  isActive: boolean;
+  baseQuantity: number;
+  components: BOMComponent[];
+  effectiveFrom: string;
+  effectiveTo?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkCenterRecord {
+  workCenterId: string;
+  tenantId: string;
+  code: string;
+  name: string;
+  warehouseId: string;
+  capacityHoursPerDay: number;
+  efficiencyPercent: number;
+  hourlyLaborRate: number;
+  hourlyMachineRate: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RoutingOperation {
+  operationNumber: number; // 10, 20, 30...
+  description: string;
+  workCenterId: string;
+  setupTimeHours: number;
+  runTimeHoursPerUnit: number;
+  inspectionRequired: boolean;
+}
+
+export interface RoutingRecord {
+  routingId: string;
+  tenantId: string;
+  productId: string;
+  routingNumber: string;
+  version: number;
+  operations: RoutingOperation[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ProductionOrderStatus =
+  | 'PLANNED'
+  | 'RELEASED'
+  | 'IN_PROGRESS'
+  | 'CONFIRMED'
+  | 'COMPLETED'
+  | 'CANCELLED'
+  | 'CLOSED';
+
+export interface ProductionOrderRecord {
+  productionOrderId: string;
+  tenantId: string;
+  orderNumber: string;
+  productId: string;
+  bomId: string;
+  routingId: string;
+  warehouseId: string;
+  plannedQuantity: number;
+  completedQuantity: number;
+  scrappedQuantity: number;
+  startDate: string;
+  dueDate: string;
+  actualStartDate?: string;
+  actualCompletedDate?: string;
+  status: ProductionOrderStatus;
+  assignedWorkCenterId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MaterialIssueRecord {
+  issueId: string;
+  tenantId: string;
+  productionOrderId: string;
+  componentProductId: string;
+  quantityIssued: number;
+  warehouseId: string;
+  lotNumber?: string;
+  issuedBy: string;
+  issuedAt: string;
+}
+
+export interface OperationConfirmationRecord {
+  confirmationId: string;
+  tenantId: string;
+  productionOrderId: string;
+  operationNumber: number;
+  workCenterId: string;
+  yieldQuantity: number;
+  scrapQuantity: number;
+  reworkQuantity: number;
+  actualLaborHours: number;
+  actualMachineHours: number;
+  operatorId: string;
+  confirmedAt: string;
+}
+
+// ── SUPPLY PLANNING & MRP ────────────────────────────────────────────────────
+
+export type PlannedOrderStatus = 'DRAFT' | 'FIRM' | 'CONVERTED' | 'CANCELLED';
+
+export interface PlannedOrderRecord {
+  plannedOrderId: string;
+  tenantId: string;
+  type: 'PLANNED_PO' | 'PLANNED_PRODUCTION';
+  productId: string;
+  warehouseId: string;
+  quantity: number;
+  requiredDate: string;
+  orderReleaseDate: string;
+  status: PlannedOrderStatus;
+  sourceDemandReference?: string;
+  convertedEntityId?: string; // poId or productionOrderId
+  createdAt: string;
+}
+
+export interface GrossToNetItem {
+  productId: string;
+  period: string;
+  grossDemand: number;
+  onHandStock: number;
+  scheduledReceipts: number; // Open POs and Prod Orders
+  safetyStock: number;
+  netRequirements: number;
+  plannedOrderReceipts: number;
+  projectedEndingStock: number;
+}
+
+export interface SupplyPlanRecord {
+  supplyPlanId: string;
+  tenantId: string;
+  planName: string;
+  horizonStart: string;
+  horizonEnd: string;
+  items: GrossToNetItem[];
+  plannedOrders: PlannedOrderRecord[];
+  isPublished: boolean;
+  publishedAt?: string;
+  createdBy: string;
+  createdAt: string;
+}
+
+// ── RETURNS & REVERSE LOGISTICS ──────────────────────────────────────────────
+
+export type RMAStatus =
+  | 'REQUESTED'
+  | 'APPROVED'
+  | 'RECEIVED'
+  | 'INSPECTED'
+  | 'DISPOSITIONED'
+  | 'REFUNDED'
+  | 'REJECTED'
+  | 'CLOSED';
+
+export type ReturnDispositionType =
+  | 'RESTOCK'
+  | 'REPAIR'
+  | 'REFURBISH'
+  | 'SCRAP'
+  | 'QUARANTINE'
+  | 'RETURN_TO_SUPPLIER';
+
+export interface RMARecord {
+  rmaId: string;
+  tenantId: string;
+  rmaNumber: string;
+  customerOrderId: string;
+  customerId: string;
+  productId: string;
+  quantityReturned: number;
+  returnReason: 'DAMAGED' | 'DEFECTIVE' | 'WRONG_ITEM' | 'CUSTOMER_CANCEL' | 'OTHER';
+  notes?: string;
+  status: RMAStatus;
+  requestedAt: string;
+  approvedAt?: string;
+  approvedBy?: string;
+}
+
+export interface ReturnReceiptRecord {
+  receiptId: string;
+  tenantId: string;
+  rmaId: string;
+  warehouseId: string;
+  quantityReceived: number;
+  trackingNumber?: string;
+  receivedBy: string;
+  receivedAt: string;
+}
+
+export interface ReturnInspectionRecord {
+  inspectionId: string;
+  tenantId: string;
+  rmaId: string;
+  productId: string;
+  inspectedQuantity: number;
+  condition: 'MINT' | 'OPEN_BOX' | 'DAMAGED' | 'UNUSABLE';
+  inspectorNotes?: string;
+  inspectedBy: string;
+  inspectedAt: string;
+}
+
+export interface ReturnDispositionRecord {
+  dispositionId: string;
+  tenantId: string;
+  rmaId: string;
+  disposition: ReturnDispositionType;
+  quantity: number;
+  destinationWarehouseId?: string;
+  supplierId?: string; // For RETURN_TO_SUPPLIER
+  actionTaken: string;
+  dispositionedBy: string;
+  dispositionedAt: string;
+}
+
+export interface CustomerCreditRecord {
+  creditId: string;
+  tenantId: string;
+  rmaId: string;
+  customerId: string;
+  creditAmount: number;
+  currency: string;
+  status: 'PENDING' | 'ISSUED' | 'APPLIED';
+  issuedAt: string;
+}
+
+// ── ENTERPRISE CONTRACT LIFECYCLE ────────────────────────────────────────────
+
+export type ContractLifecycleStatus =
+  | 'DRAFT'
+  | 'IN_REVIEW'
+  | 'PENDING_APPROVAL'
+  | 'ACTIVE'
+  | 'EXPIRING'
+  | 'EXPIRED'
+  | 'RENEWED'
+  | 'TERMINATED';
+
+export interface ContractPricingTier {
+  minQuantity: number;
+  maxQuantity?: number;
+  unitPrice: number;
+  rebatePercent?: number;
+}
+
+export interface ContractSLARule {
+  metric: 'ON_TIME_DELIVERY' | 'DEFECT_RATE' | 'FILL_RATE';
+  targetPercent: number;
+  penaltyPerBreachPercent: number;
+}
+
+export interface EnterpriseContractRecord {
+  contractId: string;
+  tenantId: string;
+  contractNumber: string;
+  title: string;
+  supplierId: string;
+  supplierName: string;
+  effectiveDate: string;
+  expirationDate: string;
+  renewalTerms?: string;
+  totalCommittedValue: number;
+  actualSpentValue: number;
+  currency: string;
+  paymentTerms: string;
+  incoterms: string;
+  status: ContractLifecycleStatus;
+  pricingTiers: Record<string, ContractPricingTier[]>; // productId -> tiers
+  slaRules: ContractSLARule[];
+  version: number;
+  approvalId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── LANDED COST & PPV ────────────────────────────────────────────────────────
+
+export interface LandedCostComponent {
+  type: 'PURCHASE' | 'FREIGHT' | 'CUSTOMS_DUTY' | 'INSURANCE' | 'HANDLING' | 'STORAGE' | 'QUALITY';
+  amount: number;
+  currency: string;
+  isEstimated: boolean;
+}
+
+export interface LandedCostBreakdownRecord {
+  landedCostId: string;
+  tenantId: string;
+  poId: string;
+  productId: string;
+  quantity: number;
+  components: LandedCostComponent[];
+  totalLandedCost: number;
+  unitLandedCost: number;
+  calculatedAt: string;
+}
+
+export interface PPVRecord {
+  ppvId: string;
+  tenantId: string;
+  poId: string;
+  invoiceId: string;
+  productId: string;
+  quantity: number;
+  standardUnitCost: number;
+  actualUnitCost: number;
+  variancePerUnit: number; // actual - standard
+  totalPurchasePriceVariance: number;
+  currency: string;
+  evaluatedAt: string;
+}
+
 
