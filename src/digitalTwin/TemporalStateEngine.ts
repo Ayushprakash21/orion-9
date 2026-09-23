@@ -18,6 +18,7 @@ export class TemporalStateEngine {
   private currentGraphs: Map<string, TwinGraphEngine> = new Map(); // key: tenantId
   private historicalSnapshots: Map<string, TwinSnapshot> = new Map(); // key: `${tenantId}:${snapshotId}`
   private projectedSnapshots: Map<string, TwinSnapshot> = new Map(); // key: `${tenantId}:${simulationId}`
+  private simulatedSnapshots: Map<string, TwinSnapshot> = new Map(); // key: `${tenantId}:${simulationId}`
   private stateEntities: Map<string, TwinEntity[]> = new Map(); // key: `${tenantId}:${mode}:${contextId || 'default'}`
 
   private constructor() {}
@@ -49,8 +50,15 @@ export class TemporalStateEngine {
     return JSON.parse(JSON.stringify(entities));
   }
 
-  public setCurrentState(tenantId: string, graph: TwinGraphEngine): void {
-    this.currentGraphs.set(tenantId, graph);
+  public setCurrentState(tenantId: string, graphOrEntities: TwinGraphEngine | TwinEntity[]): void {
+    if (graphOrEntities instanceof TwinGraphEngine) {
+      this.currentGraphs.set(tenantId, graphOrEntities);
+    } else if (Array.isArray(graphOrEntities)) {
+      const g = new TwinGraphEngine(tenantId);
+      for (const e of graphOrEntities) g.addNode(e);
+      this.currentGraphs.set(tenantId, g);
+      this.saveState(tenantId, 'CURRENT_STATE', graphOrEntities);
+    }
   }
 
   public getCurrentState(tenantId: string): TwinGraphEngine | undefined {
@@ -58,7 +66,9 @@ export class TemporalStateEngine {
   }
 
   public registerHistoricalSnapshot(snapshot: TwinSnapshot): void {
-    this.historicalSnapshots.set(`${snapshot.tenantId}:${snapshot.snapshotId}`, JSON.parse(JSON.stringify(snapshot)));
+    const cloned = JSON.parse(JSON.stringify(snapshot));
+    cloned.statePlane = 'HISTORICAL';
+    this.historicalSnapshots.set(`${snapshot.tenantId}:${snapshot.snapshotId}`, cloned);
   }
 
   public getHistoricalSnapshot(tenantId: string, snapshotId: string): TwinSnapshot | undefined {
@@ -67,7 +77,9 @@ export class TemporalStateEngine {
   }
 
   public registerProjectedSnapshot(simulationId: string, snapshot: TwinSnapshot): void {
-    this.projectedSnapshots.set(`${snapshot.tenantId}:${simulationId}`, JSON.parse(JSON.stringify(snapshot)));
+    const cloned = JSON.parse(JSON.stringify(snapshot));
+    cloned.statePlane = 'PROJECTED';
+    this.projectedSnapshots.set(`${snapshot.tenantId}:${simulationId}`, cloned);
   }
 
   public getProjectedSnapshot(tenantId: string, simulationId: string): TwinSnapshot | undefined {
@@ -75,12 +87,118 @@ export class TemporalStateEngine {
     return snp ? JSON.parse(JSON.stringify(snp)) : undefined;
   }
 
+  public registerSimulatedSnapshot(simulationId: string, snapshot: TwinSnapshot): void {
+    const cloned = JSON.parse(JSON.stringify(snapshot));
+    cloned.statePlane = 'SIMULATED';
+    this.simulatedSnapshots.set(`${snapshot.tenantId}:${simulationId}`, cloned);
+  }
+
+  public getSimulatedSnapshot(tenantId: string, simulationId: string): TwinSnapshot | undefined {
+    const snp = this.simulatedSnapshots.get(`${tenantId}:${simulationId}`);
+    return snp ? JSON.parse(JSON.stringify(snp)) : undefined;
+  }
+
+  /**
+   * AS-OF Temporal Query: returns the latest historical snapshot created on or before targetTimestamp
+   */
+  public getAsOf(tenantId: string, targetTimestamp: string): TwinSnapshot | undefined {
+    const targetMs = new Date(targetTimestamp).getTime();
+    let bestMatch: TwinSnapshot | undefined;
+    let closestDiff = Infinity;
+
+    for (const [key, snp] of this.historicalSnapshots.entries()) {
+      if (key.startsWith(`${tenantId}:`)) {
+        const snpMs = new Date(snp.createdAt).getTime();
+        if (snpMs <= targetMs) {
+          const diff = targetMs - snpMs;
+          if (diff < closestDiff) {
+            closestDiff = diff;
+            bestMatch = snp;
+          }
+        }
+      }
+    }
+    return bestMatch ? JSON.parse(JSON.stringify(bestMatch)) : undefined;
+  }
+
+  /**
+   * Compares two snapshots (T1 vs T2) and calculates structural and entity attribute deltas
+   */
+  public compareTemporalStates(
+    tenantId: string,
+    t1SnapshotId: string,
+    t2SnapshotId: string
+  ): {
+    tenantId: string;
+    t1SnapshotId: string;
+    t2SnapshotId: string;
+    entityCountDelta: number;
+    relationshipCountDelta: number;
+    addedEntities: string[];
+    removedEntities: string[];
+    modifiedEntities: Array<{ entityId: string; changes: Record<string, { t1: any; t2: any }> }>;
+  } {
+    let s1 = this.getHistoricalSnapshot(tenantId, t1SnapshotId) || this.getProjectedSnapshot(tenantId, t1SnapshotId);
+    let s2 = this.getHistoricalSnapshot(tenantId, t2SnapshotId) || this.getProjectedSnapshot(tenantId, t2SnapshotId);
+
+    if (!s1 && !isNaN(Date.parse(t1SnapshotId))) {
+      s1 = this.getAsOf(tenantId, t1SnapshotId);
+    }
+    if (!s2 && !isNaN(Date.parse(t2SnapshotId))) {
+      s2 = this.getAsOf(tenantId, t2SnapshotId);
+    }
+
+    if (!s1) {
+      s1 = { snapshotId: t1SnapshotId, tenantId, twinId: 'TWIN-DEFAULT', stateVersion: 1, createdAt: t1SnapshotId, sourceEventIds: [], entityCount: 0, relationshipCount: 0, checksum: 'EMPTY', status: 'VALID', entities: {}, relationships: [] };
+    }
+    if (!s2) {
+      s2 = { snapshotId: t2SnapshotId, tenantId, twinId: 'TWIN-DEFAULT', stateVersion: 1, createdAt: t2SnapshotId, sourceEventIds: [], entityCount: 0, relationshipCount: 0, checksum: 'EMPTY', status: 'VALID', entities: {}, relationships: [] };
+    }
+
+    const s1Keys = new Set(Object.keys(s1.entities));
+    const s2Keys = new Set(Object.keys(s2.entities));
+
+    const addedEntities = Array.from(s2Keys).filter(k => !s1Keys.has(k));
+    const removedEntities = Array.from(s1Keys).filter(k => !s2Keys.has(k));
+    const commonEntities = Array.from(s1Keys).filter(k => s2Keys.has(k));
+
+    const modifiedEntities: Array<{ entityId: string; changes: Record<string, { t1: any; t2: any }> }> = [];
+
+    for (const id of commonEntities) {
+      const e1 = s1.entities[id];
+      const e2 = s2.entities[id];
+      const changes: Record<string, { t1: any; t2: any }> = {};
+
+      if (e1.riskScore !== e2.riskScore) {
+        changes.riskScore = { t1: e1.riskScore, t2: e2.riskScore };
+      }
+      if (e1.status !== e2.status) {
+        changes.status = { t1: e1.status, t2: e2.status };
+      }
+
+      if (Object.keys(changes).length > 0) {
+        modifiedEntities.push({ entityId: id, changes });
+      }
+    }
+
+    return {
+      tenantId,
+      t1SnapshotId,
+      t2SnapshotId,
+      entityCountDelta: s2.entityCount - s1.entityCount,
+      relationshipCountDelta: s2.relationshipCount - s1.relationshipCount,
+      addedEntities,
+      removedEntities,
+      modifiedEntities,
+    };
+  }
+
   /**
    * Asserts that a simulated state cannot mutate current production state
    */
   public assertStateIsolation(targetMode: TemporalStateMode, isSimulation: boolean): void {
-    if (isSimulation && targetMode === 'CURRENT_STATE') {
-      throw new Error('Temporal Violation: Scenario simulation is strictly forbidden from writing to CURRENT_STATE');
+    if (isSimulation && (targetMode === 'CURRENT_STATE' || targetMode === 'HISTORICAL_STATE')) {
+      throw new Error('Temporal Violation: Scenario simulation is strictly forbidden from writing to CURRENT_STATE or HISTORICAL_STATE');
     }
   }
 
@@ -88,6 +206,7 @@ export class TemporalStateEngine {
     this.currentGraphs.clear();
     this.historicalSnapshots.clear();
     this.projectedSnapshots.clear();
+    this.simulatedSnapshots.clear();
     this.stateEntities.clear();
   }
 }

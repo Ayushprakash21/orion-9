@@ -209,6 +209,21 @@ export class ScenarioWorkflowBridge {
       bridgedAt: new Date().toISOString(),
     };
   }
+
+  public async submitForWorkflowGovernance(
+    tenantId: string,
+    scenarioId: string,
+    candidateActions: any[]
+  ): Promise<any> {
+    return {
+      governanceStatus: 'PENDING_HUMAN_APPROVAL',
+      requiresApproval: true,
+      autoExecuted: false,
+      executionBlockedReason: 'Approval required: Autonomous execution is prohibited for scenario-generated mutations until signed off by authorized personnel.',
+      candidateActions,
+      submittedAt: new Date().toISOString()
+    };
+  }
 }
 
 export const scenarioWorkflowBridge = ScenarioWorkflowBridge.getInstance();

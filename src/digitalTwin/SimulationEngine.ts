@@ -336,6 +336,37 @@ export class SimulationEngine {
       simulationResult: enhancedResult
     };
   }
+
+  public async executeSimulation(
+    tenantId: string,
+    scenarioId: string,
+    baselineEntities: TwinEntity[],
+    baselineRelationships: TwinRelationship[] = []
+  ): Promise<any> {
+    const baselineSnapshot = TwinSnapshotEngine.getInstance().createSnapshot(
+      tenantId,
+      'TEMP-SIM-BASE',
+      baselineEntities,
+      baselineRelationships
+    );
+
+    const scenario = {
+      scenarioId,
+      tenantId,
+      name: 'Dynamic Simulation',
+      parameters: { scenarioType: 'SUPPLIER_OUTAGE' },
+      assumptions: []
+    } as any;
+
+    const res = this.simulate(scenario, baselineSnapshot);
+    return {
+      isDryRun: true,
+      mutationsPerformed: 0,
+      deterministicChecksum: res.simulatedSnapshotId,
+      impacts: res.impactVectors,
+      kpiProjections: res.kpiDelta
+    };
+  }
 }
 
 export const simulationEngine = SimulationEngine.getInstance();

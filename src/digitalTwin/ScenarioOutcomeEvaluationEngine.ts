@@ -32,28 +32,46 @@ export class ScenarioOutcomeEvaluationEngine {
 
   public evaluateOutcome(
     tenantId: string,
-    data: {
-      scenarioId: string;
-      runId?: string;
-      projectedCost: number;
-      actualCost: number;
-      projectedOTIF: number;
-      actualOTIF: number;
-      projectedLeadTimeDays?: number;
-      actualLeadTimeDays?: number;
-    }
+    scenarioIdOrData: any,
+    projected?: any,
+    actuals?: any
   ): {
     costVariancePercent: number;
     otifVariancePercent: number;
     accuracyScore: number;
     modelCalibrationRecommended: boolean;
+    mape: number;
+    varianceByMetric: Record<string, number>;
   } {
-    const costVariancePercent = data.projectedCost !== 0
-      ? ((data.actualCost - data.projectedCost) / data.projectedCost) * 100
+    let pCost = 0;
+    let aCost = 0;
+    let pOtif = 95;
+    let aOtif = 95;
+    let pLead = 0;
+    let aLead = 0;
+
+    if (typeof scenarioIdOrData === 'object' && scenarioIdOrData !== null) {
+      pCost = scenarioIdOrData.projectedCost ?? 0;
+      aCost = scenarioIdOrData.actualCost ?? 0;
+      pOtif = scenarioIdOrData.projectedOTIF ?? 95;
+      aOtif = scenarioIdOrData.actualOTIF ?? 95;
+      pLead = scenarioIdOrData.projectedLeadTimeDays ?? 0;
+      aLead = scenarioIdOrData.actualLeadTimeDays ?? 0;
+    } else {
+      pCost = projected?.totalCost ?? projected?.projectedCost ?? 0;
+      aCost = actuals?.totalCost ?? actuals?.actualCost ?? 0;
+      pOtif = (projected?.fillRate !== undefined ? projected.fillRate * 100 : projected?.projectedOTIF) ?? 95;
+      aOtif = (actuals?.fillRate !== undefined ? actuals.fillRate * 100 : actuals?.actualOTIF) ?? 95;
+      pLead = projected?.leadTimeDays ?? projected?.projectedLeadTimeDays ?? 0;
+      aLead = actuals?.leadTimeDays ?? actuals?.actualLeadTimeDays ?? 0;
+    }
+
+    const costVariancePercent = pCost !== 0
+      ? ((aCost - pCost) / pCost) * 100
       : 0;
 
-    const otifVariancePercent = data.projectedOTIF !== 0
-      ? ((data.actualOTIF - data.projectedOTIF) / data.projectedOTIF) * 100
+    const otifVariancePercent = pOtif !== 0
+      ? ((aOtif - pOtif) / pOtif) * 100
       : 0;
 
     const errorMagnitude = (Math.abs(costVariancePercent) + Math.abs(otifVariancePercent)) / 2;
@@ -63,7 +81,14 @@ export class ScenarioOutcomeEvaluationEngine {
       costVariancePercent,
       otifVariancePercent,
       accuracyScore,
-      modelCalibrationRecommended: errorMagnitude > 15
+      modelCalibrationRecommended: errorMagnitude > 15,
+      mape: Math.round(errorMagnitude * 100) / 100,
+      varianceByMetric: {
+        cost: costVariancePercent,
+        otif: otifVariancePercent,
+        fillRate: Math.abs(otifVariancePercent),
+        leadTime: pLead !== 0 ? ((aLead - pLead) / pLead) * 100 : 0
+      }
     };
   }
 

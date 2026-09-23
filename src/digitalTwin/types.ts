@@ -15,23 +15,48 @@ export type TwinStatus =
   | 'ERROR';
 
 export type TwinEntityType =
-  | 'PRODUCT'
-  | 'WAREHOUSE'
-  | 'INVENTORY'
+  | 'TENANT'
+  | 'ORGANIZATION'
   | 'SUPPLIER'
+  | 'SUPPLIER_SITE'
+  | 'SUPPLIER_PRODUCT'
+  | 'PRODUCT'
+  | 'CUSTOMER'
+  | 'CUSTOMER_SITE'
+  | 'WAREHOUSE'
+  | 'STORAGE_LOCATION'
+  | 'INVENTORY'
+  | 'PURCHASE_REQUISITION'
+  | 'RFQ'
+  | 'QUOTATION'
   | 'PURCHASE_ORDER'
+  | 'ASN'
   | 'SHIPMENT'
   | 'CARRIER'
-  | 'CUSTOMER'
-  | 'CUSTOMER_ORDER'
-  | 'SALES_ORDER'
-  | 'MANUFACTURING_SITE'
-  | 'CONTRACT'
-  | 'ASN'
+  | 'GATE_ENTRY'
+  | 'RECEIVING'
   | 'RECEIPT'
   | 'GRN'
+  | 'QUALITY_INSPECTION'
+  | 'PUTAWAY'
+  | 'CUSTOMER_ORDER'
+  | 'SALES_ORDER'
   | 'INVOICE'
-  | 'TRANSPORTATION_PLAN';
+  | 'PAYMENT_HANDOFF'
+  | 'DEMAND_PLAN'
+  | 'SOP_SCENARIO'
+  | 'TRANSPORTATION'
+  | 'TRANSPORTATION_PLAN'
+  | 'MANUFACTURING'
+  | 'MANUFACTURING_SITE'
+  | 'CONTRACT'
+  | 'RISK'
+  | 'EXCEPTION'
+  | 'EVENT'
+  | 'KPI'
+  | 'DECISION'
+  | 'WORKFLOW'
+  | 'SCENARIO';
 
 export type TwinRelationshipType =
   | 'parent'
@@ -51,12 +76,19 @@ export type TwinRelationshipType =
   | 'PART_OF'
   | 'FULFILLS'
   | 'CONSUMES'
-  | 'TRANSITS_THROUGH';
+  | 'TRANSITS_THROUGH'
+  | 'INVOICED_BY'
+  | 'PAID_BY'
+  | 'INSPECTED_BY'
+  | 'ALLOCATED_TO'
+  | 'REQUISITIONS'
+  | 'AFFECTS';
 
 export type TemporalStateMode =
   | 'CURRENT_STATE'
   | 'HISTORICAL_STATE'
-  | 'PROJECTED_STATE';
+  | 'PROJECTED_STATE'
+  | 'SIMULATED_STATE';
 
 export interface DigitalTwin {
   twinId: string;
@@ -78,12 +110,22 @@ export interface TwinEntity {
   type?: TwinEntityType;
   name: string;
   canonicalName?: string;
+  sourceSystem?: string;
+  sourceEntityId?: string;
+  version?: number | string;
+  state?: Record<string, any>;
   properties?: Record<string, any>;
   attributes?: Record<string, any>;
-  state?: Record<string, any>;
+  metrics?: Record<string, any>;
+  tags?: string[];
   riskScore?: number;
   healthScore?: number;
   status: string;
+  statePlane?: 'CURRENT' | 'HISTORICAL' | 'PROJECTED' | 'SIMULATED' | 'CURRENT_STATE' | 'HISTORICAL_STATE' | 'PROJECTED_STATE' | 'SIMULATED_STATE';
+  validFrom?: string;
+  validTo?: string;
+  lineage?: string[] | { createdAt: string; lastSyncedAt: string; derivationMethod: string } | any;
+  relationships?: string[];
   metadata?: Record<string, any>;
   lastUpdated?: string;
   updatedAt?: string;
@@ -101,6 +143,7 @@ export interface TwinRelationship {
   toType?: TwinEntityType;
   type: TwinRelationshipType;
   weight?: number;
+  active?: boolean;
   attributes?: Record<string, any>;
   metadata?: Record<string, any>;
   establishedAt?: string;
@@ -112,7 +155,9 @@ export interface TwinSnapshot {
   tenantId: string;
   twinId: string;
   stateVersion: number;
+  statePlane?: 'CURRENT' | 'HISTORICAL' | 'PROJECTED' | 'SIMULATED' | 'CURRENT_STATE' | 'HISTORICAL_STATE' | 'PROJECTED_STATE' | 'SIMULATED_STATE';
   createdAt: string;
+  createdBy?: string;
   sourceEventIds: string[];
   entityCount: number;
   relationshipCount: number;
@@ -121,6 +166,37 @@ export interface TwinSnapshot {
   entities: Record<string, TwinEntity>;
   relationships: TwinRelationship[];
 }
+
+export const ScenarioType = {
+  DEMAND_INCREASE: 'DEMAND_INCREASE',
+  DEMAND_DECREASE: 'DEMAND_DECREASE',
+  SUPPLIER_DELAY: 'SUPPLIER_DELAY',
+  SUPPLIER_FAILURE: 'SUPPLIER_FAILURE',
+  SHIPMENT_DELAY: 'SHIPMENT_DELAY',
+  CAPACITY_REDUCTION: 'CAPACITY_REDUCTION',
+  INVENTORY_SHORTAGE: 'INVENTORY_SHORTAGE',
+  INVENTORY_STOCKOUT: 'INVENTORY_SHORTAGE',
+  LEAD_TIME_CHANGE: 'LEAD_TIME_CHANGE',
+  FREIGHT_COST_CHANGE: 'FREIGHT_COST_CHANGE',
+  FREIGHT_SURCHARGE: 'FREIGHT_SURCHARGE',
+  WAREHOUSE_CAPACITY_CHANGE: 'WAREHOUSE_CAPACITY_CHANGE',
+  SUPPLY_DISRUPTION: 'SUPPLY_DISRUPTION',
+  CUSTOMER_DEMAND_SHIFT: 'CUSTOMER_DEMAND_SHIFT',
+  SUPPLIER_OUTAGE: 'SUPPLIER_OUTAGE',
+  SUPPLIER_DISRUPTION: 'SUPPLIER_OUTAGE',
+  LOGISTICS_BOTTLENECK: 'PORT_CONGESTION',
+  DEMAND_SURGE: 'DEMAND_SURGE',
+  PORT_CONGESTION: 'PORT_CONGESTION',
+  CARRIER_BANKRUPTCY: 'CARRIER_BANKRUPTCY',
+  FACTORY_SHUTDOWN: 'FACTORY_SHUTDOWN',
+  INVENTORY_SPOILAGE: 'INVENTORY_SPOILAGE',
+  COST_SHOCK: 'COST_SHOCK',
+  LEAD_TIME_EXPANSION: 'LEAD_TIME_EXPANSION',
+  BORDER_CLOSURE: 'BORDER_CLOSURE',
+  CURRENCY_VOLATILITY: 'CURRENCY_VOLATILITY',
+  CYBER_INCIDENT: 'CYBER_INCIDENT',
+  CUSTOM: 'CUSTOM'
+} as const;
 
 export type ScenarioType =
   | 'DEMAND_INCREASE'
@@ -147,7 +223,8 @@ export type ScenarioType =
   | 'BORDER_CLOSURE'
   | 'CURRENCY_VOLATILITY'
   | 'CYBER_INCIDENT'
-  | 'CUSTOM';
+  | 'CUSTOM'
+  | string;
 
 export type ScenarioStatus =
   | 'DRAFT'
@@ -162,16 +239,20 @@ export type AssumptionSource =
   | 'USER_DEFINED'
   | 'HISTORICAL'
   | 'SYSTEM'
-  | 'AI_RECOMMENDED';
+  | 'AI_RECOMMENDED'
+  | 'WHAT_IF_PLANNER';
 
 export interface ScenarioAssumption {
   assumptionId?: string;
   id?: string;
+  entityId?: string;
   name?: string;
   description?: string;
   parameter?: string;
+  parameterName?: string;
   baselineValue?: any;
   assumedValue?: any;
+  scenarioValue?: any;
   value?: number | string | boolean;
   unit?: string;
   source: AssumptionSource;

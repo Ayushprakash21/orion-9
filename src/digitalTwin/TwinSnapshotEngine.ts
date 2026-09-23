@@ -8,6 +8,7 @@
 
 import { TwinSnapshot, TwinEntity, TwinRelationship } from './types';
 import { TwinGraphEngine } from './TwinGraphEngine';
+import { temporalStateEngine } from './TemporalStateEngine';
 
 export class TwinSnapshotEngine {
   private static instance: TwinSnapshotEngine;
@@ -94,12 +95,38 @@ export class TwinSnapshotEngine {
       relationshipCount: edges.length,
       checksum,
       status: 'VALID',
+      statePlane: 'HISTORICAL',
       entities: entitiesRecord as any,
       relationships,
     } as any;
 
     this.snapshots.set(`${tenantId}:${snapshotId}`, snapshot);
+    try {
+      temporalStateEngine.registerHistoricalSnapshot(snapshot);
+    } catch {
+      // ignore
+    }
     return JSON.parse(JSON.stringify(snapshot));
+  }
+
+  public async captureSnapshot(
+    tenantId: string,
+    twinId: string,
+    description: string,
+    entities: TwinEntity[],
+    relationships: TwinRelationship[] = []
+  ): Promise<TwinSnapshot> {
+    const snap = this.createSnapshot(tenantId, twinId, entities, relationships);
+    (snap as any).description = description;
+    return snap;
+  }
+
+  public updateSnapshot(): never {
+    throw new Error('SnapshotImmutabilityViolation: Twin snapshots are permanently immutable and cannot be updated.');
+  }
+
+  public deleteSnapshot(): never {
+    throw new Error('SnapshotImmutabilityViolation: Twin snapshots are permanently immutable and cannot be deleted.');
   }
 
   public getSnapshot(tenantId: string, snapshotId: string): TwinSnapshot | undefined {
