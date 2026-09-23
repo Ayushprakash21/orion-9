@@ -1,9 +1,11 @@
 /**
- * ORION-9 WAVE 4 — INVOICING, 2-WAY / 3-WAY MATCHING & PAYMENT HANDOFF ENGINE
+ * ORION-9 WAVE 4 / PART 4 TRACK 2 — INVOICING, 2-WAY / 3-WAY MATCHING & PAYMENT HANDOFF ENGINE
+ * Authoritatively persisted via Cloud Firestore & ScmPersistenceService.
  */
 
 import { scmTransactionEngine } from '../kernel/scm/ScmTransactionEngine';
 import { AuthorizationActor } from '../kernel/authorization/AuthorizationEngine';
+import { scmPersistenceService } from '../services/scm/ScmPersistenceService';
 import { poLifecycleEngine } from './POLifecycleEngine';
 import { receivingGRNEngine } from './ReceivingGRNEngine';
 import {
@@ -90,6 +92,7 @@ export class InvoicingMatchingEngine {
     }, async (rec) => {
       this.invoices.set(`${params.tenantId}:${invoiceId}`, rec);
       this.processedInvoiceNumbers.add(dupKey);
+      await scmPersistenceService.saveRecord('invoices', invoiceId, rec);
       return rec;
     });
   }
@@ -102,13 +105,18 @@ export class InvoicingMatchingEngine {
     matchMode: MatchMode;
   }) {
     const matchId = `MATCH-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-    const invoice = this.invoices.get(`${params.tenantId}:${params.invoiceId}`);
+    const invoice = this.invoices.get(`${params.tenantId}:${params.invoiceId}`) ||
+      scmPersistenceService.getCachedRecord<InvoiceRecord>('invoices', params.tenantId, params.invoiceId);
     if (!invoice) throw new Error(`Invoice ${params.invoiceId} not found`);
 
-    const po = poLifecycleEngine.getPO(params.tenantId, invoice.poId);
+    const po = poLifecycleEngine.getPO(params.tenantId, invoice.poId) ||
+      scmPersistenceService.getCachedRecord<any>('purchase_orders', params.tenantId, invoice.poId);
     if (!po) throw new Error(`PO ${invoice.poId} not found for Invoice matching`);
 
-    const grn = invoice.grnId ? receivingGRNEngine.getGRN(params.tenantId, invoice.grnId) : undefined;
+    const grn = invoice.grnId
+      ? (receivingGRNEngine.getGRN(params.tenantId, invoice.grnId) ||
+         scmPersistenceService.getCachedRecord<any>('grns', params.tenantId, invoice.grnId))
+      : undefined;
 
     let priceVariance = 0;
     let quantityVariance = 0;
@@ -125,8 +133,8 @@ export class InvoicingMatchingEngine {
       if (!grn) {
         discrepancies.push('3-Way Match Failure: Missing associated GRN record');
       } else {
-        const totalGrnQty = grn.items.reduce((acc, i) => acc + i.acceptedQuantity, 0);
-        const totalInvQty = invoice.lineItems.reduce((acc, i) => acc + i.quantity, 0);
+        const totalGrnQty = grn.items.reduce((acc: number, i: any) => acc + i.acceptedQuantity, 0);
+        const totalInvQty = invoice.lineItems.reduce((acc: number, i: any) => acc + i.quantity, 0);
         if (totalGrnQty !== totalInvQty) {
           quantityVariance = Math.abs(totalGrnQty - totalInvQty);
           discrepancies.push(`Quantity Variance: Invoice Qty ${totalInvQty} vs GRN Qty ${totalGrnQty}`);
@@ -161,13 +169,15 @@ export class InvoicingMatchingEngine {
       payload: matchRecord,
     }, async (rec) => {
       this.matches.set(`${params.tenantId}:${matchId}`, rec);
+      await scmPersistenceService.saveRecord('invoice_matches', matchId, rec);
+
       if (matchStatus === 'MATCHED') {
         invoice.status = 'APPROVED';
-        this.invoices.set(`${params.tenantId}:${params.invoiceId}`, invoice);
       } else {
         invoice.status = 'BLOCKED';
-        this.invoices.set(`${params.tenantId}:${params.invoiceId}`, invoice);
       }
+      this.invoices.set(`${params.tenantId}:${params.invoiceId}`, invoice);
+      await scmPersistenceService.saveRecord('invoices', params.invoiceId, invoice);
       return rec;
     });
   }
@@ -180,7 +190,8 @@ export class InvoicingMatchingEngine {
     matchId: string;
   }) {
     const handoffId = `HND-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-    const invoice = this.invoices.get(`${params.tenantId}:${params.invoiceId}`);
+    const invoice = this.invoices.get(`${params.tenantId}:${params.invoiceId}`) ||
+      scmPersistenceService.getCachedRecord<InvoiceRecord>('invoices', params.tenantId, params.invoiceId);
     if (!invoice || invoice.status !== 'APPROVED') {
       return {
         success: false,
@@ -216,20 +227,35 @@ export class InvoicingMatchingEngine {
       payload: record,
     }, async (rec) => {
       this.paymentHandoffs.set(`${params.tenantId}:${handoffId}`, rec);
+      await scmPersistenceService.saveRecord('payment_handoffs', handoffId, rec);
+
       invoice.status = 'PAYMENT_HANDOFF';
       this.invoices.set(`${params.tenantId}:${params.invoiceId}`, invoice);
+      await scmPersistenceService.saveRecord('invoices', params.invoiceId, invoice);
       return rec;
     });
   }
 
-  public getInvoice(tenantId: string, invoiceId: string) { return this.invoices.get(`${tenantId}:${invoiceId}`); }
-  public getMatch(tenantId: string, matchId: string) { return this.matches.get(`${tenantId}:${matchId}`); }
-  public getPaymentHandoff(tenantId: string, handoffId: string) { return this.paymentHandoffs.get(`${tenantId}:${handoffId}`); }
+  public getInvoice(tenantId: string, invoiceId: string) {
+    return this.invoices.get(`${tenantId}:${invoiceId}`) || scmPersistenceService.getCachedRecord<InvoiceRecord>('invoices', tenantId, invoiceId);
+  }
+
+  public getMatch(tenantId: string, matchId: string) {
+    return this.matches.get(`${tenantId}:${matchId}`) || scmPersistenceService.getCachedRecord<InvoiceMatchRecord>('invoice_matches', tenantId, matchId);
+  }
+
+  public getPaymentHandoff(tenantId: string, handoffId: string) {
+    return this.paymentHandoffs.get(`${tenantId}:${handoffId}`) || scmPersistenceService.getCachedRecord<PaymentHandoffRecord>('payment_handoffs', tenantId, handoffId);
+  }
+
   public clear(): void {
     this.invoices.clear();
     this.matches.clear();
     this.paymentHandoffs.clear();
     this.processedInvoiceNumbers.clear();
+    scmPersistenceService.clear('invoices');
+    scmPersistenceService.clear('invoice_matches');
+    scmPersistenceService.clear('payment_handoffs');
   }
 }
 

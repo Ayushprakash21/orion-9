@@ -136,6 +136,37 @@ export class ScmStateMachine {
       { from: 'READY_FOR_HANDOFF', to: ['SENT', 'FAILED'] },
       { from: 'SENT', to: ['ACKNOWLEDGED', 'FAILED'] },
     ]);
+
+    // 15. Customer Order
+    this.defineTransitions('CustomerOrder', [
+      { from: 'DRAFT', to: ['CONFIRMED', 'CANCELLED'] },
+      { from: 'CONFIRMED', to: ['ALLOCATED', 'CANCELLED'] },
+      { from: 'ALLOCATED', to: ['PICKING', 'PACKED', 'SHIPPED', 'CANCELLED'] },
+      { from: 'PICKING', to: ['PACKED', 'SHIPPED', 'CANCELLED'] },
+      { from: 'PACKED', to: ['SHIPPED'] },
+      { from: 'SHIPPED', to: ['DELIVERED'] },
+    ]);
+
+    // 16. Demand Plan
+    this.defineTransitions('DemandPlan', [
+      { from: 'DRAFT', to: ['REVIEW', 'APPROVED', 'ARCHIVED'] },
+      { from: 'REVIEW', to: ['APPROVED', 'DRAFT', 'ARCHIVED'] },
+      { from: 'APPROVED', to: ['PUBLISHED', 'ARCHIVED'] },
+      { from: 'PUBLISHED', to: ['ARCHIVED'] },
+    ]);
+
+    // 17. S&OP Scenario
+    this.defineTransitions('SopScenario', [
+      { from: 'DRAFT', to: ['EVALUATING'] },
+      { from: 'EVALUATING', to: ['CONSENSUS_REACHED', 'DRAFT'] },
+      { from: 'CONSENSUS_REACHED', to: ['COMMITTED', 'DRAFT'] },
+    ]);
+
+    // 18. Inventory Transaction
+    this.defineTransitions('InventoryTransaction', [
+      { from: 'PENDING', to: ['POSTED', 'REVERSED'] },
+      { from: 'POSTED', to: ['REVERSED'] },
+    ]);
   }
 
   private defineTransitions(entityType: string, rules: Array<{ from: string; to: string[] }>): void {

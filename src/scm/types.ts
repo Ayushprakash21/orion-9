@@ -493,3 +493,128 @@ export interface SupplierPerformanceMetrics {
   totalOrdersProcessed: number;
   lastCalculatedAt: string;
 }
+
+// ── DEMAND PLANNING & S&OP ───────────────────────────────────────────────────
+
+export type DemandPlanStatus = 'DRAFT' | 'REVIEW' | 'APPROVED' | 'PUBLISHED' | 'ARCHIVED';
+
+export interface DemandPlanItem {
+  productId: string;
+  forecastPeriod: string; // e.g. "2026-Q4" or "2026-11"
+  statisticalForecast: number;
+  salesAdjustment: number;
+  marketingAdjustment: number;
+  consensusDemand: number;
+  unitOfMeasure: string;
+  confidenceInterval: { lower: number; upper: number };
+}
+
+export interface DemandPlanRecord {
+  planId: string;
+  tenantId: string;
+  title: string;
+  horizonStart: string;
+  horizonEnd: string;
+  items: DemandPlanItem[];
+  status: DemandPlanStatus;
+  approvalId?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type SopScenarioStatus = 'DRAFT' | 'EVALUATING' | 'CONSENSUS_REACHED' | 'COMMITTED';
+
+export interface SopScenarioRecord {
+  scenarioId: string;
+  tenantId: string;
+  name: string;
+  type: 'BASELINE' | 'UPSIDE' | 'DOWNSIDE' | 'SUPPLY_CONSTRAINED';
+  planId: string;
+  demandTotal: number;
+  supplyCapacity: number;
+  projectedRevenue: number;
+  projectedCost: number;
+  serviceLevelTarget: number;
+  status: SopScenarioStatus;
+  assumptions: string[];
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── CUSTOMER ORDER & FULFILLMENT ─────────────────────────────────────────────
+
+export type CustomerOrderStatus =
+  | 'DRAFT'
+  | 'CONFIRMED'
+  | 'ALLOCATED'
+  | 'PICKING'
+  | 'PACKED'
+  | 'SHIPPED'
+  | 'DELIVERED'
+  | 'CANCELLED';
+
+export interface CustomerOrderLineItem {
+  lineId: string;
+  productId: string;
+  quantityOrdered: number;
+  quantityAllocated: number;
+  quantityFulfilled: number;
+  unitPrice: number;
+  totalPrice: number;
+  warehouseId: string;
+}
+
+export interface CustomerOrderRecord {
+  orderId: string;
+  tenantId: string;
+  orderNumber: string;
+  customerId: string;
+  customerName: string;
+  items: CustomerOrderLineItem[];
+  subtotal: number;
+  taxAmount: number;
+  totalAmount: number;
+  shippingAddress: string;
+  deliveryDateRequested: string;
+  status: CustomerOrderStatus;
+  allocationDate?: string;
+  fulfilledDate?: string;
+  shippedDate?: string;
+  trackingNumber?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── INVENTORY TRANSACTIONS (IMMUTABLE AUDIT) ──────────────────────────────────
+
+export type InventoryTransactionType =
+  | 'GRN_RECEIPT'
+  | 'PUTAWAY_TRANSFER'
+  | 'ORDER_ALLOCATION'
+  | 'ORDER_FULFILLMENT'
+  | 'CYCLE_COUNT_ADJUSTMENT'
+  | 'RETURN_RESTOCK';
+
+export interface InventoryTransactionRecord {
+  transactionId: string;
+  tenantId: string;
+  transactionType: InventoryTransactionType;
+  productId: string;
+  warehouseId: string;
+  quantityDelta: number; // positive for receipt, negative for fulfillment
+  balanceBefore: number;
+  balanceAfter: number;
+  referenceEntityType: 'GRN' | 'PUTAWAY' | 'CUSTOMER_ORDER' | 'CYCLE_COUNT' | 'TRANSFER';
+  referenceEntityId: string;
+  lotNumber?: string;
+  batchNumber?: string;
+  actor: string;
+  correlationId: string;
+  timestamp: string;
+}
+

@@ -1,10 +1,12 @@
 /**
- * ORION-9 WAVE 4 — SOURCING & PROCUREMENT ENGINE
+ * ORION-9 WAVE 4 / PART 4 TRACK 2 — SOURCING & PROCUREMENT ENGINE
  * PR, RFQ/RFP, Quotation, Bid Comparison, Negotiation, Supplier Award
+ * Authoritatively persisted via Cloud Firestore & ScmPersistenceService.
  */
 
 import { scmTransactionEngine } from '../kernel/scm/ScmTransactionEngine';
 import { AuthorizationActor } from '../kernel/authorization/AuthorizationEngine';
+import { scmPersistenceService } from '../services/scm/ScmPersistenceService';
 import {
   BidComparisonRecord,
   NegotiationRecord,
@@ -77,13 +79,14 @@ export class SourcingEngine {
       payload: record,
     }, async (rec) => {
       this.prs.set(`${params.tenantId}:${prId}`, rec);
+      await scmPersistenceService.saveRecord('purchase_requisitions', prId, rec);
       return rec;
     });
   }
 
   public async submitPR(tenantId: string, prId: string, actor: AuthorizationActor) {
     const key = `${tenantId}:${prId}`;
-    const pr = this.prs.get(key);
+    const pr = this.prs.get(key) || scmPersistenceService.getCachedRecord<PurchaseRequisitionRecord>('purchase_requisitions', tenantId, prId);
     if (!pr) throw new Error(`PR ${prId} not found`);
 
     return scmTransactionEngine.executeCommand({
@@ -101,6 +104,7 @@ export class SourcingEngine {
       pr.status = 'APPROVED'; // Default approved if no policy block
       pr.updatedAt = new Date().toISOString();
       this.prs.set(key, pr);
+      await scmPersistenceService.saveRecord('purchase_requisitions', prId, pr);
       return pr;
     });
   }
@@ -145,13 +149,14 @@ export class SourcingEngine {
       payload: record,
     }, async (rec) => {
       this.rfqs.set(`${params.tenantId}:${rfqId}`, rec);
+      await scmPersistenceService.saveRecord('rfqs', rfqId, rec);
       return rec;
     });
   }
 
   public async publishRFQ(tenantId: string, rfqId: string, actor: AuthorizationActor) {
     const key = `${tenantId}:${rfqId}`;
-    const rfq = this.rfqs.get(key);
+    const rfq = this.rfqs.get(key) || scmPersistenceService.getCachedRecord<RFQRecord>('rfqs', tenantId, rfqId);
     if (!rfq) throw new Error(`RFQ ${rfqId} not found`);
 
     return scmTransactionEngine.executeCommand({
@@ -168,6 +173,7 @@ export class SourcingEngine {
       rfq.status = 'PUBLISHED';
       rfq.updatedAt = new Date().toISOString();
       this.rfqs.set(key, rfq);
+      await scmPersistenceService.saveRecord('rfqs', rfqId, rfq);
       return rfq;
     });
   }
@@ -216,6 +222,7 @@ export class SourcingEngine {
       payload: record,
     }, async (rec) => {
       this.quotations.set(`${params.tenantId}:${quotationId}`, rec);
+      await scmPersistenceService.saveRecord('quotations', quotationId, rec);
       return rec;
     });
   }
@@ -228,9 +235,14 @@ export class SourcingEngine {
     justification: string;
   }) {
     const comparisonId = `CMP-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-    const rfqQuotations = Array.from(this.quotations.values()).filter(
+    let rfqQuotations = Array.from(this.quotations.values()).filter(
       (q) => q.tenantId === params.tenantId && q.rfqId === params.rfqId
     );
+
+    if (rfqQuotations.length === 0) {
+      const cached = scmPersistenceService.listCachedRecords<SupplierQuotationRecord>('quotations', params.tenantId);
+      rfqQuotations = cached.filter((q) => q.rfqId === params.rfqId);
+    }
 
     if (rfqQuotations.length === 0) {
       throw new Error(`No quotations submitted for RFQ ${params.rfqId}`);
@@ -277,6 +289,7 @@ export class SourcingEngine {
       payload: record,
     }, async (rec) => {
       this.bidComparisons.set(`${params.tenantId}:${comparisonId}`, rec);
+      await scmPersistenceService.saveRecord('bid_evaluations', comparisonId, rec);
       return rec;
     });
   }
@@ -290,7 +303,8 @@ export class SourcingEngine {
     actor: AuthorizationActor;
   }) {
     const awardId = `AWD-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-    const quot = this.quotations.get(`${params.tenantId}:${params.quotationId}`);
+    const quot = this.quotations.get(`${params.tenantId}:${params.quotationId}`) ||
+      scmPersistenceService.getCachedRecord<SupplierQuotationRecord>('quotations', params.tenantId, params.quotationId);
 
     const record: SupplierAwardRecord = {
       awardId,
@@ -316,13 +330,27 @@ export class SourcingEngine {
       payload: record,
     }, async (rec) => {
       this.awards.set(`${params.tenantId}:${awardId}`, rec);
+      await scmPersistenceService.saveRecord('supplier_awards', awardId, rec);
       return rec;
     });
   }
 
-  public getPR(tenantId: string, prId: string) { return this.prs.get(`${tenantId}:${prId}`); }
-  public getRFQ(tenantId: string, rfqId: string) { return this.rfqs.get(`${tenantId}:${rfqId}`); }
-  public getQuotation(tenantId: string, quotationId: string) { return this.quotations.get(`${tenantId}:${quotationId}`); }
+  public getPR(tenantId: string, prId: string) {
+    return this.prs.get(`${tenantId}:${prId}`) || scmPersistenceService.getCachedRecord<PurchaseRequisitionRecord>('purchase_requisitions', tenantId, prId);
+  }
+
+  public getRFQ(tenantId: string, rfqId: string) {
+    return this.rfqs.get(`${tenantId}:${rfqId}`) || scmPersistenceService.getCachedRecord<RFQRecord>('rfqs', tenantId, rfqId);
+  }
+
+  public getQuotation(tenantId: string, quotationId: string) {
+    return this.quotations.get(`${tenantId}:${quotationId}`) || scmPersistenceService.getCachedRecord<SupplierQuotationRecord>('quotations', tenantId, quotationId);
+  }
+
+  public getAward(tenantId: string, awardId: string) {
+    return this.awards.get(`${tenantId}:${awardId}`) || scmPersistenceService.getCachedRecord<SupplierAwardRecord>('supplier_awards', tenantId, awardId);
+  }
+
   public clear(): void {
     this.prs.clear();
     this.rfqs.clear();
@@ -330,6 +358,11 @@ export class SourcingEngine {
     this.bidComparisons.clear();
     this.negotiations.clear();
     this.awards.clear();
+    scmPersistenceService.clear('purchase_requisitions');
+    scmPersistenceService.clear('rfqs');
+    scmPersistenceService.clear('quotations');
+    scmPersistenceService.clear('bid_evaluations');
+    scmPersistenceService.clear('supplier_awards');
   }
 }
 

@@ -190,6 +190,50 @@ const RESOURCE_PERMISSION_MAP: Record<
     actorTypes: ['USER', 'ADMIN'],
     roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
   },
+  'payment_handoff:execute': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'finance_director', 'admin'],
+  },
+  'customer_order:create': {
+    actorTypes: ['USER', 'ADMIN', 'EXTERNAL_INTEGRATION'],
+    roles: ['platform_admin', 'organization_admin', 'sales_representative', 'buyer', 'organization_member'],
+  },
+  'customer_order:allocate': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM'],
+    roles: ['platform_admin', 'organization_admin', 'warehouse_manager', 'organization_member'],
+  },
+  'customer_order:fulfill': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM'],
+    roles: ['platform_admin', 'organization_admin', 'warehouse_manager', 'organization_member'],
+  },
+  'demand_plan:create': {
+    actorTypes: ['USER', 'ADMIN', 'AI_AGENT'],
+    roles: ['platform_admin', 'organization_admin', 'demand_planner', 'supply_planner', 'buyer', 'ai_agent'],
+  },
+  'demand_plan:approve': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'demand_planning_director', 'procurement_manager'],
+  },
+  'demand_plan:publish': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'demand_planner', 'supply_planner'],
+  },
+  'sop_scenario:create': {
+    actorTypes: ['USER', 'ADMIN', 'AI_AGENT'],
+    roles: ['platform_admin', 'organization_admin', 'supply_planner', 'demand_planner', 'ai_agent'],
+  },
+  'sop_scenario:commit': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'executive', 'supply_chain_director'],
+  },
+  'putaway:create': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM'],
+    roles: ['platform_admin', 'organization_admin', 'warehouse_operator', 'warehouse_manager', 'organization_member'],
+  },
+  'putaway:complete': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'warehouse_operator', 'warehouse_manager', 'organization_member'],
+  },
   'policy:read': {
     actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'AI_AGENT', 'EXTERNAL_INTEGRATION'],
     roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'viewer', 'auditor', 'admin', 'ai_agent'],

@@ -1,10 +1,12 @@
 /**
- * ORION-9 WAVE 4 — INBOUND LOGISTICS ENGINE
+ * ORION-9 WAVE 4 / PART 4 TRACK 2 — INBOUND LOGISTICS ENGINE
  * ASN, Shipment Tracking, and Gate Entry Process
+ * Authoritatively persisted via Cloud Firestore & ScmPersistenceService.
  */
 
 import { scmTransactionEngine } from '../kernel/scm/ScmTransactionEngine';
 import { AuthorizationActor } from '../kernel/authorization/AuthorizationEngine';
+import { scmPersistenceService } from '../services/scm/ScmPersistenceService';
 import { poLifecycleEngine } from './POLifecycleEngine';
 import {
   ASNItem,
@@ -45,10 +47,12 @@ export class InboundLogisticsEngine {
     const asnNumber = `ASN-800${Math.floor(Math.random() * 9000 + 1000)}`;
 
     // Quantity Validation against PO
-    const po = poLifecycleEngine.getPO(params.tenantId, params.poId);
+    const po = poLifecycleEngine.getPO(params.tenantId, params.poId) ||
+      scmPersistenceService.getCachedRecord<any>('purchase_orders', params.tenantId, params.poId);
+
     if (po) {
       for (const asnItem of params.items) {
-        const poItem = po.items.find((i) => i.productId === asnItem.productId);
+        const poItem = po.items.find((i: any) => i.productId === asnItem.productId);
         if (poItem && asnItem.shippedQuantity > poItem.quantity * 1.1) {
           return {
             success: false,
@@ -87,6 +91,7 @@ export class InboundLogisticsEngine {
       payload: record,
     }, async (rec) => {
       this.asns.set(`${params.tenantId}:${asnId}`, rec);
+      await scmPersistenceService.saveRecord('asns', asnId, rec);
       return rec;
     });
   }
@@ -133,6 +138,7 @@ export class InboundLogisticsEngine {
       payload: record,
     }, async (rec) => {
       this.shipments.set(`${params.tenantId}:${shipmentId}`, rec);
+      await scmPersistenceService.saveRecord('shipments', shipmentId, rec);
       return rec;
     });
   }
@@ -172,17 +178,30 @@ export class InboundLogisticsEngine {
       payload: record,
     }, async (rec) => {
       this.gateEntries.set(`${params.tenantId}:${gateEntryId}`, rec);
+      await scmPersistenceService.saveRecord('gate_entries', gateEntryId, rec);
       return rec;
     });
   }
 
-  public getASN(tenantId: string, asnId: string) { return this.asns.get(`${tenantId}:${asnId}`); }
-  public getShipment(tenantId: string, shipmentId: string) { return this.shipments.get(`${tenantId}:${shipmentId}`); }
-  public getGateEntry(tenantId: string, gateEntryId: string) { return this.gateEntries.get(`${tenantId}:${gateEntryId}`); }
+  public getASN(tenantId: string, asnId: string) {
+    return this.asns.get(`${tenantId}:${asnId}`) || scmPersistenceService.getCachedRecord<ASNRecord>('asns', tenantId, asnId);
+  }
+
+  public getShipment(tenantId: string, shipmentId: string) {
+    return this.shipments.get(`${tenantId}:${shipmentId}`) || scmPersistenceService.getCachedRecord<ShipmentRecord>('shipments', tenantId, shipmentId);
+  }
+
+  public getGateEntry(tenantId: string, gateEntryId: string) {
+    return this.gateEntries.get(`${tenantId}:${gateEntryId}`) || scmPersistenceService.getCachedRecord<GateEntryRecord>('gate_entries', tenantId, gateEntryId);
+  }
+
   public clear(): void {
     this.asns.clear();
     this.shipments.clear();
     this.gateEntries.clear();
+    scmPersistenceService.clear('asns');
+    scmPersistenceService.clear('shipments');
+    scmPersistenceService.clear('gate_entries');
   }
 }
 

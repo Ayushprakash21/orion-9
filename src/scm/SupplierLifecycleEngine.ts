@@ -1,9 +1,11 @@
 /**
- * ORION-9 WAVE 4 — SUPPLIER ONBOARDING & QUALIFICATION ENGINE
+ * ORION-9 WAVE 4 / PART 4 TRACK 2 — SUPPLIER ONBOARDING & QUALIFICATION ENGINE
+ * Authoritatively persisted via Cloud Firestore (supplier_qualifications) & ScmPersistenceService.
  */
 
 import { scmTransactionEngine } from '../kernel/scm/ScmTransactionEngine';
 import { AuthorizationActor } from '../kernel/authorization/AuthorizationEngine';
+import { scmPersistenceService } from '../services/scm/ScmPersistenceService';
 import {
   DimensionQualification,
   QualificationDecisionStatus,
@@ -78,13 +80,14 @@ export class SupplierLifecycleEngine {
       payload: initialRecord,
     }, async (record) => {
       this.suppliers.set(`${params.tenantId}:${supplierId}`, record);
+      await scmPersistenceService.saveRecord('supplier_qualifications', supplierId, record);
       return record;
     });
   }
 
   public async submitSupplier(tenantId: string, supplierId: string, actor: AuthorizationActor) {
     const key = `${tenantId}:${supplierId}`;
-    const supplier = this.suppliers.get(key);
+    const supplier = this.suppliers.get(key) || scmPersistenceService.getCachedRecord<SupplierRecord>('supplier_qualifications', tenantId, supplierId);
     if (!supplier) throw new Error(`Supplier ${supplierId} not found`);
 
     return scmTransactionEngine.executeCommand({
@@ -101,13 +104,14 @@ export class SupplierLifecycleEngine {
       supplier.status = 'SUBMITTED';
       supplier.updatedAt = new Date().toISOString();
       this.suppliers.set(key, supplier);
+      await scmPersistenceService.saveRecord('supplier_qualifications', supplierId, supplier);
       return supplier;
     });
   }
 
   public async reviewSupplier(tenantId: string, supplierId: string, actor: AuthorizationActor) {
     const key = `${tenantId}:${supplierId}`;
-    const supplier = this.suppliers.get(key);
+    const supplier = this.suppliers.get(key) || scmPersistenceService.getCachedRecord<SupplierRecord>('supplier_qualifications', tenantId, supplierId);
     if (!supplier) throw new Error(`Supplier ${supplierId} not found`);
 
     return scmTransactionEngine.executeCommand({
@@ -124,13 +128,14 @@ export class SupplierLifecycleEngine {
       supplier.status = 'UNDER_REVIEW';
       supplier.updatedAt = new Date().toISOString();
       this.suppliers.set(key, supplier);
+      await scmPersistenceService.saveRecord('supplier_qualifications', supplierId, supplier);
       return supplier;
     });
   }
 
   public async startQualification(tenantId: string, supplierId: string, actor: AuthorizationActor) {
     const key = `${tenantId}:${supplierId}`;
-    const supplier = this.suppliers.get(key);
+    const supplier = this.suppliers.get(key) || scmPersistenceService.getCachedRecord<SupplierRecord>('supplier_qualifications', tenantId, supplierId);
     if (!supplier) throw new Error(`Supplier ${supplierId} not found`);
 
     return scmTransactionEngine.executeCommand({
@@ -147,6 +152,7 @@ export class SupplierLifecycleEngine {
       supplier.status = 'QUALIFICATION';
       supplier.updatedAt = new Date().toISOString();
       this.suppliers.set(key, supplier);
+      await scmPersistenceService.saveRecord('supplier_qualifications', supplierId, supplier);
       return supplier;
     });
   }
@@ -154,12 +160,11 @@ export class SupplierLifecycleEngine {
   public async evaluateQualification(params: {
     tenantId: string;
     supplierId: string;
-
     actor: AuthorizationActor;
     dimensionEvaluations: DimensionQualification[];
   }) {
     const key = `${params.tenantId}:${params.supplierId}`;
-    const supplier = this.suppliers.get(key);
+    const supplier = this.suppliers.get(key) || scmPersistenceService.getCachedRecord<SupplierRecord>('supplier_qualifications', params.tenantId, params.supplierId);
     if (!supplier) throw new Error(`Supplier ${params.supplierId} not found`);
 
     // Determine overall qualification status
@@ -190,13 +195,14 @@ export class SupplierLifecycleEngine {
       supplier.status = targetStatus;
       supplier.updatedAt = new Date().toISOString();
       this.suppliers.set(key, supplier);
+      await scmPersistenceService.saveRecord('supplier_qualifications', params.supplierId, supplier);
       return supplier;
     });
   }
 
   public async activateSupplier(tenantId: string, supplierId: string, actor: AuthorizationActor) {
     const key = `${tenantId}:${supplierId}`;
-    const supplier = this.suppliers.get(key);
+    const supplier = this.suppliers.get(key) || scmPersistenceService.getCachedRecord<SupplierRecord>('supplier_qualifications', tenantId, supplierId);
     if (!supplier) throw new Error(`Supplier ${supplierId} not found`);
 
     // Rule: Cannot activate an un-qualified supplier
@@ -223,12 +229,13 @@ export class SupplierLifecycleEngine {
       supplier.status = 'ACTIVE';
       supplier.updatedAt = new Date().toISOString();
       this.suppliers.set(key, supplier);
+      await scmPersistenceService.saveRecord('supplier_qualifications', supplierId, supplier);
       return supplier;
     });
   }
 
   public getSupplier(tenantId: string, supplierId: string): SupplierRecord | undefined {
-    return this.suppliers.get(`${tenantId}:${supplierId}`);
+    return this.suppliers.get(`${tenantId}:${supplierId}`) || scmPersistenceService.getCachedRecord<SupplierRecord>('supplier_qualifications', tenantId, supplierId);
   }
 
   public listSuppliers(tenantId: string): SupplierRecord[] {
@@ -238,11 +245,15 @@ export class SupplierLifecycleEngine {
         result.push({ ...sup });
       }
     }
+    if (result.length === 0) {
+      return scmPersistenceService.listCachedRecords<SupplierRecord>('supplier_qualifications', tenantId);
+    }
     return result;
   }
 
   public clear(): void {
     this.suppliers.clear();
+    scmPersistenceService.clear('supplier_qualifications');
   }
 }
 

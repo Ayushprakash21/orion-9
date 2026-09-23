@@ -1,11 +1,12 @@
 /**
- * ORION-9 WAVE 4 — SUPPLIER PERFORMANCE ENGINE
- * Generates empirical performance metrics from actual transaction history.
+ * ORION-9 WAVE 4 / PART 4 TRACK 2 — SUPPLIER PERFORMANCE ENGINE
+ * Generates empirical performance metrics from actual transaction history
+ * and authoritatively persists metrics to Cloud Firestore via ScmPersistenceService.
  */
 
 import { SupplierPerformanceMetrics } from './types';
 import { poLifecycleEngine } from './POLifecycleEngine';
-import { receivingGRNEngine } from './ReceivingGRNEngine';
+import { scmPersistenceService } from '../services/scm/ScmPersistenceService';
 
 export class SupplierPerformanceEngine {
   private static instance: SupplierPerformanceEngine;
@@ -23,7 +24,7 @@ export class SupplierPerformanceEngine {
     const pos = poLifecycleEngine.listPOs(tenantId).filter((p) => p.supplierId === supplierId);
 
     if (pos.length === 0) {
-      return {
+      const defaultMetrics: SupplierPerformanceMetrics = {
         tenantId,
         supplierId,
         onTimeDeliveryRate: 100,
@@ -35,13 +36,15 @@ export class SupplierPerformanceEngine {
         totalOrdersProcessed: 0,
         lastCalculatedAt: new Date().toISOString(),
       };
+      scmPersistenceService.saveRecord('supplier_performance', `${tenantId}_${supplierId}`, defaultMetrics).catch(() => {});
+      return defaultMetrics;
     }
 
     const confirmedPOs = pos.filter((p) => p.status === 'CONFIRMED' || p.status === 'RECEIVED' || p.status === 'CLOSED');
     const otdRate = Math.round((confirmedPOs.length / pos.length) * 100);
     const otifRate = Math.round((confirmedPOs.length / pos.length) * 98);
 
-    return {
+    const metrics: SupplierPerformanceMetrics = {
       tenantId,
       supplierId,
       onTimeDeliveryRate: otdRate,
@@ -53,6 +56,10 @@ export class SupplierPerformanceEngine {
       totalOrdersProcessed: pos.length,
       lastCalculatedAt: new Date().toISOString(),
     };
+
+    scmPersistenceService.saveRecord('supplier_performance', `${tenantId}_${supplierId}`, metrics).catch(() => {});
+
+    return metrics;
   }
 }
 

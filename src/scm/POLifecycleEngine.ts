@@ -1,9 +1,11 @@
 /**
- * ORION-9 WAVE 4 — GOVERNED PURCHASE ORDER LIFECYCLE ENGINE
+ * ORION-9 WAVE 4 / PART 4 TRACK 2 — GOVERNED PURCHASE ORDER LIFECYCLE ENGINE
+ * Authoritatively persisted via Cloud Firestore (purchase_orders) & ScmPersistenceService.
  */
 
 import { scmTransactionEngine } from '../kernel/scm/ScmTransactionEngine';
 import { AuthorizationActor } from '../kernel/authorization/AuthorizationEngine';
+import { scmPersistenceService } from '../services/scm/ScmPersistenceService';
 import { POLineItem, PurchaseOrderRecord } from './types';
 
 export class POLifecycleEngine {
@@ -75,13 +77,14 @@ export class POLifecycleEngine {
       payload: record,
     }, async (rec) => {
       this.purchaseOrders.set(`${params.tenantId}:${poId}`, rec);
+      await scmPersistenceService.saveRecord('purchase_orders', poId, rec);
       return rec;
     });
   }
 
   public async submitPOForApproval(tenantId: string, poId: string, actor: AuthorizationActor) {
     const key = `${tenantId}:${poId}`;
-    const po = this.purchaseOrders.get(key);
+    const po = this.purchaseOrders.get(key) || scmPersistenceService.getCachedRecord<PurchaseOrderRecord>('purchase_orders', tenantId, poId);
     if (!po) throw new Error(`PO ${poId} not found`);
 
     return scmTransactionEngine.executeCommand({
@@ -99,13 +102,14 @@ export class POLifecycleEngine {
       po.status = 'APPROVED'; // If policy allows, transitions to APPROVED
       po.updatedAt = new Date().toISOString();
       this.purchaseOrders.set(key, po);
+      await scmPersistenceService.saveRecord('purchase_orders', poId, po);
       return po;
     });
   }
 
   public async releasePO(tenantId: string, poId: string, actor: AuthorizationActor) {
     const key = `${tenantId}:${poId}`;
-    const po = this.purchaseOrders.get(key);
+    const po = this.purchaseOrders.get(key) || scmPersistenceService.getCachedRecord<PurchaseOrderRecord>('purchase_orders', tenantId, poId);
     if (!po) throw new Error(`PO ${poId} not found`);
 
     // Strict Enforcement: Unapproved PO MUST NOT be released to external systems
@@ -133,13 +137,14 @@ export class POLifecycleEngine {
       po.releasedAt = new Date().toISOString();
       po.updatedAt = new Date().toISOString();
       this.purchaseOrders.set(key, po);
+      await scmPersistenceService.saveRecord('purchase_orders', poId, po);
       return po;
     });
   }
 
   public async confirmPO(tenantId: string, poId: string, actor: AuthorizationActor) {
     const key = `${tenantId}:${poId}`;
-    const po = this.purchaseOrders.get(key);
+    const po = this.purchaseOrders.get(key) || scmPersistenceService.getCachedRecord<PurchaseOrderRecord>('purchase_orders', tenantId, poId);
     if (!po) throw new Error(`PO ${poId} not found`);
 
     return scmTransactionEngine.executeCommand({
@@ -157,12 +162,13 @@ export class POLifecycleEngine {
       po.confirmedAt = new Date().toISOString();
       po.updatedAt = new Date().toISOString();
       this.purchaseOrders.set(key, po);
+      await scmPersistenceService.saveRecord('purchase_orders', poId, po);
       return po;
     });
   }
 
   public getPO(tenantId: string, poId: string): PurchaseOrderRecord | undefined {
-    return this.purchaseOrders.get(`${tenantId}:${poId}`);
+    return this.purchaseOrders.get(`${tenantId}:${poId}`) || scmPersistenceService.getCachedRecord<PurchaseOrderRecord>('purchase_orders', tenantId, poId);
   }
 
   public listPOs(tenantId: string): PurchaseOrderRecord[] {
@@ -172,11 +178,15 @@ export class POLifecycleEngine {
         result.push({ ...po });
       }
     }
+    if (result.length === 0) {
+      return scmPersistenceService.listCachedRecords<PurchaseOrderRecord>('purchase_orders', tenantId);
+    }
     return result;
   }
 
   public clear(): void {
     this.purchaseOrders.clear();
+    scmPersistenceService.clear('purchase_orders');
   }
 }
 

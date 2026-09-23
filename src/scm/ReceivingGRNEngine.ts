@@ -1,9 +1,11 @@
 /**
- * ORION-9 WAVE 4 — RECEIVING, GRN, QUALITY INSPECTION & PUTAWAY ENGINE
+ * ORION-9 WAVE 4 / PART 4 TRACK 2 — RECEIVING, GRN, QUALITY INSPECTION & PUTAWAY ENGINE
+ * Authoritatively persisted via Cloud Firestore & ScmPersistenceService with inventory posting.
  */
 
 import { scmTransactionEngine } from '../kernel/scm/ScmTransactionEngine';
 import { AuthorizationActor } from '../kernel/authorization/AuthorizationEngine';
+import { scmPersistenceService } from '../services/scm/ScmPersistenceService';
 import {
   GRNRecord,
   PutawayRecord,
@@ -68,6 +70,7 @@ export class ReceivingGRNEngine {
       payload: record,
     }, async (rec) => {
       this.receipts.set(`${params.tenantId}:${receivingId}`, rec);
+      await scmPersistenceService.saveRecord('receipts', receivingId, rec);
       return rec;
     });
   }
@@ -109,6 +112,25 @@ export class ReceivingGRNEngine {
       payload: record,
     }, async (rec) => {
       this.grns.set(`${params.tenantId}:${grnId}`, rec);
+      await scmPersistenceService.saveRecord('grns', grnId, rec);
+
+      // Authoritatively update inventory balance and record transaction for each received item
+      for (const item of params.items) {
+        if (item.acceptedQuantity > 0) {
+          await scmPersistenceService.adjustInventory({
+            tenantId: params.tenantId,
+            productId: item.productId,
+            warehouseId: params.warehouseId,
+            quantityDelta: item.acceptedQuantity,
+            transactionType: 'GRN_RECEIPT',
+            referenceEntityType: 'GRN',
+            referenceEntityId: grnId,
+            actor: params.actor.id,
+            correlationId: `CORR-GRN-${grnId}`,
+          });
+        }
+      }
+
       return rec;
     });
   }
@@ -153,6 +175,7 @@ export class ReceivingGRNEngine {
       payload: record,
     }, async (rec) => {
       this.inspections.set(`${params.tenantId}:${inspectionId}`, rec);
+      await scmPersistenceService.saveRecord('quality_inspections', inspectionId, rec);
       return rec;
     });
   }
@@ -166,6 +189,7 @@ export class ReceivingGRNEngine {
     quantity: number;
     sourceLocation: string;
     destinationLocation: string;
+    warehouseId?: string;
   }) {
     const putawayId = `PUT-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
     const record: PutawayRecord = {
@@ -192,17 +216,51 @@ export class ReceivingGRNEngine {
       payload: record,
     }, async (rec) => {
       this.putaways.set(`${params.tenantId}:${putawayId}`, rec);
+      await scmPersistenceService.saveRecord('putaways', putawayId, rec);
+
+      // Record Putaway transfer transaction
+      const whId = params.warehouseId || params.destinationLocation.split('-')[0] || 'WH-01';
+      await scmPersistenceService.adjustInventory({
+        tenantId: params.tenantId,
+        productId: params.productId,
+        warehouseId: whId,
+        quantityDelta: 0, // balance net zero across warehouse, but logged as transfer
+        transactionType: 'PUTAWAY_TRANSFER',
+        referenceEntityType: 'PUTAWAY',
+        referenceEntityId: putawayId,
+        actor: params.actor.id,
+        correlationId: `CORR-PUT-${putawayId}`,
+      });
+
       return rec;
     });
   }
 
-  public getGRN(tenantId: string, grnId: string) { return this.grns.get(`${tenantId}:${grnId}`); }
-  public getInspection(tenantId: string, inspectionId: string) { return this.inspections.get(`${tenantId}:${inspectionId}`); }
+  public getReceiving(tenantId: string, receivingId: string) {
+    return this.receipts.get(`${tenantId}:${receivingId}`) || scmPersistenceService.getCachedRecord<ReceivingRecord>('receipts', tenantId, receivingId);
+  }
+
+  public getGRN(tenantId: string, grnId: string) {
+    return this.grns.get(`${tenantId}:${grnId}`) || scmPersistenceService.getCachedRecord<GRNRecord>('grns', tenantId, grnId);
+  }
+
+  public getInspection(tenantId: string, inspectionId: string) {
+    return this.inspections.get(`${tenantId}:${inspectionId}`) || scmPersistenceService.getCachedRecord<QualityInspectionRecord>('quality_inspections', tenantId, inspectionId);
+  }
+
+  public getPutaway(tenantId: string, putawayId: string) {
+    return this.putaways.get(`${tenantId}:${putawayId}`) || scmPersistenceService.getCachedRecord<PutawayRecord>('putaways', tenantId, putawayId);
+  }
+
   public clear(): void {
     this.receipts.clear();
     this.grns.clear();
     this.inspections.clear();
     this.putaways.clear();
+    scmPersistenceService.clear('receipts');
+    scmPersistenceService.clear('grns');
+    scmPersistenceService.clear('quality_inspections');
+    scmPersistenceService.clear('putaways');
   }
 }
 

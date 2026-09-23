@@ -1,18 +1,16 @@
 /**
  * ORION-9 KERNEL — SCM COMMAND HANDLER
  *
- * Registers core SCM command handlers on kernelCommandBus:
- * - CREATE_PURCHASE_REQUISITION
- * - CREATE_RFQ
- * - CREATE_ASN
- * - CREATE_EXCEPTION
- * - CREATE_PAYMENT_HANDOFF
+ * Registers core SCM command handlers on kernelCommandBus with authoritative
+ * Cloud Firestore persistence via ScmPersistenceService, EventBus publication,
+ * and immutable AuditEngine logging.
  */
 
 import { CommandEnvelope } from '../types';
 import { kernelCommandBus } from '../CommandBus';
 import { kernelEventBus } from '../EventBus';
 import { kernelAuditEngine } from '../AuditEngine';
+import { scmPersistenceService } from '../../services/scm/ScmPersistenceService';
 
 export function registerScmCommandHandlers(): void {
   // CREATE_PURCHASE_REQUISITION
@@ -22,10 +20,14 @@ export function registerScmCommandHandlers(): void {
       prId,
       status: 'SUBMITTED',
       tenantId: command.tenant.organizationId,
+      requesterId: command.actor.id,
       items: command.payload.items || [],
       estimatedTotal: command.payload.estimatedTotal || 0,
       createdAt: command.timestamp,
+      updatedAt: command.timestamp,
     };
+
+    await scmPersistenceService.saveRecord('purchase_requisitions', prId, result);
 
     kernelEventBus.publish('PR_CREATED', result, {
       actor: command.actor,
@@ -33,6 +35,18 @@ export function registerScmCommandHandlers(): void {
       entityId: prId,
       entityType: 'PURCHASE_REQUISITION',
       correlationId: command.correlationId,
+    });
+
+    kernelAuditEngine.record({
+      correlationId: command.correlationId,
+      actor: command.actor,
+      tenantId: command.tenant.organizationId,
+      action: 'PURCHASE_REQUISITION:CREATE',
+      entityType: 'PURCHASE_REQUISITION',
+      entityId: prId,
+      classification: command.classification || 'INTERNAL',
+      result: 'SUCCESS',
+      afterState: { prId, estimatedTotal: result.estimatedTotal },
     });
 
     return result;
@@ -49,7 +63,10 @@ export function registerScmCommandHandlers(): void {
       targetSuppliers: command.payload.targetSuppliers || [],
       deadline: command.payload.deadline,
       createdAt: command.timestamp,
+      updatedAt: command.timestamp,
     };
+
+    await scmPersistenceService.saveRecord('rfqs', rfqId, result);
 
     kernelEventBus.publish('RFQ_CREATED', result, {
       actor: command.actor,
@@ -57,6 +74,18 @@ export function registerScmCommandHandlers(): void {
       entityId: rfqId,
       entityType: 'RFQ',
       correlationId: command.correlationId,
+    });
+
+    kernelAuditEngine.record({
+      correlationId: command.correlationId,
+      actor: command.actor,
+      tenantId: command.tenant.organizationId,
+      action: 'RFQ:CREATE',
+      entityType: 'RFQ',
+      entityId: rfqId,
+      classification: command.classification || 'INTERNAL',
+      result: 'SUCCESS',
+      afterState: { rfqId, prId: result.prId },
     });
 
     return result;
@@ -73,7 +102,10 @@ export function registerScmCommandHandlers(): void {
       tenantId: command.tenant.organizationId,
       items: command.payload.items || [],
       createdAt: command.timestamp,
+      updatedAt: command.timestamp,
     };
+
+    await scmPersistenceService.saveRecord('asns', asnId, result);
 
     kernelEventBus.publish('ASN_CREATED', result, {
       actor: command.actor,
@@ -81,6 +113,18 @@ export function registerScmCommandHandlers(): void {
       entityId: asnId,
       entityType: 'ASN',
       correlationId: command.correlationId,
+    });
+
+    kernelAuditEngine.record({
+      correlationId: command.correlationId,
+      actor: command.actor,
+      tenantId: command.tenant.organizationId,
+      action: 'ASN:CREATE',
+      entityType: 'ASN',
+      entityId: asnId,
+      classification: command.classification || 'INTERNAL',
+      result: 'SUCCESS',
+      afterState: { asnId, poId: result.poId },
     });
 
     return result;
@@ -98,6 +142,8 @@ export function registerScmCommandHandlers(): void {
       tenantId: command.tenant.organizationId,
       createdAt: command.timestamp,
     };
+
+    await scmPersistenceService.saveRecord('exceptions', exceptionId, result);
 
     kernelEventBus.publish('EXCEPTION_CREATED', result, {
       actor: command.actor,
@@ -123,12 +169,26 @@ export function registerScmCommandHandlers(): void {
       createdAt: command.timestamp,
     };
 
+    await scmPersistenceService.saveRecord('payment_handoffs', handoffId, result);
+
     kernelEventBus.publish('PAYMENT_HANDOFF_CREATED', result, {
       actor: command.actor,
       tenant: command.tenant,
       entityId: handoffId,
       entityType: 'PAYMENT_HANDOFF',
       correlationId: command.correlationId,
+    });
+
+    kernelAuditEngine.record({
+      correlationId: command.correlationId,
+      actor: command.actor,
+      tenantId: command.tenant.organizationId,
+      action: 'PAYMENT_HANDOFF:CREATE',
+      entityType: 'PAYMENT_HANDOFF',
+      entityId: handoffId,
+      classification: command.classification || 'INTERNAL',
+      result: 'SUCCESS',
+      afterState: { handoffId, invoiceId: result.invoiceId, amount: result.amount },
     });
 
     return result;
