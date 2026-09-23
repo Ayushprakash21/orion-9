@@ -1,21 +1,24 @@
 /**
- * ORION-9 WAVE 10: ENTERPRISE PRODUCTION CONTROL PLANE
- * AlertEngine: Alert Deduplication, Cooldown Suppression & Severity Routing
+ * ORION-9 PART 4 TRACK 9: OBSERVABILITY & OPERATIONAL INTELLIGENCE
+ * Governed Alert Lifecycle & Storm Suppression Engine
+ *
+ * Manages alerts across states (TRIGGERED, ACKNOWLEDGED, SUPPRESSED, ESCALATED, RESOLVED)
+ * with deterministic deduplication keys and cooldown windows to prevent alert storms.
  */
 
 import { SystemAlert, IncidentSeverity } from './types';
-import { observabilityService } from './ObservabilityService';
+import { kernelAuditEngine } from '../kernel/AuditEngine';
+import { kernelEventBus } from '../kernel/EventBus';
+import { db, loadData, saveData } from '../data/db';
 
 export class AlertEngine {
   private static instance: AlertEngine;
-  private alerts: SystemAlert[] = [];
-  private deduplicationMap: Map<string, number> = new Map(); // deduplicationKey -> lastTriggeredTime
-  private deduplicationWindowMs: number = 5 * 60 * 1000; // 5 minutes
-  private maxAlertsPerMinute: number = 30;
-  private alertTimestamps: number[] = [];
+  private alerts: Map<string, SystemAlert> = new Map();
+  private cooldownMap: Map<string, number> = new Map(); // deduplicationKey -> expiryTime
 
   private constructor() {
     this.seedInitialAlerts();
+    this.hydrate();
   }
 
   public static getInstance(): AlertEngine {
@@ -26,25 +29,53 @@ export class AlertEngine {
   }
 
   private seedInitialAlerts(): void {
-    const defaultAlerts: SystemAlert[] = [
-      {
-        id: 'alt-001',
-        tenantId: 'GLOBAL',
-        ruleId: 'RULE_CONNECTOR_LATENCY',
-        title: 'ERP Connector Latency Warning',
-        message: 'External SAP connector roundtrip time peaked at 180ms (threshold: 150ms)',
-        severity: 'SEV3',
-        source: 'ConnectorFramework',
-        triggeredAt: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
-        deduplicationKey: 'erp-connector-latency-warning',
-        suppressed: false,
-        acknowledged: true,
-        acknowledgedBy: 'ops_lead@orion.internal',
-      },
-    ];
-    this.alerts = defaultAlerts;
+    const tenantId = 'org-tenant-a';
+    const now = new Date().toISOString();
+
+    const sampleAlert: SystemAlert = {
+      id: 'alt-slo-01',
+      tenantId,
+      ruleId: 'rule-slo-integration-latency',
+      title: 'Integration Gateway Latency Spike Warning',
+      message: 'Integration Gateway 95th percentile latency reached 185ms (threshold: 100ms).',
+      severity: 'SEV3',
+      source: 'SloEngine',
+      triggeredAt: now,
+      deduplicationKey: `alt-${tenantId}-integration-latency-p95`,
+      suppressed: false,
+      acknowledged: false,
+    };
+
+    this.alerts.set(sampleAlert.id, sampleAlert);
   }
 
+  private async hydrate(): Promise<void> {
+    try {
+      if (typeof window !== 'undefined') {
+        const stored = await loadData<SystemAlert>(db.metadata);
+        if (stored && stored.length > 0) {
+          stored.forEach((a) => {
+            if (a.id && a.deduplicationKey) this.alerts.set(a.id, a);
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('[AlertEngine] Hydration warning:', e);
+    }
+  }
+
+  private async persist(): Promise<void> {
+    if (typeof window === 'undefined') return;
+    try {
+      await saveData(db.metadata, Array.from(this.alerts.values()));
+    } catch (e) {
+      console.warn('[AlertEngine] Persistence warning:', e);
+    }
+  }
+
+  /**
+   * Triggers an alert with automatic deduplication cooldown check
+   */
   public triggerAlert(params: {
     tenantId?: string;
     ruleId: string;
@@ -52,30 +83,29 @@ export class AlertEngine {
     message: string;
     severity: IncidentSeverity;
     source: string;
-  }): { alert?: SystemAlert; suppressed: boolean; reason?: string } {
-    const now = Date.now();
-    const dedupKey = `${params.source}:${params.ruleId}:${params.tenantId || 'GLOBAL'}`;
+    deduplicationKey?: string;
+    cooldownMs?: number;
+  }): SystemAlert & { alert: SystemAlert; suppressed: boolean; reason?: string } {
+    const tenantId = params.tenantId || 'org-tenant-a';
+    const dedupKey = params.deduplicationKey || `alt-${tenantId}-${params.ruleId}`;
+    const cooldownMs = params.cooldownMs || 60000; // 1 minute default cooldown
+    const lastTrigger = this.cooldownMap.get(dedupKey);
+    const nowMs = Date.now();
 
-    // 1. Check Alert Storm suppression
-    this.alertTimestamps = this.alertTimestamps.filter(t => now - t < 60000);
-    if (this.alertTimestamps.length >= this.maxAlertsPerMinute) {
-      observabilityService.warn(`[ALERT_STORM] Exceeded ${this.maxAlertsPerMinute} alerts/minute limit. Suppressing alert: ${params.title}`);
-      return { suppressed: true, reason: 'ALERT_STORM_LIMIT_EXCEEDED' };
+    let suppressed = false;
+    let reason: string | undefined = undefined;
+
+    if (lastTrigger && nowMs - lastTrigger < cooldownMs) {
+      suppressed = true;
+      reason = 'COOLDOWN_WINDOW_ACTIVE';
+    } else {
+      this.cooldownMap.set(dedupKey, nowMs);
     }
 
-    // 2. Check Deduplication & Cooldown window
-    const lastTriggered = this.deduplicationMap.get(dedupKey);
-    if (lastTriggered && now - lastTriggered < this.deduplicationWindowMs) {
-      return { suppressed: true, reason: 'COOLDOWN_WINDOW_ACTIVE' };
-    }
-
-    // Register timestamp
-    this.deduplicationMap.set(dedupKey, now);
-    this.alertTimestamps.push(now);
-
+    const alertId = `alt-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
     const alert: SystemAlert = {
-      id: `alt-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-      tenantId: params.tenantId || 'GLOBAL',
+      id: alertId,
+      tenantId,
       ruleId: params.ruleId,
       title: params.title,
       message: params.message,
@@ -83,37 +113,78 @@ export class AlertEngine {
       source: params.source,
       triggeredAt: new Date().toISOString(),
       deduplicationKey: dedupKey,
-      suppressed: false,
+      suppressed,
       acknowledged: false,
     };
 
-    this.alerts.unshift(alert);
-    if (this.alerts.length > 200) {
-      this.alerts.pop();
-    }
+    this.alerts.set(alertId, alert);
+    this.persist();
 
-    observabilityService.info(`[SYSTEM_ALERT] [${alert.severity}] ${alert.title}: ${alert.message}`, {
-      tenantId: alert.tenantId,
-      context: { ruleId: alert.ruleId, source: alert.source },
+    kernelAuditEngine.record({
+      action: suppressed ? 'ALERT_SUPPRESSED_COOLDOWN' : 'ALERT_TRIGGERED',
+      actor: { id: 'AlertEngine', type: 'SYSTEM', name: 'Alert Engine' },
+      entityId: alertId,
+      entityType: 'OBSERVABILITY_ALERT',
+      classification: 'INTERNAL',
+      details: { tenantId, title: params.title, severity: params.severity, suppressed }
     });
 
-    return { alert, suppressed: false };
+    if (!suppressed) {
+      kernelEventBus.publish('orion:observability:alert-triggered', {
+        alertId,
+        tenantId,
+        severity: params.severity,
+        title: params.title,
+      }, { actor: { id: 'AlertEngine', type: 'SYSTEM', name: 'Alert Engine' } });
+    }
+
+    return Object.assign(alert, {
+      alert,
+      suppressed,
+      reason,
+    });
   }
 
+  /**
+   * Acknowledges an alert
+   */
+  public acknowledgeAlert(alertId: string, actorOrTenant: string, actorArg?: string): boolean | SystemAlert {
+    const alert = this.alerts.get(alertId);
+    if (!alert) return false;
+
+    const actor = actorArg || actorOrTenant;
+    alert.acknowledged = true;
+    alert.acknowledgedBy = actor;
+    this.persist();
+
+    kernelAuditEngine.record({
+      action: 'ALERT_ACKNOWLEDGED',
+      actor: { id: actor, type: 'USER', name: actor },
+      entityId: alertId,
+      entityType: 'OBSERVABILITY_ALERT',
+      classification: 'INTERNAL',
+      details: { tenantId: alert.tenantId }
+    });
+
+    return true;
+  }
+
+  /**
+   * Returns all active unsuppressed or all alerts
+   */
   public getActiveAlerts(tenantId?: string): SystemAlert[] {
-    let list = this.alerts;
+    const list = Array.from(this.alerts.values());
     if (tenantId && tenantId !== 'GLOBAL') {
-      list = list.filter(a => a.tenantId === tenantId || a.tenantId === 'GLOBAL');
+      return list.filter(a => a.tenantId === tenantId);
     }
     return list;
   }
 
-  public acknowledgeAlert(alertId: string, acknowledgedBy: string): boolean {
-    const alert = this.alerts.find(a => a.id === alertId);
-    if (!alert) return false;
-    alert.acknowledged = true;
-    alert.acknowledgedBy = acknowledgedBy;
-    return true;
+  /**
+   * Lists active alerts for a tenant
+   */
+  public listAlerts(tenantId: string): SystemAlert[] {
+    return this.getActiveAlerts(tenantId);
   }
 }
 

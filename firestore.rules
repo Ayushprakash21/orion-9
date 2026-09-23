@@ -1206,6 +1206,43 @@ service cloud.firestore {
       allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
       allow delete: if isAdmin();
     }
+
+    // PART 4 TRACK 9: OBSERVABILITY & OPERATIONAL INTELLIGENCE RULES
+    match /observability_events/{eventId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false;
+    }
+
+    match /observability_metrics/{metricId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false;
+    }
+
+    match /observability_incidents/{incidentId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /observability_alerts/{alertId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /observability_health/{healthId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /observability_slo/{sloId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
   }
 }
 
