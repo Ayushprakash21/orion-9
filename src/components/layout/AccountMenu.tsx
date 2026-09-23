@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/AuthContext';
 import { useSupplyChain } from '../../store/SupplyChainContext';
-import { User, Building2, Shield, LogOut, Sun } from 'lucide-react';
+import { User, Building2, Shield, LogOut, Sun, Sliders } from 'lucide-react';
 import { useOptionalWindowManager } from '../../os/WindowManagerContext';
 
 export const AccountMenu = ({ closeSidebar }: { closeSidebar?: () => void }) => {
@@ -87,13 +87,25 @@ export const AccountMenu = ({ closeSidebar }: { closeSidebar?: () => void }) => 
           )}
 
           {isAdmin && (
-            <button
-              type="button"
-              onClick={() => handleAction('/admin')}
-              className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-accent text-os-text-primary transition-colors flex items-center gap-2 uppercase"
-            >
-              <Shield size={14} className="text-os-text-muted" /> Admin Panel
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('orion-open-settings', { detail: { category: 'admin_control_center' } }));
+                  handleAction('/settings', 'settings');
+                }}
+                className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-accent text-os-text-primary transition-colors flex items-center gap-2"
+              >
+                <Shield size={14} className="text-os-text-muted" /> Administration
+              </button>
+              <button
+                type="button"
+                onClick={() => handleAction('/admin')}
+                className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-cyan-400 text-os-text-primary transition-colors flex items-center gap-2"
+              >
+                <Sliders size={14} className="text-os-text-muted" /> Platform Control Plane
+              </button>
+            </>
           )}
           
           <div className="h-px bg-os-border my-1.5 mx-2" />

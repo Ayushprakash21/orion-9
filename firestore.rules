@@ -110,6 +110,39 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Wave 12 Enterprise Control Policies & Proposals
+    match /control_policies/{policyId} {
+      allow read: if isAuthenticated() && (
+        isOrgMember(resource.data.organizationId) || 
+        isOrgMember(resource.data.tenantId) || 
+        isAdmin()
+      );
+      allow create, update: if isAdmin() && (
+        isOrgMember(request.resource.data.organizationId) || 
+        isOrgMember(request.resource.data.tenantId) || 
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
+    match /control_proposals/{proposalId} {
+      allow read: if isAuthenticated() && (
+        isOrgMember(resource.data.organizationId) || 
+        isOrgMember(resource.data.tenantId) || 
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        isOrgMember(request.resource.data.organizationId) || 
+        isOrgMember(request.resource.data.tenantId) || 
+        isAdmin()
+      );
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        (request.resource.data.status in ['APPROVED', 'REJECTED'] && isAdmin())
+      );
+      allow delete: if isAdmin();
+    }
+
     // Audit Logs collection (Read-only for org members, append-only for kernel, no client edits)
     match /audit_logs/{auditId} {
       allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isAdmin());
