@@ -911,9 +911,18 @@ export class ToolRegistry {
    * Register a tool into the registry
    */
   public registerTool(tool: AITool): void {
-    // Prohibit forbidden tools
-    const forbidden = ['executesql', 'rawfirestorewrite', 'admindatabasewrite', 'bypasskernel'];
-    if (forbidden.includes(tool.toolId.toLowerCase())) {
+    // Prohibit forbidden tools (arbitrary SQL, raw DB mutations, eval/code execution, kernel bypass)
+    const lowerId = tool.toolId.toLowerCase();
+    const forbiddenPatterns = [
+      /sql/i,
+      /firestore/i,
+      /database/i,
+      /(^|_)eval($|_)/i,
+      /(^|_)exec($|_)/i,
+      /script/i,
+      /bypass/i,
+    ];
+    if (forbiddenPatterns.some(pattern => pattern.test(lowerId))) {
       throw new Error(`Tool Security Violation: Prohibited tool registration attempt: '${tool.toolId}'`);
     }
 

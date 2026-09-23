@@ -160,7 +160,7 @@ export class KernelCommandBus {
           type: context.actor.type as any,
           name: context.actor.name,
           roles: context.actor.role ? [context.actor.role as string] : [],
-          organizationId: context.tenant.organizationId,
+          organizationId: (context.actor as any).organizationId || context.tenant.organizationId,
         },
         resourceType: context.entityType || 'generic',
         resourceId: context.entityId,
