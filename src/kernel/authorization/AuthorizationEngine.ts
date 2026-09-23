@@ -190,6 +190,30 @@ const RESOURCE_PERMISSION_MAP: Record<
     actorTypes: ['USER', 'ADMIN'],
     roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
   },
+  'policy:read': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'AI_AGENT', 'EXTERNAL_INTEGRATION'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'viewer', 'auditor', 'admin', 'ai_agent'],
+  },
+  'policy:update': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM'],
+    roles: ['platform_admin', 'organization_admin', 'admin'],
+  },
+  'policy:create': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM'],
+    roles: ['platform_admin', 'organization_admin', 'admin'],
+  },
+  'policy:approve': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'admin'],
+  },
+  'proposal:create': {
+    actorTypes: ['USER', 'ADMIN', 'AI_AGENT', 'SYSTEM'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'admin', 'ai_agent'],
+  },
+  'proposal:review': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'admin'],
+  },
 };
 
 

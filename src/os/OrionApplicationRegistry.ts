@@ -642,12 +642,13 @@ export const ORION_REGISTRY: Record<string, OrionApp> = {
   },
   'control-center': {
     id: 'control-center',
-    name: 'Control Center',
-    route: '/control-center',
+    name: 'AI + Manual Control Center',
+    route: '/admin/control-center',
     category: 'Control',
     icon: ShieldCheck,
     color: '#00F2FE',
-    description: 'System control center and advanced simulations.',
+    description: 'One governed path from domain policy to approved execution and audit.',
+    dockDefault: true,
   },
   'platform-intelligence': {
     id: 'platform-intelligence',

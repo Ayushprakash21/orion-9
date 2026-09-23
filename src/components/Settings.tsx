@@ -3,7 +3,8 @@ import { useSupplyChain } from '../store/SupplyChainContext';
 import { useAuth } from '../store/AuthContext';
 import { 
   Save, Shield, Globe, CheckCircle2, RotateCcw, Settings as SettingsIcon, 
-  Sliders, Eye, Search, User, Building2, ShieldCheck, Activity, Database, Brush, Key, Lock, Unlock, Users, Clock, BrainCircuit
+  Sliders, Eye, Search, User, Building2, ShieldCheck, Activity, Database, Brush, Key, Lock, Unlock, Users, Clock, BrainCircuit,
+  Target, Package, FileCheck, Truck, TrendingUp, BarChart2, Network, FileText, Brain, Smartphone
 } from 'lucide-react';
 import { SearchableDropdown } from './ui/SearchableDropdown';
 import { FXRateService } from '../services/FXRateService';
@@ -31,10 +32,28 @@ import { authService } from '../services/authService';
 type SettingsCategory = 
   // SYSTEM
   | 'operational' | 'appearance' | 'localization' | 'sound' | 'privacy'
-  // ADMINISTRATION
-  | 'admin_overview' | 'admin_control_center' | 'admin_users' | 'admin_orgs' | 'admin_roles' | 'admin_branding' | 'admin_audit' | 'admin_demo' | 'admin_security' | 'admin_database';
+  // CORE ADMINISTRATION CONSOLES
+  | 'admin_overview' | 'admin_control_center' | 'admin_users' | 'admin_orgs' | 'admin_roles' | 'admin_branding' | 'admin_audit' | 'admin_demo' | 'admin_security' | 'admin_database'
+  // 17 GOVERNED GOVERNANCE DOMAINS
+  | 'admin_domain_users_rbac'
+  | 'admin_domain_roles_capabilities'
+  | 'admin_domain_orgs_tenants'
+  | 'admin_domain_ai_governance'
+  | 'admin_domain_workflows_approvals'
+  | 'admin_domain_planning_engine'
+  | 'admin_domain_inventory_optimization'
+  | 'admin_domain_fulfillment_engine'
+  | 'admin_domain_logistics_transport'
+  | 'admin_domain_sop_demand'
+  | 'admin_domain_multi_echelon'
+  | 'admin_domain_distributed_ledger'
+  | 'admin_domain_security_controls'
+  | 'admin_domain_audit_compliance'
+  | 'admin_domain_integrations_fabric'
+  | 'admin_domain_simulation_scenarios'
+  | 'admin_domain_mobile_edge';
 
-export const Settings = () => {
+export const Settings = ({ initialCategory }: { initialCategory?: SettingsCategory }) => {
   const { user, profile, hasRole } = useAuth();
   const isAdmin = hasRole(['platform_admin', 'organization_admin']) || 
                   profile?.role === 'platform_admin' || 
@@ -45,8 +64,18 @@ export const Settings = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [currencyOptions, setCurrencyOptions] = useState<{value: string, label: string}[]>([]);
-  const [activeCategory, setActiveCategory] = useState<SettingsCategory>('operational');
+  const [activeCategory, setActiveCategory] = useState<SettingsCategory>(initialCategory || 'operational');
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const handleCategoryEvent = (e: any) => {
+      if (e.detail?.category) {
+        setActiveCategory(e.detail.category as SettingsCategory);
+      }
+    };
+    window.addEventListener('orion-open-settings', handleCategoryEvent as EventListener);
+    return () => window.removeEventListener('orion-open-settings', handleCategoryEvent as EventListener);
+  }, []);
 
   // Privileged Session State
   const [privilegedUntil, setPrivilegedUntil] = useState<number | null>(() => {
@@ -219,6 +248,25 @@ export const Settings = () => {
           {activeCategory === 'admin_demo' && <AdminDemoData />}
           {activeCategory === 'admin_security' && <AdminSettings />}
           {activeCategory === 'admin_database' && <AdminDatabaseHealth />}
+
+          {/* Quick-switch Governed Domains */}
+          {activeCategory === 'admin_domain_users_rbac' && <AdminControlCenter initialDomainId="users-rbac" />}
+          {activeCategory === 'admin_domain_roles_capabilities' && <AdminControlCenter initialDomainId="users-rbac" initialCapabilityId="role-management" />}
+          {activeCategory === 'admin_domain_orgs_tenants' && <AdminControlCenter initialDomainId="master-data" initialCapabilityId="supplier-master" />}
+          {activeCategory === 'admin_domain_ai_governance' && <AdminControlCenter initialDomainId="ai-ml" initialCapabilityId="ai-policy" />}
+          {activeCategory === 'admin_domain_workflows_approvals' && <AdminControlCenter initialDomainId="operations" initialCapabilityId="release-governance" />}
+          {activeCategory === 'admin_domain_planning_engine' && <AdminControlCenter initialDomainId="forecasting" initialCapabilityId="demand-forecasting" />}
+          {activeCategory === 'admin_domain_inventory_optimization' && <AdminControlCenter initialDomainId="inventory" initialCapabilityId="stock-reallocation" />}
+          {activeCategory === 'admin_domain_fulfillment_engine' && <AdminControlCenter initialDomainId="order-management" initialCapabilityId="order-allocation" />}
+          {activeCategory === 'admin_domain_logistics_transport' && <AdminControlCenter initialDomainId="transportation" initialCapabilityId="route-optimization" />}
+          {activeCategory === 'admin_domain_sop_demand' && <AdminControlCenter initialDomainId="forecasting" initialCapabilityId="demand-sensing" />}
+          {activeCategory === 'admin_domain_multi_echelon' && <AdminControlCenter initialDomainId="inventory" initialCapabilityId="replenishment" />}
+          {activeCategory === 'admin_domain_distributed_ledger' && <AdminControlCenter initialDomainId="security" initialCapabilityId="security-policy" />}
+          {activeCategory === 'admin_domain_security_controls' && <AdminControlCenter initialDomainId="security" initialCapabilityId="security-controls" />}
+          {activeCategory === 'admin_domain_audit_compliance' && <AdminControlCenter initialDomainId="compliance" initialCapabilityId="compliance-rules" />}
+          {activeCategory === 'admin_domain_integrations_fabric' && <AdminControlCenter initialDomainId="integrations" initialCapabilityId="integration-health" />}
+          {activeCategory === 'admin_domain_simulation_scenarios' && <AdminControlCenter initialDomainId="analytics" initialCapabilityId="kpi-governance" />}
+          {activeCategory === 'admin_domain_mobile_edge' && <AdminControlCenter initialDomainId="mobile" initialCapabilityId="device-policy" />}
         </div>
       </div>
     );
@@ -418,21 +466,42 @@ export const Settings = () => {
     { id: 'privacy', label: 'Privacy & Security', icon: Shield, group: 'system' },
   ];
 
-  const adminItems = [
+  const adminCoreItems = [
     { id: 'admin_overview', label: 'Overview', icon: SettingsIcon, group: 'admin' },
     { id: 'admin_control_center', label: 'AI + Manual Control Center', icon: BrainCircuit, group: 'admin' },
-    { id: 'admin_users', label: 'Users', icon: Users, group: 'admin' },
-    { id: 'admin_orgs', label: 'Organizations', icon: Building2, group: 'admin' },
-    { id: 'admin_roles', label: 'Roles', icon: Key, group: 'admin' },
-    { id: 'admin_branding', label: 'Branding', icon: Brush, group: 'admin' },
-    { id: 'admin_audit', label: 'Audit Activity', icon: Clock, group: 'admin' },
-    { id: 'admin_demo', label: 'Demo Data', icon: Database, group: 'admin' },
-    { id: 'admin_security', label: 'Security', icon: ShieldCheck, group: 'admin' },
-    { id: 'admin_database', label: 'Database Health', icon: Database, group: 'admin' },
+    { id: 'admin_users', label: 'Users & RBAC', icon: Users, group: 'admin' },
+    { id: 'admin_orgs', label: 'Organizations & Tenants', icon: Building2, group: 'admin' },
+    { id: 'admin_roles', label: 'Roles & Capabilities', icon: Key, group: 'admin' },
+    { id: 'admin_branding', label: 'Branding & Whitelabel', icon: Brush, group: 'admin' },
+    { id: 'admin_security', label: 'Security & Policy Engine', icon: ShieldCheck, group: 'admin' },
+    { id: 'admin_audit', label: 'Audit & Compliance Activity', icon: Clock, group: 'admin' },
+    { id: 'admin_demo', label: 'Demo Data & Sandbox', icon: Database, group: 'admin' },
+    { id: 'admin_database', label: 'Database Health & Storage', icon: Activity, group: 'admin' },
+  ];
+
+  const adminDomainItems = [
+    { id: 'admin_domain_users_rbac', label: '1. Users & Access', icon: Users, group: 'domains' },
+    { id: 'admin_domain_roles_capabilities', label: '2. Roles & Permissions', icon: Key, group: 'domains' },
+    { id: 'admin_domain_orgs_tenants', label: '3. Organizations & Tenants', icon: Building2, group: 'domains' },
+    { id: 'admin_domain_ai_governance', label: '4. AI Governance', icon: Brain, group: 'domains' },
+    { id: 'admin_domain_workflows_approvals', label: '5. Workflows & Approvals', icon: FileCheck, group: 'domains' },
+    { id: 'admin_domain_planning_engine', label: '6. Planning Engine', icon: Target, group: 'domains' },
+    { id: 'admin_domain_inventory_optimization', label: '7. Inventory Optimization', icon: Package, group: 'domains' },
+    { id: 'admin_domain_fulfillment_engine', label: '8. Fulfillment Engine', icon: TrendingUp, group: 'domains' },
+    { id: 'admin_domain_logistics_transport', label: '9. Logistics & Transport', icon: Truck, group: 'domains' },
+    { id: 'admin_domain_sop_demand', label: '10. S&OP Demand Consensus', icon: BarChart2, group: 'domains' },
+    { id: 'admin_domain_multi_echelon', label: '11. Multi-Echelon Buffer', icon: Package, group: 'domains' },
+    { id: 'admin_domain_distributed_ledger', label: '12. Distributed Ledger', icon: Shield, group: 'domains' },
+    { id: 'admin_domain_security_controls', label: '13. Security & Access Controls', icon: ShieldCheck, group: 'domains' },
+    { id: 'admin_domain_audit_compliance', label: '14. Audit & Compliance', icon: FileText, group: 'domains' },
+    { id: 'admin_domain_integrations_fabric', label: '15. Integrations & API Fabric', icon: Network, group: 'domains' },
+    { id: 'admin_domain_simulation_scenarios', label: '16. Simulation & Scenario Engine', icon: Sliders, group: 'domains' },
+    { id: 'admin_domain_mobile_edge', label: '17. Mobile & Edge Nodes', icon: Smartphone, group: 'domains' },
   ];
 
   const filteredMenuItems = menuItems.filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()));
-  const filteredAdminItems = adminItems.filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredAdminCoreItems = adminCoreItems.filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredAdminDomainItems = adminDomainItems.filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <div className="flex flex-col md:flex-row w-full h-full bg-os-bg text-os-text-primary overflow-hidden font-sans">
@@ -489,11 +558,11 @@ export const Settings = () => {
           )}
 
           {/* ADMINISTRATION */}
-          {isAdmin && filteredAdminItems.length > 0 && (
+          {isAdmin && filteredAdminCoreItems.length > 0 && (
             <div>
               <div className="px-3 mb-2 text-[10px] font-mono tracking-widest uppercase text-os-text-secondary">Administration</div>
               <div className="space-y-0.5">
-                {filteredAdminItems.map(item => (
+                {filteredAdminCoreItems.map(item => (
                   <button
                     key={item.id}
                     onClick={() => setActiveCategory(item.id as SettingsCategory)}
@@ -503,6 +572,27 @@ export const Settings = () => {
                     )}
                   >
                     <item.icon size={16} className={activeCategory === item.id ? "text-emerald-400" : "text-os-text-muted"} /> {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* GOVERNED DOMAINS QUICK SWITCH */}
+          {isAdmin && filteredAdminDomainItems.length > 0 && (
+            <div>
+              <div className="px-3 mb-2 text-[10px] font-mono tracking-widest uppercase text-os-text-secondary">Governed Domains (17)</div>
+              <div className="space-y-0.5">
+                {filteredAdminDomainItems.map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveCategory(item.id as SettingsCategory)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors text-left",
+                      activeCategory === item.id ? "bg-cyan-500/15 text-cyan-300 font-semibold" : "text-os-text-secondary hover:bg-os-surface-hover hover:text-os-text-primary"
+                    )}
+                  >
+                    <item.icon size={14} className={activeCategory === item.id ? "text-cyan-300" : "text-os-text-muted"} /> {item.label}
                   </button>
                 ))}
               </div>
