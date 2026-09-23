@@ -88,6 +88,13 @@ import { OperationsCenter } from './components/admin/OperationsCenter';
 import { IncidentCenter } from './components/admin/IncidentCenter';
 import { ConfigurationCenter } from './components/admin/ConfigurationCenter';
 import { ReleaseCenter } from './components/admin/ReleaseCenter';
+import { GlobalOperationsCenter } from './components/admin/GlobalOperationsCenter';
+import { RegionalOperationsCenter } from './components/admin/RegionalOperationsCenter';
+import { IntegrationControlCenter } from './components/admin/IntegrationControlCenter';
+import { TradingPartnerCenter } from './components/admin/TradingPartnerCenter';
+import { ReconciliationCenter } from './components/admin/ReconciliationCenter';
+import { FailoverCenter } from './components/admin/FailoverCenter';
+import { ScalePerformanceCenter } from './components/admin/ScalePerformanceCenter';
 import { ManualCenter } from './components/ManualCenter';
 import { LoadingScreen } from './components/LoadingScreen';
 import { OrionBootSequence } from './os/components/OrionBootSequence';
@@ -179,6 +186,13 @@ function AuthenticatedApplication() {
           <Route path="incidents" element={<IncidentCenter />} />
           <Route path="configurations" element={<ConfigurationCenter />} />
           <Route path="releases" element={<ReleaseCenter />} />
+          <Route path="global-ops" element={<GlobalOperationsCenter />} />
+          <Route path="regional-ops" element={<RegionalOperationsCenter />} />
+          <Route path="integration-gateway" element={<IntegrationControlCenter />} />
+          <Route path="trading-partners" element={<TradingPartnerCenter />} />
+          <Route path="reconciliation" element={<ReconciliationCenter />} />
+          <Route path="failover" element={<FailoverCenter />} />
+          <Route path="scale-performance" element={<ScalePerformanceCenter />} />
           <Route path="manual" element={<ManualCenter admin />} />
           <Route path="platform-intelligence" element={<PlatformIntelligence />} />
           <Route path="users" element={<AdminUsers />} />

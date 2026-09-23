@@ -139,8 +139,7 @@ service cloud.firestore {
 
     match /trading_partners/{partnerId} {
       allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
-      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
-      allow delete: if isAdmin();
+      allow create, update, delete: if isAdmin() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
     }
 
     match /integration_messages/{messageId} {
@@ -646,6 +645,76 @@ service cloud.firestore {
     match /environment_controls/{id} {
       allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
       allow create, update, delete: if isAdmin();
+    }
+
+    // =========================================================================
+    // ORION-9 WAVE 11: GLOBAL ENTERPRISE SCALE & DISTRIBUTED INTEGRATION
+    // =========================================================================
+
+    // Enterprise 7-Level Organizational Hierarchy Nodes
+    match /enterprises/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAdmin() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if false; // Hierarchy structure root cannot be deleted
+    }
+
+    // Multi-Region Registry & Operating State
+    match /regions/{id} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Sovereign Data Residency & Jurisdictional Policies
+    match /data_residency_policies/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Distributed Event Fabric Broker Topics & Offsets
+    match /broker_topics/{id} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /broker_offsets/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if false;
+    }
+
+    // Distributed Workload Jobs & Chunk Leases
+    match /distributed_jobs/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // 8-Point Partner Certification Reports (Permanently Immutable Audit)
+    match /integration_certifications/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAdmin() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false;
+    }
+
+    // Cross-System Reconciliation Findings & Exposure Records
+    match /reconciliation_findings/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if false;
+    }
+
+    // Regional Failover Operations & Drill Execution Records (Immutable)
+    match /failover_operations/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAdmin() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false;
+    }
+
+    // Distributed Fencing Token Leases & Generation Records
+    match /fencing_leases/{id} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAdmin();
+      allow delete: if false;
     }
   }
 }

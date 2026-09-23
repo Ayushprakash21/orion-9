@@ -529,7 +529,15 @@ export interface AS2MDNResult {
   timestamp: string;
 }
 
-export type TradingPartnerStatus = 'DRAFT' | 'ACTIVE' | 'SUSPENDED' | 'INACTIVE';
+export type TradingPartnerStatus = 
+  | 'DRAFT' 
+  | 'ONBOARDING'
+  | 'TESTING'
+  | 'CERTIFICATION'
+  | 'ACTIVE' 
+  | 'SUSPENDED' 
+  | 'INACTIVE'
+  | 'RETIRED';
 
 export interface TransactionCapability {
   transactionType: EDITransactionType | string;
@@ -537,6 +545,8 @@ export interface TransactionCapability {
   transportId: string;
   mappingContractId: string;
   active: boolean;
+  standard?: string;
+  version?: string;
 }
 
 export interface TradingPartnerRecord {
@@ -548,6 +558,8 @@ export interface TradingPartnerRecord {
   ediIdentifier: string;
   status: TradingPartnerStatus;
   supportedCapabilities: TransactionCapability[];
+  certificateReference?: string;
+  secretReference?: string;
   contactEmail?: string;
   notes?: string;
   createdAt: string;

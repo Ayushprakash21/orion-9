@@ -82,6 +82,13 @@ import { OperationsCenter } from '../components/admin/OperationsCenter';
 import { IncidentCenter } from '../components/admin/IncidentCenter';
 import { ConfigurationCenter } from '../components/admin/ConfigurationCenter';
 import { ReleaseCenter } from '../components/admin/ReleaseCenter';
+import { GlobalOperationsCenter } from '../components/admin/GlobalOperationsCenter';
+import { RegionalOperationsCenter } from '../components/admin/RegionalOperationsCenter';
+import { IntegrationControlCenter } from '../components/admin/IntegrationControlCenter';
+import { TradingPartnerCenter } from '../components/admin/TradingPartnerCenter';
+import { ReconciliationCenter } from '../components/admin/ReconciliationCenter';
+import { FailoverCenter } from '../components/admin/FailoverCenter';
+import { ScalePerformanceCenter } from '../components/admin/ScalePerformanceCenter';
 
 const ProfileUserView: React.FC = () => <Profile initialTab="profile" />;
 const ProfileOrgView: React.FC = () => <Profile initialTab="organization" />;
@@ -169,6 +176,13 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'incident-center': IncidentCenter,
   'configuration-center': ConfigurationCenter,
   'release-center': ReleaseCenter,
+  'global-operations': GlobalOperationsCenter,
+  'regional-operations': RegionalOperationsCenter,
+  'integration-gateway': IntegrationControlCenter,
+  'trading-partners': TradingPartnerCenter,
+  'reconciliation-center': ReconciliationCenter,
+  'failover-center': FailoverCenter,
+  'scale-performance': ScalePerformanceCenter,
 };
 
 export function getAppComponent(appId: string): React.ComponentType<any> | null {

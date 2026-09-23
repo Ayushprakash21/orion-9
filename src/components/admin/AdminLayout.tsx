@@ -8,7 +8,7 @@ import {
   Palette, LayoutDashboard, Menu, X,
   Building2, Shield, BrainCircuit, BookOpen,
   FileCheck, Sliders, Compass, RotateCcw, ShieldCheck,
-  AlertOctagon, GitCommit
+  AlertOctagon, GitCommit, Globe, Globe2, Network, Users2, FileSpreadsheet, ShieldAlert, Gauge
 } from 'lucide-react';
 import { AccountMenu } from '../layout/AccountMenu';
 import { cn } from '../../lib/utils';
@@ -61,6 +61,13 @@ export const AdminLayout = () => {
     { name: 'Configuration Center', path: '/admin/configurations', icon: Sliders },
     { name: 'Release Center', path: '/admin/releases', icon: GitCommit },
     { name: 'AI + Manual Control Center', path: '/admin/control-center', icon: BrainCircuit },
+    { name: 'Global Operations', path: '/admin/global-ops', icon: Globe },
+    { name: 'Regional Operations', path: '/admin/regional-ops', icon: Globe2 },
+    { name: 'Integration Gateway', path: '/admin/integration-gateway', icon: Network },
+    { name: 'Trading Partners', path: '/admin/trading-partners', icon: Users2 },
+    { name: 'Reconciliation', path: '/admin/reconciliation', icon: FileSpreadsheet },
+    { name: 'Failover & Fencing', path: '/admin/failover', icon: ShieldAlert },
+    { name: 'Scale & Performance', path: '/admin/scale-performance', icon: Gauge },
     { name: 'Outcome Center', path: '/admin/outcomes', icon: FileCheck },
     { name: 'Learning Center', path: '/admin/learning', icon: Sliders },
     { name: 'Drift Center', path: '/admin/drift', icon: Compass },
