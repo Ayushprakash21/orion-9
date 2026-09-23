@@ -531,3 +531,72 @@ export interface MeasuredRpoRtoStatus {
   verificationMode: 'SIMULATED_DRILL' | 'EMULATOR_TEST' | 'LIVE_TELEMETRY' | 'UNVERIFIED';
 }
 
+// ============================================================================
+// 12. Track 11: Security Red Team & Adversarial Assurance
+// ============================================================================
+
+export type AttackSeverity = 'P0' | 'P1' | 'P2' | 'P3' | 'P4';
+
+export type AttackVectorType = 
+  | 'CROSS_TENANT_ACCESS'
+  | 'KERNEL_BYPASS'
+  | 'PROMPT_INJECTION'
+  | 'AI_SELF_APPROVAL'
+  | 'SECRET_EXFILTRATION'
+  | 'PRIVILEGE_ESCALATION'
+  | 'WEBHOOK_REPLAY'
+  | 'DOCUMENT_POISONING'
+  | 'AUDIT_TAMPERING'
+  | 'LOCAL_STORAGE_AUTHORITY_SPOOF'
+  | 'UNAUTHENTICATED_FIRESTORE'
+  | 'IMMUTABLE_OVERWRITE';
+
+export interface ThreatModelEntry {
+  asset: string;
+  attackVector: AttackVectorType;
+  threatActor: string;
+  impact: string;
+  existingControl: string;
+  severity: AttackSeverity;
+  verificationStatus: 'VERIFIED_BLOCKED' | 'PARTIALLY_VERIFIED' | 'UNVERIFIED' | 'FAILED';
+  remediation?: string;
+}
+
+export interface RedTeamAttackRecord {
+  id: string;
+  timestamp: string;
+  vector: AttackVectorType;
+  entryPoint: string;
+  targetTenant: string;
+  actorTenant: string;
+  expectedResult: 'DENIED' | 'BLOCKED' | 'REJECTED';
+  actualResult: 'DENIED' | 'BLOCKED' | 'REJECTED' | 'EXPLOITED';
+  severity: AttackSeverity;
+  evidence: string;
+  blockedByGuardrail: string;
+  passed: boolean;
+}
+
+export interface SecurityPostureSummary {
+  overallStatus: 'VERIFIED_SECURE' | 'PARTIALLY_VERIFIED' | 'CRITICAL_BREACH';
+  totalAttacksExecuted: number;
+  attacksBlockedCount: number;
+  zeroP0Breaches: boolean;
+  zeroTenantEscapes: boolean;
+  zeroKernelBypasses: boolean;
+  zeroExposedSecrets: boolean;
+  securityPillars: {
+    authentication: 'PASS' | 'FAIL' | 'WARNING';
+    authorization: 'PASS' | 'FAIL' | 'WARNING';
+    tenantIsolation: 'PASS' | 'FAIL' | 'WARNING';
+    firestoreRules: 'PASS' | 'FAIL' | 'WARNING';
+    aiGovernance: 'PASS' | 'FAIL' | 'WARNING';
+    workflowSecurity: 'PASS' | 'FAIL' | 'WARNING';
+    integrationSecurity: 'PASS' | 'FAIL' | 'WARNING';
+    documentSecurity: 'PASS' | 'FAIL' | 'WARNING';
+    auditIntegrity: 'PASS' | 'FAIL' | 'WARNING';
+  };
+  lastAssessedAt: string;
+}
+
+

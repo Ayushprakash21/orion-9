@@ -68,6 +68,7 @@ export const AdminLayout = () => {
     { name: 'Trading Partners', path: '/admin/trading-partners', icon: Users2 },
     { name: 'Reconciliation', path: '/admin/reconciliation', icon: FileSpreadsheet },
     { name: 'Resilience & DR', path: '/admin/resilience', icon: ShieldAlert },
+    { name: 'Security Red Team', path: '/admin/security-redteam', icon: AlertOctagon },
     { name: 'Scale & Performance', path: '/admin/scale-performance', icon: Gauge },
     { name: 'Outcome Center', path: '/admin/outcomes', icon: FileCheck },
     { name: 'Learning Center', path: '/admin/learning', icon: Sliders },

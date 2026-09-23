@@ -1268,8 +1268,22 @@ service cloud.firestore {
       allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
       allow delete: if isAdmin();
     }
+
+    // PART 4 TRACK 11: SECURITY RED TEAM & ADVERSARIAL ASSURANCE RULES
+    match /security_redteam_attacks/{attackId} {
+      allow read: if isAuthenticated() && isAdmin();
+      allow create: if isAuthenticated() && isAdmin();
+      allow update, delete: if false;
+    }
+
+    match /security_threat_models/{threatId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && isAdmin();
+      allow delete: if isAdmin();
+    }
   }
 }
+
 
 
 
