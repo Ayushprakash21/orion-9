@@ -190,11 +190,14 @@ export class EnterpriseGovernanceService {
     // Immutable Audit Ledger Record
     kernelAuditEngine.record({
       action: 'ACTIVATE_ENTERPRISE_GOVERNANCE_POLICY',
-      actor: { id: params.approver, type: 'ADMIN', name: params.approver },
+      actor: { id: params.approver, type: 'USER', name: params.approver },
       entityId: policy.policyId,
       entityType: 'GOVERNANCE_POLICY',
+      classification: 'BUSINESS_TRANSACTION',
       details: { policyName: policy.name, version: policy.version, domain: policy.domain }
     });
+
+
 
     return policy;
   }

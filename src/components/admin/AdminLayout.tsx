@@ -7,8 +7,9 @@ import {
   Users, Activity, Settings, 
   Palette, LayoutDashboard, Menu, X,
   Building2, Shield, BrainCircuit, BookOpen,
-  FileCheck, Sliders, Compass, RotateCcw, ShieldCheck,
+  FileCheck, Sliders, Compass, RotateCcw, ShieldCheck, Award,
   AlertOctagon, GitCommit, Globe, Globe2, Network, Users2, FileSpreadsheet, ShieldAlert, Gauge
+
 } from 'lucide-react';
 import { AccountMenu } from '../layout/AccountMenu';
 import { cn } from '../../lib/utils';
@@ -69,7 +70,9 @@ export const AdminLayout = () => {
     { name: 'Reconciliation', path: '/admin/reconciliation', icon: FileSpreadsheet },
     { name: 'Resilience & DR', path: '/admin/resilience', icon: ShieldAlert },
     { name: 'Security Red Team', path: '/admin/security-redteam', icon: AlertOctagon },
+    { name: 'Platform Maturity', path: '/admin/platform-maturity', icon: Award },
     { name: 'Scale & Performance', path: '/admin/scale-performance', icon: Gauge },
+
     { name: 'Outcome Center', path: '/admin/outcomes', icon: FileCheck },
     { name: 'Learning Center', path: '/admin/learning', icon: Sliders },
     { name: 'Drift Center', path: '/admin/drift', icon: Compass },

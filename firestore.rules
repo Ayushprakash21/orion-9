@@ -1281,8 +1281,30 @@ service cloud.firestore {
       allow create, update: if isAuthenticated() && isAdmin();
       allow delete: if isAdmin();
     }
+
+    // PART 4 TRACK 13: PRODUCT PLATFORM MATURITY RULES
+    match /product_maturity_subsystems/{subsystemId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /product_debt_register/{debtId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /business_journeys/{journeyId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /product_maturity_snapshots/{snapshotId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
   }
 }
+
 
 
 

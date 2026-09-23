@@ -98,7 +98,9 @@ import { FailoverCenter } from './components/admin/FailoverCenter';
 import { ResilienceCenter } from './components/ResilienceCenter';
 import { SecurityRedTeamCenter } from './components/SecurityRedTeamCenter';
 import { ScalePerformanceCenter } from './components/admin/ScalePerformanceCenter';
+import { PlatformMaturityCenter } from './components/PlatformMaturityCenter';
 import { ManualCenter } from './components/ManualCenter';
+
 import { LoadingScreen } from './components/LoadingScreen';
 import { OrionBootSequence } from './os/components/OrionBootSequence';
 import { OrionWorldEntrySequence } from './os/components/OrionWorldEntrySequence';
@@ -198,7 +200,9 @@ function AuthenticatedApplication() {
           <Route path="failover" element={<ResilienceCenter />} />
           <Route path="resilience" element={<ResilienceCenter />} />
           <Route path="security-redteam" element={<SecurityRedTeamCenter />} />
+          <Route path="platform-maturity" element={<PlatformMaturityCenter />} />
           <Route path="scale-performance" element={<ScalePerformanceCenter />} />
+
           <Route path="manual" element={<ManualCenter admin />} />
           <Route path="platform-intelligence" element={<PlatformIntelligence />} />
           <Route path="users" element={<AdminUsers />} />

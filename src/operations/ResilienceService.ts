@@ -242,12 +242,12 @@ export class ResilienceService {
     };
 
     // Emit Telemetry
-    observabilityService.log({
-      level: decision.action === 'FAIL_CLOSED' ? 'ERROR' : 'WARN',
-      message: `Recovery Decision [${decision.action}] for component ${decision.targetComponent}`,
-      tenantId: params.tenantId,
-      context: { decisionId, action: decision.action, fencingToken }
-    });
+    observabilityService.log(
+      decision.action === 'FAIL_CLOSED' ? 'ERROR' : 'WARN',
+      `Recovery Decision [${decision.action}] for component ${decision.targetComponent}`,
+      { tenantId: params.tenantId, context: { decisionId, action: decision.action, fencingToken } }
+    );
+
 
     this.recoveryDecisions.set(decisionId, decision);
     return decision;
@@ -269,12 +269,12 @@ export class ResilienceService {
     };
     this.firestoreOutboxBuffer.push(item);
     
-    observabilityService.log({
-      level: 'WARN',
-      message: `Firestore outage detected. Queued durable outbox mutation for collection ${collection}`,
-      tenantId: data.tenantId || 'system',
-      context: { outboxItemId: item.id, totalBuffered: this.firestoreOutboxBuffer.length }
-    });
+    observabilityService.log(
+      'WARN',
+      `Firestore outage detected. Queued durable outbox mutation for collection ${collection}`,
+      { tenantId: data.tenantId || 'system', context: { outboxItemId: item.id, totalBuffered: this.firestoreOutboxBuffer.length } }
+    );
+
 
     return { queued: true, outboxSize: this.firestoreOutboxBuffer.length };
   }
@@ -324,13 +324,13 @@ export class ResilienceService {
 
     securityTelemetryGuard.recordSecurityEvent({
       tenantId: params.tenantId,
-      eventType: 'SUSPICIOUS_PAYLOAD',
-      severity: 'HIGH',
-      userRole: 'system',
-      userId: params.actor,
+      type: 'SUSPICIOUS_PAYLOAD',
+      actorId: params.actor,
       ipAddress: 'internal-kernel',
-      details: { recordId, entityType: params.entityType, entityId: params.entityId, reason: params.reason }
+      details: JSON.stringify({ recordId, entityType: params.entityType, entityId: params.entityId, reason: params.reason })
     });
+
+
 
     return record;
   }

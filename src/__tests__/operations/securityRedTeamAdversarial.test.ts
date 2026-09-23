@@ -71,9 +71,9 @@ describe('Part 4 Track 11: Security Red Team & Adversarial Assurance Suite', () 
         type: 'AI_AGENT',
         name: 'Procurement AI',
         organizationId: tenantA,
-        roles: ['ai_agent'],
-        isAi: true
+        roles: ['ai_agent']
       };
+
       const reqActor: AuthorizationActor = {
         id: 'user_requester',
         type: 'USER',

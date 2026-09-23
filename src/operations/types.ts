@@ -676,5 +676,78 @@ export interface PolicySimulationImpact {
   evaluatedAt: string;
 }
 
+// ============================================================================
+// 14. Track 13: Product / Platform Maturity
+// ============================================================================
+
+export type NavigationCategory = 
+  | 'OPERATE'
+  | 'INTELLIGENCE'
+  | 'CONTROL'
+  | 'ANALYTICS'
+  | 'PLATFORM';
+
+export type SubsystemMaturityLevel = 
+  | 'FOUNDATIONAL'
+  | 'FUNCTIONAL'
+  | 'INTEGRATED'
+  | 'OPERATIONAL'
+  | 'MATURE'
+  | 'UNVERIFIED';
+
+export interface SubsystemMaturityRecord {
+  subsystemId: string;
+  name: string;
+  category: NavigationCategory;
+  maturityLevel: SubsystemMaturityLevel;
+  hasLoadingState: boolean;
+  hasEmptyState: boolean;
+  hasErrorState: boolean;
+  hasRealData: boolean;
+  isTenantIsolated: boolean;
+  isKernelGoverned: boolean;
+  verifiedInTesting: boolean;
+}
+
+export interface BusinessJourneyStep {
+  stepName: string;
+  domain: string;
+  executedBy: string;
+  status: 'VERIFIED_PASSING' | 'PENDING' | 'FAILED';
+}
+
+export interface BusinessJourneyRecord {
+  journeyId: string;
+  title: string;
+  description: string;
+  steps: BusinessJourneyStep[];
+  overallStatus: 'VERIFIED_PASSING' | 'PARTIALLY_VERIFIED' | 'FAILED';
+  lastTestedAt: string;
+}
+
+export interface ProductDebtItem {
+  id: string;
+  area: string;
+  issue: string;
+  severity: 'P0' | 'P1' | 'P2' | 'P3';
+  userImpact: string;
+  technicalImpact: string;
+  recommendedAction: string;
+  status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED' | 'DEFERRED';
+}
+
+export interface UXConsistencyMatrix {
+  navigationConsistent: boolean;
+  typographyConsistent: boolean;
+  responsiveBehaviorVerified: boolean;
+  accessibilityBaselineVerified: boolean;
+  loadingStatesStandardized: boolean;
+  emptyStatesStandardized: boolean;
+  errorStatesStandardized: boolean;
+  zeroFakeMetrics: boolean;
+  lastAuditedAt: string;
+}
+
+
 
 
