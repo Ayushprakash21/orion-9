@@ -30,7 +30,11 @@ import {
   Sparkles,
   Server,
   ArrowRight,
-  Info
+  Info,
+  Award,
+  BarChart3,
+  UploadCloud,
+  FileText
 } from 'lucide-react';
 import { useMasterData } from '../data/useMasterData';
 import { useIntegrationFabric } from '../integration/useIntegrationFabric';
@@ -38,20 +42,33 @@ import { useSupplyChain } from '../store/SupplyChainContext';
 import { useToast } from '../store/ToastContext';
 import { kernelEventBus } from '../kernel/EventBus';
 import { MasterDataEntityType, MasterDataRecord } from '../data/MasterDataService';
-import { MasterDataLifecycleState, SourceSystemType, DataClassification } from '../types';
+import { MasterDataLifecycleState, SourceSystemType, DataClassification, GoldenRecord } from '../types';
+import { IngestionBatchReport } from '../services/masterdata/MasterDataIngestionPipeline';
 
-type TabType = 'master_data' | 'reconciliation' | 'contracts' | 'entitlements' | 'event_fabric';
+type TabType =
+  | 'master_data'
+  | 'golden_records'
+  | 'quality'
+  | 'stewardship'
+  | 'ingestion'
+  | 'reconciliation'
+  | 'contracts'
+  | 'entitlements'
+  | 'event_fabric';
 
 export const MasterDataManager: React.FC = () => {
   const { showToast } = useToast();
   const {
     records,
+    goldenRecords,
     proposeRecord,
     validateRecord,
     checkDuplicates,
     submitForApproval,
     activateRecord,
-    retireRecord
+    rejectRecord,
+    retireRecord,
+    ingestBatch
   } = useMasterData();
 
   const {
@@ -72,6 +89,16 @@ export const MasterDataManager: React.FC = () => {
   const [stateFilter, setStateFilter] = useState<string>('ALL');
   const [showNewRecordModal, setShowNewRecordModal] = useState<boolean>(false);
   const [isReplayingEvents, setIsReplayingEvents] = useState<boolean>(false);
+
+  // Ingestion State
+  const [ingestEntityType, setIngestEntityType] = useState<MasterDataEntityType>('SUPPLIER');
+  const [csvContent, setCsvContent] = useState<string>('');
+  const [isIngesting, setIsIngesting] = useState<boolean>(false);
+  const [ingestionReport, setIngestionReport] = useState<IngestionBatchReport | null>(null);
+
+  // Stewardship State
+  const [rejectReason, setRejectReason] = useState<string>('');
+  const [rejectingRecordId, setRejectingRecordId] = useState<string | null>(null);
 
   // New Record Form State
   const [newEntityType, setNewEntityType] = useState<MasterDataEntityType>('PRODUCT');
@@ -99,28 +126,129 @@ export const MasterDataManager: React.FC = () => {
       return;
     }
 
-    const data = newEntityType === 'PRODUCT' ? {
-      id: newEntityId.trim(),
-      name: newEntityName.trim(),
-      category: newEntityCategory,
-      unitCost: newEntityCost,
-      sellingPrice: newEntityPrice,
-      leadTime: newEntityLeadTime,
-      safetyStock: 25,
-      reorderPoint: 40,
-      status: 'PENDING'
-    } : {
-      id: newEntityId.trim(),
-      name: newEntityName.trim(),
-      category: newEntityCategory,
-      region: 'North America',
-      otif: 95.0,
-      qualityRate: 98.0,
-      leadTime: newEntityLeadTime,
-      defectRate: 1.2,
-      spend: 0,
-      status: 'PENDING'
-    };
+    let data: Record<string, any>;
+    switch (newEntityType) {
+      case 'PRODUCT':
+        data = {
+          id: newEntityId.trim(),
+          name: newEntityName.trim(),
+          category: newEntityCategory,
+          unitCost: newEntityCost,
+          sellingPrice: newEntityPrice,
+          leadTime: newEntityLeadTime,
+          safetyStock: 25,
+          reorderPoint: 40,
+          uom: 'EA',
+          status: 'PENDING'
+        };
+        break;
+      case 'SUPPLIER':
+        data = {
+          id: newEntityId.trim(),
+          name: newEntityName.trim(),
+          category: newEntityCategory,
+          region: 'North America',
+          otif: 95.0,
+          qualityRate: 98.0,
+          leadTime: newEntityLeadTime,
+          defectRate: 1.2,
+          spend: 0,
+          status: 'PENDING'
+        };
+        break;
+      case 'CUSTOMER':
+        data = {
+          id: newEntityId.trim(),
+          name: newEntityName.trim(),
+          customerGroup: 'Enterprise Tier 1',
+          currency: 'USD',
+          creditLimit: 500000,
+          paymentTerms: 'NET30',
+          status: 'ACTIVE'
+        };
+        break;
+      case 'LOCATION':
+        data = {
+          id: newEntityId.trim(),
+          name: newEntityName.trim(),
+          locationType: 'FACILITY',
+          hierarchyPath: `/ENT-01/${newEntityId.trim()}`,
+          country: 'US',
+          status: 'ACTIVE'
+        };
+        break;
+      case 'WAREHOUSE':
+        data = {
+          id: newEntityId.trim(),
+          name: newEntityName.trim(),
+          facilityType: 'DISTRIBUTION_CENTER',
+          totalCapacitySqFt: 100000,
+          operatingStatus: 'OPERATIONAL'
+        };
+        break;
+      case 'STORAGE_LOCATION':
+        data = {
+          id: newEntityId.trim(),
+          name: newEntityName.trim(),
+          warehouseId: 'WH-CENTRAL-01',
+          zone: 'ZONE-A',
+          aisle: '01',
+          shelf: '02',
+          bin: '03'
+        };
+        break;
+      case 'UOM':
+        data = {
+          id: newEntityId.trim(),
+          code: newEntityId.trim().toUpperCase(),
+          name: newEntityName.trim(),
+          category: 'COUNT',
+          baseUnit: true,
+          conversionFactor: 1.0
+        };
+        break;
+      case 'CURRENCY':
+        data = {
+          id: newEntityId.trim(),
+          code: newEntityId.trim().toUpperCase(),
+          name: newEntityName.trim(),
+          symbol: '$',
+          decimalPlaces: 2,
+          baseCurrency: newEntityId.trim().toUpperCase() === 'USD'
+        };
+        break;
+      case 'PAYMENT_TERMS':
+        data = {
+          id: newEntityId.trim(),
+          code: newEntityId.trim().toUpperCase(),
+          name: newEntityName.trim(),
+          netDays: 30,
+          discountDays: 10,
+          discountPercentage: 2.0
+        };
+        break;
+      case 'TAX_CLASSIFICATION':
+        data = {
+          id: newEntityId.trim(),
+          taxCode: newEntityId.trim().toUpperCase(),
+          description: newEntityName.trim(),
+          rate: 8.25,
+          country: 'US'
+        };
+        break;
+      case 'RELATIONSHIP':
+      default:
+        data = {
+          id: newEntityId.trim(),
+          supplierId: 'SUP-001',
+          productId: newEntityId.trim(),
+          supplierPartNumber: newEntityName.trim(),
+          leadTimeDays: newEntityLeadTime,
+          unitPrice: newEntityCost,
+          currency: 'USD'
+        };
+        break;
+    }
 
     const newRec = proposeRecord({
       entityType: newEntityType,
@@ -284,25 +412,81 @@ export const MasterDataManager: React.FC = () => {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="px-6 border-b border-white/10 bg-[#161B22]/50 flex items-center gap-6 text-xs">
+      <div className="px-6 border-b border-white/10 bg-[#161B22]/50 flex items-center gap-6 text-xs overflow-x-auto">
         <button
           onClick={() => setActiveTab('master_data')}
-          className={`py-3 font-medium border-b-2 transition flex items-center gap-2 ${
+          className={`py-3 font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'master_data'
               ? 'border-indigo-400 text-indigo-300'
               : 'border-transparent text-white/60 hover:text-white'
           }`}
         >
           <Database size={14} />
-          <span>Master Data Lifecycle</span>
+          <span>Master Catalog</span>
           <span className="px-1.5 py-0.2 rounded-full bg-white/10 text-[10px] text-white/70">
             {records.length}
           </span>
         </button>
 
         <button
+          onClick={() => setActiveTab('golden_records')}
+          className={`py-3 font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'golden_records'
+              ? 'border-indigo-400 text-indigo-300'
+              : 'border-transparent text-white/60 hover:text-white'
+          }`}
+        >
+          <Award size={14} />
+          <span>Golden Records</span>
+          <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[10px]">
+            {goldenRecords.length}
+          </span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('quality')}
+          className={`py-3 font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'quality'
+              ? 'border-indigo-400 text-indigo-300'
+              : 'border-transparent text-white/60 hover:text-white'
+          }`}
+        >
+          <BarChart3 size={14} />
+          <span>Data Quality Diagnostics</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('stewardship')}
+          className={`py-3 font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'stewardship'
+              ? 'border-indigo-400 text-indigo-300'
+              : 'border-transparent text-white/60 hover:text-white'
+          }`}
+        >
+          <ShieldCheck size={14} />
+          <span>Stewardship Queue</span>
+          {records.filter(r => r.state === 'APPROVAL_PENDING' || r.state === 'REVIEW_REQUIRED').length > 0 && (
+            <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px]">
+              {records.filter(r => r.state === 'APPROVAL_PENDING' || r.state === 'REVIEW_REQUIRED').length}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('ingestion')}
+          className={`py-3 font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'ingestion'
+              ? 'border-indigo-400 text-indigo-300'
+              : 'border-transparent text-white/60 hover:text-white'
+          }`}
+        >
+          <UploadCloud size={14} />
+          <span>Batch Ingestion</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('reconciliation')}
-          className={`py-3 font-medium border-b-2 transition flex items-center gap-2 ${
+          className={`py-3 font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'reconciliation'
               ? 'border-indigo-400 text-indigo-300'
               : 'border-transparent text-white/60 hover:text-white'
@@ -319,7 +503,7 @@ export const MasterDataManager: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('contracts')}
-          className={`py-3 font-medium border-b-2 transition flex items-center gap-2 ${
+          className={`py-3 font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'contracts'
               ? 'border-indigo-400 text-indigo-300'
               : 'border-transparent text-white/60 hover:text-white'
@@ -331,7 +515,7 @@ export const MasterDataManager: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('entitlements')}
-          className={`py-3 font-medium border-b-2 transition flex items-center gap-2 ${
+          className={`py-3 font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'entitlements'
               ? 'border-indigo-400 text-indigo-300'
               : 'border-transparent text-white/60 hover:text-white'
@@ -343,7 +527,7 @@ export const MasterDataManager: React.FC = () => {
 
         <button
           onClick={() => setActiveTab('event_fabric')}
-          className={`py-3 font-medium border-b-2 transition flex items-center gap-2 ${
+          className={`py-3 font-medium border-b-2 transition flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'event_fabric'
               ? 'border-indigo-400 text-indigo-300'
               : 'border-transparent text-white/60 hover:text-white'
@@ -1003,7 +1187,467 @@ export const MasterDataManager: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* TAB 6: GOLDEN RECORDS */}
+        {activeTab === 'golden_records' && (
+          <div className="h-full overflow-y-auto p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                  <Award size={18} className="text-amber-400" />
+                  Consolidated Golden Records (Single Source of Truth)
+                </h3>
+                <p className="text-xs text-white/60 mt-0.5">
+                  Authoritative multi-system consolidated records, reconciled cross-system provenance, and lineage.
+                </p>
+              </div>
+              <div className="text-xs text-white/60 font-mono">
+                Total Golden Records: <span className="text-amber-400 font-bold">{goldenRecords.length}</span>
+              </div>
+            </div>
+
+            {goldenRecords.length === 0 ? (
+              <div className="p-12 text-center rounded-xl bg-white/[0.02] border border-white/10 space-y-3">
+                <Award size={36} className="text-white/20 mx-auto" />
+                <div className="text-sm font-medium text-white/70">No Golden Records Generated Yet</div>
+                <p className="text-xs text-white/40 max-w-md mx-auto">
+                  Master data records are consolidated into authoritative Golden Records automatically upon approval and activation in the stewardship pipeline.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {goldenRecords.map(gold => (
+                  <div key={gold.id} className="p-5 rounded-xl bg-white/[0.02] border border-white/10 space-y-3">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-mono font-bold text-amber-400">{gold.id}</span>
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-white/10 text-white/70 font-mono">
+                            {gold.entityType}
+                          </span>
+                          <span className="text-[10px] px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-mono">
+                            v{gold.version}.0
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-semibold text-white mt-1">
+                          {gold.canonicalData?.legalName || gold.canonicalData?.name || gold.canonicalId}
+                        </h4>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-mono font-bold text-emerald-400">{gold.qualityScore}%</div>
+                        <div className="text-[10px] text-white/40">Quality Score</div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 text-[11px] p-2.5 rounded bg-white/[0.02] border border-white/5">
+                      <div>
+                        <span className="text-white/40 block">Confidence</span>
+                        <span className="text-white font-mono">{Math.round(gold.confidenceScore * 100)}%</span>
+                      </div>
+                      <div>
+                        <span className="text-white/40 block">Source Records</span>
+                        <span className="text-white font-mono">{gold.sourceRecords.length} Systems</span>
+                      </div>
+                      <div>
+                        <span className="text-white/40 block">Tenant</span>
+                        <span className="text-white font-mono truncate block">{gold.tenantId}</span>
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] text-white/60">
+                      <span className="text-white/40 block mb-1">Source Feeds & Systems:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {gold.sourceRecords.map((src, i) => (
+                          <span key={i} className="px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono text-[10px]">
+                            {src.sourceSystem}: {src.sourceRecordId}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 7: DATA QUALITY DIAGNOSTICS */}
+        {activeTab === 'quality' && (
+          <div className="h-full overflow-y-auto p-6 space-y-6">
+            <div>
+              <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                <BarChart3 size={18} className="text-blue-400" />
+                Explainable 7-Dimension Master Data Quality Diagnostics
+              </h3>
+              <p className="text-xs text-white/60 mt-0.5">
+                Deterministic mathematical scoring across Completeness, Validity, Consistency, Uniqueness, Referential Integrity, Freshness, and Provenance.
+              </p>
+            </div>
+
+            {selectedRecord?.qualityScore ? (
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10 text-center">
+                    <div className="text-2xl font-bold font-mono text-emerald-400">
+                      {selectedRecord.qualityScore.overallScore}%
+                    </div>
+                    <div className="text-[11px] text-white/50 uppercase mt-0.5">Composite Quality Score</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10 text-center">
+                    <div className="text-2xl font-bold font-mono text-indigo-400">
+                      {selectedRecord.qualityScore.dimensions.completeness.score}%
+                    </div>
+                    <div className="text-[11px] text-white/50 uppercase mt-0.5">Completeness (20%)</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10 text-center">
+                    <div className="text-2xl font-bold font-mono text-blue-400">
+                      {selectedRecord.qualityScore.dimensions.validity.score}%
+                    </div>
+                    <div className="text-[11px] text-white/50 uppercase mt-0.5">Validity (20%)</div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-white/[0.02] border border-white/10 text-center">
+                    <div className="text-2xl font-bold font-mono text-purple-400">
+                      {selectedRecord.qualityScore.dimensions.uniqueness.score}%
+                    </div>
+                    <div className="text-[11px] text-white/50 uppercase mt-0.5">Uniqueness (15%)</div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-[#12161D] p-5 space-y-4">
+                  <h4 className="text-xs font-semibold text-white/80 uppercase tracking-wider">
+                    Dimension Diagnostics for {selectedRecord.id}
+                  </h4>
+                  <div className="space-y-3">
+                    {Object.entries(selectedRecord.qualityScore.dimensions).map(([dim, details]) => (
+                      <div key={dim} className="p-3 rounded-lg bg-white/[0.02] border border-white/5 space-y-1.5">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-semibold text-white capitalize">{dim} (Weight: {details.weight}%)</span>
+                          <span className="font-mono font-bold text-white">{details.score}%</span>
+                        </div>
+                        <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${
+                              details.score >= 90 ? 'bg-emerald-400' : details.score >= 70 ? 'bg-amber-400' : 'bg-rose-400'
+                            }`}
+                            style={{ width: `${details.score}%` }}
+                          />
+                        </div>
+                        <p className="text-[11px] text-white/50">{details.details}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-12 text-center rounded-xl bg-white/[0.02] border border-white/10">
+                <p className="text-xs text-white/50">Select a record in the Master Catalog to inspect its 7-dimension quality score.</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB 8: STEWARDSHIP QUEUE */}
+        {activeTab === 'stewardship' && (
+          <div className="h-full overflow-y-auto p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                  <ShieldCheck size={18} className="text-amber-400" />
+                  Master Data Stewardship Governance Queue
+                </h3>
+                <p className="text-xs text-white/60 mt-0.5">
+                  Governed Human-in-the-Loop review for pending proposals, anomaly remediations, and duplicate resolutions.
+                </p>
+              </div>
+              <div className="text-xs font-mono text-white/60">
+                Awaiting Sign-off: <span className="text-amber-400 font-bold">
+                  {records.filter(r => r.state === 'APPROVAL_PENDING' || r.state === 'REVIEW_REQUIRED').length}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {records.filter(r => r.state === 'APPROVAL_PENDING' || r.state === 'REVIEW_REQUIRED' || r.state === 'VALIDATION_PENDING').length === 0 ? (
+                <div className="p-12 text-center rounded-xl bg-white/[0.02] border border-white/10 space-y-2">
+                  <CheckCircle2 size={32} className="text-emerald-400 mx-auto" />
+                  <div className="text-sm font-medium text-white/70">Governance Queue Clean</div>
+                  <p className="text-xs text-white/40">Zero master data records currently require stewardship intervention.</p>
+                </div>
+              ) : (
+                records
+                  .filter(r => r.state === 'APPROVAL_PENDING' || r.state === 'REVIEW_REQUIRED' || r.state === 'VALIDATION_PENDING')
+                  .map(rec => (
+                    <div key={rec.id} className="p-4 rounded-xl bg-white/[0.02] border border-white/10 flex items-start justify-between gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold text-white">{rec.id}</span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-white/10 text-white/70">
+                            {rec.entityType}
+                          </span>
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-amber-500/20 text-amber-300">
+                            {rec.state}
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-semibold text-white">
+                          {rec.data?.legalName || rec.data?.name || 'Unnamed Entity'}
+                        </h4>
+                        <div className="text-xs text-white/50">
+                          Proposed by: <span className="text-white/80">{rec.createdBy}</span> via <span className="font-mono">{rec.sourceSystemType}</span>
+                        </div>
+                        {rec.validationErrors.length > 0 && (
+                          <div className="text-xs text-rose-400 pt-1">
+                            ⚠️ {rec.validationErrors.join('; ')}
+                          </div>
+                        )}
+                        {rec.duplicateMatches.length > 0 && (
+                          <div className="text-xs text-amber-400 pt-0.5">
+                            🔍 {rec.duplicateMatches.length} duplicate candidate(s) flagged for review.
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setRejectingRecordId(rec.id);
+                            setRejectReason('');
+                          }}
+                          className="px-3 py-1.5 rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-xs font-medium transition"
+                        >
+                          Reject
+                        </button>
+                        <button
+                          onClick={() => {
+                            activateRecord(rec.id, 'Principal MDM Steward', 'Approved for production use');
+                            showToast(`Master record ${rec.id} approved and promoted to ACTIVE.`, 'success', 'Record Approved');
+                          }}
+                          className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition shadow"
+                        >
+                          Approve & Activate
+                        </button>
+                      </div>
+                    </div>
+                  ))
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 9: BATCH INGESTION */}
+        {activeTab === 'ingestion' && (
+          <div className="h-full overflow-y-auto p-6 space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                  <UploadCloud size={18} className="text-indigo-400" />
+                  Master Data Batch Ingestion Pipeline
+                </h3>
+                <p className="text-xs text-white/60 mt-0.5">
+                  11-stage ingestion engine: Normalization, Schema Validation, Deduplication, and Quality Scoring.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-5 rounded-xl bg-white/[0.02] border border-white/10 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <label className="text-xs text-white/60 font-medium">Target Entity:</label>
+                  <select
+                    value={ingestEntityType}
+                    onChange={e => setIngestEntityType(e.target.value as MasterDataEntityType)}
+                    className="bg-white/5 border border-white/10 rounded px-2.5 py-1 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="SUPPLIER">Supplier Master</option>
+                    <option value="PRODUCT">Product Master</option>
+                    <option value="CUSTOMER">Customer Master</option>
+                    <option value="LOCATION">Location Master</option>
+                    <option value="UOM">Unit of Measure (UOM)</option>
+                    <option value="CURRENCY">Currency Master</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if (ingestEntityType === 'SUPPLIER') {
+                        setCsvContent(
+                          `supplierCode,legalName,country,paymentTerms,currency\nSUP-ACME-01,Acme Industrial Components Inc,US,NET30,USD\nSUP-NIPPON-02,Nippon Precision Optics Co,JP,NET60,JPY`
+                        );
+                      } else {
+                        setCsvContent(
+                          `productCode,name,category,baseUom,unitCost,sellingPrice\nSKU-SENS-101,Fiber Optic Multi-Channel Sensor,Electronics,EA,85.00,165.00\nSKU-VALVE-202,High-Pressure Cryogenic Valve,Mechanical,EA,340.00,620.00`
+                        );
+                      }
+                      showToast('Sample CSV template populated.', 'info', 'Template Loaded');
+                    }}
+                    className="px-3 py-1.5 rounded bg-white/10 hover:bg-white/15 text-white text-xs font-medium transition"
+                  >
+                    Load Sample CSV
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-white/60 font-medium block mb-1">CSV Data Input</label>
+                <textarea
+                  rows={6}
+                  placeholder="Paste CSV records with headers (e.g. supplierCode, legalName, country, paymentTerms, currency)..."
+                  value={csvContent}
+                  onChange={e => setCsvContent(e.target.value)}
+                  className="w-full bg-[#0D1117] border border-white/10 rounded-lg p-3 text-xs font-mono text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  disabled={isIngesting || !csvContent.trim()}
+                  onClick={async () => {
+                    setIsIngesting(true);
+                    try {
+                      const lines = csvContent.trim().split(/\r?\n/).filter(l => l.trim().length > 0);
+                      if (lines.length < 2) {
+                        showToast('CSV must include a header line and at least one data row.', 'error', 'Invalid CSV');
+                        return;
+                      }
+                      const headers = lines[0].split(',').map(h => h.trim());
+                      const records = lines.slice(1).map((line, idx) => {
+                        const values = line.split(',').map(v => v.trim());
+                        const payload: Record<string, any> = {};
+                        headers.forEach((h, i) => { payload[h] = values[i]; });
+                        return {
+                          rawId: `CSV-ROW-${idx + 1}`,
+                          sourceSystemType: 'ORION_INTERNAL' as SourceSystemType,
+                          sourceRecordId: `CSV-${Date.now().toString(36)}-${idx + 1}`,
+                          payload,
+                        };
+                      });
+
+                      const report = await ingestBatch({
+                        tenantId: 'ORG-DEFAULT',
+                        entityType: ingestEntityType,
+                        records,
+                        actor: 'System Admin',
+                        autoApproveClean: false,
+                      });
+
+                      setIngestionReport(report);
+                      showToast(`Ingestion complete! ${report.succeeded} succeeded, ${report.needsReview} require review.`, 'success', 'Batch Processed');
+                    } catch (err: any) {
+                      showToast(err.message || 'Ingestion failed.', 'error', 'Pipeline Error');
+                    } finally {
+                      setIsIngesting(false);
+                    }
+                  }}
+                  className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow transition disabled:opacity-50 flex items-center gap-2"
+                >
+                  <Play size={14} className={isIngesting ? 'animate-spin' : ''} />
+                  <span>{isIngesting ? 'Executing Pipeline...' : 'Run Ingestion Pipeline'}</span>
+                </button>
+              </div>
+            </div>
+
+            {ingestionReport && (
+              <div className="rounded-xl border border-white/10 bg-[#12161D] p-5 space-y-4">
+                <div className="flex items-center justify-between border-b border-white/5 pb-3">
+                  <div>
+                    <h4 className="text-sm font-semibold text-white">Batch Execution Report: {ingestionReport.jobId}</h4>
+                    <p className="text-xs text-white/50">{ingestionReport.summary}</p>
+                  </div>
+                  <div className="flex gap-2 text-xs font-mono">
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
+                      ✓ {ingestionReport.succeeded} Passed
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400">
+                      ⚠️ {ingestionReport.needsReview} Review
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-400">
+                      ✗ {ingestionReport.rejected} Rejected
+                    </span>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="border-b border-white/5 text-white/40 uppercase font-mono text-[10px]">
+                      <tr>
+                        <th className="py-2">Row</th>
+                        <th className="py-2">Identifier</th>
+                        <th className="py-2">Status</th>
+                        <th className="py-2">Quality</th>
+                        <th className="py-2">Diagnostics</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                      {ingestionReport.recordResults.map(r => (
+                        <tr key={r.rowNumber} className="hover:bg-white/[0.02]">
+                          <td className="py-2 font-mono text-white/50">#{r.rowNumber}</td>
+                          <td className="py-2 font-mono font-medium text-white">{r.entityId}</td>
+                          <td className="py-2">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${
+                              r.status === 'SUCCEEDED'
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : r.status === 'NEEDS_REVIEW'
+                                ? 'bg-amber-500/20 text-amber-400'
+                                : 'bg-rose-500/20 text-rose-400'
+                            }`}>
+                              {r.status}
+                            </span>
+                          </td>
+                          <td className="py-2 font-mono">{r.qualityScore.overallScore}%</td>
+                          <td className="py-2 text-white/60">
+                            {r.errors.length > 0 ? r.errors.join('; ') : 'All validation and deduplication checks passed.'}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
+
+      {/* Modal: Reject Stewardship Record */}
+      {rejectingRecordId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-xl bg-[#161B22] border border-white/10 p-5 space-y-4 shadow-2xl">
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+              <X size={16} className="text-rose-400" />
+              Reject Master Data Record
+            </h3>
+            <p className="text-xs text-white/60">
+              Provide an auditable reason for rejecting record <span className="font-mono text-white">{rejectingRecordId}</span>.
+            </p>
+            <textarea
+              rows={3}
+              placeholder="e.g. Duplicate supplier code; invalid tax registration format..."
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              className="w-full bg-[#0D1117] border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-rose-500"
+            />
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setRejectingRecordId(null)}
+                className="px-3 py-1.5 rounded text-xs text-white/60 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={!rejectReason.trim()}
+                onClick={() => {
+                  rejectRecord(rejectingRecordId, 'Principal MDM Steward', rejectReason.trim());
+                  showToast(`Record ${rejectingRecordId} rejected.`, 'info', 'Record Rejected');
+                  setRejectingRecordId(null);
+                }}
+                className="px-4 py-1.5 rounded bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium disabled:opacity-50"
+              >
+                Confirm Rejection
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal: Propose Master Data Record */}
       {showNewRecordModal && (
@@ -1031,8 +1675,17 @@ export const MasterDataManager: React.FC = () => {
                     onChange={e => setNewEntityType(e.target.value as MasterDataEntityType)}
                     className="w-full bg-white/5 border border-white/10 rounded px-2.5 py-1.5 text-white focus:outline-none focus:border-indigo-500"
                   >
-                    <option value="PRODUCT">Product</option>
-                    <option value="SUPPLIER">Supplier</option>
+                    <option value="PRODUCT">Product Master</option>
+                    <option value="SUPPLIER">Supplier Master</option>
+                    <option value="CUSTOMER">Customer Master</option>
+                    <option value="LOCATION">Location Hierarchy</option>
+                    <option value="WAREHOUSE">Warehouse Master</option>
+                    <option value="STORAGE_LOCATION">Storage Location (Bin)</option>
+                    <option value="UOM">Unit of Measure (UOM)</option>
+                    <option value="CURRENCY">Currency Master</option>
+                    <option value="PAYMENT_TERMS">Payment Terms</option>
+                    <option value="TAX_CLASSIFICATION">Tax Classification</option>
+                    <option value="RELATIONSHIP">Partner / Product Relationship</option>
                   </select>
                 </div>
                 <div>

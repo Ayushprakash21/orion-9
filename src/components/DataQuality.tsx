@@ -1,16 +1,19 @@
 import React, { useState, useMemo } from 'react';
-import { CheckCircle2, ShieldAlert, FileSearch, RefreshCw, Layers, History, AlertCircle, X, Wrench, Sparkles } from 'lucide-react';
+import { CheckCircle2, ShieldAlert, FileSearch, RefreshCw, Layers, History, AlertCircle, X, Wrench, Sparkles, Database, BarChart3, Award } from 'lucide-react';
 import { useSupplyChain } from '../store/SupplyChainContext';
 import { useToast } from '../store/ToastContext';
 import { exceptionEngine } from '../core/exceptions/ExceptionEngine';
 import { formatDateOnly } from '../lib/utils';
 import { useEntityDrawer } from '../store/EntityDrawerContext';
 import { DetailDrawer } from './ui/DetailDrawer';
+import { useMasterData } from '../data/useMasterData';
+import { MasterDataQualityScoringEngine } from '../services/masterdata/DataQualityScoringEngine';
 
-type TabType = 'overview' | 'datasets' | 'rules' | 'issues' | 'history';
+type TabType = 'overview' | 'datasets' | 'rules' | 'issues' | 'master_data' | 'history';
 
 export const DataQuality = () => {
   const { exceptions, inventory, suppliers, purchaseOrders, shipments, products, repairDataQuality } = useSupplyChain();
+  const { records: masterRecords, goldenRecords } = useMasterData();
   const { showToast } = useToast();
   const { openEntity } = useEntityDrawer();
   const [isValidating, setIsValidating] = useState(false);
@@ -19,6 +22,61 @@ export const DataQuality = () => {
   const [selectedIssue, setSelectedIssue] = useState<any | null>(null);
   const [selectedMetric, setSelectedMetric] = useState<any | null>(null);
   const [lastRunDate, setLastRunDate] = useState<Date | null>(new Date());
+
+  // 7-Dimension Master Data Quality Scores
+  const masterDataScores = useMemo(() => {
+    const engine = MasterDataQualityScoringEngine.getInstance();
+    return masterRecords.map(r => ({
+      record: r,
+      score: engine.computeScore({
+        entityType: r.entityType,
+        entity: r.data,
+        validationResults: r.validationResults || [],
+        duplicates: []
+      })
+    }));
+  }, [masterRecords]);
+
+  const masterDataCompositeAvg = useMemo(() => {
+    if (masterDataScores.length === 0) return 100;
+    const total = masterDataScores.reduce((acc, curr) => acc + curr.score.overallScore, 0);
+    return Math.round(total / masterDataScores.length);
+  }, [masterDataScores]);
+
+  const dimensionAverages = useMemo(() => {
+    const dims = [
+      { name: 'Completeness', weight: '20%' },
+      { name: 'Validity', weight: '20%' },
+      { name: 'Consistency', weight: '15%' },
+      { name: 'Uniqueness', weight: '15%' },
+      { name: 'Referential Integrity', weight: '10%' },
+      { name: 'Freshness', weight: '10%' },
+      { name: 'Provenance', weight: '10%' }
+    ];
+    if (masterDataScores.length === 0) {
+      return dims.map(d => ({ ...d, score: 100 }));
+    }
+    const dimKeys: Record<string, keyof typeof masterDataScores[0]['score']['dimensions']> = {
+      'Completeness': 'completeness',
+      'Validity': 'validity',
+      'Consistency': 'consistency',
+      'Uniqueness': 'uniqueness',
+      'Referential Integrity': 'referentialIntegrity',
+      'Freshness': 'freshness',
+      'Provenance': 'provenance',
+    };
+    return dims.map(d => {
+      const key = dimKeys[d.name];
+      const total = masterDataScores.reduce((acc, item) => {
+        const dimObj = key ? item.score.dimensions[key] : undefined;
+        return acc + (dimObj ? dimObj.score : 100);
+      }, 0);
+      return {
+        ...d,
+        score: Math.round(total / masterDataScores.length)
+      };
+    });
+  }, [masterDataScores]);
 
   const dataExceptions = exceptions.filter(e => e.type === 'Data Quality');
   const totalRecords = inventory.length + suppliers.length + purchaseOrders.length + shipments.length;
@@ -152,17 +210,24 @@ export const DataQuality = () => {
 
       {/* Tabs */}
       <div className="flex border-b border-os-border overflow-x-auto hide-scrollbar">
-        {(['overview', 'datasets', 'rules', 'issues', 'history'] as TabType[]).map(t => (
+        {[
+          { id: 'overview', label: 'Overview' },
+          { id: 'master_data', label: 'Master Data (7D Quality)' },
+          { id: 'datasets', label: 'Datasets' },
+          { id: 'rules', label: 'Rules' },
+          { id: 'issues', label: 'Issues' },
+          { id: 'history', label: 'History' }
+        ].map(t => (
           <button
-            key={t}
-            onClick={() => setActiveTab(t)}
+            key={t.id}
+            onClick={() => setActiveTab(t.id as TabType)}
             className={`px-4 py-3 text-[11px] font-bold uppercase tracking-wider transition-colors whitespace-nowrap ${
-              activeTab === t 
+              activeTab === t.id 
                 ? 'text-[#00F2FE] border-b-2 border-[#00F2FE]' 
                 : 'text-os-text-muted hover:text-os-text-primary'
             }`}
           >
-            {t}
+            {t.label}
           </button>
         ))}
       </div>
@@ -325,6 +390,118 @@ export const DataQuality = () => {
                  </table>
                </div>
              )}
+          </div>
+        )}
+
+        {activeTab === 'master_data' && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6">
+              {/* Composite Master Data Score */}
+              <div className="col-span-1 bg-os-surface border border-os-border p-6 sm:p-8 rounded-xl flex flex-col items-center justify-center text-center relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                  <Database size={120} />
+                </div>
+                <div className="text-[11px] uppercase tracking-wider text-os-text-muted font-semibold mb-2">Master Data 7D Quality Index</div>
+                <div className={`text-5xl font-mono tracking-tighter mb-2 ${masterDataCompositeAvg >= 90 ? 'text-[#30D158]' : masterDataCompositeAvg >= 75 ? 'text-[#FF9F0A]' : 'text-[#FF453A]'}`}>
+                  {masterDataCompositeAvg}%
+                </div>
+                <div className={`text-[10px] uppercase tracking-wider font-mono px-2.5 py-1 bg-os-surface-elevated border border-os-border rounded-md ${masterDataCompositeAvg >= 90 ? 'text-[#30D158]' : masterDataCompositeAvg >= 75 ? 'text-[#FF9F0A]' : 'text-[#FF453A]'}`}>
+                  {masterDataCompositeAvg >= 90 ? 'Optimal Lineage' : masterDataCompositeAvg >= 75 ? 'Stewardship Review' : 'Critical Defects'}
+                </div>
+                <div className="text-[11px] text-os-text-muted mt-3">
+                  Scored across {masterDataScores.length} records & {goldenRecords.length} golden entities
+                </div>
+              </div>
+
+              {/* 7 Dimensions Breakdown */}
+              <div className="col-span-1 md:col-span-2 bg-os-surface border border-os-border p-4 sm:p-6 rounded-xl flex flex-col justify-center">
+                <div className="text-[11px] uppercase tracking-wider text-os-text-muted font-semibold mb-4 flex items-center justify-between">
+                  <span>Explainable 7-Dimension Governance Weights</span>
+                  <span className="text-[10px] text-cyan-400 font-mono">Weighted Model = Sum(Dim_i * W_i)</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {dimensionAverages.map(dim => (
+                    <div key={dim.name} className="p-3 bg-os-surface-elevated border border-os-border rounded-lg space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] text-os-text-muted truncate font-medium">{dim.name}</span>
+                        <span className="text-[9px] font-mono text-cyan-400/80">{dim.weight}</span>
+                      </div>
+                      <div className="flex items-baseline justify-between">
+                        <span className={`text-base font-mono font-semibold ${dim.score >= 90 ? 'text-[#30D158]' : dim.score >= 70 ? 'text-[#FF9F0A]' : 'text-[#FF453A]'}`}>
+                          {dim.score}%
+                        </span>
+                        <div className="w-16 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                          <div 
+                            className={`h-full ${dim.score >= 90 ? 'bg-[#30D158]' : dim.score >= 70 ? 'bg-[#FF9F0A]' : 'bg-[#FF453A]'}`}
+                            style={{ width: `${dim.score}%` }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Master Data Records Quality Table */}
+            <div className="bg-os-surface border border-os-border rounded-xl overflow-hidden">
+              <div className="p-4 border-b border-os-border flex items-center justify-between bg-os-surface-elevated">
+                <div>
+                  <h3 className="text-xs font-bold text-os-text-primary uppercase tracking-wider">
+                    Master Data Entities Diagnostic Stream ({masterDataScores.length})
+                  </h3>
+                  <p className="text-[11px] text-os-text-muted">
+                    Entity-level 7D score transparency with tenant and lineage breakdown
+                  </p>
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-os-border text-xs">
+                  <thead className="bg-os-surface-elevated text-[10px] uppercase font-mono text-os-text-muted tracking-wider">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Record ID</th>
+                      <th className="px-4 py-3 text-left">Type</th>
+                      <th className="px-4 py-3 text-left">Entity Name / Key</th>
+                      <th className="px-4 py-3 text-left">Source</th>
+                      <th className="px-4 py-3 text-left">State</th>
+                      <th className="px-4 py-3 text-right">Composite Score</th>
+                      <th className="px-4 py-3 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-os-border">
+                    {masterDataScores.map(({ record, score: qScore }) => (
+                      <tr key={record.id} className="hover:bg-os-surface-hover transition-colors">
+                        <td className="px-4 py-3 font-mono text-os-text-primary whitespace-nowrap">{record.id}</td>
+                        <td className="px-4 py-3 font-mono text-indigo-300">{record.entityType}</td>
+                        <td className="px-4 py-3 text-os-text-primary font-medium">{record.data?.name || record.data?.id || '-'}</td>
+                        <td className="px-4 py-3 font-mono text-os-text-muted">{record.sourceSystemType}</td>
+                        <td className="px-4 py-3">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-mono ${
+                            record.state === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' :
+                            record.state === 'RETIRED' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' :
+                            'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          }`}>
+                            {record.state}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-right font-mono font-semibold">
+                          <span className={qScore.overallScore >= 90 ? 'text-[#30D158]' : qScore.overallScore >= 75 ? 'text-[#FF9F0A]' : 'text-[#FF453A]'}>
+                            {qScore.overallScore}%
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {qScore.overallScore >= 90 ? (
+                            <span className="text-[10px] text-emerald-400 font-mono">PASS</span>
+                          ) : (
+                            <span className="text-[10px] text-amber-400 font-mono">DEFECTS</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         )}
 

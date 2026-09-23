@@ -63,6 +63,8 @@ export const DOMAINS: Domain[] = [
     capabilities: [
       { id: 'sku-governance', name: 'SKU Governance', description: 'Approve and control SKU master-data changes.', defaultMode: 'Manual', risk: 'Medium' },
       { id: 'supplier-master', name: 'Supplier Master', description: 'Govern supplier onboarding and master-data quality.', defaultMode: 'AI Copilot', risk: 'High' },
+      { id: 'data-quality-governance', name: 'Data Quality Governance', description: 'Govern 7-dimension data quality thresholds and blocking rules.', defaultMode: 'AI Copilot', risk: 'Medium' },
+      { id: 'golden-record-management', name: 'Golden Record Consolidation', description: 'Merge and govern single-source-of-truth master records.', defaultMode: 'Manual', risk: 'High' },
     ],
   },
   {

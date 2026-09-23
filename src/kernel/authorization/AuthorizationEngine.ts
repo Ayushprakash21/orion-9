@@ -214,6 +214,38 @@ const RESOURCE_PERMISSION_MAP: Record<
     actorTypes: ['USER', 'ADMIN'],
     roles: ['platform_admin', 'organization_admin', 'admin'],
   },
+  'master_data:read': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'AI_AGENT', 'EXTERNAL_INTEGRATION'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'viewer', 'auditor', 'admin', 'ai_agent', 'organization_member'],
+  },
+  'master_data:create': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'EXTERNAL_INTEGRATION', 'AI_AGENT'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'admin', 'ai_agent', 'organization_member'],
+  },
+  'master_data:update': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'AI_AGENT'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'admin', 'ai_agent'],
+  },
+  'master_data:validate': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'AI_AGENT'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'admin', 'ai_agent', 'organization_member'],
+  },
+  'master_data:stewardship_submit': {
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'AI_AGENT'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'admin', 'ai_agent', 'organization_member'],
+  },
+  'master_data:stewardship_approve': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'admin', 'procurement_manager'],
+  },
+  'master_data:merge': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'admin'],
+  },
+  'master_data:retire': {
+    actorTypes: ['USER', 'ADMIN'],
+    roles: ['platform_admin', 'organization_admin', 'admin', 'procurement_manager'],
+  },
 };
 
 

@@ -17,7 +17,7 @@ service cloud.firestore {
 
     function isOrgMember(orgId) {
       return isAuthenticated() && (
-        (request.auth.token != null && request.auth.token.organizationId == orgId) ||
+        (request.auth.token != null && (request.auth.token.organizationId == orgId || request.auth.token.tenantId == orgId)) ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
           getUserData().organizationId == orgId ||
           getUserData().tenantId == orgId
@@ -748,6 +748,132 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create, update: if isAdmin();
       allow delete: if false;
+    }
+
+    // =========================================================================
+    // PART 4 / TRACK 1: MASTER DATA MANAGEMENT & DATA QUALITY COLLECTIONS
+    // Strict tenant isolation, governed stewardship, and append-only lineage
+    // =========================================================================
+
+    // Authoritative Master Data Record Store
+    match /master_data/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Consolidated Golden Records
+    match /golden_records/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (
+        isAdmin() || 
+        (isOrgMember(request.resource.data.tenantId) && request.auth.token.role in ['platform_admin', 'organization_admin', 'procurement_manager', 'steward', 'admin'])
+      );
+      allow update: if isAuthenticated() && (
+        isAdmin() || 
+        (isOrgMember(resource.data.tenantId) && request.auth.token.role in ['platform_admin', 'organization_admin', 'procurement_manager', 'steward', 'admin'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    // 7-Dimension Data Quality Scores
+    match /data_quality_scores/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Duplicate Detection Candidates & Review Queue
+    match /duplicate_candidates/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Master Data Stewardship Workflow Records
+    match /master_data_stewardship/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        (isOrgMember(resource.data.tenantId) && request.auth.token.role in ['platform_admin', 'organization_admin', 'procurement_manager', 'admin'])
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Master Data Lineage (Strict Append-Only Immutability)
+    match /master_data_lineage/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false; // Lineage audit records cannot be mutated or purged
+    }
+
+    // Master Data Reference Collections (Products, Customers, Locations, UOMs, Currencies, Relationships)
+    match /products/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isOrgMember(resource.data.organizationId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isOrgMember(request.resource.data.organizationId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /customers/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isOrgMember(resource.data.organizationId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isOrgMember(request.resource.data.organizationId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /locations/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isOrgMember(resource.data.organizationId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isOrgMember(request.resource.data.organizationId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /warehouses/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isOrgMember(resource.data.organizationId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isOrgMember(request.resource.data.organizationId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /storage_locations/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isOrgMember(resource.data.organizationId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isOrgMember(request.resource.data.organizationId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /uoms/{id} {
+      allow read: if isAuthenticated() && (resource.data.tenantId == 'GLOBAL' || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /currencies/{id} {
+      allow read: if isAuthenticated() && (resource.data.tenantId == 'GLOBAL' || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /payment_terms/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /tax_configurations/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /supplier_products/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /customer_products/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
     }
   }
 }

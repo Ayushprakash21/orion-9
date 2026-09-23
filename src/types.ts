@@ -605,4 +605,406 @@ export type SystemHealthRecord = {
   details: string;
 };
 
+// ==========================================
+// ORION-9 - PART 4 / TRACK 1: MASTER DATA & DATA QUALITY
+// ==========================================
+
+export type MasterDataEntityType =
+  | 'SUPPLIER'
+  | 'PRODUCT'
+  | 'CUSTOMER'
+  | 'LOCATION'
+  | 'WAREHOUSE'
+  | 'STORAGE_LOCATION'
+  | 'UOM'
+  | 'CURRENCY'
+  | 'PAYMENT_TERMS'
+  | 'TAX_CLASSIFICATION'
+  | 'RELATIONSHIP'
+  | 'FACILITY';
+
+export type StewardshipState =
+  | 'DRAFT'
+  | 'VALIDATION_PENDING'
+  | 'REVIEW_REQUIRED'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'ACTIVE'
+  | 'INACTIVE'
+  | 'SUPERSEDED'
+  | 'RETIRED';
+
+export type ValidationSeverity = 'INFO' | 'WARNING' | 'ERROR' | 'BLOCKING';
+
+export interface ValidationResult {
+  status: 'VALID' | 'INVALID';
+  severity: ValidationSeverity;
+  field: string;
+  code: string;
+  message: string;
+  entityType: string;
+  entityId: string;
+}
+
+export interface DataQualityDimensionScore {
+  score: number; // 0 - 100
+  weight: number;
+  details: string;
+  metrics: Record<string, number | string | boolean>;
+}
+
+export interface DataQualityScore {
+  id: string;
+  entityType: string;
+  entityId: string;
+  tenantId: string;
+  overallScore: number; // 0 - 100
+  dimensions: {
+    completeness: DataQualityDimensionScore;
+    validity: DataQualityDimensionScore;
+    consistency: DataQualityDimensionScore;
+    uniqueness: DataQualityDimensionScore;
+    referentialIntegrity: DataQualityDimensionScore;
+    freshness: DataQualityDimensionScore;
+    provenance: DataQualityDimensionScore;
+  };
+  calculatedAt: string;
+  version: number;
+}
+
+export interface SupplierAddress {
+  addressId: string;
+  type: 'BILLING' | 'SHIPPING' | 'REMITTANCE' | 'HEADQUARTERS' | 'PLANT';
+  line1: string;
+  line2?: string;
+  city: string;
+  stateProvince?: string;
+  postalCode: string;
+  country: string;
+  isPrimary: boolean;
+}
+
+export interface SupplierContact {
+  contactId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  role?: string;
+  isPrimary: boolean;
+}
+
+export interface SupplierMaster {
+  id: string;
+  tenantId: string;
+  supplierCode: string;
+  legalName: string;
+  displayName: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'BLOCKED' | 'PENDING';
+  supplierType: 'DIRECT_MATERIAL' | 'INDIRECT_MATERIAL' | 'LOGISTICS_SERVICE' | 'OEM' | 'DISTRIBUTOR';
+  taxIdentifiers: {
+    vatNumber?: string;
+    ein?: string;
+    taxRegNo?: string;
+    jurisdiction: string;
+  }[];
+  country: string;
+  addresses: SupplierAddress[];
+  contacts: SupplierContact[];
+  paymentTerms: string;
+  currency: string;
+  qualificationStatus: 'QUALIFIED' | 'CONDITIONAL' | 'DISQUALIFIED' | 'PENDING_EVALUATION';
+  riskStatus: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  lifecycleStatus: StewardshipState;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  updatedBy: string;
+  version: number;
+  sourceSystem: SourceSystemType;
+  sourceRecordId?: string;
+  lineage?: DataLineageRecord;
+}
+
+export interface SupplierSiteMaster {
+  supplierSiteId: string;
+  supplierId: string;
+  tenantId: string;
+  siteCode: string;
+  siteName: string;
+  address: SupplierAddress;
+  contact?: SupplierContact;
+  operatingStatus: 'OPERATIONAL' | 'STANDBY' | 'DECOMMISSIONED';
+  sourceSystem: SourceSystemType;
+  sourceRecordId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductMaster {
+  productId: string;
+  tenantId: string;
+  productCode: string;
+  name: string;
+  description: string;
+  category: string;
+  productGroup: string;
+  productType: 'RAW_MATERIAL' | 'SEMI_FINISHED' | 'FINISHED_GOODS' | 'PACKAGING' | 'CONSUMABLE' | 'SERVICE';
+  lifecycleStatus: StewardshipState;
+  baseUom: string;
+  inventoryAttributes: {
+    trackingMethod: 'LOT' | 'SERIAL' | 'BATCH' | 'NONE';
+    shelfLifeDays?: number;
+    safetyStock: number;
+    reorderPoint: number;
+    abcClassification: 'A' | 'B' | 'C';
+  };
+  procurementAttributes: {
+    standardCost: number;
+    currency: string;
+    defaultSupplierId?: string;
+    minOrderQty: number;
+    purchasingLeadTimeDays: number;
+  };
+  planningAttributes: {
+    mrpEnabled: boolean;
+    forecastRelevant: boolean;
+    planningHorizonDays: number;
+  };
+  manufacturingAttributes?: {
+    bomId?: string;
+    routingId?: string;
+    standardLaborHours?: number;
+  };
+  taxClassification?: {
+    hsnSacCode?: string;
+    taxCategory: string;
+    exempt: boolean;
+  };
+  sourceSystem: SourceSystemType;
+  sourceRecordId?: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  updatedBy: string;
+  lineage?: DataLineageRecord;
+}
+
+export interface CustomerContact {
+  contactId: string;
+  name: string;
+  email: string;
+  phone?: string;
+  title?: string;
+  isPrimary: boolean;
+}
+
+export interface CustomerMaster {
+  customerId: string;
+  tenantId: string;
+  customerCode: string;
+  legalName: string;
+  displayName: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'CREDIT_HOLD' | 'PROSPECT';
+  customerType: 'ENTERPRISE' | 'STRATEGIC' | 'WHOLESALE' | 'RETAIL' | 'OEM';
+  addresses: SupplierAddress[];
+  contacts: CustomerContact[];
+  paymentTerms: string;
+  currency: string;
+  lifecycleStatus: StewardshipState;
+  sourceSystem: SourceSystemType;
+  sourceRecordId?: string;
+  version: number;
+  createdAt: string;
+  updatedAt: string;
+  createdBy: string;
+  updatedBy: string;
+  lineage?: DataLineageRecord;
+}
+
+export interface CustomerSiteMaster {
+  customerSiteId: string;
+  customerId: string;
+  tenantId: string;
+  siteCode: string;
+  address: SupplierAddress;
+  contact?: CustomerContact;
+  status: 'ACTIVE' | 'INACTIVE';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LocationMaster {
+  locationId: string;
+  tenantId: string;
+  locationCode: string;
+  name: string;
+  type: 'ENTERPRISE' | 'REGION' | 'COUNTRY' | 'STATE' | 'CITY' | 'SITE' | 'WAREHOUSE' | 'STORAGE_LOCATION';
+  parentId?: string;
+  hierarchyPath: string;
+  address?: SupplierAddress;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WarehouseMaster {
+  warehouseId: string;
+  tenantId: string;
+  warehouseCode: string;
+  name: string;
+  locationId: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
+  warehouseType: 'DISTRIBUTION_CENTER' | 'MANUFACTURING_HUB' | 'CROSS_DOCK' | 'BONDED' | 'COLD_STORAGE';
+  operatingCalendar?: {
+    workingDays: string[];
+    shiftsPerDay: number;
+    timezone: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface StorageLocationMaster {
+  storageLocationId: string;
+  warehouseId: string;
+  tenantId: string;
+  code: string;
+  name: string;
+  type: 'RACK' | 'BULK' | 'PICK_FACE' | 'QUARANTINE' | 'STAGING';
+  status: 'AVAILABLE' | 'FULL' | 'LOCKED';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UOMConversion {
+  toUomCode: string;
+  multiplier: number;
+}
+
+export interface UOMMaster {
+  uomCode: string;
+  tenantId: string;
+  description: string;
+  category: 'MASS' | 'VOLUME' | 'LENGTH' | 'COUNT' | 'TIME' | 'CUSTOM';
+  isBaseUnit: boolean;
+  conversions: UOMConversion[];
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CurrencyMaster {
+  currencyCode: string;
+  tenantId: string;
+  name: string;
+  symbol: string;
+  decimalPlaces: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaymentTermsMaster {
+  code: string;
+  tenantId: string;
+  description: string;
+  netDays: number;
+  discountDays?: number;
+  discountPercentage?: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaxClassificationMaster {
+  taxCode: string;
+  tenantId: string;
+  jurisdiction: string;
+  description: string;
+  ratePercent: number;
+  taxType: 'VAT' | 'GST' | 'SALES_TAX' | 'EXCISE' | 'EXEMPT';
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SupplierProductRelationship {
+  relationshipId: string;
+  tenantId: string;
+  supplierId: string;
+  productId: string;
+  supplierProductCode: string;
+  leadTimeDays: number;
+  minOrderQty: number;
+  pricingReference: number;
+  currency: string;
+  uom: string;
+  qualificationStatus: 'QUALIFIED' | 'PREFERRED' | 'BACKUP' | 'PROBATION';
+  validFrom: string;
+  validTo: string;
+  active: boolean;
+  sourceMetadata?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomerProductRelationship {
+  relationshipId: string;
+  tenantId: string;
+  customerId: string;
+  productId: string;
+  customerProductCode: string;
+  contractPrice?: number;
+  currency: string;
+  uom: string;
+  validFrom: string;
+  validTo: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SourceRecordReference {
+  sourceSystem: SourceSystemType;
+  sourceRecordId: string;
+  extractedAt: string;
+  data: Record<string, any>;
+  confidence: number;
+}
+
+export interface FieldProvenance {
+  field: string;
+  chosenSource: SourceSystemType;
+  chosenValue: any;
+  confidence: number;
+  reconciliationRule: 'MOST_RECENT' | 'PRIMARY_SYSTEM' | 'HIGHEST_QUALITY' | 'MANUAL_OVERRIDE';
+  conflictingValues?: Array<{ source: SourceSystemType; value: any }>;
+}
+
+export interface GoldenRecord<T = any> {
+  id: string;
+  entityType: MasterDataEntityType;
+  canonicalId: string;
+  tenantId: string;
+  canonicalData: T;
+  payload?: T;
+  sourceRecords: SourceRecordReference[];
+  provenanceMap: Record<string, FieldProvenance>;
+  normalizationStatus: 'PENDING' | 'COMPLETED' | 'FAILED';
+  validationStatus: 'VALID' | 'INVALID' | 'WARNINGS';
+  duplicateStatus: 'UNIQUE' | 'POTENTIAL_DUPLICATES_DETECTED' | 'RESOLVED';
+  qualityScore: number;
+  confidenceScore: number;
+  stewardshipStatus: StewardshipState;
+  version: number;
+  validFrom: string;
+  validTo: string;
+  lineage: DataLineageRecord;
+  createdAt: string;
+  updatedAt: string;
+  lastReconciledAt: string;
+}
+
 export * from './types/settings';
