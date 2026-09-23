@@ -72,7 +72,18 @@ export const db = {
   bullwhipMetrics: createSafeInstance({ name: 'SC_DB', storeName: 'bullwhipMetrics' }),
   connectors: createSafeInstance({ name: 'SC_DB', storeName: 'connectors' }),
   dlqMessages: createSafeInstance({ name: 'SC_DB', storeName: 'dlqMessages' }),
+  workflowDefinitions: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_definitions' }),
+  workflowInstances: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_instances' }),
+  workflowCheckpoints: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_checkpoints' }),
+  workflowTasks: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_tasks' }),
+  workflowApprovals: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_approvals' }),
+  workflowSchedules: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_schedules' }),
+  workflowEvents: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_events' }),
+  workflowDlq: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_dlq' }),
+  workflowAudit: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_audit' }),
+  workflowOutcomes: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_outcomes' }),
 };
+
 
 export const saveData = async <T>(store: LocalForage, data: T[]): Promise<void> => {
   try {

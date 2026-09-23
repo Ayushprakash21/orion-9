@@ -22,5 +22,8 @@ export * from './WorkflowTriggerEngine';
 export * from './WorkflowActionPlanner';
 export * from './WorkflowActionExecutor';
 export * from './WorkflowEngine';
+export * from './WorkflowDurableTimerService';
+export * from './WorkflowDlqService';
 export * from './WorkflowSimulationEngine';
 export * from './templates';
+

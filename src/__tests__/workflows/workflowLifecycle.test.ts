@@ -74,11 +74,12 @@ describe('Wave 7 Workflow Lifecycle & Orchestration Integration', () => {
   });
 
   describe('1. SCM Workflow Templates & Version Immutability', () => {
-    it('initializes all 5 deterministic standard SCM templates', () => {
+    it('initializes deterministic standard SCM templates', () => {
       const templates = getAllStandardWorkflowTemplates(TENANT_A);
-      expect(templates.length).toBe(5);
+      expect(templates.length).toBeGreaterThanOrEqual(5);
 
       const ids = templates.map(t => t.workflowId);
+
       expect(ids).toContain('WF-SUPPLIER-DELAY-RESPONSE');
       expect(ids).toContain('WF-LOW-INVENTORY-RESPONSE');
       expect(ids).toContain('WF-SHIPMENT-DELAY-RESPONSE');

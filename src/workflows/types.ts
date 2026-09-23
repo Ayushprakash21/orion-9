@@ -60,7 +60,9 @@ export type WorkflowStepType =
   | 'APPROVAL'
   | 'WAIT_EXTERNAL'
   | 'SUB_WORKFLOW'
-  | 'COMPENSATION';
+  | 'COMPENSATION'
+  | 'FORK'
+  | 'JOIN';
 
 export type WorkflowTriggerSourceType =
   | 'SIGNAL'
@@ -333,12 +335,86 @@ export interface WorkflowSchedule {
   scheduleId: string;
   tenantId: string;
   workflowId: string;
+  instanceId?: string;
+  stepId?: string;
+  scheduleType?: 'WAIT_FOR_TIMER' | 'STEP_TIMEOUT' | 'APPROVAL_TIMEOUT' | 'TASK_TIMEOUT' | 'SLA_DEADLINE' | 'RETRY_DELAY' | 'CRON';
   cronExpression?: string;
   delayMs?: number;
+  executeAt?: string;
   runAt?: string;
   nextRunAt?: string;
   lastRunAt?: string;
-  status: 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'DISABLED';
+  status: 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'DISABLED' | 'EXPIRED';
+  attempt?: number;
+  correlationId?: string;
   createdAt: string;
   updatedAt: string;
 }
+
+export interface WorkflowCheckpoint {
+  checkpointId: string;
+  tenantId: string;
+  workflowId: string;
+  instanceId: string;
+  stepId: string;
+  stepVersion?: string;
+  currentStepIndex: number;
+  state: WorkflowInstanceStatus;
+  status: WorkflowInstanceStatus;
+  input?: Record<string, any>;
+  output?: Record<string, any>;
+  attempt: number;
+  correlationId: string;
+  causationId?: string;
+  createdAt: string;
+  updatedAt: string;
+  previousCheckpointId?: string;
+  idempotencyKey?: string;
+  error?: {
+    code?: string;
+    message?: string;
+    stack?: string;
+  };
+}
+
+export interface WorkflowDlqEntry {
+  dlqId: string;
+  tenantId: string;
+  workflowId: string;
+  instanceId: string;
+  stepId: string;
+  failureCode: string;
+  failureMessage: string;
+  attemptCount: number;
+  lastAttemptAt: string;
+  originalPayloadReference: Record<string, any>;
+  checkpointId?: string;
+  correlationId: string;
+  causationId?: string;
+  status: 'OPEN' | 'RETRYING' | 'REDRIVEN' | 'RESOLVED' | 'CANCELLED';
+  assignedTo?: string;
+  resolutionNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WorkflowForkJoinBranch {
+  branchId: string;
+  stepIds: string[];
+  status: 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED';
+  completedAt?: string;
+  output?: Record<string, any>;
+}
+
+export interface WorkflowJoinState {
+  joinStepId: string;
+  forkStepId: string;
+  tenantId: string;
+  instanceId: string;
+  branches: WorkflowForkJoinBranch[];
+  requiredBranchCount: number;
+  status: 'WAITING' | 'SATISFIED' | 'FAILED';
+  createdAt: string;
+  updatedAt: string;
+}
+

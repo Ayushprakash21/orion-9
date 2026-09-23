@@ -334,12 +334,275 @@ export function createCustomerServiceRiskWorkflow(tenantId: string): WorkflowDef
   };
 }
 
+export function createProcurementWorkflow(tenantId: string): WorkflowDefinition {
+  return {
+    workflowId: 'WF-PROCUREMENT-CYCLE',
+    tenantId,
+    name: 'End-to-End Procurement Lifecycle Pipeline',
+    description: 'Governed workflow from Purchase Requisition to PO Approval and Vendor Confirmation',
+    version: '1.0.0',
+    status: 'ACTIVE',
+    riskClass: 'HIGH',
+    autonomyLevel: 'LEVEL_3_APPROVAL_GATED',
+    trigger: {
+      triggerId: 'TRIG-PR-SUBMITTED',
+      tenantId,
+      sourceType: 'EVENT',
+      sourceId: 'EVT-PR-001',
+      eventType: 'PURCHASE_REQUISITION_CREATED',
+      correlationId: 'CORR-PR-CYCLE',
+      timestamp: new Date().toISOString(),
+      payloadReference: {}
+    },
+    steps: [
+      {
+        stepId: 'ST-PR-01-CHECK-BUDGET',
+        name: 'Verify Departmental Budget & Approval Limit',
+        order: 1,
+        type: 'CONDITION',
+        condition: {
+          id: 'COND-BUDGET-CHECK',
+          operator: 'AND',
+          clauses: [{ field: 'totalAmount', operator: 'GREATER_THAN', value: 50000 }]
+        }
+      },
+      {
+        stepId: 'ST-PR-02-APPROVE-PR',
+        name: 'Obtain Procurement Director PR Approval',
+        order: 2,
+        type: 'APPROVAL',
+        approval: { requiredRole: 'procurement_director', timeoutMs: 86400000 }
+      },
+      {
+        stepId: 'ST-PR-03-CREATE-PO',
+        name: 'Dispatch Governed PO to Supplier',
+        order: 3,
+        type: 'ACTION',
+        action: {
+          actionId: 'ACT-CREATE-PO',
+          type: 'DRAFT_PO_CHANGE',
+          payload: { poStatus: 'ISSUED' },
+          riskClass: 'HIGH',
+          commandType: 'scm:purchase_order:create',
+          isMaterial: true
+        }
+      }
+    ],
+    createdBy: 'SYSTEM_ADMIN',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+export function createInvoice3WayMatchWorkflow(tenantId: string): WorkflowDefinition {
+  return {
+    workflowId: 'WF-INVOICE-3WAY-MATCH',
+    tenantId,
+    name: 'Automated 3-Way Invoice Matching & Payment Approval',
+    description: 'Validates line items against PO and GRN receipts before triggering AP payment release',
+    version: '1.0.0',
+    status: 'ACTIVE',
+    riskClass: 'HIGH',
+    autonomyLevel: 'LEVEL_3_APPROVAL_GATED',
+    trigger: {
+      triggerId: 'TRIG-INVOICE-REC',
+      tenantId,
+      sourceType: 'EVENT',
+      sourceId: 'EVT-INV-001',
+      eventType: 'INVOICE_RECEIVED',
+      correlationId: 'CORR-INV-MATCH',
+      timestamp: new Date().toISOString(),
+      payloadReference: {}
+    },
+    steps: [
+      {
+        stepId: 'ST-INV-01-MATCH-PO-GRN',
+        name: 'Perform Automated 3-Way Reconciliation',
+        order: 1,
+        type: 'CONDITION',
+        condition: {
+          id: 'COND-MATCH-VARIANCE',
+          operator: 'AND',
+          clauses: [{ field: 'priceVariancePercentage', operator: 'LESS_THAN_OR_EQUAL', value: 1.5 }]
+        }
+      },
+      {
+        stepId: 'ST-INV-02-APPROVE-PAYMENT',
+        name: 'Finance Controller Payment Approval',
+        order: 2,
+        type: 'ACTION',
+        action: {
+          actionId: 'ACT-APPROVE-PAYMENT',
+          type: 'REQUEST_APPROVAL',
+          payload: { paymentRelease: true },
+          riskClass: 'HIGH',
+          commandType: 'scm:invoice:approve',
+          isMaterial: true
+        },
+        approval: { requiredRole: 'admin' }
+      }
+    ],
+    createdBy: 'SYSTEM_ADMIN',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+export function createInboundReceivingWorkflow(tenantId: string): WorkflowDefinition {
+  return {
+    workflowId: 'WF-INBOUND-RECEIVING',
+    tenantId,
+    name: 'Inbound Dock Yard Entry & Quality GRN Pipeline',
+    description: 'Tracks ASN arrival, gate check-in, dock receiving, quality inspection, and warehouse putaway',
+    version: '1.0.0',
+    status: 'ACTIVE',
+    riskClass: 'MEDIUM',
+    autonomyLevel: 'LEVEL_4_GOVERNED_AUTONOMOUS',
+    trigger: {
+      triggerId: 'TRIG-ASN-ARRIVED',
+      tenantId,
+      sourceType: 'EVENT',
+      sourceId: 'EVT-ASN-GATE',
+      eventType: 'ASN_GATE_ENTRY',
+      correlationId: 'CORR-INBOUND-RECEIVING',
+      timestamp: new Date().toISOString(),
+      payloadReference: {}
+    },
+    steps: [
+      {
+        stepId: 'ST-INB-01-VERIFY-QUALITY',
+        name: 'Execute Inbound Quality Sampling Inspection',
+        order: 1,
+        type: 'ACTION',
+        action: {
+          actionId: 'ACT-INSP-REC',
+          type: 'CREATE_TASK',
+          payload: { inspectionType: 'SAMPLING' },
+          riskClass: 'LOW',
+          isMaterial: false
+        }
+      },
+      {
+        stepId: 'ST-INB-02-POST-GRN',
+        name: 'Post Goods Receipt Note (GRN) Inventory Addition',
+        order: 2,
+        type: 'ACTION',
+        action: {
+          actionId: 'ACT-POST-GRN',
+          type: 'UPDATE_WORKFLOW_STATE',
+          payload: { grnStatus: 'COMPLETED' },
+          riskClass: 'MEDIUM',
+          commandType: 'scm:inventory:adjust',
+          isMaterial: true
+        }
+      }
+    ],
+    createdBy: 'SYSTEM_ADMIN',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+export function createCustomerFulfillmentWorkflow(tenantId: string): WorkflowDefinition {
+  return {
+    workflowId: 'WF-CUSTOMER-FULFILLMENT',
+    tenantId,
+    name: 'Customer Order ATP Allocation & Shipping Pipeline',
+    description: 'Available-To-Promise stock allocation, warehouse pick release, and dispatch notification',
+    version: '1.0.0',
+    status: 'ACTIVE',
+    riskClass: 'MEDIUM',
+    autonomyLevel: 'LEVEL_4_GOVERNED_AUTONOMOUS',
+    trigger: {
+      triggerId: 'TRIG-CUST-ORDER',
+      tenantId,
+      sourceType: 'EVENT',
+      sourceId: 'EVT-CO-001',
+      eventType: 'CUSTOMER_ORDER_PLACED',
+      correlationId: 'CORR-CUST-FULFILLMENT',
+      timestamp: new Date().toISOString(),
+      payloadReference: {}
+    },
+    steps: [
+      {
+        stepId: 'ST-FUL-01-ALLOCATE-STOCK',
+        name: 'Allocate Available Stock Buffer',
+        order: 1,
+        type: 'ACTION',
+        action: {
+          actionId: 'ACT-ALLOC-STOCK',
+          type: 'CREATE_ACTION_REQUEST',
+          payload: { allocationStrategy: 'FEFO' },
+          riskClass: 'MEDIUM',
+          commandType: 'scm:inventory:allocate',
+          isMaterial: true
+        }
+      }
+    ],
+    createdBy: 'SYSTEM_ADMIN',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+}
+
+export function createSupplierOnboardingWorkflow(tenantId: string): WorkflowDefinition {
+  return {
+    workflowId: 'WF-SUPPLIER-ONBOARDING',
+    tenantId,
+    name: 'Vendor Onboarding & Risk Audit Pipeline',
+    description: 'Multi-stage vendor qualification, document verification, ESG compliance, and activation gate',
+    version: '1.0.0',
+    status: 'ACTIVE',
+    riskClass: 'HIGH',
+    autonomyLevel: 'LEVEL_3_APPROVAL_GATED',
+    trigger: {
+      triggerId: 'TRIG-SUPPLIER-NEW',
+      tenantId,
+      sourceType: 'MANUAL',
+      sourceId: 'USR-ONBOARD',
+      eventType: 'SUPPLIER_ONBOARD_INITIATED',
+      correlationId: 'CORR-SUPPLIER-ONBOARDING',
+      timestamp: new Date().toISOString(),
+      payloadReference: {}
+    },
+    steps: [
+      {
+        stepId: 'ST-ONB-01-QUALIFY-RISK',
+        name: 'Evaluate Vendor Financial & ESG Compliance Risk',
+        order: 1,
+        type: 'CONDITION',
+        condition: {
+          id: 'COND-VENDOR-RISK',
+          operator: 'AND',
+          clauses: [{ field: 'financialRating', operator: 'GREATER_THAN_OR_EQUAL', value: 70 }]
+        }
+      },
+      {
+        stepId: 'ST-ONB-02-APPROVE-VENDOR',
+        name: 'Chief Procurement Officer Vendor Activation Approval',
+        order: 2,
+        type: 'APPROVAL',
+        approval: { requiredRole: 'admin', timeoutMs: 172800000 }
+      }
+    ],
+    createdBy: 'SYSTEM_ADMIN',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+}
+
 export function getAllStandardWorkflowTemplates(tenantId: string): WorkflowDefinition[] {
   return [
     createSupplierDelayWorkflow(tenantId),
     createLowInventoryWorkflow(tenantId),
     createShipmentDelayWorkflow(tenantId),
     createPOConfirmationEscalationWorkflow(tenantId),
-    createCustomerServiceRiskWorkflow(tenantId)
+    createCustomerServiceRiskWorkflow(tenantId),
+    createProcurementWorkflow(tenantId),
+    createInvoice3WayMatchWorkflow(tenantId),
+    createInboundReceivingWorkflow(tenantId),
+    createCustomerFulfillmentWorkflow(tenantId),
+    createSupplierOnboardingWorkflow(tenantId)
   ];
 }
+

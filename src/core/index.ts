@@ -5,6 +5,7 @@ export { rulesEngine, RulesEngine } from './rules/RulesEngine';
 export { eventEngine, EventEngine } from './events/EventEngine';
 export { exceptionEngine, CoreExceptionEngine } from './exceptions/ExceptionEngine';
 export { decisionEngine, CoreDecisionEngine } from './decisions/DecisionEngine';
-export { workflowEngine, WorkflowEngine } from './workflows/WorkflowEngine';
+export { workflowEngine, WorkflowEngine } from '../workflows/WorkflowEngine';
 export * from './utils';
 export * from './connectors';
+

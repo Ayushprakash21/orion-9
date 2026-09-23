@@ -1033,8 +1033,88 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isOrgMember(request.resource.data.tenantId);
       allow update, delete: if false;
     }
+
+    // =========================================================================
+    // PART 4 TRACK 6 — ENTERPRISE WORKFLOW PLATFORM COLLECTIONS
+    // =========================================================================
+
+    // Workflow Definitions (Versioned declarations)
+    match /workflow_definitions/{defId} {
+      allow read: if isAuthenticated() && (resource.data.tenantId == 'GLOBAL' || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Workflow Instances (Active & completed instances)
+    match /workflow_instances/{instanceId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Workflow Checkpoints (Immutable step state snapshots for crash recovery)
+    match /workflow_checkpoints/{checkpointId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false;
+    }
+
+    // Workflow Tasks (Human action items)
+    match /workflow_tasks/{taskId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Workflow Approvals (Gated human approvals)
+    match /workflow_approvals/{approvalId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update: if isAuthenticated() && (
+        isAdmin() ||
+        (request.resource.data.status in ['APPROVED', 'REJECTED'] && isOrgMember(resource.data.tenantId))
+      );
+      allow delete: if isAdmin();
+    }
+
+    // Workflow Schedules (Durable timers & SLA deadlines)
+    match /workflow_schedules/{scheduleId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Workflow External Wait Events
+    match /workflow_events/{eventId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    // Workflow Dead Letter Queue (DLQ)
+    match /workflow_dlq/{dlqId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Workflow Audit Ledger (Immutable)
+    match /workflow_audit/{auditId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false;
+    }
+
+    // Workflow Outcomes (Immutable business impact summaries)
+    match /workflow_outcomes/{outcomeId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false;
+    }
   }
 }
+
 
 
 

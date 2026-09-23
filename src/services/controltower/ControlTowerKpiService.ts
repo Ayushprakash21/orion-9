@@ -393,6 +393,36 @@ export class ControlTowerKpiService {
   }
 
   /**
+   * Records SLA signals (warnings, breaches, workflow failures) from the Workflow Engine
+   */
+  public recordSlaSignal(signal: {
+    signalType: string;
+    tenantId: string;
+    entityId: string;
+    entityType: string;
+    severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+    message: string;
+  }): void {
+    const history = this.snapshotHistory.get(signal.tenantId);
+    if (history && history.length > 0) {
+      const latest = history[history.length - 1];
+      if (latest.recentSignals) {
+        latest.recentSignals.unshift({
+          signalId: `SIG-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+          tenantId: signal.tenantId,
+          domain: 'exceptions',
+          signalType: signal.signalType,
+          severity: signal.severity,
+          title: `Workflow Signal: ${signal.signalType}`,
+          description: signal.message,
+          sourceEntity: `${signal.entityType}:${signal.entityId}`,
+          timestamp: new Date().toISOString()
+        } as any);
+      }
+    }
+  }
+
+  /**
    * Retrieve historical snapshots for trend analysis
    */
   public getSnapshotHistory(tenantId: string): OperationalSnapshot[] {
@@ -405,3 +435,4 @@ export class ControlTowerKpiService {
 }
 
 export const controlTowerKpiService = ControlTowerKpiService.getInstance();
+
