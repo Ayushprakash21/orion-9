@@ -599,4 +599,82 @@ export interface SecurityPostureSummary {
   lastAssessedAt: string;
 }
 
+// ============================================================================
+// 13. Track 12: Admin & Enterprise Governance
+// ============================================================================
+
+export type EnterpriseGovernanceDomain = 
+  | 'USERS_RBAC'
+  | 'SECURITY'
+  | 'MASTER_DATA'
+  | 'PROCUREMENT'
+  | 'INVENTORY'
+  | 'ORDER_MANAGEMENT'
+  | 'WAREHOUSE_MANAGEMENT'
+  | 'TRANSPORTATION'
+  | 'MANUFACTURING'
+  | 'FORECASTING_SOP'
+  | 'ANALYTICS'
+  | 'INTEGRATIONS'
+  | 'COMPLIANCE'
+  | 'OPERATIONS'
+  | 'AI_ML'
+  | 'PORTALS'
+  | 'MOBILE';
+
+export type PolicyLifecycleStatus = 
+  | 'DRAFT'
+  | 'VALIDATING'
+  | 'PENDING_APPROVAL'
+  | 'ACTIVE'
+  | 'MONITORING'
+  | 'RETIRED';
+
+export interface PolicyConflictRecord {
+  conflictId: string;
+  tenantId: string;
+  primaryPolicyId: string;
+  conflictingPolicyId: string;
+  conflictType: 'AI_MODE_VS_GLOBAL_APPROVAL' | 'CONNECTOR_VS_RESIDENCY' | 'WORKFLOW_ROLE_MISSING' | 'HIERARCHY_OVERRIDE';
+  description: string;
+  severity: 'WARNING' | 'CRITICAL';
+  detectedAt: string;
+  resolved: boolean;
+}
+
+export interface GovernancePolicyRecord {
+  policyId: string;
+  tenantId: string;
+  organizationId: string;
+  domain: EnterpriseGovernanceDomain;
+  name: string;
+  version: number;
+  status: PolicyLifecycleStatus;
+  executionScope: 'CAPABILITY' | 'DOMAIN' | 'ENTERPRISE';
+  humanApprovalRequired: boolean;
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  allowedRoles: string[];
+  aiOperatingMode: 'MANUAL' | 'AI_COPILOT' | 'AI_AUTOPILOT';
+  effectiveFrom: string;
+  effectiveUntil?: string;
+  createdBy: string;
+  approvedBy?: string;
+  createdAt: string;
+  updatedAt: string;
+  auditToken: string;
+}
+
+export interface PolicySimulationImpact {
+  simulationId: string;
+  tenantId: string;
+  policyId: string;
+  proposedMode: 'MANUAL' | 'AI_COPILOT' | 'AI_AUTOPILOT';
+  affectedDomains: EnterpriseGovernanceDomain[];
+  affectedUsersCount: number;
+  expectedRiskDelta: string;
+  sideEffectFree: boolean; // Always true
+  evaluatedAt: string;
+}
+
+
 

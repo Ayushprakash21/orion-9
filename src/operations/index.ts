@@ -21,5 +21,7 @@ export * from './ProductionSafetyService';
 export * from './ControlledBackpressureService';
 export * from './ResilienceService';
 export * from './RedTeamSecurityService';
+export * from './EnterpriseGovernanceService';
+
 
 
