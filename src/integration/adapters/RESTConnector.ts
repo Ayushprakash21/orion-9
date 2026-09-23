@@ -11,7 +11,7 @@ import { ConnectorRecord, ConnectorCapabilities } from '../types';
 import { credentialVaultService } from '../CredentialVaultService';
 
 export interface RESTRequestOptions {
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH';
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   path: string;
   body?: any;
   headers?: Record<string, string>;
@@ -30,13 +30,18 @@ export class RESTConnector extends BaseConnectorRuntime {
       supportsOutbound: true,
       supportsRealtime: true,
       supportsBatch: false,
-      specificCapabilities: ['REST_GET', 'REST_POST', 'REST_PUT', 'REST_PATCH'],
+      specificCapabilities: ['REST_GET', 'REST_POST', 'REST_PUT', 'REST_PATCH', 'REST_DELETE'],
     };
   }
 
   protected async executeSend(payload: RESTRequestOptions | any, correlationId: string): Promise<any> {
     const method = payload.method || 'POST';
     const path = payload.path || '/';
+
+    const allowedVerbs = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+    if (!allowedVerbs.includes(method)) {
+      throw this.createError('NON_RETRYABLE', 'REST_INVALID_VERB', `HTTP verb '${method}' is prohibited by connector contract.`, correlationId, 405);
+    }
 
     if (this.environment === 'SANDBOX') {
       return {

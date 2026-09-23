@@ -61,7 +61,43 @@ export class TradingPartnerRegistry {
   public updatePartnerStatus(tenantId: string, partnerId: string, status: TradingPartnerStatus): boolean {
     const partner = this.getPartner(tenantId, partnerId);
     if (!partner) return false;
+    if (status === 'ACTIVE' && (partner.status === 'DRAFT' || partner.status === 'RETIRED')) {
+      throw new Error(`[Governance Violation] Trading Partner '${partnerId}' in status '${partner.status}' must complete onboarding/certification before becoming ACTIVE.`);
+    }
     partner.status = status;
+    partner.updatedAt = new Date().toISOString();
+    this.partners.set(`${tenantId}:${partnerId}`, partner);
+    return true;
+  }
+
+  /**
+   * Evidence-based Partner Certification transition
+   */
+  public certifyPartner(tenantId: string, partnerId: string, evidence: {
+    authTestPassed: boolean;
+    transportTestPassed: boolean;
+    schemaTestPassed: boolean;
+    mappingTestPassed: boolean;
+    ackTestPassed: boolean;
+    reconciliationTestPassed: boolean;
+    certifiedBy: string;
+  }): boolean {
+    const partner = this.getPartner(tenantId, partnerId);
+    if (!partner) return false;
+
+    const allPassed = evidence.authTestPassed && evidence.transportTestPassed &&
+      evidence.schemaTestPassed && evidence.mappingTestPassed &&
+      evidence.ackTestPassed && evidence.reconciliationTestPassed;
+
+    if (!allPassed) {
+      partner.status = 'SUSPENDED';
+      partner.updatedAt = new Date().toISOString();
+      this.partners.set(`${tenantId}:${partnerId}`, partner);
+      return false;
+    }
+
+    partner.status = 'ACTIVE';
+    partner.notes = `Certified by ${evidence.certifiedBy} on ${new Date().toISOString()}`;
     partner.updatedAt = new Date().toISOString();
     this.partners.set(`${tenantId}:${partnerId}`, partner);
     return true;

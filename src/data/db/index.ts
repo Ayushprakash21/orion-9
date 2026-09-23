@@ -91,6 +91,8 @@ export const db = {
   knowledgeRetrievals: createSafeInstance({ name: 'SC_DB', storeName: 'knowledge_retrievals' }),
   documentReviews: createSafeInstance({ name: 'SC_DB', storeName: 'document_reviews' }),
   documentExpirations: createSafeInstance({ name: 'SC_DB', storeName: 'document_expirations' }),
+  certificates: createSafeInstance({ name: 'SC_DB', storeName: 'certificates' }),
+  tradingPartners: createSafeInstance({ name: 'SC_DB', storeName: 'trading_partners' }),
 };
 
 

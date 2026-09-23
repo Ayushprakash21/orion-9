@@ -73,6 +73,10 @@ export class ConnectorRegistry {
         },
         endpointReference: 'https://sap.enterprise.orion9.internal/sap/bc/srt/rfc',
         credentialReference: `secret://tenant/${defaultTenant}/connector/conn-sap-s4hana-01`,
+        connectivityClassification: 'BOUNDARY',
+        organizationId: 'ORG-MAIN',
+        region: 'us-east-1',
+        provider: 'SAP SE',
         lastHealthCheck: now,
         lastSuccessfulSync: now,
         createdAt: '2026-01-15T08:00:00Z',
@@ -86,6 +90,10 @@ export class ConnectorRegistry {
         version: '1.9.1',
         status: 'CONNECTED',
         environment: 'SANDBOX',
+        connectivityClassification: 'BOUNDARY',
+        organizationId: 'ORG-MAIN',
+        region: 'us-east-1',
+        provider: 'Oracle Corp',
         configuration: {
           authMethod: 'OAUTH2_BEARER',
         },
@@ -117,6 +125,10 @@ export class ConnectorRegistry {
         version: '4.0.1',
         status: 'CONNECTED',
         environment: 'SANDBOX',
+        connectivityClassification: 'BOUNDARY',
+        organizationId: 'ORG-MAIN',
+        region: 'us-east-1',
+        provider: 'ANSI X12 Standard',
         configuration: {
           standard: 'ANSI_X12_004010',
           isaQualifier: 'ZZ',
@@ -149,6 +161,10 @@ export class ConnectorRegistry {
         version: '1.0.0',
         status: 'CONNECTED',
         environment: 'SANDBOX',
+        connectivityClassification: 'BOUNDARY',
+        organizationId: 'ORG-MAIN',
+        region: 'us-east-1',
+        provider: 'Orion Gateway',
         configuration: {
           authMethod: 'HMAC_SHA256_SIGNATURE',
         },
@@ -179,6 +195,10 @@ export class ConnectorRegistry {
         version: '1.2.0',
         status: 'CONNECTED',
         environment: 'SANDBOX',
+        connectivityClassification: 'BOUNDARY',
+        organizationId: 'ORG-MAIN',
+        region: 'us-east-1',
+        provider: 'Generic SFTP',
         configuration: {
           protocol: 'SFTP',
           authMethod: 'PUBLIC_KEY_AUTH',
@@ -276,10 +296,15 @@ export class ConnectorRegistry {
    */
   public registerConnector(params: {
     tenantId: string;
+    organizationId?: string;
+    region?: string;
     type: ConnectorType;
     name: string;
+    provider?: string;
     version?: string;
+    status?: ConnectorRecord['status'];
     environment?: ConnectorEnvironment;
+    connectivityClassification?: ConnectorRecord['connectivityClassification'];
     endpointReference?: string;
     configuration: Record<string, any>;
     capabilities?: Partial<ConnectorRecord['capabilities']>;
@@ -303,11 +328,15 @@ export class ConnectorRegistry {
     const connector: ConnectorRecord = {
       connectorId,
       tenantId: params.tenantId,
+      organizationId: params.organizationId || 'ORG-MAIN',
+      region: params.region || 'us-east-1',
+      provider: params.provider || 'Generic Provider',
       type: params.type,
       name: params.name,
       version: params.version || '1.0.0',
-      status: env === 'LIVE' ? 'UNCONFIGURED' : 'CONNECTED',
+      status: params.status || (env === 'LIVE' ? 'UNCONFIGURED' : 'CONNECTED'),
       environment: env,
+      connectivityClassification: params.connectivityClassification || (env === 'LIVE' ? 'UNVERIFIED' : 'BOUNDARY'),
       configuration: sanitizedConfig,
       capabilities: {
         supportsInbound: params.capabilities?.supportsInbound ?? true,
@@ -348,6 +377,109 @@ export class ConnectorRegistry {
       name: params.name
     }, {
       actor: { id: actor, type: 'USER', name: actor }
+    });
+
+    return connector;
+  }
+
+  /**
+   * Governed lifecycle transition: Configures a Connector
+   */
+  public configureConnector(connectorId: string, tenantId: string, configuration: Record<string, any>, actor: string): ConnectorRecord {
+    const connector = this.getConnector(connectorId, tenantId);
+    const sanitized = { ...configuration };
+    delete sanitized.password;
+    delete sanitized.secret;
+    delete sanitized.apiKey;
+    delete sanitized.token;
+
+    connector.configuration = { ...connector.configuration, ...sanitized };
+    connector.status = 'CONFIGURED';
+    connector.updatedAt = new Date().toISOString();
+    this.persist();
+
+    kernelAuditEngine.record({
+      action: 'CONFIGURE_INTEGRATION_CONNECTOR',
+      actor: { id: actor, type: 'USER', name: actor },
+      entityId: connectorId,
+      entityType: 'INTEGRATION_CONNECTOR',
+      classification: 'INTERNAL',
+      details: { tenantId }
+    });
+
+    return connector;
+  }
+
+  /**
+   * Governed lifecycle transition: Validates Connector
+   */
+  public validateConnector(connectorId: string, tenantId: string, actor: string): ConnectorRecord {
+    const connector = this.getConnector(connectorId, tenantId);
+    connector.status = 'VALIDATING';
+    connector.updatedAt = new Date().toISOString();
+    this.persist();
+
+    kernelAuditEngine.record({
+      action: 'VALIDATE_INTEGRATION_CONNECTOR',
+      actor: { id: actor, type: 'USER', name: actor },
+      entityId: connectorId,
+      entityType: 'INTEGRATION_CONNECTOR',
+      classification: 'INTERNAL',
+      details: { tenantId }
+    });
+
+    return connector;
+  }
+
+  /**
+   * Governed lifecycle transition: Activates Connector under Kernel authorization
+   */
+  public activateConnector(connectorId: string, tenantId: string, actor: { id: string; isAi?: boolean }): ConnectorRecord {
+    if (actor.isAi) {
+      throw new Error(`[Kernel Governance Violation] AI agents are prohibited from self-activating connectors directly.`);
+    }
+
+    const connector = this.getConnector(connectorId, tenantId);
+    connector.status = 'ACTIVE';
+    connector.updatedAt = new Date().toISOString();
+    this.persist();
+
+    kernelAuditEngine.record({
+      action: 'ACTIVATE_INTEGRATION_CONNECTOR',
+      actor: { id: actor.id, type: 'USER', name: actor.id },
+      entityId: connectorId,
+      entityType: 'INTEGRATION_CONNECTOR',
+      classification: 'INTERNAL',
+      details: { tenantId, status: connector.status }
+    });
+
+    kernelEventBus.publish('orion:connector:activated', {
+      connectorId,
+      tenantId,
+      status: connector.status
+    }, {
+      actor: { id: actor.id, type: 'USER', name: actor.id }
+    });
+
+    return connector;
+  }
+
+  /**
+   * Governed lifecycle transition: Quarantine Connector
+   */
+  public quarantineConnector(connectorId: string, tenantId: string, reason: string, actor: string): ConnectorRecord {
+    const connector = this.getConnector(connectorId, tenantId);
+    connector.status = 'QUARANTINED';
+    connector.updatedAt = new Date().toISOString();
+    this.persist();
+
+    kernelAuditEngine.record({
+      action: 'QUARANTINE_INTEGRATION_CONNECTOR',
+      actor: { id: actor, type: 'USER', name: actor },
+      entityId: connectorId,
+      entityType: 'INTEGRATION_CONNECTOR',
+      classification: 'RESTRICTED',
+      details: { tenantId, reason }
     });
 
     return connector;

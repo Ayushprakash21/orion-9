@@ -9,7 +9,13 @@ export type ConnectorType = 'SAP' | 'ORACLE' | 'EDI' | 'REST' | 'FILE';
 
 export type ConnectorEnvironment = 'SANDBOX' | 'LIVE';
 
+export type ConnectivityClassification = 'LIVE' | 'BOUNDARY' | 'MOCK' | 'UNVERIFIED';
+
 export type ConnectorHealthStatus =
+  | 'DRAFT'
+  | 'CONFIGURED'
+  | 'VALIDATING'
+  | 'ACTIVE'
   | 'REGISTERED'
   | 'CONFIGURING'
   | 'CONNECTING'
@@ -18,7 +24,10 @@ export type ConnectorHealthStatus =
   | 'DISCONNECTED'
   | 'ERROR'
   | 'MAINTENANCE'
+  | 'PAUSED'
   | 'DISABLED'
+  | 'QUARANTINED'
+  | 'RETIRED'
   | 'UNCONFIGURED'
   | 'AUTH_FAILED';
 
@@ -41,16 +50,21 @@ export interface ConnectionHealthTelemetry {
 export interface ConnectorRecord {
   connectorId: string;
   tenantId: string;
+  organizationId?: string;
+  region?: string;
+  provider?: string;
   type: ConnectorType;
   name: string;
   version: string;
   status: ConnectorHealthStatus;
   environment: ConnectorEnvironment;
+  connectivityClassification?: ConnectivityClassification;
   configuration: Record<string, any>; // No plain-text credentials!
   capabilities: ConnectorCapabilities;
   health: ConnectionHealthTelemetry;
   endpointReference: string;
   credentialReference: string; // secret://tenant/<tenantId>/connector/<connectorId>
+  certificateReference?: string;
   lastHealthCheck?: string;
   lastSuccessfulSync?: string;
   lastFailure?: string;

@@ -116,6 +116,19 @@ export class CredentialVaultService {
     this.vaultStore.set(credentialRef, credentials);
   }
 
+  public storeSecret(credentialRef: string, payload: string, actor: string): void {
+    const parts = credentialRef.split('/');
+    const tenantId = parts[3] || 'org-tenant-a';
+    this.storeCredentials(credentialRef, tenantId, {
+      authType: 'API_KEY',
+      apiKey: payload,
+    });
+  }
+
+  public verifySecretReferenceExists(credentialRef: string): boolean {
+    return this.vaultStore.has(credentialRef);
+  }
+
   /**
    * Deletes credentials from vault
    */

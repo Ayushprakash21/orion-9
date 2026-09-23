@@ -1193,6 +1193,19 @@ service cloud.firestore {
       allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
       allow update, delete: if false;
     }
+
+    // PART 4 TRACK 8: INTEGRATION & REAL-WORLD CONNECTIVITY RULES
+    match /partner_certifications/{certId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /integration_certificates/{certId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
   }
 }
 
