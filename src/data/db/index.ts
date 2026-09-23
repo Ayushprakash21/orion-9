@@ -82,7 +82,17 @@ export const db = {
   workflowDlq: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_dlq' }),
   workflowAudit: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_audit' }),
   workflowOutcomes: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_outcomes' }),
+  documentVersions: createSafeInstance({ name: 'SC_DB', storeName: 'document_versions' }),
+
+  documentExtractions: createSafeInstance({ name: 'SC_DB', storeName: 'document_extractions' }),
+  documentChunks: createSafeInstance({ name: 'SC_DB', storeName: 'document_chunks' }),
+  knowledgeEntries: createSafeInstance({ name: 'SC_DB', storeName: 'knowledge_entries' }),
+  knowledgeEmbeddings: createSafeInstance({ name: 'SC_DB', storeName: 'knowledge_embeddings' }),
+  knowledgeRetrievals: createSafeInstance({ name: 'SC_DB', storeName: 'knowledge_retrievals' }),
+  documentReviews: createSafeInstance({ name: 'SC_DB', storeName: 'document_reviews' }),
+  documentExpirations: createSafeInstance({ name: 'SC_DB', storeName: 'document_expirations' }),
 };
+
 
 
 export const saveData = async <T>(store: LocalForage, data: T[]): Promise<void> => {

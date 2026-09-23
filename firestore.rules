@@ -1112,8 +1112,90 @@ service cloud.firestore {
       allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
       allow update, delete: if false;
     }
+
+    // =========================================================================
+    // PART 4 TRACK 7 — KNOWLEDGE & DOCUMENT INTELLIGENCE COLLECTIONS
+    // =========================================================================
+
+    // Structured Document Metadata
+    match /documents/{docId} {
+      allow read: if isAuthenticated() && (resource.data.tenantId == 'GLOBAL' || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Immutable Document Version Snapshots
+    match /document_versions/{versionId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false;
+    }
+
+    // Extracted Candidate Data (Unvalidated candidate fields)
+    match /document_extractions/{extractionId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Document Chunks (Indexed text segments)
+    match /document_chunks/{chunkId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false;
+    }
+
+    // Immutable Document Lineage Ledger
+    match /document_lineage/{lineageId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false;
+    }
+
+    // Indexed Knowledge Records
+    match /knowledge_entries/{entryId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Knowledge Vector Embeddings (Immutable)
+    match /knowledge_embeddings/{embeddingId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false;
+    }
+
+    // RAG Knowledge Retrieval Audits (Immutable)
+    match /knowledge_retrievals/{retrievalId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false;
+    }
+
+    // Document Review Tasks
+    match /document_reviews/{reviewId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Document Expiration & SLA Monitoring Ledger
+    match /document_expirations/{expirationId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Document Audit Ledger (Immutable)
+    match /document_audit/{auditId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false;
+    }
   }
 }
+
 
 
 
