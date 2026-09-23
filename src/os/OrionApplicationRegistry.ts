@@ -92,6 +92,16 @@ export const ORION_REGISTRY: Record<string, OrionApp> = {
     description: 'Centralized human-in-the-loop governance for AI recommendations, quality holds, and high-value orders.',
     dockDefault: true,
   },
+  'ai-workforce': {
+    id: 'ai-workforce',
+    name: 'AI Workforce Center',
+    route: '/admin/ai-workforce',
+    category: 'Control',
+    icon: Brain,
+    color: '#00F2FE',
+    description: 'Governed enterprise AI workforce management, 20 domain agents, proposal approvals, and quarantine sentinel.',
+    dockDefault: true,
+  },
   'master-data': {
     id: 'master-data',
     name: 'Data & Integration Fabric',

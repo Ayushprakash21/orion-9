@@ -61,6 +61,7 @@ export const AdminLayout = () => {
     { name: 'Configuration Center', path: '/admin/configurations', icon: Sliders },
     { name: 'Release Center', path: '/admin/releases', icon: GitCommit },
     { name: 'AI + Manual Control Center', path: '/admin/control-center', icon: BrainCircuit },
+    { name: 'AI Workforce Center', path: '/admin/ai-workforce', icon: BrainCircuit },
     { name: 'Global Operations', path: '/admin/global-ops', icon: Globe },
     { name: 'Regional Operations', path: '/admin/regional-ops', icon: Globe2 },
     { name: 'Integration Gateway', path: '/admin/integration-gateway', icon: Network },

@@ -71,6 +71,8 @@ export class AgentRuntime {
       throw new Error(`AI Pipeline Failure: Agent '${agentId}' does not exist or does not belong to tenant '${tenantId}'.`);
     }
 
+    aiSecurityGuard.assertNotQuarantined(agent.status, agent.name);
+
     if (agent.status !== 'ACTIVE') {
       return {
         status: 'REJECTED',
@@ -105,6 +107,14 @@ export class AgentRuntime {
     if (options.externalData) {
       const sanitized = aiSecurityGuard.sanitizeExternalContent(options.externalData);
       if (sanitized.isFlagged) {
+        aiSecurityGuard.recordViolation(
+          tenantId,
+          agent.agentId,
+          'PROMPT_INJECTION',
+          'CRITICAL',
+          `Prompt injection detected in external content: ${sanitized.detectedThreats.join(', ')}`,
+          { threats: sanitized.detectedThreats }
+        );
         await kernelAuditEngine.record({
           tenantId,
           actor: { id: agent.agentId, type: 'AI_AGENT', role: 'ai_agent' },

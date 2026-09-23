@@ -9,7 +9,36 @@
 import { AuthorizationActor } from '../kernel/authorization/AuthorizationEngine';
 import { CommandEnvelope, CommandResult, DataClassification } from '../kernel/types';
 
-export type AgentStatus = 'DRAFT' | 'ACTIVE' | 'PAUSED' | 'SUSPENDED' | 'DISABLED';
+export type AgentStatus =
+  | 'DRAFT'
+  | 'ACTIVE'
+  | 'PAUSED'
+  | 'SUSPENDED'
+  | 'DISABLED'
+  | 'QUARANTINED'
+  | 'ERROR';
+
+export type AgentDomain =
+  | 'CONTROL_TOWER'
+  | 'PROCUREMENT'
+  | 'SUPPLIER_INTELLIGENCE'
+  | 'INVENTORY'
+  | 'DEMAND_PLANNING'
+  | 'SOP'
+  | 'LOGISTICS'
+  | 'WAREHOUSE'
+  | 'CUSTOMER_FULFILLMENT'
+  | 'FINANCE_MATCHING'
+  | 'RISK'
+  | 'MASTER_DATA'
+  | 'QUALITY'
+  | 'INTEGRATION_OPERATIONS'
+  | 'SCENARIO_PLANNING'
+  | 'EXECUTIVE_INTELLIGENCE'
+  | 'COMPLIANCE'
+  | 'KNOWLEDGE'
+  | 'WORKFLOW'
+  | 'OBSERVABILITY_INCIDENT';
 
 export type AIOperatingMode =
   | 'OBSERVE'         // Inspect permitted data only; no execution
@@ -21,7 +50,7 @@ export type AIOperatingMode =
 
 export type AIRiskClass = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
-export type AIMemoryType = 'SESSION' | 'TASK' | 'DECISION' | 'OUTCOME';
+export type AIMemoryType = 'SESSION' | 'TASK' | 'DECISION' | 'OUTCOME' | 'EPISODIC' | 'SEMANTIC';
 
 export type AIResponseStatus =
   | 'ANSWER'
@@ -40,6 +69,7 @@ export interface AIAgent {
   tenantId: string;
   name: string;
   description: string;
+  domain?: AgentDomain;
   version: string;
   status: AgentStatus;
   operatingMode: AIOperatingMode;
@@ -47,6 +77,11 @@ export interface AIAgent {
   allowedTools: string[];
   allowedCommands: string[];
   riskClass: AIRiskClass;
+  autonomyLevel?: number;
+  quarantineReason?: string;
+  quarantinedAt?: string;
+  reinstatedAt?: string;
+  reinstatedBy?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -190,3 +225,168 @@ export interface GovernedAIExecutionResult {
   kernelResult?: CommandResult;
   error?: string;
 }
+
+/**
+ * Explicit Reasoning Categories
+ */
+export type ReasoningCategory =
+  | 'FACT'
+  | 'OBSERVATION'
+  | 'MODELLED'
+  | 'PREDICTION'
+  | 'ASSUMPTION'
+  | 'RECOMMENDATION';
+
+/**
+ * Typed Reasoning Step in an AI Proposal
+ */
+export interface ReasoningStep {
+  stepNumber: number;
+  category: ReasoningCategory;
+  statement: string;
+  confidence: number; // 0.0 to 1.0
+  evidenceSources?: string[];
+}
+
+/**
+ * AI Proposal Status Lifecycle
+ */
+export type AIProposalStatus =
+  | 'DRAFT'
+  | 'SUBMITTED'
+  | 'PENDING_HUMAN_APPROVAL'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'EXECUTED'
+  | 'EXPIRED'
+  | 'REVOKED';
+
+/**
+ * Factual and Metric Evidence Supporting an AI Proposal
+ */
+export interface AIProposalEvidence {
+  facts: string[];
+  signals: string[];
+  metrics: Record<string, number | string>;
+  entities: Array<{ entityType: string; entityId: string }>;
+  dataFreshnessMs: number;
+}
+
+/**
+ * Rigorous Multi-Vector Risk Assessment for AI Proposal
+ */
+export interface AIProposalRisk {
+  score: number; // 0 - 100
+  blastRadius: 'LOCAL' | 'REGIONAL' | 'GLOBAL';
+  financialExposure: number;
+  reversibility: 'REVERSIBLE' | 'IRREVERSIBLE';
+  riskClass: AIRiskClass;
+}
+
+/**
+ * Enterprise AI Proposal Model
+ * Formulates decisions without direct database mutation
+ */
+export interface AIProposal {
+  proposalId: string;
+  tenantId: string;
+  agentId: string;
+  agentName: string;
+  domain: AgentDomain;
+  intent: string;
+  proposedCommand: AICommandPayload;
+  evidence: AIProposalEvidence;
+  reasoningChain: ReasoningStep[];
+  riskAssessment: AIProposalRisk;
+  confidence: number; // 0.0 - 1.0
+  approvalStatus: AIProposalStatus;
+  requiredApproverRoles: string[];
+  workflowId?: string;
+  outcomeId?: string;
+  createdAt: string;
+  expiresAt: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
+  approverComment?: string;
+  executedAt?: string;
+  executionCommandId?: string;
+}
+
+/**
+ * Governed Agent-to-Agent Collaboration Messages
+ */
+export type CollaborationMessageType =
+  | 'QUERY'
+  | 'RESPONSE'
+  | 'ALERT'
+  | 'DELEGATION'
+  | 'EVIDENCE_REQUEST';
+
+export interface AgentCollaborationMessage {
+  messageId: string;
+  tenantId: string;
+  sourceAgentId: string;
+  sourceAgentName: string;
+  targetAgentId: string;
+  targetAgentName: string;
+  conversationId: string;
+  correlationId: string;
+  messageType: CollaborationMessageType;
+  intent: string;
+  payload: Record<string, any>;
+  securityContext: {
+    traceToken: string;
+    originalHumanInitiator?: string;
+  };
+  timestamp: string;
+}
+
+/**
+ * Agent Quarantine Engine Records
+ */
+export type QuarantineReason =
+  | 'PROMPT_INJECTION'
+  | 'POLICY_VIOLATION'
+  | 'ATTEMPTED_SELF_APPROVAL'
+  | 'UNAUTHORIZED_TOOL'
+  | 'CROSS_TENANT_ACCESS'
+  | 'EXCESSIVE_FAILURES'
+  | 'MANUAL_QUARANTINE';
+
+export interface AgentQuarantineRecord {
+  quarantineId: string;
+  tenantId: string;
+  agentId: string;
+  agentName: string;
+  reason: QuarantineReason;
+  severity: 'WARNING' | 'CRITICAL' | 'FATAL';
+  details: string;
+  quarantinedAt: string;
+  reinstatedAt?: string;
+  reinstatedBy?: string;
+  reinstatementJustification?: string;
+  evidence?: any;
+}
+
+/**
+ * Comprehensive Agent Health & Calibration Telemetry
+ */
+export interface AgentHealthMetrics {
+  agentId: string;
+  agentName: string;
+  tenantId: string;
+  domain: AgentDomain;
+  status: AgentStatus;
+  operatingMode: AIOperatingMode;
+  successRate: number; // 0.0 - 100.0
+  avgLatencyMs: number;
+  totalExecutions: number;
+  activeProposalsCount: number;
+  quarantineCount: number;
+  lastActiveAt: string;
+  healthScore: number; // 0 - 100
+  calibrationScore: number; // 0 - 100
+}
+

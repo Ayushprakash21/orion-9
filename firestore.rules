@@ -948,6 +948,91 @@ service cloud.firestore {
       allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
       allow delete: if isAdmin();
     }
+
+    // =========================================================================
+    // PART 4 TRACK 5 — GOVERNED AI WORKFORCE COLLECTIONS
+    // =========================================================================
+
+    // Governed Agents Registry
+    match /agents/{agentId} {
+      allow read: if isAuthenticated() && (resource.data.tenantId == 'org-global' || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /ai_agents/{agentId} {
+      allow read: if isAuthenticated() && (resource.data.tenantId == 'org-global' || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Governed Proposals (Side-Effect-Free proposing; Human approval required for status changes)
+    match /ai_proposals/{proposalId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && isOrgMember(request.resource.data.tenantId);
+      allow update: if isAuthenticated() && (isAdmin() || (isOrgMember(resource.data.tenantId) && request.resource.data.approvalStatus in ['APPROVED', 'REJECTED']));
+      allow delete: if isAdmin();
+    }
+
+    // Immutable Decision Records
+    match /ai_decisions/{decisionId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && isOrgMember(request.resource.data.tenantId);
+      allow update, delete: if false;
+    }
+
+    // Immutable Execution Run Logs
+    match /ai_runs/{runId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && isOrgMember(request.resource.data.tenantId);
+      allow update, delete: if false;
+    }
+
+    // Security Incidents
+    match /ai_incidents/{incidentId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && isOrgMember(request.resource.data.tenantId);
+      allow update, delete: if false;
+    }
+
+    // Quarantine Ledger (Admin-restricted modification)
+    match /ai_quarantine/{quarantineId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // AI Health Metrics
+    match /ai_metrics/{metricId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && isOrgMember(request.resource.data.tenantId);
+      allow delete: if isAdmin();
+    }
+
+    // Governed Agent Memory
+    match /agent_memory/{memoryId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && isOrgMember(request.resource.data.tenantId);
+      allow delete: if isAdmin();
+    }
+
+    match /ai_memory/{memoryId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && isOrgMember(request.resource.data.tenantId);
+      allow delete: if isAdmin();
+    }
+
+    // Empirical Decision Outcomes (Immutable)
+    match /ai_outcomes/{outcomeId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && isOrgMember(request.resource.data.tenantId);
+      allow update, delete: if false;
+    }
+
+    // Governed Inter-Agent Collaboration Traces (Immutable)
+    match /ai_collaboration/{messageId} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && isOrgMember(request.resource.data.tenantId);
+      allow update, delete: if false;
+    }
   }
 }
 

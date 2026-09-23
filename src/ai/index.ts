@@ -12,3 +12,6 @@ export * from './AgentMemory';
 export * from './DecisionRecordEngine';
 export * from './OutcomeRecorder';
 export * from './AgentRuntime';
+export * from './AIProposalEngine';
+export * from './AgentCollaborationEngine';
+export * from './AIWorkforceImprovementEngine';

@@ -66,6 +66,7 @@ import { TimeWorld } from '../components/TimeWorld';
 import { ManualCenter } from '../components/ManualCenter';
 
 import { AdminControlCenter } from '../components/admin/AdminControlCenter';
+import { AIWorkforceCenter } from '../components/admin/AIWorkforceCenter';
 import { PlatformIntelligence } from '../components/admin/PlatformIntelligence';
 import { WorkflowBuilder as AdminWorkflowBuilder } from '../components/admin/WorkflowBuilder';
 import { AutonomyCenter as AdminAutonomyCenter } from '../components/admin/AutonomyCenter';
@@ -102,6 +103,7 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'exceptions': Exceptions,
   'decisions': DecisionCenter,
   'approval-center': ApprovalCenter,
+  'ai-workforce': AIWorkforceCenter,
   'master-data': MasterDataManager,
   'quality': QualityCenter,
   'invoice-matching': FinanceMatchingCenter,

@@ -79,6 +79,7 @@ import { AdminSettings } from './components/admin/AdminSettings';
 import { AdminDemoData } from './components/admin/AdminDemoData';
 import { PlatformIntelligence } from './components/admin/PlatformIntelligence';
 import { AdminControlCenter, ControlCenterApprovals, ControlCenterSimulations, ControlCenterAudit, ControlCenterPolicies } from './components/admin/AdminControlCenter';
+import { AIWorkforceCenter } from './components/admin/AIWorkforceCenter';
 import { OutcomeCenter } from './components/admin/OutcomeCenter';
 import { LearningCenter } from './components/admin/LearningCenter';
 import { DriftCenter } from './components/admin/DriftCenter';
@@ -177,6 +178,7 @@ function AuthenticatedApplication() {
           <Route path="control-center/approvals" element={<ControlCenterApprovals />} />
           <Route path="control-center/simulations" element={<ControlCenterSimulations />} />
           <Route path="control-center/audit" element={<ControlCenterAudit />} />
+          <Route path="ai-workforce" element={<AIWorkforceCenter />} />
           <Route path="outcomes" element={<OutcomeCenter />} />
           <Route path="learning" element={<LearningCenter />} />
           <Route path="drift" element={<DriftCenter />} />
