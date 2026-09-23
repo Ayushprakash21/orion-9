@@ -120,43 +120,43 @@ const RESOURCE_PERMISSION_MAP: Record<
   },
   'pr:create': {
     actorTypes: ['USER', 'ADMIN', 'AI_AGENT'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member', 'ai_agent'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'organization_member', 'ai_agent'],
   },
   'pr:approve': {
     actorTypes: ['USER', 'ADMIN'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'operations_director'],
   },
   'rfq:create': {
     actorTypes: ['USER', 'ADMIN', 'AI_AGENT'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'ai_agent'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'ai_agent'],
   },
   'rfq:publish': {
     actorTypes: ['USER', 'ADMIN'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director'],
   },
   'rfq:evaluate': {
     actorTypes: ['USER', 'ADMIN', 'AI_AGENT'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'ai_agent'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'ai_agent'],
   },
   'quotation:submit': {
     actorTypes: ['USER', 'ADMIN', 'EXTERNAL_INTEGRATION'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'organization_member'],
   },
   'supplier_selection:approve': {
     actorTypes: ['USER', 'ADMIN'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'operations_director'],
   },
   'asn:create': {
     actorTypes: ['USER', 'ADMIN', 'EXTERNAL_INTEGRATION', 'AI_AGENT'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member', 'ai_agent'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'organization_member', 'ai_agent'],
   },
   'exception:create': {
     actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'AI_AGENT'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member', 'ai_agent'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'organization_member', 'ai_agent'],
   },
   'approval:request': {
     actorTypes: ['USER', 'ADMIN', 'AI_AGENT'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member', 'ai_agent'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'organization_member', 'ai_agent'],
   },
   'shipment:update': {
     actorTypes: ['USER', 'ADMIN', 'EXTERNAL_INTEGRATION'],

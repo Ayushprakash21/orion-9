@@ -67,35 +67,33 @@ test.describe('Orion-9 Global Window Controls Placement E2E Suite', () => {
       expect(titlebarRightEdge - controlsRightEdge).toBeGreaterThanOrEqual(0);
     }
 
-    // 6. Verify internal button order: CLOSE, MINIMIZE, MAXIMIZE
+    // 6. Verify internal button order: MINIMIZE, MAXIMIZE, CLOSE (Left -> Right)
     const buttons = controls.locator('button');
     const buttonCount = await buttons.count();
     expect(buttonCount).toBeGreaterThanOrEqual(2);
 
-    const closeBtn = buttons.nth(0);
-    const minimizeBtn = buttons.nth(1);
-
-    await expect(closeBtn).toHaveAttribute('aria-label', /Close/i);
+    const minimizeBtn = buttons.nth(0);
     await expect(minimizeBtn).toHaveAttribute('aria-label', /Minimize/i);
 
-    const closeBox = await closeBtn.boundingBox();
-    const minBox = await minimizeBtn.boundingBox();
-
-    expect(closeBox).not.toBeNull();
-    expect(minBox).not.toBeNull();
-
-    if (closeBox && minBox) {
-      // Close button must be to the left of Minimize button (order: Close, Minimize, Maximize)
-      expect(closeBox.x).toBeLessThan(minBox.x);
-    }
-
     if (buttonCount >= 3) {
-      const maxBtn = buttons.nth(2);
+      const maxBtn = buttons.nth(1);
+      const closeBtn = buttons.nth(2);
+
       await expect(maxBtn).toHaveAttribute('aria-label', /Maximize|Restore/i);
+      await expect(closeBtn).toHaveAttribute('aria-label', /Close/i);
+
+      const minBox = await minimizeBtn.boundingBox();
       const maxBox = await maxBtn.boundingBox();
+      const closeBox = await closeBtn.boundingBox();
+
+      expect(minBox).not.toBeNull();
       expect(maxBox).not.toBeNull();
-      if (minBox && maxBox) {
+      expect(closeBox).not.toBeNull();
+
+      if (minBox && maxBox && closeBox) {
+        // Strict order: Minimize < Maximize < Close
         expect(minBox.x).toBeLessThan(maxBox.x);
+        expect(maxBox.x).toBeLessThan(closeBox.x);
       }
     }
   });

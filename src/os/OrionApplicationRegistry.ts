@@ -29,7 +29,7 @@ export const ORION_REGISTRY: Record<string, OrionApp> = {
     category: 'Operations',
     icon: LayoutDashboard,
     color: '#00F2FE',
-    description: 'Central supply chain observability and command workspace.',
+    description: 'Central supply chain control tower, multi-domain observability, and governed command workspace.',
     dockDefault: true,
   },
   'inventory': {

@@ -443,6 +443,19 @@ service cloud.firestore {
       allow update, delete: if false; // Outcome records are append-only
     }
 
+    // Part 4 Track 3 Control Tower Collections
+    match /control_tower_kpis/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /control_tower_snapshots/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow update, delete: if false; // Operational snapshots are immutable point-in-time records
+    }
+
     // =========================================================================
     // Wave 7 Autonomous Operations & Workflow Orchestration Collections
     // Strict tenant isolation and immutability rules

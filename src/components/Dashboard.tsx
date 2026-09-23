@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import { useEntityDrawer } from '../store/EntityDrawerContext';
 import { LiveSupplyChainFlow } from './LiveSupplyChainFlow';
 import { CommandCenterAnalytics } from './CommandCenterAnalytics';
+import { ControlTowerWorkspace } from './controltower/ControlTowerWorkspace';
 
 export const Dashboard = () => {
   const {
@@ -210,6 +211,9 @@ export const Dashboard = () => {
           <span className="text-[10px] font-mono text-os-text-muted">In Copilot queue</span>
         </div>
       </div>
+
+      {/* ENTERPRISE SUPPLY CHAIN CONTROL TOWER */}
+      <ControlTowerWorkspace />
 
       {/* COMMAND CENTER TIME-SERIES & RISK ANALYTICS */}
       <CommandCenterAnalytics />

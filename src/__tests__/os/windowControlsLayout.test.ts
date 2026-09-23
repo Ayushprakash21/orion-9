@@ -68,21 +68,21 @@ describe('OrionWindow Global Controls Layout', () => {
     expect(appNameIndex).toBeLessThan(controlsIndex);
   });
 
-  it('preserves the exact order of controls: Close, Minimize, Maximize', () => {
+  it('preserves the exact order of controls: Minimize, Maximize, Close', () => {
     const element = React.createElement(OrionWindow, { window: mockWindow, isActive: true });
     const html = renderToString(element);
 
-    const closeIdx = html.indexOf('aria-label="Close Inventory"');
     const minimizeIdx = html.indexOf('aria-label="Minimize Inventory"');
     const maximizeIdx = html.indexOf('aria-label="Maximize Inventory"');
+    const closeIdx = html.indexOf('aria-label="Close Inventory"');
 
-    expect(closeIdx).toBeGreaterThan(-1);
     expect(minimizeIdx).toBeGreaterThan(-1);
     expect(maximizeIdx).toBeGreaterThan(-1);
+    expect(closeIdx).toBeGreaterThan(-1);
 
-    // Strict order: Close < Minimize < Maximize
-    expect(closeIdx).toBeLessThan(minimizeIdx);
+    // Strict order: Minimize < Maximize < Close (Left -> Right)
     expect(minimizeIdx).toBeLessThan(maximizeIdx);
+    expect(maximizeIdx).toBeLessThan(closeIdx);
   });
 
   it('preserves circular shape and visual styling classes for all three controls', () => {

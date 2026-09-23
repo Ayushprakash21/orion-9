@@ -520,19 +520,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
           onClick={(e) => e.stopPropagation()}
           onDoubleClick={(e) => e.stopPropagation()}
         >
-          <button
-            type="button"
-            aria-label={`Close ${app.name}`}
-            title="Close (⌘W)"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              closeApplication(win.id);
-            }}
-            className="w-3.5 h-3.5 rounded-full bg-red-500/80 hover:bg-red-500 border border-red-600/40 flex items-center justify-center transition-all cursor-pointer shadow-sm"
-          >
-            <X className="w-2 h-2 text-white opacity-0 group-hover/controls:opacity-100" />
-          </button>
+          {/* 1. Minimize Button (Leftmost) */}
           <button
             type="button"
             aria-label={`Minimize ${app.name}`}
@@ -546,6 +534,8 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
           >
             <Minus className="w-2 h-2 text-white opacity-0 group-hover/controls:opacity-100" />
           </button>
+
+          {/* 2. Maximize / Restore Button (Middle) */}
           {!isMobile && (
             <button
               type="button"
@@ -565,6 +555,21 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
               <Maximize2 className="w-2 h-2 text-white opacity-0 group-hover/controls:opacity-100" />
             </button>
           )}
+
+          {/* 3. Close Button (Rightmost) */}
+          <button
+            type="button"
+            aria-label={`Close ${app.name}`}
+            title="Close (⌘W)"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              closeApplication(win.id);
+            }}
+            className="w-3.5 h-3.5 rounded-full bg-red-500/80 hover:bg-red-500 border border-red-600/40 flex items-center justify-center transition-all cursor-pointer shadow-sm"
+          >
+            <X className="w-2 h-2 text-white opacity-0 group-hover/controls:opacity-100" />
+          </button>
         </div>
       </div>
 
