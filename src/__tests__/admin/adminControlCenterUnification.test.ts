@@ -106,7 +106,7 @@ describe('Admin Control Center Unification & Governance Tests', () => {
         domainId: 'security',
         capabilityId: 'security-controls',
         mode: 'AI Autopilot',
-        policy: 'Relaxed',
+        policy: 'Strict',
         scope: 'Capability',
         approvalRequired: false,
         enabled: true,
@@ -125,7 +125,7 @@ describe('Admin Control Center Unification & Governance Tests', () => {
         domainId: 'security',
         capabilityId: 'security-controls',
         mode: 'AI Autopilot',
-        policy: 'Relaxed',
+        policy: 'Strict',
         scope: 'Capability',
         approvalRequired: false,
         enabled: true,
@@ -150,8 +150,8 @@ describe('Admin Control Center Unification & Governance Tests', () => {
           type: 'AI_AGENT',
           roles: mockAIAgentActor.roles,
         },
-        currentState: { mode: 'Manual', policy: 'Standard', scope: 'Capability' },
-        proposedState: { mode: 'AI Copilot', policy: 'Strict', scope: 'Capability' },
+        currentState: { mode: 'Manual', policy: 'Standard', scope: 'Capability', approval: true, enabled: true },
+        proposedState: { mode: 'AI Copilot', policy: 'Strict', scope: 'Capability', approval: true, enabled: true },
         reason: 'Lead-time variance reduced by 40% across supplier nodes',
       });
 
@@ -174,8 +174,8 @@ describe('Admin Control Center Unification & Governance Tests', () => {
           type: 'AI_AGENT',
           roles: mockAIAgentActor.roles,
         },
-        currentState: { mode: 'Manual', policy: 'Standard', scope: 'Capability' },
-        proposedState: { mode: 'AI Autopilot', policy: 'Strict', scope: 'Capability' },
+        currentState: { mode: 'Manual', policy: 'Standard', scope: 'Capability', approval: true, enabled: true },
+        proposedState: { mode: 'AI Autopilot', policy: 'Strict', scope: 'Capability', approval: false, enabled: true },
         reason: 'Severe weather avoidance requirement',
       });
 
@@ -203,8 +203,8 @@ describe('Admin Control Center Unification & Governance Tests', () => {
           type: 'AI_AGENT',
           roles: mockAIAgentActor.roles,
         },
-        currentState: { mode: 'Manual', policy: 'Standard', scope: 'Capability' },
-        proposedState: { mode: 'AI Copilot', policy: 'Strict', scope: 'Capability' },
+        currentState: { mode: 'Manual', policy: 'Standard', scope: 'Capability', approval: true, enabled: true },
+        proposedState: { mode: 'AI Copilot', policy: 'Strict', scope: 'Capability', approval: true, enabled: true },
         reason: 'Consensus demand model calibrated',
       });
 
