@@ -324,7 +324,8 @@ export class ResilienceService {
 
     securityTelemetryGuard.recordSecurityEvent({
       tenantId: params.tenantId,
-      type: 'SUSPICIOUS_PAYLOAD',
+      type: 'KERNEL_BYPASS_ATTEMPT',
+
       actorId: params.actor,
       ipAddress: 'internal-kernel',
       details: JSON.stringify({ recordId, entityType: params.entityType, entityId: params.entityId, reason: params.reason })

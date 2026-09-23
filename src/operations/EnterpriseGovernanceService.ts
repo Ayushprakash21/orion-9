@@ -193,7 +193,8 @@ export class EnterpriseGovernanceService {
       actor: { id: params.approver, type: 'USER', name: params.approver },
       entityId: policy.policyId,
       entityType: 'GOVERNANCE_POLICY',
-      classification: 'BUSINESS_TRANSACTION',
+      classification: 'CONFIDENTIAL',
+
       details: { policyName: policy.name, version: policy.version, domain: policy.domain }
     });
 
