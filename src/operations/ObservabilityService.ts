@@ -41,6 +41,7 @@ export class ObservabilityService {
    * Redacts sensitive secrets and PII from string inputs.
    */
   public redactString(input: string): string {
+    if (!input || typeof input !== 'string') return String(input || '');
     let result = input;
     for (const pattern of SENSITIVE_PATTERNS) {
       result = result.replace(pattern, (match) => {

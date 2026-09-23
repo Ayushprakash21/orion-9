@@ -95,6 +95,7 @@ import { IntegrationControlCenter } from './components/admin/IntegrationControlC
 import { TradingPartnerCenter } from './components/admin/TradingPartnerCenter';
 import { ReconciliationCenter } from './components/admin/ReconciliationCenter';
 import { FailoverCenter } from './components/admin/FailoverCenter';
+import { ResilienceCenter } from './components/ResilienceCenter';
 import { ScalePerformanceCenter } from './components/admin/ScalePerformanceCenter';
 import { ManualCenter } from './components/ManualCenter';
 import { LoadingScreen } from './components/LoadingScreen';
@@ -193,7 +194,8 @@ function AuthenticatedApplication() {
           <Route path="integration-gateway" element={<IntegrationControlCenter />} />
           <Route path="trading-partners" element={<TradingPartnerCenter />} />
           <Route path="reconciliation" element={<ReconciliationCenter />} />
-          <Route path="failover" element={<FailoverCenter />} />
+          <Route path="failover" element={<ResilienceCenter />} />
+          <Route path="resilience" element={<ResilienceCenter />} />
           <Route path="scale-performance" element={<ScalePerformanceCenter />} />
           <Route path="manual" element={<ManualCenter admin />} />
           <Route path="platform-intelligence" element={<PlatformIntelligence />} />

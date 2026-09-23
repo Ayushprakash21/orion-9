@@ -19,3 +19,5 @@ export * from './DataIntegrityService';
 export * from './ReleaseManager';
 export * from './ProductionSafetyService';
 export * from './ControlledBackpressureService';
+export * from './ResilienceService';
+

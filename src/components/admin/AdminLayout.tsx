@@ -67,7 +67,7 @@ export const AdminLayout = () => {
     { name: 'Integration Gateway', path: '/admin/integration-gateway', icon: Network },
     { name: 'Trading Partners', path: '/admin/trading-partners', icon: Users2 },
     { name: 'Reconciliation', path: '/admin/reconciliation', icon: FileSpreadsheet },
-    { name: 'Failover & Fencing', path: '/admin/failover', icon: ShieldAlert },
+    { name: 'Resilience & DR', path: '/admin/resilience', icon: ShieldAlert },
     { name: 'Scale & Performance', path: '/admin/scale-performance', icon: Gauge },
     { name: 'Outcome Center', path: '/admin/outcomes', icon: FileCheck },
     { name: 'Learning Center', path: '/admin/learning', icon: Sliders },
