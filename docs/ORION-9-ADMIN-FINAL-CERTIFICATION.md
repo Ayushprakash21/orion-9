@@ -14,7 +14,8 @@ An exhaustive, evidence-based verification and regression gate audit was conduct
 - **Certified Wave 12 Baseline**: `2bae8acf7c0818990429160aa9426e05144817c0` (`feat(wave12): final enterprise certification, security hardening & release gate`)
 - **Admin Feature Commit**: `5264796f513dad0b5d637e913ca315909647d412` (`feat(admin): unify enterprise administration and governed control center`)
 - **Admin Merge Commit**: `33980b951b09da74c310079a78caf565442eb2f9`
-- **Latest Verified Commit on `main`**: `d728300` (`fix(types): align policy and proposal state types in adminControlCenterUnification test`)
+- **Immediately Preceding Test-Fix Commit**: `d7283002b7bf9eddc4ab37990221e5dffc695a76` (`fix(types): align policy and proposal state types in adminControlCenterUnification test`)
+- **Current Verified HEAD**: `5c3c1f62a996d3e2ef9e4e79f863c82ad9e33a47` (`docs(certification): final admin control center certification and regression report`)
 - **Branch**: `main` (synchronized with `origin/main`)
 
 ---
@@ -27,11 +28,15 @@ An exhaustive, evidence-based verification and regression gate audit was conduct
 | **Vitest Unit & Integration** | Test Files / Tests Passed | 42 files / 521 tests | **42/42 files (100%), 521/521 tests (100%)** | **PASS** |
 | **Playwright End-to-End** | Browser Scenarios Passed | 93 tests | **93/93 tests (100%)** (3.9m execution) | **PASS** |
 | **Real Firestore Emulator Rules** | Security Rule Invariants | 63 tests | **63/63 tests (100%)** | **PASS** |
+| **Total Automated Tests** | Automated Tests Passed | 677 tests | **677/677 tests (100%)** | **PASS** |
 | **Production Build** | `npm run build` | Exit Code 0 | **Exit Code 0** (bundled in 19.50s) | **PASS** |
 | **Authoritative `localStorage`** | Policy / Control Plane State | 0 occurrences | **0 occurrences** | **PASS** |
 | **Active Supabase Dependencies** | Operational Calls | 0 | **0** | **PASS** |
 | **Credential & Key Leaks** | High-entropy secrets | 0 | **0** | **PASS** |
 | **Kernel Command Bypasses** | Direct DB Writes | 0 | **0** | **PASS** |
+
+> **Automated Test Ledger**: Exactly **677 automated tests passed** (521 Vitest + 93 Playwright + 63 real Firestore emulator security tests = 677).  
+> *(TypeScript typecheck [0 errors] and production build [Exit Code 0] are verified release prerequisites and are not counted as part of the 677 automated test total).*
 
 ---
 
@@ -105,10 +110,10 @@ An exhaustive, evidence-based verification and regression gate audit was conduct
   - `src/__tests__/rules/realFirestoreEmulatorRules.test.ts`: **31/31 passed**
   - `src/__tests__/rules/workflowFirestoreRules.test.ts`: **17/17 passed**
   - `src/__tests__/rules/outcomeFirestoreRules.test.ts`: **15/15 passed**
-- Total rule tests: **63/63 passed**. All collection read/write boundaries, tenant isolation, and admin role gates are strictly enforced.
+- Total real Firestore emulator security tests: **63/63 passed**. All collection read/write boundaries, tenant isolation, and admin role gates are strictly enforced.
 
 ### Phase 12: Comprehensive Automated Test Suite Execution
-- **Unit & Integration Suite**:
+- **Unit & Integration Suite (Vitest)**:
   ```text
   Test Files  42 passed (42)
        Tests  521 passed (521)
@@ -129,6 +134,12 @@ An exhaustive, evidence-based verification and regression gate audit was conduct
   93 passed (3.9m)
   ```
   Verified full browser lifecycle: admin login, MFA/step-up modal, navigation across all 17 domains, proposal generation, human approval, audit trail validation, and cold reload verification.
+- **Real Firestore Security Rules (Firebase Emulator)**:
+  ```text
+  63 passed (12.1s)
+  ```
+  Verified 31 real emulator collection boundary tests, 17 workflow rules, and 15 outcome invariant tests.
+- **Combined Automated Tests**: **677/677 passed (100%)** (521 Vitest + 93 Playwright + 63 Real Firestore Emulator security tests).
 
 ### Phase 13: Security & Static Analysis
 - **Supabase**: 0 operational dependencies.
@@ -153,12 +164,15 @@ An exhaustive, evidence-based verification and regression gate audit was conduct
 ================================================================================
                     ORION-9 ADMIN CONTROL CENTER VERDICT
 ================================================================================
-  STATUS:                CERTIFIED FOR ENTERPRISE PRODUCTION
-  CANONICAL BASELINE:    2bae8acf7c0818990429160aa9426e05144817c0 (Wave 12)
-  MERGE COMMIT:          33980b951b09da74c310079a78caf565442eb2f9
-  CURRENT HEAD:          d728300
-  TOTAL TESTS PASSED:    614 (521 Vitest + 93 Playwright)
-  TOTAL PASS RATE:       100% (0 failures, 0 skipped, 0 flaky)
-  REGRESSION STATUS:     ZERO REGRESSIONS DETECTED ACROSS WAVES 6–12
+  STATUS:                         CERTIFIED FOR ENTERPRISE PRODUCTION
+  CANONICAL BASELINE:             2bae8acf7c0818990429160aa9426e05144817c0 (Wave 12)
+  ADMIN MERGE COMMIT:             33980b951b09da74c310079a78caf565442eb2f9
+  TEST-FIX COMMIT:                d7283002b7bf9eddc4ab37990221e5dffc695a76
+  CURRENT HEAD:                   5c3c1f62a996d3e2ef9e4e79f863c82ad9e33a47
+  TOTAL AUTOMATED TESTS PASSED:   677 (521 Vitest + 93 Playwright + 63 Firestore Rules)
+  TYPESCRIPT TYPECHECK:           0 errors
+  PRODUCTION BUILD:               Exit Code 0
+  TOTAL PASS RATE:                100% (0 failures, 0 skipped, 0 flaky)
+  REGRESSION STATUS:              ZERO REGRESSIONS DETECTED ACROSS WAVES 6–12
 ================================================================================
 ```
