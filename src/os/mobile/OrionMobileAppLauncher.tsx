@@ -11,8 +11,16 @@ interface CategoryGroup {
 }
 
 export const OrionMobileAppLauncher: React.FC = () => {
-  const { openApp } = useMobileNavigation();
+  const { openApp, openOrionAI } = useMobileNavigation();
   const [searchQuery, setSearchQuery] = useState('');
+
+  const handleLaunchApp = (appId: string) => {
+    if (appId === 'orion-ai' || appId === 'ai-copilot') {
+      openOrionAI();
+    } else {
+      openApp(appId);
+    }
+  };
 
   // Structured categories matching Orion-9 enterprise domains
   const categories: CategoryGroup[] = [
@@ -146,7 +154,7 @@ export const OrionMobileAppLauncher: React.FC = () => {
             {filteredApps.map(app => (
               <button
                 key={app.id}
-                onClick={() => openApp(app.id)}
+                onClick={() => handleLaunchApp(app.id)}
                 className="flex flex-col items-center justify-center p-2 rounded-2xl bg-os-surface/60 border border-os-border/60 active:scale-95 transition-all text-center group cursor-pointer min-h-[88px]"
               >
                 <div className="w-14 h-14 flex items-center justify-center">
@@ -180,7 +188,7 @@ export const OrionMobileAppLauncher: React.FC = () => {
                   {validApps.map(app => (
                     <button
                       key={app.id}
-                      onClick={() => openApp(app.id)}
+                      onClick={() => handleLaunchApp(app.id)}
                       className="flex flex-col items-center justify-center p-2 rounded-2xl bg-os-surface/40 hover:bg-os-surface border border-os-border hover:border-os-border-strong active:scale-95 transition-all text-center group cursor-pointer min-h-[92px]"
                     >
                       <div className="w-13 h-13 flex items-center justify-center">

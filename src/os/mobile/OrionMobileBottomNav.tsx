@@ -30,23 +30,27 @@ export const OrionMobileBottomNav: React.FC = () => {
 
   return (
     <nav 
-      className="fixed bottom-0 left-0 right-0 z-40 bg-os-surface/95 backdrop-blur-xl border-t border-os-border pb-[env(safe-area-inset-bottom,8px)] select-none"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-os-surface/95 backdrop-blur-xl border-t border-os-border pb-[max(8px,env(safe-area-inset-bottom,8px))] select-none pointer-events-auto"
       aria-label="Mobile Navigation"
     >
       <div className="h-14 max-w-md mx-auto grid grid-cols-5 items-center px-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id || (item.id === 'apps' && activeTab === 'app_view');
+          const isAI = item.id === 'ai';
 
           return (
             <button
               key={item.id}
+              role="button"
               onClick={() => navigateToTab(item.id)}
-              className={`relative flex flex-col items-center justify-center h-full min-h-[44px] py-1 transition-all rounded-lg touch-manipulation cursor-pointer ${
+              className={`relative flex flex-col items-center justify-center h-full min-h-[44px] min-w-[44px] py-1 transition-all rounded-lg touch-manipulation cursor-pointer ${
                 isActive 
                   ? 'text-os-accent font-bold' 
                   : 'text-os-text-muted hover:text-os-text-secondary active:scale-95'
               }`}
+              aria-label={isAI ? 'Open ORION AI' : `Navigate to ${item.label}`}
+              title={isAI ? 'Open ORION AI' : item.label}
               aria-current={isActive ? 'page' : undefined}
             >
               {/* Active Indicator Top Glow */}
@@ -57,13 +61,13 @@ export const OrionMobileBottomNav: React.FC = () => {
               <div className="relative flex items-center justify-center">
                 <Icon size={20} className={isActive ? 'stroke-[2.5px]' : 'stroke-[1.75px]'} />
                 {item.badge && item.badge > 0 ? (
-                  <span className="absolute -top-1 -right-2 px-1 min-w-[14px] h-3.5 bg-red-500 text-white text-[9px] font-mono font-bold rounded-full flex items-center justify-center ring-2 ring-os-surface">
+                  <span className="absolute -top-1 -right-2 px-1 min-w-[14px] h-3.5 bg-red-500 text-white text-[9px] font-mono font-bold rounded-full flex items-center justify-center ring-2 ring-os-surface shadow-xs">
                     {item.badge > 9 ? '9+' : item.badge}
                   </span>
                 ) : null}
               </div>
 
-              <span className={`text-[10px] font-mono tracking-tight mt-0.5 ${isActive ? 'text-os-text-primary' : 'text-os-text-muted'}`}>
+              <span className={`text-[10px] font-mono tracking-tight mt-0.5 ${isActive ? 'text-os-text-primary font-semibold' : 'text-os-text-muted'}`}>
                 {item.label}
               </span>
             </button>

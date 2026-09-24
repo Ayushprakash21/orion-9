@@ -15,7 +15,7 @@ const OrionMobileContentRouter: React.FC = () => {
   const { activeTab } = useMobileNavigation();
 
   return (
-    <main className="flex-1 w-full max-w-full overflow-x-hidden px-3.5 pt-3 pb-20">
+    <main className="flex-1 w-full max-w-full overflow-y-auto overflow-x-hidden px-3.5 pt-3 pb-[calc(60px+env(safe-area-inset-bottom,8px))] overscroll-contain">
       {activeTab === 'home' && <OrionMobileHome />}
       {activeTab === 'control' && <OrionMobileControlTower />}
       {activeTab === 'ai' && <OrionMobileAICopilot />}
@@ -31,7 +31,7 @@ export const OrionMobileShell: React.FC = () => {
     <MobileNavigationProvider>
       <div 
         data-orion-mobile-shell="true"
-        className="relative min-h-screen w-full max-w-full bg-os-bg text-os-text-primary flex flex-col overflow-x-hidden"
+        className="relative h-[100dvh] min-h-[100dvh] max-h-[100dvh] w-full max-w-full bg-os-bg text-os-text-primary flex flex-col overflow-hidden pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)] select-none"
       >
         {/* Subtle Atmospheric World Map Background (Reduced Opacity for Mobile Readability) */}
         <div 
@@ -41,18 +41,18 @@ export const OrionMobileShell: React.FC = () => {
           <OrionLiveWallpaper hasOpenWindows={false} />
         </div>
 
-        {/* Mobile Header (Fixed/Sticky Top) */}
+        {/* Mobile Header (Fixed/Sticky Top - Layer 30) */}
         <OrionMobileHeader />
 
-        {/* Dynamic Mobile View Router */}
-        <div className="relative z-10 flex-1 flex flex-col w-full max-w-full">
+        {/* Dynamic Mobile View Router (Layer 20) */}
+        <div className="relative z-20 flex-1 flex flex-col w-full max-w-full min-h-0 overflow-hidden">
           <OrionMobileContentRouter />
         </div>
 
-        {/* Mobile Bottom Navigation (Fixed Bottom) */}
+        {/* Mobile Bottom Navigation (Fixed Bottom - Layer 50) */}
         <OrionMobileBottomNav />
 
-        {/* Mobile Detail Sheet Drawer */}
+        {/* Mobile Detail Sheet Drawer (Layer 60) */}
         <OrionMobileDetailSheet />
       </div>
     </MobileNavigationProvider>

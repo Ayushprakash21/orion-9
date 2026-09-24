@@ -5,12 +5,14 @@ import { useNotifications } from '../../store/NotificationContext';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { Bell, User, ChevronLeft, ShieldCheck, Database, LogOut, Settings as SettingsIcon } from 'lucide-react';
 import { OrionMark } from '../../components/brand/OrionLogo';
+import { NotificationCenter } from '../../components/modals/NotificationCenter';
 
 export const OrionMobileHeader: React.FC = () => {
   const { activeTab, activeApp, closeApp, navigateToTab } = useMobileNavigation();
   const { currentUser, signOut } = useAuth();
   const { notifications, unreadCount } = useNotifications();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const environment = dbManager.getEnvironment();
   const isLive = environment === 'LIVE';
@@ -74,21 +76,30 @@ export const OrionMobileHeader: React.FC = () => {
 
           {/* Notifications Trigger */}
           <button
-            onClick={() => navigateToTab('alerts')}
-            className="relative p-2 rounded-lg text-os-text-secondary active:text-os-text-primary active:bg-os-surface-hover transition-colors touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
-            aria-label="View Alerts"
+            onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+            className={`relative p-2 rounded-lg transition-colors touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer ${
+              isNotificationsOpen 
+                ? 'bg-os-surface-hover text-os-text-primary' 
+                : 'text-os-text-secondary active:text-os-text-primary active:bg-os-surface-hover'
+            }`}
+            aria-label="View Notifications"
+            aria-expanded={isNotificationsOpen}
           >
             <Bell size={16} />
             {unreadCount > 0 && (
-              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 ring-2 ring-os-surface" />
+              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 ring-2 ring-os-surface shadow-[0_0_6px_#EF4444]" />
             )}
           </button>
 
           {/* User Profile / Menu Trigger */}
           <button
-            onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-            className="p-1.5 rounded-lg border border-os-border bg-os-surface-secondary active:bg-os-surface-hover transition-colors touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
+            onClick={() => {
+              setIsNotificationsOpen(false);
+              setIsProfileMenuOpen(!isProfileMenuOpen);
+            }}
+            className="p-1.5 rounded-lg border border-os-border bg-os-surface-secondary active:bg-os-surface-hover transition-colors touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
             aria-label="User Menu"
+            aria-expanded={isProfileMenuOpen}
           >
             {currentUser?.avatarUrl ? (
               <img 
@@ -103,14 +114,25 @@ export const OrionMobileHeader: React.FC = () => {
         </div>
       </div>
 
+      {/* Notifications Popover for Mobile Header */}
+      {isNotificationsOpen && (
+        <div 
+          className="fixed right-2 top-[calc(env(safe-area-inset-top,0px)+52px)] w-[min(calc(100vw-16px),420px)] max-h-[calc(100dvh-env(safe-area-inset-top,0px)-54px-64px-env(safe-area-inset-bottom,0px)-16px)] z-40 bg-os-surface border border-os-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <NotificationCenter isOpen={true} onClose={() => setIsNotificationsOpen(false)} />
+        </div>
+      )}
+
       {/* Profile Dropdown Drawer/Modal */}
       {isProfileMenuOpen && (
         <>
           <div 
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs" 
+            className="fixed inset-0 z-35 bg-black/40 backdrop-blur-xs" 
             onClick={() => setIsProfileMenuOpen(false)} 
+            aria-hidden="true"
           />
-          <div className="absolute right-2 top-full mt-1 w-64 bg-os-surface border border-os-border rounded-xl shadow-2xl p-3 z-50 animate-in fade-in slide-in-from-top-2 font-mono text-xs space-y-2">
+          <div className="absolute right-2 top-full mt-1 w-64 bg-os-surface border border-os-border rounded-xl shadow-2xl p-3 z-40 animate-in fade-in slide-in-from-top-2 font-mono text-xs space-y-2">
             <div className="pb-2 border-b border-os-border">
               <div className="font-bold text-os-text-primary truncate">{currentUser?.fullName || currentUser?.username || 'Operator'}</div>
               <div className="text-[10px] text-os-text-muted truncate">{currentUser?.email}</div>
@@ -125,7 +147,7 @@ export const OrionMobileHeader: React.FC = () => {
                   setIsProfileMenuOpen(false);
                   navigateToTab('apps');
                 }}
-                className="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-os-surface-hover text-os-text-secondary hover:text-os-text-primary text-left transition-colors min-h-[44px]"
+                className="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-os-surface-hover text-os-text-secondary hover:text-os-text-primary text-left transition-colors min-h-[44px] cursor-pointer"
               >
                 <Database size={14} className="text-os-accent" />
                 <span>All Applications</span>
@@ -136,7 +158,7 @@ export const OrionMobileHeader: React.FC = () => {
                   setIsProfileMenuOpen(false);
                   signOut();
                 }}
-                className="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-red-500/10 text-red-400 text-left transition-colors min-h-[44px]"
+                className="w-full flex items-center gap-2 px-2 py-2 rounded-lg hover:bg-red-500/10 text-red-400 text-left transition-colors min-h-[44px] cursor-pointer"
               >
                 <LogOut size={14} />
                 <span>Sign Out of Orion-9</span>

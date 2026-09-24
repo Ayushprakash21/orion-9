@@ -23,6 +23,7 @@ interface MobileNavigationContextType {
   navigateToTab: (tab: MobileTab) => void;
   openApp: (appId: string) => void;
   closeApp: () => void;
+  openOrionAI: () => void;
   openEntityDetail: (entity: MobileEntityDetail) => void;
   closeEntityDetail: () => void;
   setSearchQuery: (query: string) => void;
@@ -38,6 +39,8 @@ export const MobileNavigationProvider: React.FC<{ children: ReactNode }> = ({ ch
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   const navigateToTab = useCallback((tab: MobileTab) => {
+    setIsDetailSheetOpen(false);
+    setSelectedEntity(null);
     setActiveTab(tab);
     if (tab !== 'app_view') {
       setOpenedAppId(null);
@@ -47,6 +50,8 @@ export const MobileNavigationProvider: React.FC<{ children: ReactNode }> = ({ ch
   }, []);
 
   const openApp = useCallback((appId: string) => {
+    setIsDetailSheetOpen(false);
+    setSelectedEntity(null);
     setOpenedAppId(appId);
     setActiveTab('app_view');
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -55,6 +60,14 @@ export const MobileNavigationProvider: React.FC<{ children: ReactNode }> = ({ ch
   const closeApp = useCallback(() => {
     setOpenedAppId(null);
     setActiveTab('apps');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, []);
+
+  const openOrionAI = useCallback(() => {
+    setIsDetailSheetOpen(false);
+    setSelectedEntity(null);
+    setOpenedAppId(null);
+    setActiveTab('ai');
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
 
@@ -70,6 +83,24 @@ export const MobileNavigationProvider: React.FC<{ children: ReactNode }> = ({ ch
     }, 250);
   }, []);
 
+  // Back Button / ESC Key Interception for transient surfaces
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isDetailSheetOpen) {
+          closeEntityDetail();
+        } else if (activeTab === 'app_view') {
+          closeApp();
+        } else if (activeTab === 'ai') {
+          navigateToTab('home');
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDetailSheetOpen, activeTab, closeEntityDetail, closeApp, navigateToTab]);
+
   const activeApp = openedAppId ? ORION_REGISTRY[openedAppId] || null : null;
 
   return (
@@ -84,6 +115,7 @@ export const MobileNavigationProvider: React.FC<{ children: ReactNode }> = ({ ch
         navigateToTab,
         openApp,
         closeApp,
+        openOrionAI,
         openEntityDetail,
         closeEntityDetail,
         setSearchQuery,

@@ -80,10 +80,14 @@ describe('Orion-9 Mobile Navigation, Workflows & Telemetry Integration', () => {
       </MobileNavigationProvider>
     );
 
-    expect(html).toContain('ORION AI COPILOT');
-    expect(html).toContain('Governed Supply Chain Intelligence');
-    expect(html).toContain('RBAC LEVEL 4');
-    expect(html).toContain('Ask Orion AI Copilot...');
+    expect(html).toContain('ORION AI');
+    expect(html).toContain('Health:');
+    expect(html).toContain('Critical:');
+    expect(html).toContain('Delays:');
+    expect(html).toContain('Stock:');
+    // Quick Actions
+    expect(html).toContain('Show critical inventory risks');
+    expect(html).toContain('Which purchase orders are delayed?');
   });
 
   it('renders Mobile Alerts stream with severity chips and impact calculations', () => {

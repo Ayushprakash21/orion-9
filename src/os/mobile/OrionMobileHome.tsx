@@ -23,14 +23,16 @@ import {
   ChevronRight, 
   Zap, 
   ShieldAlert,
-  ArrowUpRight
+  ArrowUpRight,
+  ArrowRight,
+  Sparkles
 } from 'lucide-react';
 import { formatCurrency, formatNumber } from '../../lib/formatters';
 
 type ChartMetricKey = 'PO_VOLUME' | 'SHIPMENT_VOLUME' | 'INVENTORY_ON_HAND' | 'CONTROL_TOWER_EXCEPTIONS';
 
 export const OrionMobileHome: React.FC = () => {
-  const { navigateToTab, openEntityDetail, openApp } = useMobileNavigation();
+  const { navigateToTab, openEntityDetail, openApp, openOrionAI } = useMobileNavigation();
   const { exceptions, shipments, purchaseOrders, inventory, currency } = useSupplyChain();
   const environment = dbManager.getEnvironment();
   const isLive = environment === 'LIVE';
@@ -195,6 +197,33 @@ export const OrionMobileHome: React.FC = () => {
           <div className="text-[10px] font-mono text-red-400 flex items-center gap-0.5 mt-0.5">
             <span>{exceptions.filter(e => e.severity === 'Critical').length || 3} critical</span>
           </div>
+        </div>
+      </div>
+
+      {/* 3.5 ORION AI COPILOT QUICK ACTION BANNER */}
+      <div 
+        onClick={() => openOrionAI()}
+        className="bg-gradient-to-r from-cyan-950/40 via-os-surface to-os-surface border border-cyan-500/30 rounded-2xl p-3.5 flex items-center justify-between gap-3 active:scale-[0.98] transition-transform cursor-pointer shadow-sm group min-h-[44px]"
+        role="button"
+        aria-label="Launch ORION AI Copilot"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-9 h-9 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
+            <Sparkles size={18} />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-mono font-bold text-os-text-primary">ORION AI ASSISTANT</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            </div>
+            <p className="text-[11px] text-os-text-muted truncate mt-0.5">
+              Ask questions about delayed shipments, stockouts, or suppliers...
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-bold shrink-0 group-hover:bg-cyan-500/20 transition-colors">
+          <span>Ask AI</span>
+          <ArrowRight size={12} />
         </div>
       </div>
 

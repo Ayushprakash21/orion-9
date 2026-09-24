@@ -82,10 +82,15 @@ test.describe('Orion-9 Native Mobile Application Shell Rebuild E2E', () => {
       await expect(page.getByText(/Active Disruption Telemetry/i)).toBeVisible();
       await page.screenshot({ path: `test-results/mobile-${vp.name}-control.png` });
 
-      // 10. Navigate to AI Copilot Tab
-      await bottomNav.getByText('AI').click();
-      await expect(page.getByText(/ORION AI COPILOT/i)).toBeVisible();
-      await expect(page.getByPlaceholder(/Ask Orion AI Copilot/i)).toBeVisible();
+      // 10. Navigate to AI Copilot Tab via Bottom Nav AI button
+      const aiButton = page.locator('button[aria-label="Open ORION AI"]');
+      await expect(aiButton).toBeVisible();
+      await aiButton.click();
+      await expect(page.getByText(/ORION AI/i).first()).toBeVisible();
+      await expect(page.getByPlaceholder(/Ask Orion AI/i)).toBeVisible();
+      
+      // Verify quick actions are present
+      await expect(page.getByRole('button', { name: /Show critical inventory risks/i }).first()).toBeVisible();
       await page.screenshot({ path: `test-results/mobile-${vp.name}-ai.png` });
 
       // 11. Navigate to Alerts Tab

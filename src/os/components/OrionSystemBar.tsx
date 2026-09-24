@@ -237,7 +237,7 @@ export function OrionSystemBar() {
             )}
           </button>
           {notificationsOpen && (
-            <div className="notification-popover absolute right-0 top-[calc(100%+6px)] w-[min(390px,calc(100vw-24px))] max-h-[calc(100vh-66px)] z-[2147483600] bg-os-surface border border-os-border rounded-lg shadow-2xl overflow-hidden">
+            <div className="notification-popover fixed sm:absolute right-2 sm:right-0 top-[calc(env(safe-area-inset-top,0px)+46px)] sm:top-[calc(100%+6px)] w-[min(calc(100vw-16px),420px)] max-h-[calc(100dvh-120px)] sm:max-h-[480px] z-40 bg-os-surface border border-os-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
               <NotificationCenter isOpen={true} onClose={() => setNotificationsOpen(false)} />
             </div>
           )}

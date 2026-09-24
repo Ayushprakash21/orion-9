@@ -137,6 +137,19 @@ describe('Orion-9 Mobile Application Shell Rebuild Architecture', () => {
 
       expect(html).toContain('2');
     });
+
+    it('renders AI button with dedicated accessibility attributes and pointer events enabled', () => {
+      const html = renderToString(
+        <MobileNavigationProvider>
+          <OrionMobileBottomNav />
+        </MobileNavigationProvider>
+      );
+
+      expect(html).toContain('aria-label="Open ORION AI"');
+      expect(html).toContain('role="button"');
+      expect(html).toContain('z-50');
+      expect(html).toContain('pointer-events-auto');
+    });
   });
 
   describe('3. Mobile Shell Presentation Invariants', () => {
