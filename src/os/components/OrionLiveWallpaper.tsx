@@ -20,6 +20,7 @@ const LOGO_IMAGE = '/orion-9-official-logo.png';
 
 interface OrionLiveWallpaperProps {
   hasOpenWindows?: boolean;
+  showLogo?: boolean;
 }
 
 interface SCMNode {
@@ -43,7 +44,7 @@ interface SCMRoute {
   color: string;
 }
 
-export function OrionLiveWallpaper({ hasOpenWindows = false }: OrionLiveWallpaperProps) {
+export function OrionLiveWallpaper({ hasOpenWindows = false, showLogo = true }: OrionLiveWallpaperProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isIdle, setIsIdle] = useState(false);
   const idleTimerRef = useRef<any>(null);
@@ -329,24 +330,26 @@ export function OrionLiveWallpaper({ hasOpenWindows = false }: OrionLiveWallpape
       {/* 4. Canvas for Route Illumination, Node Activity, and Atmospheric Motion */}
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-[1]" />
 
-      {/* 5. Official Orion-9 Metallic Logo Watermark in Left Corner (2nd Image) */}
-      <div 
-        className={cn(
-          "absolute top-14 left-8 z-[2] select-none pointer-events-none transition-all duration-700 ease-out",
-          hasOpenWindows 
-            ? "opacity-35 scale-95" 
-            : isIdle 
-              ? "opacity-95 scale-[1.02]" 
-              : "opacity-85 scale-100"
-        )}
-      >
-        <img
-          src={LOGO_IMAGE}
-          alt="ORION-9 Supply Chain Intelligence"
-          className="w-44 sm:w-48 lg:w-52 h-auto object-contain drop-shadow-[0_4px_24px_rgba(0,0,0,0.85)] filter brightness-105"
-          draggable={false}
-        />
-      </div>
+      {/* 5. Official Orion-9 Metallic Logo Watermark in Left Corner (Desktop only) */}
+      {showLogo && (
+        <div 
+          className={cn(
+            "hidden md:block absolute top-14 left-8 z-[2] select-none pointer-events-none transition-all duration-700 ease-out",
+            hasOpenWindows 
+              ? "opacity-35 scale-95" 
+              : isIdle 
+                ? "opacity-95 scale-[1.02]" 
+                : "opacity-85 scale-100"
+          )}
+        >
+          <img
+            src={LOGO_IMAGE}
+            alt="ORION-9 Supply Chain Intelligence"
+            className="w-44 sm:w-48 lg:w-52 h-auto object-contain drop-shadow-[0_4px_24px_rgba(0,0,0,0.85)] filter brightness-105"
+            draggable={false}
+          />
+        </div>
+      )}
     </div>
   );
 }

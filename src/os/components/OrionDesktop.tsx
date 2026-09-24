@@ -38,7 +38,6 @@ import {
 
 export function OrionDesktop() {
   const { isAuthenticated, currentUser } = useAuth();
-  const { isMobile } = useResponsiveLayout();
 
   const {
     activeAppId,
@@ -62,12 +61,6 @@ export function OrionDesktop() {
   // Invariant Guard: Shell MUST NOT render if unauthenticated
   if (!isAuthenticated || !currentUser) {
     return null;
-  }
-
-  // FIRST-CLASS MOBILE SHELL DISPATCH:
-  // Mobile uses dedicated Single-Screen Application Shell & Bottom Navigation
-  if (isMobile) {
-    return <OrionMobileShell />;
   }
 
   // Filter windows to current workspace and non-closed
@@ -260,12 +253,9 @@ export function OrionDesktop() {
       </div>
 
         
-        {/* Render open windows: single active surface on mobile, multi-window on desktop */}
+        {/* Render open windows in desktop multi-window mode */}
         <AnimatePresence>
-          {(isMobile 
-            ? (currentWorkspaceWindows.filter(w => w.id === activeAppId && w.state !== 'minimized'))
-            : currentWorkspaceWindows
-          ).map(win => (
+          {currentWorkspaceWindows.map(win => (
             <OrionWindow
               key={win.id}
               window={win}

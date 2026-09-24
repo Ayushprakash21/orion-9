@@ -115,8 +115,10 @@ import { OrionSleepScreen } from './os/components/OrionSleepScreen';
 import { OrionShutdownScreen } from './os/components/OrionShutdownScreen';
 import { OrionDisplayPreferencesProvider } from './os/DisplayPreferences';
 
+import { OrionResponsiveShell } from './os/OrionResponsiveShell';
+
 /**
- * Main Application routes (Hosted inside Orion Desktop Window Manager)
+ * Main Application routes (Hosted inside Orion Responsive OS Runtime)
  */
 function MainApplicationRoutes() {
   const { isAuthenticated, currentUser } = useAuth();
@@ -130,7 +132,7 @@ function MainApplicationRoutes() {
     <OrionWindowManager>
       <OrionSearchProvider>
         <OrionContextMenuProvider>
-          <OrionDesktop />
+          <OrionResponsiveShell />
         </OrionContextMenuProvider>
       </OrionSearchProvider>
     </OrionWindowManager>

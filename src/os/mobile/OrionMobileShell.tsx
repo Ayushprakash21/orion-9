@@ -38,7 +38,7 @@ export const OrionMobileShell: React.FC = () => {
           className="fixed inset-0 pointer-events-none z-0 opacity-10 overflow-hidden"
           aria-hidden="true"
         >
-          <OrionLiveWallpaper hasOpenWindows={false} />
+          <OrionLiveWallpaper hasOpenWindows={false} showLogo={false} />
         </div>
 
         {/* Mobile Header (Fixed/Sticky Top - Layer 30) */}
