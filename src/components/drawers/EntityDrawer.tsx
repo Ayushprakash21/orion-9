@@ -55,7 +55,7 @@ export const EntityDrawer: React.FC = () => {
   if (!activeEntity) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[2147483640] flex justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div 
         className="absolute inset-0" 
         onClick={handleClose} 

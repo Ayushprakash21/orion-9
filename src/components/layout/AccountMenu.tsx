@@ -70,7 +70,7 @@ export const AccountMenu = ({ closeSidebar }: { closeSidebar?: () => void }) => 
       </button>
 
       {isOpen && (
-        <div className="absolute top-8 right-0 w-64 bg-os-surface/95 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.02)] py-1.5 text-[13px] font-sans overflow-hidden origin-top-right animate-in fade-in slide-in-from-top-2 duration-200 z-[150]">
+        <div className="absolute top-8 right-0 w-64 bg-os-surface/95 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.02)] py-1.5 text-[13px] font-sans overflow-hidden origin-top-right animate-in fade-in slide-in-from-top-2 duration-200 z-[2147483600]">
           <div className="px-4 py-2 border-b border-os-border mb-1.5">
             <p className="text-[13px] text-os-text-primary font-medium truncate">{profile?.fullName}</p>
             <p className="text-[11px] text-os-text-muted truncate">{profile?.email}</p>

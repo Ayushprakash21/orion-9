@@ -7,7 +7,7 @@ export const ConfirmModal: React.FC = () => {
   if (!confirmModal || !confirmModal.isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs transition-opacity animate-fadeIn p-4">
+    <div className="fixed inset-0 z-[2147483640] flex items-center justify-center bg-black/70 backdrop-blur-xs transition-opacity animate-fadeIn p-4">
       <div className="bg-os-surface border border-os-border rounded-xl max-w-md w-full p-6 space-y-5 shadow-2xl text-os-text-primary">
         <div>
           <h3 className="text-base font-medium tracking-tight text-os-text-primary">{confirmModal.title}</h3>

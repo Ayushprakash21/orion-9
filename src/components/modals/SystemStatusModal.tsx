@@ -28,7 +28,7 @@ export const SystemStatusModal: React.FC<SystemStatusModalProps> = ({ isOpen, on
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
+    <div className="fixed inset-0 z-[2147483640] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in">
       <div className="relative w-full max-w-lg rounded-xl bg-os-surface border border-os-border shadow-2xl overflow-hidden animate-in zoom-in-95">
         <div className="flex items-center justify-between px-6 py-4 bg-os-surface border-b border-os-border">
           <div className="flex items-center gap-2">

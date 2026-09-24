@@ -61,7 +61,7 @@ export function OrionApplicationLauncher() {
 
   return (
     <div 
-      className="fixed inset-0 z-[120] flex items-end justify-center pointer-events-auto"
+      className="fixed inset-0 z-[2147483620] flex items-end justify-center pointer-events-auto"
       onClick={() => setLauncherOpen(false)}
     >
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in" />

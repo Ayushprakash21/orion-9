@@ -139,7 +139,7 @@ export function OrionSystemBar() {
         </button>
 
         {menuOpen && (
-          <div className="absolute top-[48px] left-2 z-[150]">
+          <div className="absolute top-[48px] left-2 z-[2147483600]">
             <OrionSystemMenu onClose={() => setMenuOpen(false)} />
           </div>
         )}
@@ -210,7 +210,7 @@ export function OrionSystemBar() {
             )}
           </button>
           {notificationsOpen && (
-            <div className="notification-popover absolute right-0 top-[calc(100%+6px)] w-[min(390px,calc(100vw-24px))] max-h-[calc(100vh-66px)] z-[1200] bg-os-surface border border-os-border rounded-lg shadow-2xl overflow-hidden">
+            <div className="notification-popover absolute right-0 top-[calc(100%+6px)] w-[min(390px,calc(100vw-24px))] max-h-[calc(100vh-66px)] z-[2147483600] bg-os-surface border border-os-border rounded-lg shadow-2xl overflow-hidden">
               <NotificationCenter isOpen={true} onClose={() => setNotificationsOpen(false)} />
             </div>
           )}
@@ -241,7 +241,7 @@ export function OrionSystemBar() {
           title="Open Time & World"
         >
           {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          <span className="pointer-events-none absolute right-0 top-[calc(100%+7px)] z-[1600] min-w-[190px] rounded-md border border-os-border bg-os-surface/95 backdrop-blur-xl px-3 py-2 text-left opacity-0 translate-y-[-3px] group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 shadow-2xl">
+          <span className="pointer-events-none absolute right-0 top-[calc(100%+7px)] z-[2147483600] min-w-[190px] rounded-md border border-os-border bg-os-surface/95 backdrop-blur-xl px-3 py-2 text-left opacity-0 translate-y-[-3px] group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 shadow-2xl">
             <span className="block font-mono text-[12px] text-os-text-primary">{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
             <span className="block mt-1 text-[10px] text-os-text-secondary">{new Intl.DateTimeFormat(undefined, { timeZoneName: 'long' }).formatToParts(currentTime).find(p => p.type === 'timeZoneName')?.value || 'Local Time'}</span>
             <span className="block mt-0.5 text-[9px] font-mono text-cyan-300">{Intl.DateTimeFormat().resolvedOptions().timeZone}</span>

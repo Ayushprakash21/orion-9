@@ -331,7 +331,7 @@ export function OrionCommandPalette() {
 
   return (
     <div 
-      className="fixed inset-0 z-[150] bg-black/60 backdrop-blur-md flex items-start justify-center pt-[12vh] p-4 animate-in fade-in duration-150 select-none"
+      className="fixed inset-0 z-[2147483620] bg-black/60 backdrop-blur-md flex items-start justify-center pt-[12vh] p-4 animate-in fade-in duration-150 select-none"
       onClick={() => setCommandPaletteOpen(false)}
     >
       <div 
