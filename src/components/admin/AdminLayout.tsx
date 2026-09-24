@@ -3,25 +3,19 @@ import { NavLink, Outlet, Navigate, useNavigate } from 'react-router-dom';
 import { BrandLogo } from '../brand/BrandLogo';
 import { brandingRepository } from '../../repositories/BrandingRepository';
 import { BrandingConfig } from '../../types/auth';
-import { 
-  Users, Activity, Settings, 
-  Palette, LayoutDashboard, Menu, X,
-  Building2, Shield, BrainCircuit, BookOpen,
-  FileCheck, Sliders, Compass, RotateCcw, ShieldCheck, Award,
-  AlertOctagon, GitCommit, Globe, Globe2, Network, Users2, FileSpreadsheet, ShieldAlert, Gauge,
-  Database
-} from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { AccountMenu } from '../layout/AccountMenu';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { DatabaseEnvironmentMode } from '../../core/database/DatabaseEnvironment';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../store/AuthContext';
 import { ErrorBoundary } from '../ErrorBoundary';
+import OrionAppIcon from '../brand/OrionAppIcon';
 
 interface MenuItem {
   name: string;
   path: string;
-  icon: React.ElementType;
+  appId: string;
   exact?: boolean;
 }
 
@@ -66,37 +60,37 @@ export const AdminLayout = () => {
   }
 
   const menuItems: MenuItem[] = [
-    { name: 'Overview', path: '/admin', icon: LayoutDashboard, exact: true },
-    { name: 'Database Control Plane', path: '/admin/database', icon: Database },
-    { name: 'Operations Center', path: '/admin/operations', icon: Activity },
-    { name: 'Incident Center', path: '/admin/incidents', icon: AlertOctagon },
-    { name: 'Configuration Center', path: '/admin/configurations', icon: Sliders },
-    { name: 'Release Center', path: '/admin/releases', icon: GitCommit },
-    { name: 'AI + Manual Control Center', path: '/admin/control-center', icon: BrainCircuit },
-    { name: 'AI Workforce Center', path: '/admin/ai-workforce', icon: BrainCircuit },
-    { name: 'Global Operations', path: '/admin/global-ops', icon: Globe },
-    { name: 'Regional Operations', path: '/admin/regional-ops', icon: Globe2 },
-    { name: 'Integration Gateway', path: '/admin/integration-gateway', icon: Network },
-    { name: 'Trading Partners', path: '/admin/trading-partners', icon: Users2 },
-    { name: 'Reconciliation', path: '/admin/reconciliation', icon: FileSpreadsheet },
-    { name: 'Resilience & DR', path: '/admin/resilience', icon: ShieldAlert },
-    { name: 'Security Red Team', path: '/admin/security-redteam', icon: AlertOctagon },
-    { name: 'Platform Maturity', path: '/admin/platform-maturity', icon: Award },
-    { name: 'Scale & Performance', path: '/admin/scale-performance', icon: Gauge },
+    { name: 'Overview', path: '/admin', appId: 'command-center', exact: true },
+    { name: 'Database Control Plane', path: '/admin/database', appId: 'master-data' },
+    { name: 'Operations Center', path: '/admin/operations', appId: 'admin-operations' },
+    { name: 'Incident Center', path: '/admin/incidents', appId: 'admin-incidents' },
+    { name: 'Configuration Center', path: '/admin/configurations', appId: 'configuration-center' },
+    { name: 'Release Center', path: '/admin/releases', appId: 'release-center' },
+    { name: 'AI + Manual Control Center', path: '/admin/control-center', appId: 'admin-control' },
+    { name: 'AI Workforce Center', path: '/admin/ai-workforce', appId: 'ai-workforce' },
+    { name: 'Global Operations', path: '/admin/global-ops', appId: 'admin-global-ops' },
+    { name: 'Regional Operations', path: '/admin/regional-ops', appId: 'admin-regional-ops' },
+    { name: 'Integration Gateway', path: '/admin/integration-gateway', appId: 'integration-gateway' },
+    { name: 'Trading Partners', path: '/admin/trading-partners', appId: 'trading-partners' },
+    { name: 'Reconciliation', path: '/admin/reconciliation', appId: 'reconciliation' },
+    { name: 'Resilience & DR', path: '/admin/resilience', appId: 'failover-center' },
+    { name: 'Security Red Team', path: '/admin/security-redteam', appId: 'policies' },
+    { name: 'Platform Maturity', path: '/admin/platform-maturity', appId: 'platform-maturity' },
+    { name: 'Scale & Performance', path: '/admin/scale-performance', appId: 'scale-performance' },
 
-    { name: 'Outcome Center', path: '/admin/outcomes', icon: FileCheck },
-    { name: 'Learning Center', path: '/admin/learning', icon: Sliders },
-    { name: 'Drift Center', path: '/admin/drift', icon: Compass },
-    { name: 'Rollback Center', path: '/admin/rollback', icon: RotateCcw },
-    { name: 'Production Readiness', path: '/admin/readiness', icon: ShieldCheck },
-    { name: 'Platform Intelligence', path: '/admin/platform-intelligence', icon: BrainCircuit },
-    { name: 'Users', path: '/admin/users', icon: Users },
-    { name: 'Organizations', path: '/admin/organizations', icon: Building2 },
-    { name: 'Roles & Access', path: '/admin/roles', icon: Shield },
-    { name: 'Branding', path: '/admin/branding', icon: Palette },
-    { name: 'Settings', path: '/admin/settings', icon: Settings, exact: true },
-    { name: 'Audit Activity', path: '/admin/audit-logs', icon: Activity },
-    { name: 'ORION-9 Manual', path: '/admin/manual', icon: BookOpen },
+    { name: 'Outcome Center', path: '/admin/outcomes', appId: 'outcome-center' },
+    { name: 'Learning Center', path: '/admin/learning', appId: 'learning-center' },
+    { name: 'Drift Center', path: '/admin/drift', appId: 'drift-center' },
+    { name: 'Rollback Center', path: '/admin/rollback', appId: 'rollback-center' },
+    { name: 'Production Readiness', path: '/admin/readiness', appId: 'production-readiness' },
+    { name: 'Platform Intelligence', path: '/admin/platform-intelligence', appId: 'platform-intelligence' },
+    { name: 'Users', path: '/admin/users', appId: 'profile' },
+    { name: 'Organizations', path: '/admin/organizations', appId: 'organization' },
+    { name: 'Roles & Access', path: '/admin/roles', appId: 'approval-center' },
+    { name: 'Branding', path: '/admin/branding', appId: 'settings' },
+    { name: 'Settings', path: '/admin/settings', appId: 'settings', exact: true },
+    { name: 'Audit Activity', path: '/admin/audit-logs', appId: 'time-machine' },
+    { name: 'ORION-9 Manual', path: '/admin/manual', appId: 'user-manual' },
   ];
 
   return (
@@ -202,7 +196,7 @@ export const AdminLayout = () => {
                     : "text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface border border-transparent"
                 )}
               >
-                <item.icon size={16} className={cn("transition-colors")} />
+                <OrionAppIcon app={item.appId} size={20} className="shrink-0" />
                 {item.name}
               </NavLink>
             ))}

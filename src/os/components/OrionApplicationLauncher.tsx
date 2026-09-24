@@ -5,6 +5,7 @@ import { Search, X, Play, Square, Grid2X2, List } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useOrionContextMenu } from '../contextMenu/OrionContextMenuContext';
 import { useAuth } from '../../store/AuthContext';
+import OrionAppIcon from '../../components/brand/OrionAppIcon';
 
 export function OrionApplicationLauncher() {
   const { launcherOpen, setLauncherOpen, openApplication, focusApplication, windows, dockPinnedApps, pinToDock, unpinFromDock } = useWindowManager();
@@ -168,7 +169,6 @@ interface AppRowProps {
 
 function AppGridCard({ app, onClick, isPinned, pinToDock, unpinFromDock, isOpen }: AppRowProps) {
   const { openContextMenu } = useOrionContextMenu();
-  const Icon = app.icon;
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault(); e.stopPropagation();
     openContextMenu({ x: e.clientX, y: e.clientY, targetType: 'dock', targetId: app.id, items: [
@@ -177,11 +177,9 @@ function AppGridCard({ app, onClick, isPinned, pinToDock, unpinFromDock, isOpen 
     ]});
   };
   return (
-    <button type="button" onClick={onClick} onContextMenu={handleContextMenu} className="min-h-[118px] rounded-xl border border-os-border bg-os-surface-hover/40 p-3 text-left hover:bg-os-surface-active hover:border-os-accent/30 transition-all outline-none">
+    <button type="button" onClick={onClick} onContextMenu={handleContextMenu} className="min-h-[118px] rounded-xl border border-os-border bg-os-surface-hover/40 p-3 text-left hover:bg-os-surface-active hover:border-os-accent/30 transition-all outline-none group">
       <div className="flex items-start justify-between gap-2">
-        <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: `${app.color}15`, border: `1px solid ${app.color}30` }}>
-          <Icon className="w-5 h-5" style={{ color: app.color }} />
-        </div>
+        <OrionAppIcon app={app.id} size={42} className="transition-transform duration-200 group-hover:scale-105" />
         <span className="text-[9px] uppercase tracking-wider text-slate-500">{isOpen ? 'Running' : 'Open'}</span>
       </div>
       <div className="mt-3 min-w-0">
@@ -194,7 +192,6 @@ function AppGridCard({ app, onClick, isPinned, pinToDock, unpinFromDock, isOpen 
 
 function AppRow({ app, onClick, isPinned, pinToDock, unpinFromDock, isOpen }: AppRowProps) {
   const { openContextMenu } = useOrionContextMenu();
-  const Icon = app.icon;
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -225,17 +222,9 @@ function AppRow({ app, onClick, isPinned, pinToDock, unpinFromDock, isOpen }: Ap
     <button 
       onClick={onClick}
       onContextMenu={handleContextMenu}
-      className="flex items-center gap-4 group outline-none w-full px-3 py-2.5 hover:bg-os-surface-hover focus:bg-os-surface-hover rounded-xl transition-all duration-200"
+      className="flex items-center gap-4 group outline-none w-full px-3 py-2 hover:bg-os-surface-hover focus:bg-os-surface-hover rounded-xl transition-all duration-200"
     >
-      <div 
-        className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-all duration-300 group-hover:scale-105 group-hover:shadow-[0_0_15px_rgba(0,242,254,0.15)]"
-        style={{ 
-          backgroundColor: `${app.color}15`, 
-          border: `1px solid ${app.color}30`
-        }}
-      >
-        <Icon className={cn("w-5 h-5 transition-transform duration-300 group-hover:scale-110", app.id === 'command-center' && 'group-hover:animate-pulse')} style={{ color: app.color }} />
-      </div>
+      <OrionAppIcon app={app.id} size={38} className="transition-transform duration-200 group-hover:scale-105" />
       
       <div className="flex flex-col items-start min-w-0 flex-1 text-left">
         <span className="text-sm font-semibold text-os-text-primary group-hover:text-os-text-primary transition-colors truncate w-full">

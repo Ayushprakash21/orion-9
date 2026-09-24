@@ -10,6 +10,7 @@ import {
   Sparkles, ExternalLink
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import OrionAppIcon from '../../components/brand/OrionAppIcon';
 
 interface SearchResultItem {
   id: string;
@@ -20,6 +21,7 @@ interface SearchResultItem {
   color: string;
   action: () => void;
   badge?: string;
+  appId?: string;
 }
 
 export function OrionCommandPalette() {
@@ -148,6 +150,7 @@ export function OrionCommandPalette() {
             title: app.name,
             subtitle: app.description,
             category: 'Applications',
+            appId: app.id,
             icon: app.icon,
             color: app.color,
             badge: windows[app.id] ? 'Open' : undefined,
@@ -218,6 +221,7 @@ export function OrionCommandPalette() {
           title: app.name,
           subtitle: app.description,
           category: 'Applications',
+          appId: app.id,
           icon: app.icon,
           color: app.color,
           badge: windows[app.id] ? 'Open' : undefined,
@@ -377,16 +381,20 @@ export function OrionCommandPalette() {
                       : "hover:bg-white/[0.04] text-os-text-secondary"
                   )}
                 >
-                  <div 
-                    className="w-9 h-9 rounded-xl flex items-center justify-center mr-3.5 shrink-0 border border-os-border"
-                    style={{ 
-                      backgroundColor: `${item.color}15`, 
-                      color: item.color,
-                      backgroundImage: `linear-gradient(180deg, ${item.color}20 0%, transparent 100%)`
-                    }}
-                  >
-                    <Icon className="w-4 h-4" />
-                  </div>
+                  {item.appId ? (
+                    <OrionAppIcon app={item.appId} size={36} className="mr-3.5 shrink-0" />
+                  ) : (
+                    <div 
+                      className="w-9 h-9 rounded-xl flex items-center justify-center mr-3.5 shrink-0 border border-os-border"
+                      style={{ 
+                        backgroundColor: `${item.color}15`, 
+                        color: item.color,
+                        backgroundImage: `linear-gradient(180deg, ${item.color}20 0%, transparent 100%)`
+                      }}
+                    >
+                      <Icon className="w-4 h-4" />
+                    </div>
+                  )}
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">

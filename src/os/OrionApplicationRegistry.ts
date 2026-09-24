@@ -11,6 +11,8 @@ import {
 } from 'lucide-react';
 
 
+import { getAppIconComponent } from './icons/OrionIconRegistry';
+
 export interface OrionApp {
   id: string;
   name: string;
@@ -1011,5 +1013,13 @@ export const ORION_REGISTRY: Record<string, OrionApp> = {
     dockDefault: false,
   },
 };
+
+// Wire every registered application to its authoritative macOS-style vector icon component
+Object.keys(ORION_REGISTRY).forEach((appId) => {
+  const iconComponent = getAppIconComponent(appId);
+  if (iconComponent) {
+    ORION_REGISTRY[appId].icon = iconComponent;
+  }
+});
 
 
