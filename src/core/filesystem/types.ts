@@ -125,6 +125,8 @@ export interface FileSystemEvent {
     | 'FOLDER_CREATED'
     | 'FOLDER_RENAMED'
     | 'FOLDER_DELETED'
+    | 'FOLDER_UPDATED'
+    | 'FOLDER_MOVED'
     | 'DESKTOP_LAYOUT_UPDATED';
   fileId?: string;
   folderId?: string;

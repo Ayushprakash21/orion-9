@@ -657,7 +657,57 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   }
 
   /**
+   * Move folder to new parent with circular hierarchy prevention.
+   */
+  public async moveFolder(
+    folderId: string,
+    newParentId: string | null,
+    tenantId?: string,
+    environment?: 'DEMO' | 'LIVE'
+  ): Promise<OrionFolder> {
+    const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
+    const folder = await this.getFolder(folderId, activeTenant, activeEnv);
+    if (!folder) throw new Error(`Folder ${folderId} not found`);
+    if (folder.isSystem) throw new Error('Cannot move a system root folder');
+
+    if (newParentId === folderId) {
+      throw new Error('Cannot move a folder into itself');
+    }
+
+    if (newParentId !== null) {
+      // Traverse upward from newParentId to ensure folderId is not an ancestor
+      let currentCheckId: string | null = newParentId;
+      while (currentCheckId) {
+        if (currentCheckId === folderId) {
+          throw new Error('Cannot move a folder into its own descendant');
+        }
+        const parentFolder = await this.getFolder(currentCheckId, activeTenant, activeEnv);
+        currentCheckId = parentFolder ? parentFolder.parentId : null;
+      }
+    }
+
+    const now = new Date().toISOString();
+    const updated: OrionFolder = {
+      ...folder,
+      parentId: newParentId,
+      updatedAt: now,
+    };
+
+    await scmPersistenceService.saveRecord('folders', folderId, updated);
+    this.emitEvent({
+      type: 'FOLDER_UPDATED',
+      folderId,
+      tenantId: activeTenant,
+      environment: activeEnv,
+      timestamp: now,
+    });
+
+    return updated;
+  }
+
+  /**
    * Search files across all folders.
+
    */
   public async searchFiles(query: string, tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<OrionFile[]> {
     if (!query.trim()) return [];
@@ -800,7 +850,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
       }
     });
 
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof CustomEvent !== 'undefined') {
       window.dispatchEvent(new CustomEvent('orion:filesystem-change', { detail: event }));
     }
   }

@@ -1,8 +1,9 @@
 /**
- * ORION-9 DESKTOP WORKSPACE
+ * ORION-9 DESKTOP WORKSPACE (CROSS-DEVICE: DESKTOP & TABLET)
  * Draggable, grid-snapped desktop icon workspace with persistent coordinates,
- * multi-workspace isolation, right-click desktop and item context menus,
- * marquee multi-selection, and seamless application/file launching.
+ * touch-first long-press (500-700ms) with drag threshold cancellation,
+ * right-click and touch context menus, keyboard shortcuts (Enter, F2, Delete, Ctrl+N, Ctrl+A),
+ * drag-and-drop into folders/Recycle Bin, and seamless file/app execution.
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
@@ -12,6 +13,7 @@ import { orionFileSystemService } from '../../core/filesystem/OrionFileSystemSer
 import { DesktopShortcut, OrionFile, OrionFolder } from '../../core/filesystem/types';
 import { ORION_REGISTRY } from '../OrionApplicationRegistry';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
+import { useOrionDeviceMode } from '../../lib/useOrionDeviceMode';
 import { useToast } from '../../store/ToastContext';
 import { cn } from '../../lib/utils';
 import {
@@ -28,16 +30,20 @@ import {
   ExternalLink,
   Info,
   Layers,
+  Copy,
+  FolderInput,
 } from 'lucide-react';
 
 export function DesktopWorkspace() {
-  const { activeWorkspaceId, openApplication, setLauncherOpen, setCommandPaletteOpen } = useWindowManager();
+  const { activeWorkspaceId, openApplication } = useWindowManager();
   const { showToast } = useToast();
+  const { isTablet, isTouch } = useOrionDeviceMode();
 
   const [shortcuts, setShortcuts] = useState<DesktopShortcut[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [draggedItem, setDraggedItem] = useState<{ id: string; startX: number; startY: number; curX: number; curY: number } | null>(null);
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
   // Modals / Dialogs
   const [desktopMenu, setDesktopMenu] = useState<{ x: number; y: number } | null>(null);
@@ -46,6 +52,9 @@ export function DesktopWorkspace() {
   const [renameValue, setRenameValue] = useState<string>('');
   const [propertiesItem, setPropertiesItem] = useState<DesktopShortcut | null>(null);
 
+  // Touch Long-Press Timer references
+  const longPressTimerRef = useRef<any>(null);
+  const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Load shortcuts for active workspace
@@ -76,60 +85,206 @@ export function DesktopWorkspace() {
     };
   }, [loadShortcuts]);
 
-  // Handle Drag Pointer events
-  const handlePointerDown = (e: React.PointerEvent, shortcut: DesktopShortcut) => {
-    if (e.button !== 0) return; // Left click only
+  // Keyboard Shortcuts: Enter, F2, Delete, Ctrl+N, Ctrl+A
+  useEffect(() => {
+    const handleKeyDown = async (e: KeyboardEvent) => {
+      // Avoid intercepting if user is typing in an input/textarea
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+
+      const activeSelectedId = Array.from(selectedIds)[0];
+      const selectedShortcut = shortcuts.find(s => s.id === activeSelectedId);
+
+      // 1. Enter -> Open
+      if (e.key === 'Enter' && selectedShortcut) {
+        e.preventDefault();
+        handleDoubleClick(selectedShortcut);
+      }
+      // 2. F2 -> Rename
+      else if (e.key === 'F2' && selectedShortcut) {
+        e.preventDefault();
+        if (selectedShortcut.targetType === 'file' || selectedShortcut.targetType === 'folder') {
+          setRenameItem(selectedShortcut);
+          setRenameValue(selectedShortcut.name);
+        }
+      }
+      // 3. Delete / Backspace -> Move to Recycle Bin
+      else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedShortcut) {
+        e.preventDefault();
+        handleDeleteShortcut(selectedShortcut);
+      }
+      // 4. Ctrl/Cmd+N -> New Document
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        handleCreateDesktopFile();
+      }
+      // 5. Ctrl/Cmd+A -> Select All
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        setSelectedIds(new Set(shortcuts.map(s => s.id)));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedIds, shortcuts]);
+
+  // Cancel Long-Press Timer Helper
+  const cancelLongPress = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    touchStartPosRef.current = null;
+  };
+
+  // Canvas Touch / Pointer Down (Desktop Context Menu on Long Press)
+  const handleCanvasPointerDown = (e: React.PointerEvent) => {
+    if (e.target !== containerRef.current && (e.target as HTMLElement).dataset.desktopCanvas !== 'true') {
+      return;
+    }
+
+    setSelectedIds(new Set());
+    setDesktopMenu(null);
+    setItemMenu(null);
+
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+    touchStartPosRef.current = { x: clientX, y: clientY };
+
+    // Start 600ms long press timer for touch
+    cancelLongPress();
+    longPressTimerRef.current = setTimeout(() => {
+      // Trigger Desktop context menu
+      setDesktopMenu({ x: clientX, y: clientY });
+      cancelLongPress();
+    }, 600);
+  };
+
+  // Item Pointer Down (Drag + Long Press on Icon)
+  const handleItemPointerDown = (e: React.PointerEvent, shortcut: DesktopShortcut) => {
+    if (e.button !== 0) return; // Primary pointer only
     e.stopPropagation();
-    setSelectedId(shortcut.id);
+
+    // Multi-selection with Ctrl / Shift
+    if (e.ctrlKey || e.metaKey) {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        if (next.has(shortcut.id)) next.delete(shortcut.id);
+        else next.add(shortcut.id);
+        return next;
+      });
+    } else {
+      setSelectedIds(new Set([shortcut.id]));
+    }
+
+    const clientX = e.clientX;
+    const clientY = e.clientY;
+    touchStartPosRef.current = { x: clientX, y: clientY };
 
     setDraggedItem({
       id: shortcut.id,
-      startX: e.clientX - shortcut.x,
-      startY: e.clientY - shortcut.y,
+      startX: clientX - shortcut.x,
+      startY: clientY - shortcut.y,
       curX: shortcut.x,
       curY: shortcut.y,
     });
     setIsDragging(false);
+
+    // Start 600ms long press timer for item menu
+    cancelLongPress();
+    longPressTimerRef.current = setTimeout(() => {
+      if (!isDragging) {
+        setItemMenu({ x: clientX, y: clientY, shortcut });
+        cancelLongPress();
+      }
+    }, 600);
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
+    if (touchStartPosRef.current) {
+      const dist = Math.hypot(e.clientX - touchStartPosRef.current.x, e.clientY - touchStartPosRef.current.y);
+      // If moved beyond 8px threshold, cancel long-press
+      if (dist > 8) {
+        cancelLongPress();
+      }
+    }
+
     if (!draggedItem) return;
     const newX = e.clientX - draggedItem.startX;
     const newY = e.clientY - draggedItem.startY;
 
-    if (Math.abs(newX - draggedItem.curX) > 4 || Math.abs(newY - draggedItem.curY) > 4) {
+    if (Math.abs(newX - draggedItem.curX) > 6 || Math.abs(newY - draggedItem.curY) > 6) {
       setIsDragging(true);
+      cancelLongPress();
     }
 
     setDraggedItem(prev => (prev ? { ...prev, curX: newX, curY: newY } : null));
+
+    // Detect drop targets under pointer (e.g. folder or Recycle Bin)
+    const targetElement = document.elementFromPoint(e.clientX, e.clientY);
+    const targetShortcutEl = targetElement?.closest('[data-shortcut-id]');
+    const targetShortcutId = targetShortcutEl?.getAttribute('data-shortcut-id');
+
+    if (targetShortcutId && targetShortcutId !== draggedItem.id) {
+      const targetShortcut = shortcuts.find(s => s.id === targetShortcutId);
+      if (targetShortcut && (targetShortcut.targetType === 'folder' || targetShortcut.targetId === 'recycle-bin')) {
+        setDropTargetId(targetShortcut.id);
+      } else {
+        setDropTargetId(null);
+      }
+    } else {
+      setDropTargetId(null);
+    }
   };
 
   const handlePointerUp = async (e: React.PointerEvent) => {
+    cancelLongPress();
+
     if (!draggedItem) return;
 
     if (isDragging) {
-      const vWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
-      const vHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
+      // 1. Check if dropped onto a folder or Recycle Bin
+      if (dropTargetId) {
+        const target = shortcuts.find(s => s.id === dropTargetId);
+        const source = shortcuts.find(s => s.id === draggedItem.id);
 
-      try {
-        const updated = await desktopWorkspaceService.updateShortcutPosition(
-          draggedItem.id,
-          draggedItem.curX,
-          draggedItem.curY,
-          vWidth,
-          vHeight
-        );
-        setShortcuts(prev => prev.map(s => (s.id === updated.id ? updated : s)));
-      } catch (err) {
-        console.error('Failed to save icon position', err);
+        if (target && source) {
+          if (target.targetId === 'recycle-bin') {
+            await handleDeleteShortcut(source);
+            showToast(`Moved ${source.name} to Recycle Bin`, 'info', 'Desktop');
+          } else if (target.targetType === 'folder') {
+            if (source.targetType === 'file') {
+              await orionFileSystemService.moveFile(source.targetId, target.targetId);
+              showToast(`Moved ${source.name} to ${target.name}`, 'success', 'Desktop');
+            }
+          }
+        }
+      } else {
+        // 2. Normal drop: Snap to Grid with boundary clamping
+        const vWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
+        const vHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
+
+        try {
+          const updated = await desktopWorkspaceService.updateShortcutPosition(
+            draggedItem.id,
+            draggedItem.curX,
+            draggedItem.curY,
+            vWidth,
+            vHeight
+          );
+          setShortcuts(prev => prev.map(s => (s.id === updated.id ? updated : s)));
+        } catch (err) {
+          console.error('Failed to save icon position', err);
+        }
       }
     }
 
     setDraggedItem(null);
     setIsDragging(false);
+    setDropTargetId(null);
   };
 
-  // Double Click Launch
+  // Launch item on double-click or tap
   const handleDoubleClick = (shortcut: DesktopShortcut) => {
     if (shortcut.targetType === 'application' || shortcut.targetType === 'system') {
       openApplication(shortcut.targetId);
@@ -216,7 +371,6 @@ export function DesktopWorkspace() {
       } else if (shortcut.targetType === 'folder') {
         await orionFileSystemService.deleteFolder(shortcut.targetId);
       }
-      // Reload desktop items
       await loadShortcuts();
       setItemMenu(null);
       showToast(`Moved ${shortcut.name} to Recycle Bin`, 'info', 'Desktop');
@@ -244,40 +398,40 @@ export function DesktopWorkspace() {
 
   // Icon Renderer Helper
   const renderShortcutIcon = (shortcut: DesktopShortcut, isSelected: boolean) => {
+    const iconSize = isTablet ? 54 : 48;
+
     if (shortcut.targetType === 'application' || shortcut.targetType === 'system') {
-      return <OrionAppIcon app={shortcut.targetId} size={50} active={isSelected} />;
+      return <OrionAppIcon app={shortcut.targetId} size={iconSize} active={isSelected} />;
     }
     if (shortcut.targetType === 'folder') {
-      return <Folder size={46} className="text-amber-400 drop-shadow" />;
+      return <Folder size={iconSize} className="text-amber-400 drop-shadow" />;
     }
     if (shortcut.targetType === 'file') {
-      return <FileText size={46} className="text-cyan-400 drop-shadow" />;
+      return <FileText size={iconSize} className="text-cyan-400 drop-shadow" />;
     }
-    return <HardDrive size={46} className="text-os-accent drop-shadow" />;
+    return <HardDrive size={iconSize} className="text-os-accent drop-shadow" />;
   };
 
   return (
     <div
       ref={containerRef}
       data-desktop-canvas="true"
-      className="absolute inset-0 z-0 pointer-events-auto overflow-hidden select-none"
-      onClick={() => {
-        setSelectedId(null);
-        setDesktopMenu(null);
-        setItemMenu(null);
-      }}
+      className="absolute inset-0 z-0 pointer-events-auto overflow-hidden select-none touch-manipulation"
+      onPointerDown={handleCanvasPointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
+      onPointerCancel={cancelLongPress}
       onContextMenu={e => {
         e.preventDefault();
         setItemMenu(null);
         setDesktopMenu({ x: e.clientX, y: e.clientY });
       }}
     >
-      {/* Desktop Icons Canvas */}
+      {/* Desktop Shortcuts Canvas */}
       {shortcuts.map(shortcut => {
         const isBeingDragged = draggedItem?.id === shortcut.id && isDragging;
-        const isSelected = selectedId === shortcut.id;
+        const isSelected = selectedIds.has(shortcut.id);
+        const isDropTarget = dropTargetId === shortcut.id;
         const displayX = isBeingDragged ? draggedItem.curX : shortcut.x;
         const displayY = isBeingDragged ? draggedItem.curY : shortcut.y;
 
@@ -290,7 +444,7 @@ export function DesktopWorkspace() {
               width: `${DEFAULT_GRID_CONFIG.cellWidth}px`,
               height: `${DEFAULT_GRID_CONFIG.cellHeight}px`,
             }}
-            onPointerDown={e => handlePointerDown(e, shortcut)}
+            onPointerDown={e => handleItemPointerDown(e, shortcut)}
             onDoubleClick={e => {
               e.stopPropagation();
               handleDoubleClick(shortcut);
@@ -298,14 +452,15 @@ export function DesktopWorkspace() {
             onContextMenu={e => {
               e.preventDefault();
               e.stopPropagation();
-              setSelectedId(shortcut.id);
+              setSelectedIds(new Set([shortcut.id]));
               setDesktopMenu(null);
               setItemMenu({ x: e.clientX, y: e.clientY, shortcut });
             }}
             className={cn(
-              "absolute top-0 left-0 flex flex-col items-center justify-center p-2 rounded-xl cursor-pointer transition-shadow select-none group touch-none",
-              isBeingDragged && "z-50 opacity-90 scale-105 shadow-2xl",
-              isSelected
+              "absolute top-0 left-0 flex flex-col items-center justify-center p-2 rounded-xl cursor-pointer transition-shadow select-none group touch-none min-h-[44px] min-w-[44px]",
+              isBeingDragged && "z-50 opacity-90 scale-105 shadow-2xl ring-2 ring-os-accent",
+              isDropTarget && "bg-cyan-500/30 ring-2 ring-cyan-400 scale-110",
+              isSelected && !isBeingDragged
                 ? "bg-os-accent/20 border border-os-accent/50 shadow-md backdrop-blur-xs"
                 : "hover:bg-os-surface-hover/30 border border-transparent"
             )}
@@ -327,15 +482,19 @@ export function DesktopWorkspace() {
         );
       })}
 
-      {/* Desktop Right-Click Context Menu */}
+      {/* Desktop Right-Click / Long-Press Context Menu */}
       {desktopMenu && (
         <div
           className="fixed z-50 bg-os-surface/95 backdrop-blur-md border border-os-border rounded-xl shadow-2xl py-1.5 w-52 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95"
-          style={{ top: desktopMenu.y, left: desktopMenu.x }}
+          style={{
+            top: Math.min(desktopMenu.y, typeof window !== 'undefined' ? window.innerHeight - 260 : 600),
+            left: Math.min(desktopMenu.x, typeof window !== 'undefined' ? window.innerWidth - 220 : 1200),
+          }}
           onClick={e => e.stopPropagation()}
         >
-          <div className="px-3 py-1 text-[10px] font-bold text-os-text-muted uppercase tracking-wider">
-            Desktop View
+          <div className="px-3 py-1 text-[10px] font-bold text-os-text-muted uppercase tracking-wider flex items-center justify-between">
+            <span>Desktop Workspace</span>
+            {isTablet && <span className="text-os-accent text-[9px]">Touch</span>}
           </div>
 
           <button
@@ -344,40 +503,40 @@ export function DesktopWorkspace() {
               window.dispatchEvent(new CustomEvent('orion:desktop-refresh', { detail: { timestamp: Date.now() } }));
               setDesktopMenu(null);
             }}
-            className="flex items-center gap-2 px-3 py-1.5 hover:bg-os-surface-hover text-os-text-primary text-left"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
           >
-            <RefreshCw size={13} className="text-os-accent" />
+            <RefreshCw size={14} className="text-os-accent" />
             <span>Refresh Desktop</span>
             <span className="ml-auto text-[10px] text-os-text-muted">F5</span>
           </button>
 
           <div className="h-px bg-os-border/50 my-1" />
 
-          {/* Sort Submenu */}
+          {/* Sort Actions */}
           <button
             type="button"
             onClick={() => handleAutoArrange('name')}
-            className="flex items-center gap-2 px-3 py-1.5 hover:bg-os-surface-hover text-os-text-primary text-left"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
           >
-            <ArrowUpDown size={13} className="text-cyan-400" />
+            <ArrowUpDown size={14} className="text-cyan-400" />
             <span>Sort by Name</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleAutoArrange('type')}
-            className="flex items-center gap-2 px-3 py-1.5 hover:bg-os-surface-hover text-os-text-primary text-left"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
           >
-            <Layers size={13} className="text-amber-400" />
+            <Layers size={14} className="text-amber-400" />
             <span>Sort by Item Type</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleAutoArrange('date')}
-            className="flex items-center gap-2 px-3 py-1.5 hover:bg-os-surface-hover text-os-text-primary text-left"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
           >
-            <Sliders size={13} className="text-purple-400" />
+            <Sliders size={14} className="text-purple-400" />
             <span>Sort by Date Modified</span>
           </button>
 
@@ -387,18 +546,18 @@ export function DesktopWorkspace() {
           <button
             type="button"
             onClick={handleCreateDesktopFile}
-            className="flex items-center gap-2 px-3 py-1.5 hover:bg-os-surface-hover text-os-text-primary text-left"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
           >
-            <Plus size={13} className="text-cyan-400" />
+            <Plus size={14} className="text-cyan-400" />
             <span>New Text Document</span>
           </button>
 
           <button
             type="button"
             onClick={handleCreateDesktopFolder}
-            className="flex items-center gap-2 px-3 py-1.5 hover:bg-os-surface-hover text-os-text-primary text-left"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
           >
-            <Plus size={13} className="text-amber-400" />
+            <Plus size={14} className="text-amber-400" />
             <span>New Folder</span>
           </button>
 
@@ -410,19 +569,22 @@ export function DesktopWorkspace() {
               openApplication('settings');
               setDesktopMenu(null);
             }}
-            className="flex items-center gap-2 px-3 py-1.5 hover:bg-os-surface-hover text-os-text-primary text-left"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
           >
-            <Sparkles size={13} className="text-os-accent" />
+            <Sparkles size={14} className="text-os-accent" />
             <span>Personalize Desktop...</span>
           </button>
         </div>
       )}
 
-      {/* Item Right-Click Context Menu */}
+      {/* Item Right-Click / Long-Press Context Menu */}
       {itemMenu && (
         <div
-          className="fixed z-50 bg-os-surface/95 backdrop-blur-md border border-os-border rounded-xl shadow-2xl py-1.5 w-48 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95"
-          style={{ top: itemMenu.y, left: itemMenu.x }}
+          className="fixed z-50 bg-os-surface/95 backdrop-blur-md border border-os-border rounded-xl shadow-2xl py-1.5 w-52 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95"
+          style={{
+            top: Math.min(itemMenu.y, typeof window !== 'undefined' ? window.innerHeight - 240 : 600),
+            left: Math.min(itemMenu.x, typeof window !== 'undefined' ? window.innerWidth - 220 : 1200),
+          }}
           onClick={e => e.stopPropagation()}
         >
           <button
@@ -431,9 +593,9 @@ export function DesktopWorkspace() {
               handleDoubleClick(itemMenu.shortcut);
               setItemMenu(null);
             }}
-            className="flex items-center gap-2 px-3 py-1.5 hover:bg-os-surface-hover text-os-text-primary text-left font-medium"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left font-medium min-h-[36px]"
           >
-            <ExternalLink size={13} className="text-os-accent" />
+            <ExternalLink size={14} className="text-os-accent" />
             <span>Open</span>
           </button>
 
@@ -449,9 +611,9 @@ export function DesktopWorkspace() {
                 }, 150);
                 setItemMenu(null);
               }}
-              className="flex items-center gap-2 px-3 py-1.5 hover:bg-os-surface-hover text-os-text-primary text-left"
+              className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
             >
-              <FileText size={13} className="text-cyan-400" />
+              <FileText size={14} className="text-cyan-400" />
               <span>Edit in Notepad</span>
             </button>
           )}
@@ -464,10 +626,11 @@ export function DesktopWorkspace() {
                 setRenameValue(itemMenu.shortcut.name);
                 setItemMenu(null);
               }}
-              className="flex items-center gap-2 px-3 py-1.5 hover:bg-os-surface-hover text-os-text-primary text-left"
+              className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
             >
-              <Edit2 size={13} />
+              <Edit2 size={14} />
               <span>Rename</span>
+              <span className="ml-auto text-[10px] text-os-text-muted">F2</span>
             </button>
           )}
 
@@ -477,9 +640,9 @@ export function DesktopWorkspace() {
               setPropertiesItem(itemMenu.shortcut);
               setItemMenu(null);
             }}
-            className="flex items-center gap-2 px-3 py-1.5 hover:bg-os-surface-hover text-os-text-primary text-left"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
           >
-            <Info size={13} />
+            <Info size={14} />
             <span>Properties</span>
           </button>
 
@@ -488,10 +651,11 @@ export function DesktopWorkspace() {
           <button
             type="button"
             onClick={() => handleDeleteShortcut(itemMenu.shortcut)}
-            className="flex items-center gap-2 px-3 py-1.5 hover:bg-rose-500/20 text-rose-400 text-left"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-rose-500/20 text-rose-400 text-left min-h-[36px]"
           >
-            <Trash2 size={13} />
+            <Trash2 size={14} />
             <span>Move to Recycle Bin</span>
+            <span className="ml-auto text-[10px] text-rose-400/70">Del</span>
           </button>
         </div>
       )}
@@ -499,7 +663,7 @@ export function DesktopWorkspace() {
       {/* Rename Modal */}
       {renameItem && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-os-surface border border-os-border rounded-xl shadow-2xl w-full max-w-sm p-4 flex flex-col gap-3">
+          <div className="bg-os-surface border border-os-border rounded-xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-3">
             <h3 className="text-sm font-semibold text-os-text-primary flex items-center gap-2">
               <Edit2 size={16} className="text-cyan-400" />
               Rename Desktop Shortcut
@@ -508,21 +672,21 @@ export function DesktopWorkspace() {
               type="text"
               value={renameValue}
               onChange={e => setRenameValue(e.target.value)}
-              className="bg-os-surface-tint border border-os-border/70 rounded-lg px-3 py-2 text-xs text-os-text-primary outline-none focus:border-os-accent"
+              className="bg-os-surface-tint border border-os-border/70 rounded-lg px-3 py-2 text-xs text-os-text-primary outline-none focus:border-os-accent min-h-[44px]"
               autoFocus
             />
             <div className="flex items-center justify-end gap-2 pt-2">
               <button
                 type="button"
                 onClick={() => setRenameItem(null)}
-                className="px-3 py-1.5 rounded-lg bg-os-surface hover:bg-os-surface-hover border border-os-border/50 text-os-text-secondary text-xs"
+                className="px-4 py-2 rounded-lg bg-os-surface hover:bg-os-surface-hover border border-os-border/50 text-os-text-secondary text-xs min-h-[44px]"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleExecuteRename}
-                className="px-4 py-1.5 rounded-lg bg-os-accent text-black font-semibold text-xs"
+                className="px-4 py-2 rounded-lg bg-os-accent text-black font-semibold text-xs min-h-[44px]"
               >
                 Rename
               </button>
@@ -577,7 +741,7 @@ export function DesktopWorkspace() {
               <button
                 type="button"
                 onClick={() => setPropertiesItem(null)}
-                className="px-4 py-1.5 rounded-lg bg-os-surface hover:bg-os-surface-hover border border-os-border/50 text-os-text-primary text-xs"
+                className="px-4 py-2 rounded-lg bg-os-surface hover:bg-os-surface-hover border border-os-border/50 text-os-text-primary text-xs min-h-[44px]"
               >
                 Close
               </button>

@@ -80,8 +80,11 @@ export const OrionMobileAppLauncher: React.FC = () => {
     },
     {
       id: 'platform',
-      name: 'Platform, Observability & Admin',
+      name: 'Platform, Workspace & Admin',
       appIds: [
+        'file-manager',
+        'notepad',
+        'orion-computer',
         'observability',
         'data-quality',
         'data-center',
