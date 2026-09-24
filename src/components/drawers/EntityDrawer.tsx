@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useEntityDrawer } from '../../store/EntityDrawerContext';
 import { useSupplyChain } from '../../store/SupplyChainContext';
 import { X, ExternalLink, ShieldAlert, CheckCircle2, AlertTriangle, ArrowRight, RefreshCw, Send, BrainCircuit, FileText } from 'lucide-react';
@@ -54,8 +55,8 @@ export const EntityDrawer: React.FC = () => {
 
   if (!activeEntity) return null;
 
-  return (
-    <div className="fixed inset-0 z-[2147483640] flex justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+  const drawerContent = (
+    <div className="fixed inset-0 z-[2147483640] flex justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 select-none">
       <div 
         className="absolute inset-0" 
         onClick={handleClose} 
@@ -77,7 +78,7 @@ export const EntityDrawer: React.FC = () => {
             </div>
             <button 
               onClick={handleClose}
-              className="p-1.5 rounded-lg bg-os-surface-elevated border border-os-border text-os-text-secondary hover:text-os-text-primary hover:border-os-border transition-colors"
+              className="p-1.5 rounded-lg bg-os-surface-elevated border border-os-border text-os-text-secondary hover:text-os-text-primary hover:border-os-border transition-colors cursor-pointer"
               title="Close (Esc)"
             >
               <X size={16} />
@@ -86,7 +87,7 @@ export const EntityDrawer: React.FC = () => {
         </div>
 
         {/* Drawer Body Content */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-os-bg">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-os-bg custom-scrollbar">
           {activeEntity.type === 'inventory' && <InventoryDetailContent id={activeEntity.id} />}
           {activeEntity.type === 'product' && <ProductDetailContent id={activeEntity.id} />}
           {activeEntity.type === 'supplier' && <SupplierDetailContent id={activeEntity.id} />}
@@ -109,4 +110,8 @@ export const EntityDrawer: React.FC = () => {
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(drawerContent, document.body)
+    : drawerContent;
 };
