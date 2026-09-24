@@ -33,6 +33,8 @@ import {
 } from 'lucide-react';
 
 export function OrionDesktop() {
+  const { isAuthenticated, currentUser } = useAuth();
+
   const {
     activeAppId,
     windows,
@@ -51,6 +53,11 @@ export function OrionDesktop() {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedDesktopApp, setSelectedDesktopApp] = useState<string | null>(null);
+
+  // Invariant Guard: Desktop MUST NOT render if unauthenticated
+  if (!isAuthenticated || !currentUser) {
+    return null;
+  }
 
   // Filter windows to current workspace and non-closed
   const currentWorkspaceWindows = Object.values(windows).filter(

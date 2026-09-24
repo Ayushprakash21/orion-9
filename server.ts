@@ -206,9 +206,12 @@ async function startServer() {
       }
       const clean = identifier.trim();
 
-      // Default Admin identity resolution for local/demo/offline operation
+      // Default Admin / Demo User identity resolution for local/demo/offline operation
       if (clean.toLowerCase() === "admin") {
         return res.json({ success: true, email: "admin@orion.local" });
+      }
+      if (clean.toLowerCase() === "user") {
+        return res.json({ success: true, email: "user@orion.local" });
       }
 
       // If user typed an email directly, use it

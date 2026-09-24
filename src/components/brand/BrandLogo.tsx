@@ -42,6 +42,41 @@ const isCustomTenantLogo = (source?: string | null): boolean => {
   return true;
 };
 
+const preloadedLogos = new Set<string>();
+
+/**
+ * Ensures the logo asset is fully loaded and decoded in memory before rendering,
+ * preventing progressive top-to-bottom scanline reveals or partial decoding artifacts.
+ */
+export const preloadLogoImage = async (url: string): Promise<void> => {
+  if (!url || typeof window === 'undefined' || typeof Image === 'undefined' || preloadedLogos.has(url)) return;
+  
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.src = url;
+    const onReady = () => {
+      preloadedLogos.add(url);
+      if ('decode' in img && typeof img.decode === 'function') {
+        img.decode().then(() => resolve()).catch(() => resolve());
+      } else {
+        resolve();
+      }
+    };
+
+    if (img.complete && img.naturalWidth > 0) {
+      onReady();
+    } else {
+      img.onload = onReady;
+      img.onerror = () => resolve();
+    }
+  });
+};
+
+// Eagerly preload default canonical logo at module load time
+if (typeof window !== 'undefined') {
+  preloadLogoImage(AUTHORITATIVE_DEFAULT_LOGO).catch(() => {});
+}
+
 export const BrandLogo: React.FC<BrandLogoProps> = ({ 
   sizePreset,
   size = 28, 
@@ -57,6 +92,8 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
     const loadBranding = async () => {
       try {
         const config = await brandingRepository.getBranding();
+        const source = (config.logo || config.logoUrl || '').trim() || AUTHORITATIVE_DEFAULT_LOGO;
+        await preloadLogoImage(source);
         if (mounted) {
           setBranding(config);
         }
@@ -91,6 +128,9 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
 
   useEffect(() => {
     setImgError(false);
+    if (logoSource) {
+      preloadLogoImage(logoSource).catch(() => {});
+    }
   }, [logoSource]);
 
   const sizing = getSizing(sizePreset, size);
@@ -103,6 +143,8 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
           <img 
             src={logoSource} 
             alt={appName} 
+            loading="eager"
+            decoding="async"
             style={{ 
               width: sizing.width || 'auto', 
               height: sizing.height || 'auto',

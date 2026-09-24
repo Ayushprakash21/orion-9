@@ -119,6 +119,13 @@ import { OrionDisplayPreferencesProvider } from './os/DisplayPreferences';
  * Main Application routes (Hosted inside Orion Desktop Window Manager)
  */
 function MainApplicationRoutes() {
+  const { isAuthenticated, currentUser } = useAuth();
+  const location = useLocation();
+
+  if (!isAuthenticated || !currentUser) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
   return (
     <OrionWindowManager>
       <OrionSearchProvider>
@@ -161,8 +168,12 @@ function UnauthenticatedApplication() {
  * Authenticated Application Router
  */
 function AuthenticatedApplication() {
-  const { isAdmin } = useAuth();
+  const { isAuthenticated, currentUser, isAdmin } = useAuth();
   const location = useLocation();
+
+  if (!isAuthenticated || !currentUser) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
 
   return (
     <Routes>
@@ -252,6 +263,7 @@ function AppBootstrap() {
   const {
     bootState,
     currentUser,
+    isAuthenticated,
     isFadingOut,
     isAdmin,
     postLoginDestination,
@@ -261,6 +273,7 @@ function AppBootstrap() {
     powerOn,
     completeShutdown,
     completeSystemInitialization,
+    isLoading,
   } = useAuth();
   const navigate = useNavigate();
   const supplyChain = useSupplyChain();
@@ -268,12 +281,12 @@ function AppBootstrap() {
   const brightness = supplyChain?.settings?.brightness ?? 100;
   const isSupplyChainInitializing = supplyChain?.isInitializing ?? false;
 
-  // Failsafe timeout: never block UI for more than 1.8 seconds even on slow storage
+  // Failsafe timeout: only for transient loading states, NEVER to bypass login
   const [initTimedOut, setInitTimedOut] = React.useState(false);
   React.useEffect(() => {
     const timer = setTimeout(() => {
       setInitTimedOut(true);
-    }, 1800);
+    }, 2000);
     return () => clearTimeout(timer);
   }, []);
 
@@ -340,17 +353,28 @@ function AppBootstrap() {
       );
     }
   
-    // 3. CORE INITIALIZATION / LAUNCHING (Initial Load):
-    if (bootState === 'BOOTING' && !initTimedOut) {
+    // 3. AUTH STATE RESOLVING (prevents flash of desktop on page reload):
+    if (bootState === 'AUTH_RESOLVING' || (bootState === 'BOOTING' && !initTimedOut)) {
       return (
         <LoadingScreen 
           isFadingOut={isFadingOut}
-          message="INITIALIZING ORION-9..."
+          message="VERIFYING SYSTEM CREDENTIALS..."
         />
       );
     }
   
-    // 4. THIRD TRANSITION: authenticated session enters the Orion world
+    // 4. CRITICAL GATE: UNAUTHENTICATED USERS CAN NEVER REACH THE DESKTOP
+    if (!isAuthenticated || !currentUser || bootState === 'LOGIN_REQUIRED' || bootState === 'AUTHENTICATING') {
+      return (
+        <div className="w-full h-full min-h-screen bg-os-bg relative z-20 orion-auth-portal">
+          <ErrorBoundary fallbackTitle="AUTHENTICATION PORTAL EXCEPTION">
+            <UnauthenticatedApplication />
+          </ErrorBoundary>
+        </div>
+      );
+    }
+
+    // 5. THIRD TRANSITION: authenticated session enters the Orion world
     if (bootState === 'POST_LOGIN_INITIALIZING') {
       return (
         <OrionWorldEntrySequence
@@ -361,17 +385,6 @@ function AppBootstrap() {
             navigate(dest, { replace: true });
           }}
         />
-      );
-    }
-  
-    // 5. UNAUTHENTICATED / AUTHENTICATING:
-    if (bootState === 'LOGIN_REQUIRED' || bootState === 'AUTHENTICATING') {
-      return (
-        <div className="w-full h-full min-h-screen bg-os-bg relative z-20 orion-auth-portal">
-          <ErrorBoundary fallbackTitle="AUTHENTICATION PORTAL EXCEPTION">
-            <UnauthenticatedApplication />
-          </ErrorBoundary>
-        </div>
       );
     }
   

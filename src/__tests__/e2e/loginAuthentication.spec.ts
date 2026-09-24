@@ -17,14 +17,14 @@ import { test, expect } from '@playwright/test';
 test.describe('Orion-9 Demo / Local Login & Role Governance E2E', () => {
 
   test.beforeEach(async ({ page }) => {
-    // Clear browser storage and initialize OS power-on state
-    await page.goto('/');
-    await page.evaluate(() => {
-      localStorage.clear();
-      sessionStorage.clear();
-      sessionStorage.setItem('orion_os_power_state', 'ON');
+    // Clear browser storage and initialize OS power-on state cleanly before navigation
+    await page.addInitScript(() => {
+      try {
+        localStorage.clear();
+        sessionStorage.clear();
+        sessionStorage.setItem('orion_os_power_state', 'ON');
+      } catch (e) {}
     });
-    await page.goto('/login');
   });
 
   // TEST 1: Open /login, Enter: user / user → normal user session loads
@@ -152,4 +152,70 @@ test.describe('Orion-9 Demo / Local Login & Role Governance E2E', () => {
 
     expect(escalationBlocked).toBe(true);
   });
+
+  // TEST 7: Direct Desktop access when unauthenticated renders login portal (no bypass)
+  test('TEST 7: unauthenticated direct access to root/desktop renders login portal', async ({ page }) => {
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+      sessionStorage.setItem('orion_os_power_state', 'ON');
+    });
+    await page.goto('/');
+
+    // Must show login portal form
+    await expect(page.locator('input#username')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('input#password')).toBeVisible();
+
+    // Desktop shell must NOT be visible
+    const desktopBackdrop = page.locator('[data-desktop-surface="true"]');
+    await expect(desktopBackdrop).toHaveCount(0);
+  });
+
+  // TEST 8: Direct Admin access when unauthenticated renders login portal
+  test('TEST 8: unauthenticated direct access to /admin renders login portal', async ({ page }) => {
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+      sessionStorage.setItem('orion_os_power_state', 'ON');
+    });
+    await page.goto('/admin');
+
+    // Must show login portal form
+    await expect(page.locator('input#username')).toBeVisible({ timeout: 5000 });
+    await expect(page.locator('input#password')).toBeVisible();
+
+    // Admin layout must NOT be visible
+    const adminSidebar = page.locator('aside');
+    await expect(adminSidebar).toHaveCount(0);
+  });
+
+  // TEST 9: Storage tampering with arbitrary user ID does not grant Desktop access
+  test('TEST 9: storage tampering with non-existent user identity is rejected', async ({ page }) => {
+    await page.evaluate(() => {
+      localStorage.clear();
+      sessionStorage.clear();
+      sessionStorage.setItem('orion_os_power_state', 'ON');
+      localStorage.setItem('orion_auth_session', JSON.stringify({
+        user: { id: 'injected_hacker_999', email: 'injected@hacker.net' },
+        role: 'platform_admin',
+        expiresAt: new Date(Date.now() + 3600000).toISOString()
+      }));
+    });
+    await page.goto('/');
+
+    // Must fall back to login portal
+    await expect(page.locator('input#username')).toBeVisible({ timeout: 5000 });
+    
+    // Desktop shell must NOT mount
+    const desktopBackdrop = page.locator('[data-desktop-surface="true"]');
+    await expect(desktopBackdrop).toHaveCount(0);
+  });
+
+  // TEST 10: Official logo is loaded on login portal
+  test('TEST 10: login portal displays authoritative Orion logo', async ({ page }) => {
+    await page.goto('/login');
+    const logoImg = page.locator('img.orion-brand-image, img[alt*="ORION"]');
+    await expect(logoImg.first()).toBeVisible({ timeout: 5000 });
+  });
 });
+

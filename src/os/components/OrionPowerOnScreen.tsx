@@ -36,7 +36,7 @@ export const OrionPowerOnScreen: React.FC<OrionPowerOnScreenProps> = ({
   const startTimeRef = useRef<number | null>(null);
   const animationFrameRef = useRef<number | null>(null);
 
-  const prefersReducedMotion = typeof window !== 'undefined'
+  const prefersReducedMotion = typeof window !== 'undefined' && typeof window.matchMedia === 'function'
     ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
     : false;
 

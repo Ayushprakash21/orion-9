@@ -8,6 +8,7 @@ export type BootState =
   | 'BOOTING'
   | 'POWERED_OFF'
   | 'SYSTEM_INITIALIZING'
+  | 'AUTH_RESOLVING'
   | 'LOGIN_REQUIRED'
   | 'AUTHENTICATING'
   | 'POST_LOGIN_INITIALIZING'
@@ -72,8 +73,8 @@ const AuthContext = createContext<AuthContextType>({
   currentUser: null,
   role: null,
   isAdmin: false,
-  bootState: 'BOOTING',
-  isInitializing: true,
+  bootState: 'POWERED_OFF',
+  isInitializing: false,
   isFadingOut: false,
   isPostLoginInitializing: false,
   postLoginDestination: null,
@@ -107,9 +108,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [bootState, setBootState] = useState<BootState>(() => {
     if (typeof window !== 'undefined') {
       const powerState = sessionStorage.getItem('orion_os_power_state');
-      const hasAuth = localStorage.getItem('orion_auth_session');
-      if (powerState === 'ON' || hasAuth) {
-        return hasAuth ? 'READY' : 'LOGIN_REQUIRED';
+      const sessionStr = localStorage.getItem('orion_auth_session');
+      if (powerState === 'ON') {
+        if (sessionStr) {
+          try {
+            const details = JSON.parse(sessionStr) as AuthSessionDetails;
+            if (details?.user?.id && (!details.expiresAt || new Date(details.expiresAt).getTime() > Date.now())) {
+              const verifiedUser = userService.getUserById(details.user.id);
+              if (verifiedUser && verifiedUser.status !== 'inactive' && verifiedUser.status !== 'suspended') {
+                return 'READY';
+              }
+            }
+          } catch (e) {}
+        }
+        return 'LOGIN_REQUIRED';
       }
     }
     return 'POWERED_OFF';
@@ -117,36 +129,46 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const [state, setState] = useState<SessionState>(() => {
     if (typeof window !== 'undefined') {
-      try {
-        const sessionStr = localStorage.getItem('orion_auth_session');
-        if (sessionStr) {
+      const powerState = sessionStorage.getItem('orion_os_power_state');
+      const sessionStr = localStorage.getItem('orion_auth_session');
+      if (powerState === 'ON' && sessionStr) {
+        try {
           const details = JSON.parse(sessionStr) as AuthSessionDetails;
-          if (details?.user) {
-            return {
-              user: details.user,
-              profile: details.profile,
-              organization: details.organization,
-              permissions: details.permissions || [],
-              isAuthenticated: true,
-              isLoading: false,
-              error: null,
-            };
+          if (details?.user?.id && (!details.expiresAt || new Date(details.expiresAt).getTime() > Date.now())) {
+            const verifiedUser = userService.getUserById(details.user.id);
+            if (verifiedUser && verifiedUser.status !== 'inactive' && verifiedUser.status !== 'suspended') {
+              return {
+                user: details.user,
+                profile: verifiedUser,
+                organization: details.organization,
+                permissions: details.permissions || [],
+                isAuthenticated: true,
+                isLoading: false,
+                error: null,
+              };
+            }
           }
-        }
-      } catch (e) {}
+        } catch (e) {}
+      }
     }
     return defaultState;
   });
 
   const [role, setRole] = useState<RoleCode | null>(() => {
     if (typeof window !== 'undefined') {
-      try {
-        const sessionStr = localStorage.getItem('orion_auth_session');
-        if (sessionStr) {
+      const powerState = sessionStorage.getItem('orion_os_power_state');
+      const sessionStr = localStorage.getItem('orion_auth_session');
+      if (powerState === 'ON' && sessionStr) {
+        try {
           const details = JSON.parse(sessionStr) as AuthSessionDetails;
-          return details?.role || null;
-        }
-      } catch (e) {}
+          if (details?.user?.id) {
+            const verifiedUser = userService.getUserById(details.user.id);
+            if (verifiedUser && verifiedUser.status !== 'inactive' && verifiedUser.status !== 'suspended') {
+              return verifiedUser.role || details.role || null;
+            }
+          }
+        } catch (e) {}
+      }
     }
     return null;
   });
@@ -154,7 +176,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isFadingOut, setIsFadingOut] = useState(false);
   const [postLoginDestination, setPostLoginDestination] = useState<string | null>(null);
 
-  const isInitializing = bootState === 'BOOTING';
+  const isInitializing = bootState === 'BOOTING' || bootState === 'AUTH_RESOLVING';
   const isPostLoginInitializing = bootState === 'POST_LOGIN_INITIALIZING';
 
   const startPostLoginInitialization = useCallback((destination?: string) => {
@@ -216,7 +238,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [applySessionDetails, clearSessionState]);
 
-  // Boot is user-controlled: the OS never auto-powers-on or auto-redirects on load.
+  // Authoritative Session Verification on Mount (Firebase / userService validation)
+  useEffect(() => {
+    let active = true;
+    const verifyAuthoritativeSession = async () => {
+      try {
+        const powerState = typeof window !== 'undefined' ? sessionStorage.getItem('orion_os_power_state') : null;
+        if (powerState !== 'ON') {
+          if (active) {
+            clearSessionState();
+            setBootState('POWERED_OFF');
+          }
+          return;
+        }
+
+        const session = await authService.getSession();
+        if (!session || !session.user?.id) {
+          if (active) {
+            clearSessionState();
+            setBootState('LOGIN_REQUIRED');
+          }
+          return;
+        }
+
+        const verifiedUser = userService.getUserById(session.user.id);
+        if (!verifiedUser || verifiedUser.status === 'inactive' || verifiedUser.status === 'suspended') {
+          if (active) {
+            clearSessionState();
+            setBootState('LOGIN_REQUIRED');
+          }
+          return;
+        }
+
+        const details = await authService.loadFullSession(verifiedUser.id, session.user.email);
+        if (active) {
+          applySessionDetails(details);
+          setBootState('READY');
+        }
+      } catch (e) {
+        if (active) {
+          clearSessionState();
+          setBootState('LOGIN_REQUIRED');
+        }
+      }
+    };
+
+    verifyAuthoritativeSession();
+    return () => { active = false; };
+  }, [applySessionDetails, clearSessionState]);
 
   const hasPermission = useCallback((permission: PermissionCode) => {
     return state.permissions.includes(permission);
