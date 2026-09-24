@@ -11,6 +11,7 @@ import { useAuth } from '../../store/AuthContext';
 import { OrionSystemMenu } from './OrionSystemMenu';
 import { NotificationCenter } from '../../components/modals/NotificationCenter';
 import { SystemStatusModal } from '../../components/modals/SystemStatusModal';
+import { NetworkConnectionPopover } from './NetworkConnectionPopover';
 import { BrandLogo } from '../../components/brand/BrandLogo';
 import { useBranding } from '../../store/BrandingContext';
 import { cn } from '../../lib/utils';
@@ -27,10 +28,12 @@ export function OrionSystemBar() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [networkOpen, setNetworkOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   
   const menuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+  const networkRef = useRef<HTMLDivElement>(null);
 
   // Check for critical exceptions to inform notification badge status
   const hasCriticalExceptions = exceptions?.some(e => e.severity === 'Critical') ?? false;
@@ -66,6 +69,9 @@ export function OrionSystemBar() {
       }
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
         setNotificationsOpen(false);
+      }
+      if (networkRef.current && !networkRef.current.contains(e.target as Node)) {
+        // Network popover also handles its internal outside click
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -210,16 +216,22 @@ export function OrionSystemBar() {
           )}
         </div>
 
-        <button 
-          onClick={() => setStatusOpen(true)}
-          className={cn(
-            "flex items-center hover:bg-os-surface-hover rounded-md p-1.5 transition-colors cursor-pointer",
-            isOnline ? (isLocalMode ? "text-amber-400" : "text-emerald-400") : "text-red-400"
-          )}
-          title={statusLabel}
-        >
-          {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
-        </button>
+        <div className="relative flex items-center network-anchor" ref={networkRef}>
+          <button 
+            type="button"
+            onClick={() => setNetworkOpen(v => !v)}
+            className={cn(
+              "relative flex items-center hover:bg-os-surface-hover rounded-md p-1.5 transition-colors cursor-pointer outline-none",
+              isOnline ? (isLocalMode ? "text-amber-400" : "text-emerald-400") : "text-red-400",
+              networkOpen && "bg-os-surface-active text-os-text-primary shadow-inner"
+            )}
+            title={statusLabel}
+            aria-label="Network Connections"
+            aria-expanded={networkOpen}
+          >
+            {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+          </button>
+        </div>
 
         <button
           type="button"
@@ -240,6 +252,14 @@ export function OrionSystemBar() {
           <AccountMenu />
         </div>
       </div>
+
+      {/* Network Connection OS Overlay Popover */}
+      <NetworkConnectionPopover
+        isOpen={networkOpen}
+        anchorRect={networkRef.current ? networkRef.current.getBoundingClientRect() : null}
+        onClose={() => setNetworkOpen(false)}
+        onOpenSystemStatus={() => setStatusOpen(true)}
+      />
 
       <SystemStatusModal isOpen={statusOpen} onClose={() => setStatusOpen(false)} />
     </header>
