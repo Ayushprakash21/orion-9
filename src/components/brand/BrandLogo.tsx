@@ -16,13 +16,13 @@ export interface BrandLogoProps {
 
 const getSizing = (preset?: string, fallbackSize: number = 28) => {
   switch (preset) {
-    case 'xs': return { width: 'auto', height: '14px', maxHeight: '14px', markSize: 14 }; // system bar
-    case 'sm': return { width: 'auto', height: '24px', maxHeight: '24px', markSize: 24 }; // sidebar
-    case 'md': return { width: 'clamp(100px, 10vw, 150px)', height: 'auto', maxHeight: '60px', markSize: 48 }; 
-    case 'lg': return { width: 'clamp(150px, 14vw, 220px)', height: 'auto', maxHeight: '100px', markSize: 80 }; // login, init
-    case 'xl': return { width: 'clamp(170px, 16vw, 240px)', height: 'auto', maxHeight: '120px', markSize: 100 }; // power on
-    case 'hero': return { width: 'clamp(200px, 20vw, 300px)', height: 'auto', maxHeight: '160px', markSize: 120 };
-    default: return { maxWidth: `${fallbackSize * 2.8}px`, maxHeight: `${fallbackSize}px`, width: 'auto', height: 'auto', markSize: fallbackSize };
+    case 'xs': return { width: 'auto', height: '18px', maxHeight: '18px', maxWidth: '40px', markSize: 18 }; // system bar
+    case 'sm': return { width: 'auto', height: '28px', maxHeight: '28px', maxWidth: '60px', markSize: 28 }; // sidebar
+    case 'md': return { width: 'clamp(120px, 12vw, 160px)', height: 'auto', maxHeight: '70px', maxWidth: '180px', markSize: 60 }; 
+    case 'lg': return { width: 'clamp(160px, 18vw, 240px)', height: 'auto', maxHeight: '120px', maxWidth: '260px', markSize: 100 }; // login, init
+    case 'xl': return { width: 'clamp(190px, 20vw, 280px)', height: 'auto', maxHeight: '140px', maxWidth: '300px', markSize: 120 }; // power on
+    case 'hero': return { width: 'clamp(220px, 24vw, 340px)', height: 'auto', maxHeight: '180px', maxWidth: '380px', markSize: 150 };
+    default: return { maxWidth: `${fallbackSize * 2.8}px`, maxHeight: `${fallbackSize}px`, width: 'auto', height: `${fallbackSize}px`, markSize: fallbackSize };
   }
 };
 
@@ -104,9 +104,9 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
             src={logoSource} 
             alt={appName} 
             style={{ 
-              width: variant === 'mark' ? 'auto' : sizing.width, 
-              height: variant === 'mark' ? sizing.markSize : sizing.height,
-              maxWidth: sizing.maxWidth || (variant === 'mark' ? '100%' : undefined),
+              width: sizing.width || 'auto', 
+              height: sizing.height || 'auto',
+              maxWidth: sizing.maxWidth || '100%',
               maxHeight: sizing.maxHeight,
               objectFit: 'contain'
             }}
