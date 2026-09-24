@@ -505,7 +505,7 @@ export const Settings = ({ initialCategory }: { initialCategory?: SettingsCatego
 
   return (
     <div className="flex flex-col md:flex-row w-full h-full bg-[#0c0e11] text-os-text-primary overflow-hidden font-sans">
-      <div className="w-full md:w-64 shrink-0 bg-[#12151a] border-r border-white/[0.08] flex flex-col">
+      <div className="w-full md:w-64 max-h-[35vh] md:max-h-full shrink-0 bg-[#12151a] border-b md:border-b-0 md:border-r border-white/[0.08] flex flex-col">
         {/* Search */}
         <div className="p-3.5 border-b border-white/[0.08] backdrop-blur-md sticky top-0 z-10">
           <div className="relative">

@@ -25,10 +25,13 @@ import {
 import fs from 'fs';
 import path from 'path';
 
+import { isEmulatorRunning } from './emulatorHelper';
+
 let testEnv: RulesTestEnvironment;
 const PROJECT_ID = 'orion9-dev-db-2026';
+const emulatorOnline = await isEmulatorRunning();
 
-describe('Wave 9 Outcome & Learning Firestore Security Rules Gate', () => {
+describe.skipIf(!emulatorOnline)('Wave 9 Outcome & Learning Firestore Security Rules Gate', () => {
   beforeAll(async () => {
     const rulesPath = path.resolve(process.cwd(), 'firestore.rules');
     const rules = fs.readFileSync(rulesPath, 'utf8');

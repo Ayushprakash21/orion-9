@@ -1117,6 +1117,25 @@ service cloud.firestore {
     // PART 4 TRACK 7 — KNOWLEDGE & DOCUMENT INTELLIGENCE COLLECTIONS
     // =========================================================================
 
+    // Orion Virtual File System (VFS) & Desktop Workspace
+    match /desktop_items/{id} {
+      allow read: if isAuthenticated() && (resource.data.tenantId == 'GLOBAL' || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+    }
+
+    match /folders/{folderId} {
+      allow read: if isAuthenticated() && (resource.data.tenantId == 'GLOBAL' || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+    }
+
+    match /files/{fileId} {
+      allow read: if isAuthenticated() && (resource.data.tenantId == 'GLOBAL' || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+    }
+
     // Structured Document Metadata
     match /documents/{docId} {
       allow read: if isAuthenticated() && (resource.data.tenantId == 'GLOBAL' || isOrgMember(resource.data.tenantId) || isAdmin());

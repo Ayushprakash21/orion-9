@@ -45,8 +45,8 @@ function isReactElement(val: any): boolean {
 function isDomNode(val: any): boolean {
   if (!val || typeof val !== 'object') return false;
   if (typeof Node !== 'undefined' && val instanceof Node) return true;
-  if (typeof val.nodeType === 'number' && typeof val.nodeName === 'string') return true;
-  if (typeof window !== 'undefined' && (val === window || val === document)) return true;
+  if (typeof window !== 'undefined' && val === window) return true;
+  if (typeof document !== 'undefined' && val === document) return true;
   return false;
 }
 

@@ -244,27 +244,39 @@ export const OrionTabletHome: React.FC = () => {
           </div>
         </div>
 
-        {/* Chart Surface */}
-        <div className="h-[220px] w-full pt-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="tabletChartGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
-                  <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#22283a" vertical={false} />
-              <XAxis dataKey="timestamp" stroke="#64748b" fontSize={10} tickLine={false} />
-              <YAxis stroke="#64748b" fontSize={10} tickLine={false} />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#0c101c', borderColor: '#22283a', borderRadius: '8px', fontSize: '12px' }}
-                itemStyle={{ color: '#06b6d4' }}
-              />
-              <Area type="monotone" dataKey="value" stroke="#06b6d4" strokeWidth={2} fillOpacity={1} fill="url(#tabletChartGrad)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+        {/* Chart Surface / Empty State */}
+        {chartData.length === 0 ? (
+          <div className="h-[220px] w-full flex flex-col items-center justify-center text-center p-4 border border-dashed border-os-border/60 rounded-xl bg-os-surface-secondary/40">
+            <Activity size={28} className="text-os-text-muted/60 mb-2" />
+            <span className="text-xs font-semibold text-os-text-primary">No telemetry available</span>
+            <span className="text-[11px] text-os-text-muted mt-0.5">Telemetry streams will automatically populate as supply chain operations proceed</span>
+          </div>
+        ) : (
+          <div className="h-[220px] w-full pt-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="tabletChartGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
+                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#22283a" vertical={false} />
+                <XAxis dataKey="formattedDate" stroke="#64748b" fontSize={10} tickLine={false} />
+                <YAxis stroke="#64748b" fontSize={10} tickLine={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#0c101c', borderColor: '#22283a', borderRadius: '8px', fontSize: '12px' }}
+                  itemStyle={{ color: '#06b6d4' }}
+                  formatter={(value: any) => [
+                    typeof value === 'number' ? formatNumber(value) : value,
+                    activeChartMetric === 'PO_VOLUME' ? 'Orders' : activeChartMetric === 'SHIPMENT_VOLUME' ? 'Shipments' : activeChartMetric === 'INVENTORY_ON_HAND' ? 'Inventory' : 'Exceptions'
+                  ]}
+                />
+                <Area type="monotone" dataKey={activeChartMetric} stroke="#06b6d4" strokeWidth={2} fillOpacity={1} fill="url(#tabletChartGrad)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
 
       {/* 5. IMMEDIATE ATTENTION EXCEPTIONS */}

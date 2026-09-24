@@ -261,57 +261,65 @@ export const OrionMobileHome: React.FC = () => {
           ))}
         </div>
 
-        {/* Recharts Canvas */}
-        <div className="w-full h-44 -ml-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="mobileHomeGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={currentTabConfig.stroke} stopOpacity={0.3} />
-                  <stop offset="95%" stopColor={currentTabConfig.stroke} stopOpacity={0.0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid stroke="#292C2F" strokeDasharray="3 3" vertical={false} opacity={0.3} />
-              <XAxis 
-                dataKey="date" 
-                stroke="#777873" 
-                fontSize={9} 
-                tickLine={false} 
-                axisLine={{ stroke: '#292C2F' }}
-              />
-              <YAxis 
-                stroke="#777873" 
-                fontSize={9} 
-                tickLine={false} 
-                axisLine={false} 
-              />
-              <Tooltip 
-                content={({ active, payload }) => {
-                  if (active && payload && payload.length) {
-                    const d = payload[0].payload;
-                    const val = d[selectedChartMetric] || 0;
-                    return (
-                      <div className="bg-os-surface border border-os-border p-2 rounded-lg shadow-lg text-[10px] font-mono z-30">
-                        <div className="text-os-text-muted">{d.fullDate || d.date}</div>
-                        <div className="text-os-text-primary font-bold mt-0.5">
-                          {currentTabConfig.label}: {formatNumber(val)}
+        {/* Recharts Canvas / Empty Telemetry State */}
+        {chartData.length === 0 && !chartLoading ? (
+          <div className="w-full h-44 flex flex-col items-center justify-center text-center p-4 border border-dashed border-os-border/60 rounded-xl bg-os-surface-secondary/40">
+            <Activity size={24} className="text-os-text-muted/60 mb-1.5" />
+            <span className="text-xs font-semibold text-os-text-primary">No telemetry available</span>
+            <span className="text-[10px] text-os-text-muted mt-0.5">Telemetry streams will populate as operations progress</span>
+          </div>
+        ) : (
+          <div className="w-full h-44 -ml-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="mobileHomeGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={currentTabConfig.stroke} stopOpacity={0.3} />
+                    <stop offset="95%" stopColor={currentTabConfig.stroke} stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="#292C2F" strokeDasharray="3 3" vertical={false} opacity={0.3} />
+                <XAxis 
+                  dataKey="formattedDate" 
+                  stroke="#777873" 
+                  fontSize={9} 
+                  tickLine={false} 
+                  axisLine={{ stroke: '#292C2F' }}
+                />
+                <YAxis 
+                  stroke="#777873" 
+                  fontSize={9} 
+                  tickLine={false} 
+                  axisLine={false} 
+                />
+                <Tooltip 
+                  content={({ active, payload }) => {
+                    if (active && payload && payload.length) {
+                      const d = payload[0].payload;
+                      const val = d[selectedChartMetric] || 0;
+                      return (
+                        <div className="bg-os-surface border border-os-border p-2 rounded-lg shadow-lg text-[10px] font-mono z-30">
+                          <div className="text-os-text-muted">{d.formattedDate || d.date}</div>
+                          <div className="text-os-text-primary font-bold mt-0.5">
+                            {currentTabConfig.label}: {formatNumber(val)}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                }}
-              />
-              <Area 
-                type="monotone" 
-                dataKey={selectedChartMetric} 
-                stroke={currentTabConfig.stroke} 
-                strokeWidth={2} 
-                fill="url(#mobileHomeGrad)" 
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
+                      );
+                    }
+                    return null;
+                  }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey={selectedChartMetric} 
+                  stroke={currentTabConfig.stroke} 
+                  strokeWidth={2} 
+                  fill="url(#mobileHomeGrad)" 
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
 
       {/* 5. URGENT ATTENTION ITEMS */}

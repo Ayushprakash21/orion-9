@@ -8,10 +8,13 @@ import {
 import fs from 'fs';
 import path from 'path';
 
+import { isEmulatorRunning } from './emulatorHelper';
+
 let testEnv: RulesTestEnvironment;
 const PROJECT_ID = 'orion9-dev-db-2026';
+const emulatorOnline = await isEmulatorRunning();
 
-describe('Real Firebase Emulator — Master Data Security & Tenant Isolation Rules', () => {
+describe.skipIf(!emulatorOnline)('Real Firebase Emulator — Master Data Security & Tenant Isolation Rules', () => {
   beforeAll(async () => {
     const rulesPath = path.resolve(process.cwd(), 'firestore.rules');
     const rules = fs.readFileSync(rulesPath, 'utf8');
