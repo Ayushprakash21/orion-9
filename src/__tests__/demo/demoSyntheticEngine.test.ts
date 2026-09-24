@@ -22,18 +22,18 @@ describe('Orion-9 Demo Synthetic Data Engine & Live-Simulation Architecture', ()
     });
   });
 
-  describe('AI Synthetic Enterprise Data Generator (20 Packages / Batch)', () => {
-    it('generates exactly 20 complete enterprise packages in default batch', async () => {
-      const batchId = `DEMO-TEST-BATCH-20PKGS-${Date.now()}`;
-      const audit = await demoSyntheticDataEngine.generateEnterpriseBatch(20, batchId);
+  describe('AI Synthetic Enterprise Data Generator (25 Packages / Batch)', () => {
+    it('generates exactly 25 complete enterprise packages in default batch', async () => {
+      const batchId = `DEMO-TEST-BATCH-25PKGS-${Date.now()}`;
+      const audit = await demoSyntheticDataEngine.generateEnterpriseBatch(25, batchId);
 
       expect(audit).toBeDefined();
-      expect(audit.packageCount).toBe(20);
-      expect(audit.recordCounts.companies).toBe(20);
-      expect(audit.recordCounts.suppliers).toBeGreaterThanOrEqual(40); // 2-3 suppliers per company
-      expect(audit.recordCounts.products).toBeGreaterThanOrEqual(60); // 3-5 products per company
-      expect(audit.recordCounts.purchaseOrders).toBeGreaterThanOrEqual(60);
-      expect(audit.recordCounts.inventoryItems).toBeGreaterThanOrEqual(60);
+      expect(audit.packageCount).toBe(25);
+      expect(audit.recordCounts.companies).toBe(25);
+      expect(audit.recordCounts.suppliers).toBeGreaterThanOrEqual(50); // 2-3 suppliers per company
+      expect(audit.recordCounts.products).toBeGreaterThanOrEqual(75); // 3-5 products per company
+      expect(audit.recordCounts.purchaseOrders).toBeGreaterThanOrEqual(75);
+      expect(audit.recordCounts.inventoryItems).toBeGreaterThanOrEqual(75);
       expect(audit.status).toBe('COMPLETED');
       expect(audit.durationMs).toBeGreaterThanOrEqual(0);
     });
@@ -164,10 +164,10 @@ describe('Orion-9 Demo Synthetic Data Engine & Live-Simulation Architecture', ()
       expect(demoLiveSimulationEngine.getConfig().retentionPolicy).toBe('30_DAYS');
     });
 
-    it('governed reset successfully purges and restores 20 baseline packages in DEMO mode', async () => {
+    it('governed reset successfully purges and restores 25 baseline packages in DEMO mode', async () => {
       const resetResult = await demoLiveSimulationEngine.resetDemoData('admin_test', true);
       expect(resetResult.success).toBe(true);
-      expect(resetResult.message).toContain('Restored 20 fresh synthetic enterprise ecosystems');
+      expect(resetResult.message).toContain('Restored 25 fresh synthetic enterprise ecosystems');
       expect(demoLiveSimulationEngine.getState().totalCyclesExecuted).toBe(0);
     });
   });

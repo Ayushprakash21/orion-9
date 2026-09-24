@@ -322,9 +322,10 @@ export class DesktopWorkspaceService {
    */
   public async removeShortcut(
     shortcutId: string,
-    tenantId?: string
+    tenantId?: string,
+    environment?: 'DEMO' | 'LIVE'
   ): Promise<boolean> {
-    const { activeTenant } = this.getContext(tenantId);
+    const { activeTenant } = this.getContext(tenantId, environment);
     return await scmPersistenceService.deleteRecord('desktop_items', activeTenant, shortcutId);
   }
 }

@@ -19,6 +19,7 @@ import {
   SimulationSpeed,
   DemoRetentionPolicy
 } from '../../core/database/DemoLiveSimulationEngine';
+import { DemoSchedulerState } from '../../services/demo/DemoPersistentSchedulerService';
 import { cn } from '../../lib/utils';
 
 export const AdminDemoData: React.FC = () => {
@@ -32,17 +33,37 @@ export const AdminDemoData: React.FC = () => {
   const [simState, setSimState] = useState<SimulationState>(() => demoLiveSimulationEngine.getState());
   const [simConfig, setSimConfig] = useState<SimulationConfig>(() => demoLiveSimulationEngine.getConfig());
   const [batchHistory, setBatchHistory] = useState<GenerationBatchAudit[]>(() => demoSyntheticDataEngine.getBatchHistory());
+  const [cloudSchedulerState, setCloudSchedulerState] = useState<DemoSchedulerState | null>(null);
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [isAdvancingCycle, setIsAdvancingCycle] = useState(false);
+  const [isControllingScheduler, setIsControllingScheduler] = useState(false);
 
   // Reset confirmation modal state
   const [showResetModal, setShowResetModal] = useState(false);
   const [resetConfirmation, setResetConfirmation] = useState('');
 
+  // Fetch cloud scheduler state
+  const fetchCloudSchedulerStatus = async () => {
+    try {
+      const res = await fetch('/api/demo/scheduler-status');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.scheduler) {
+          setCloudSchedulerState(data.scheduler);
+        }
+      }
+    } catch (e) {
+      // Background poll silently fails in offline mock/test modes
+    }
+  };
+
   // Sync state with simulation engine and environment events
   useEffect(() => {
+    fetchCloudSchedulerStatus();
+    const interval = setInterval(fetchCloudSchedulerStatus, 15000);
+
     const handleEnvChange = () => {
       setDbEnv(dbManager.getEnvironment());
     };
@@ -53,6 +74,7 @@ export const AdminDemoData: React.FC = () => {
     const handleBatchGenerated = () => {
       setBatchHistory(demoSyntheticDataEngine.getBatchHistory());
       setSimState(demoLiveSimulationEngine.getState());
+      fetchCloudSchedulerStatus();
     };
 
     window.addEventListener('orion-database-environment-changed', handleEnvChange);
@@ -60,6 +82,7 @@ export const AdminDemoData: React.FC = () => {
     window.addEventListener('orion:demo-synthetic-batch-generated', handleBatchGenerated);
 
     return () => {
+      clearInterval(interval);
       window.removeEventListener('orion-database-environment-changed', handleEnvChange);
       window.removeEventListener('orion:demo-simulation-state-changed', handleSimChange);
       window.removeEventListener('orion:demo-synthetic-batch-generated', handleBatchGenerated);
@@ -73,12 +96,32 @@ export const AdminDemoData: React.FC = () => {
     }
     setIsGenerating(true);
     try {
-      const audit = await demoSyntheticDataEngine.generateEnterpriseBatch(simConfig.hourlyGenerationRate);
+      // Try backend endpoint first for cloud persistence
+      let audit: any = null;
+      try {
+        const res = await fetch('/api/demo/generate-hourly-batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ forceTrigger: true })
+        });
+        if (res.ok) {
+          const json = await res.json();
+          audit = json.batch;
+        }
+      } catch (err) {
+        // Fallback to client-side engine if server route is unreachable
+      }
+
+      if (!audit) {
+        audit = await demoSyntheticDataEngine.generateEnterpriseBatch(25);
+      }
+
       showToast(
-        `Generated batch ${audit.generationBatchId}: ${audit.packageCount} enterprise packages (${audit.recordCounts.companies} companies, ${audit.recordCounts.products} products, ${audit.recordCounts.purchaseOrders} POs) in ${audit.durationMs}ms`,
+        `Generated batch ${audit.generationBatchId || audit.batchId}: ${audit.packageCount || audit.packagesCount || 25} enterprise packages (${audit.recordCounts?.companies || 25} companies, ${audit.recordCounts?.products || 100} products, ${audit.recordCounts?.purchaseOrders || 100} POs) in ${audit.durationMs || 0}ms`,
         'success'
       );
       setBatchHistory(demoSyntheticDataEngine.getBatchHistory());
+      fetchCloudSchedulerStatus();
     } catch (err: any) {
       showToast('Generation failed: ' + (err?.message || 'Unknown error'), 'error');
     } finally {
@@ -86,22 +129,39 @@ export const AdminDemoData: React.FC = () => {
     }
   };
 
+  const handleToggleScheduler = async () => {
+    setIsControllingScheduler(true);
+    try {
+      const isCurrentlyPaused = cloudSchedulerState?.status === 'PAUSED' || simState.status === 'PAUSED';
+      const action = isCurrentlyPaused ? 'RESUME' : 'PAUSE';
+
+      try {
+        await fetch('/api/demo/scheduler-control', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, actorId: profile?.id || 'admin', role: profile?.role || 'platform_admin' })
+        });
+      } catch (e) {}
+
+      if (action === 'PAUSE') {
+        demoLiveSimulationEngine.pause();
+        showToast('Persistent Cloud Scheduler & Simulation Engine paused', 'info');
+      } else {
+        demoLiveSimulationEngine.resume();
+        showToast('Persistent Cloud Scheduler & Simulation Engine resumed (25 pkgs/hr)', 'success');
+      }
+      setSimState(demoLiveSimulationEngine.getState());
+      fetchCloudSchedulerStatus();
+    } finally {
+      setIsControllingScheduler(false);
+    }
+  };
+
   const handleSpeedChange = (speed: SimulationSpeed) => {
     demoLiveSimulationEngine.setSpeed(speed);
     setSimConfig(demoLiveSimulationEngine.getConfig());
     setSimState(demoLiveSimulationEngine.getState());
-    showToast(`Simulation speed adjusted to ${speed}`, 'info');
-  };
-
-  const handleTogglePause = () => {
-    if (simState.status === 'PAUSED') {
-      demoLiveSimulationEngine.resume();
-      showToast('Simulation engine resumed (1x)', 'success');
-    } else {
-      demoLiveSimulationEngine.pause();
-      showToast('Simulation engine paused', 'info');
-    }
-    setSimState(demoLiveSimulationEngine.getState());
+    showToast(`Simulation telemetry speed adjusted to ${speed}`, 'info');
   };
 
   const handleAdvanceOneCycle = async () => {
@@ -139,6 +199,7 @@ export const AdminDemoData: React.FC = () => {
       setResetConfirmation('');
       setBatchHistory(demoSyntheticDataEngine.getBatchHistory());
       setSimState(demoLiveSimulationEngine.getState());
+      fetchCloudSchedulerStatus();
     } catch (err: any) {
       showToast('Reset failed: ' + (err?.message || 'Authorization rejected'), 'error');
     } finally {
@@ -158,8 +219,8 @@ export const AdminDemoData: React.FC = () => {
               <Sparkles className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-bold font-mono tracking-tight text-white flex items-center gap-3">
-                SYNTHETIC DATA & SIMULATION ENGINE
+              <h1 className="text-xl md:text-2xl font-bold font-mono tracking-tight text-white flex items-center gap-3 flex-wrap">
+                SYNTHETIC DATA & PERSISTENT SCHEDULER
                 <span className={cn(
                   "text-xs px-2.5 py-0.5 rounded-full font-mono font-semibold uppercase tracking-wider border",
                   dbEnv === 'DEMO'
@@ -168,27 +229,32 @@ export const AdminDemoData: React.FC = () => {
                 )}>
                   {dbEnv} ENVIRONMENT
                 </span>
+                <span className="text-xs px-2 py-0.5 rounded font-mono font-medium bg-cyan-950 text-cyan-300 border border-cyan-500/30 flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                  SCHEDULER: CLOUD ACTIVE
+                </span>
               </h1>
               <p className="text-xs text-os-text-secondary mt-0.5">
-                Continuous AI-Generated Enterprise Ecosystems & Autonomous Business Lifecycle Simulation
+                Continuous AI-Generated Enterprise Ecosystems (25 Packages/Hour) & Authoritative Demo Firestore Daemon
               </p>
             </div>
           </div>
         </div>
 
         {/* TOP ACTION BAR */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button
-            onClick={handleTogglePause}
+            onClick={handleToggleScheduler}
+            disabled={isControllingScheduler}
             className={cn(
-              "flex items-center gap-2 px-3 py-1.5 text-xs font-mono rounded border transition-colors cursor-pointer",
-              simState.status === 'RUNNING'
+              "flex items-center gap-2 px-3 py-1.5 text-xs font-mono rounded border transition-colors cursor-pointer disabled:opacity-50",
+              (cloudSchedulerState?.status || simState.status) === 'RUNNING'
                 ? "bg-amber-950/40 border-amber-500/40 text-amber-300 hover:bg-amber-900/50"
                 : "bg-emerald-950/40 border-emerald-500/40 text-emerald-300 hover:bg-emerald-900/50"
             )}
           >
-            {simState.status === 'RUNNING' ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-            {simState.status === 'RUNNING' ? 'Pause Generator' : 'Resume Generator'}
+            {(cloudSchedulerState?.status || simState.status) === 'RUNNING' ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+            {(cloudSchedulerState?.status || simState.status) === 'RUNNING' ? 'Pause Cloud Scheduler' : 'Resume Cloud Scheduler'}
           </button>
 
           <button
@@ -197,7 +263,7 @@ export const AdminDemoData: React.FC = () => {
             className="flex items-center gap-2 px-3 py-1.5 text-xs font-mono font-bold rounded bg-amber-600 hover:bg-amber-500 text-black transition-colors cursor-pointer disabled:opacity-50"
           >
             <Zap className={cn("w-3.5 h-3.5", isGenerating && "animate-spin")} />
-            {isGenerating ? 'Generating 20 Packages...' : 'Generate Now (20 Packages)'}
+            {isGenerating ? 'Generating 25 Packages...' : 'Generate Now (25 Packages)'}
           </button>
 
           <button
@@ -215,41 +281,49 @@ export const AdminDemoData: React.FC = () => {
       {/* LIVE ENGINE STATUS & METRICS GRID */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <div className="p-3.5 rounded-xl border border-os-border bg-os-surface/60">
-          <span className="text-[10px] font-mono text-os-text-muted block mb-1">GENERATOR STATUS</span>
+          <span className="text-[10px] font-mono text-os-text-muted block mb-1">CLOUD SCHEDULER</span>
           <div className="flex items-center gap-2">
             <span className={cn(
               "w-2.5 h-2.5 rounded-full",
-              simState.status === 'RUNNING' ? "bg-emerald-400 animate-pulse" : "bg-amber-400"
+              (cloudSchedulerState?.status || simState.status) === 'RUNNING' ? "bg-emerald-400 animate-pulse" : "bg-amber-400"
             )} />
-            <span className="text-sm font-mono font-bold text-white uppercase">{simState.status}</span>
+            <span className="text-sm font-mono font-bold text-white uppercase">
+              {cloudSchedulerState?.status || simState.status}
+            </span>
           </div>
         </div>
 
         <div className="p-3.5 rounded-xl border border-os-border bg-os-surface/60">
           <span className="text-[10px] font-mono text-os-text-muted block mb-1">RATE TARGET</span>
           <span className="text-sm font-mono font-bold text-amber-400">
-            {simConfig.hourlyGenerationRate} packages / hr
+            25 packages / hr
           </span>
         </div>
 
         <div className="p-3.5 rounded-xl border border-os-border bg-os-surface/60">
-          <span className="text-[10px] font-mono text-os-text-muted block mb-1">SIMULATION SPEED</span>
-          <span className="text-sm font-mono font-bold text-cyan-400">{simState.speed}</span>
+          <span className="text-[10px] font-mono text-os-text-muted block mb-1">TARGET FIRESTORE</span>
+          <span className="text-sm font-mono font-bold text-cyan-400">demo-orion9-db-2026</span>
         </div>
 
         <div className="p-3.5 rounded-xl border border-os-border bg-os-surface/60">
-          <span className="text-[10px] font-mono text-os-text-muted block mb-1">CYCLES EXECUTED</span>
-          <span className="text-sm font-mono font-bold text-white">{simState.totalCyclesExecuted}</span>
+          <span className="text-[10px] font-mono text-os-text-muted block mb-1">BATCHES RECORDED</span>
+          <span className="text-sm font-mono font-bold text-white">
+            {cloudSchedulerState?.totalBatchesCompleted ?? batchHistory.length}
+          </span>
         </div>
 
         <div className="p-3.5 rounded-xl border border-os-border bg-os-surface/60">
-          <span className="text-[10px] font-mono text-os-text-muted block mb-1">EVENTS PROCESSED</span>
-          <span className="text-sm font-mono font-bold text-emerald-400">{simState.totalEventsProcessed}</span>
+          <span className="text-[10px] font-mono text-os-text-muted block mb-1">PACKAGES PERSISTED</span>
+          <span className="text-sm font-mono font-bold text-emerald-400">
+            {cloudSchedulerState?.totalPackagesGenerated ?? (batchHistory.length * 25)}
+          </span>
         </div>
 
         <div className="p-3.5 rounded-xl border border-os-border bg-os-surface/60">
-          <span className="text-[10px] font-mono text-os-text-muted block mb-1">EXCEPTIONS TODAY</span>
-          <span className="text-sm font-mono font-bold text-red-400">{simState.exceptionsGeneratedToday}</span>
+          <span className="text-[10px] font-mono text-os-text-muted block mb-1">NEXT CLOUD RUN (UTC)</span>
+          <span className="text-sm font-mono font-bold text-purple-400">
+            {cloudSchedulerState?.nextScheduledRun ? new Date(cloudSchedulerState.nextScheduledRun).toLocaleTimeString() : 'Active Hourly'}
+          </span>
         </div>
       </div>
 
@@ -259,10 +333,10 @@ export const AdminDemoData: React.FC = () => {
         <div className="p-5 rounded-xl border border-os-border bg-os-surface/40 space-y-4">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-cyan-400" />
-            <h3 className="font-mono font-bold text-sm text-white">SIMULATION SPEED</h3>
+            <h3 className="font-mono font-bold text-sm text-white">CLIENT TELEMETRY SPEED</h3>
           </div>
           <p className="text-xs text-os-text-secondary">
-            Controls the tick frequency of lifecycle transitions (POs, Shipments, Invoices, Work Orders).
+            Controls UI visual step rate for active sessions without altering the 25 pkg/hr cloud daemon.
           </p>
 
           <div className="grid grid-cols-4 gap-2">
@@ -386,9 +460,9 @@ export const AdminDemoData: React.FC = () => {
           </div>
 
           <div className="pt-2 border-t border-os-border/40 text-[11px] font-mono text-os-text-muted flex items-center justify-between">
-            <span>Next Generation Cycle:</span>
-            <span className="text-white">
-              {new Date(simState.nextCycleAt).toLocaleTimeString()}
+            <span>Daemon Mode:</span>
+            <span className="text-emerald-400 font-bold">
+              CLOUD_PERSISTENT
             </span>
           </div>
         </div>
@@ -443,7 +517,7 @@ export const AdminDemoData: React.FC = () => {
               ) : (
                 <tr>
                   <td colSpan={9} className="p-4 text-center text-os-text-muted">
-                    No generation batches recorded in this session. Click "Generate Now" to create 20 synthetic packages.
+                    No generation batches recorded in this session. Click "Generate Now (25 Packages)" or let the cloud scheduler daemon run automatically.
                   </td>
                 </tr>
               )}
@@ -471,7 +545,7 @@ export const AdminDemoData: React.FC = () => {
                 <strong className="text-white">Safety Check:</strong> This action is only permitted in DEMO mode. LIVE database records can never be touched or reset.
               </p>
               <p>
-                <strong className="text-white">Result:</strong> All synthetic demo companies, orders, shipments, and exceptions will be purged and re-initialized with a pristine 20-package baseline ecosystem.
+                <strong className="text-white">Result:</strong> All synthetic demo companies, orders, shipments, and exceptions will be purged and re-initialized with a pristine 25-package baseline ecosystem.
               </p>
             </div>
 

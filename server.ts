@@ -5,6 +5,7 @@ import fs from "fs";
 import { GoogleGenAI } from "@google/genai";
 import * as firebaseAdmin from "firebase-admin";
 import dotenv from "dotenv";
+import { demoPersistentSchedulerService } from "./src/services/demo/DemoPersistentSchedulerService";
 
 dotenv.config({ override: true });
 
@@ -197,6 +198,63 @@ async function startServer() {
     });
   });
 
+  // ---------------------------------------------------------------------------
+  // DEMO PERSISTENT CLOUD SCHEDULER & REALTIME GENERATION ENDPOINTS
+  // ---------------------------------------------------------------------------
+
+  // Get Authoritative Cloud Scheduler Status
+  app.get("/api/demo/scheduler-status", async (_req, res) => {
+    try {
+      const { demoPersistentSchedulerService } = await import("./src/services/demo/DemoPersistentSchedulerService");
+      const state = demoPersistentSchedulerService.getSchedulerState();
+      res.json({ success: true, state });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e?.message || "Failed to fetch scheduler state" });
+    }
+  });
+
+  // Authoritative Hourly Batch Trigger (Exact 25 Packages)
+  app.post("/api/demo/generate-hourly-batch", async (req, res) => {
+    try {
+      const { demoPersistentSchedulerService } = await import("./src/services/demo/DemoPersistentSchedulerService");
+      const { scheduledHour, tenantId, organizationId, force } = req.body || {};
+      const audit = await demoPersistentSchedulerService.generateDemoHourlyBatch(scheduledHour, {
+        actorType: 'ADMIN_TRIGGER',
+        actorId: 'admin_api',
+        tenantId,
+        organizationId,
+        force: !!force,
+      });
+      res.json({ success: true, audit });
+    } catch (e: any) {
+      res.status(400).json({ success: false, error: e?.message || "Generation failed" });
+    }
+  });
+
+  // Governed Scheduler Control (Pause / Resume / Reset)
+  app.post("/api/demo/scheduler-control", async (req, res) => {
+    try {
+      const { demoPersistentSchedulerService } = await import("./src/services/demo/DemoPersistentSchedulerService");
+      const { demoLiveSimulationEngine } = await import("./src/core/database/DemoLiveSimulationEngine");
+      const { action, actorId, role } = req.body || {};
+
+      if (action === 'pause') {
+        const state = await demoPersistentSchedulerService.pauseScheduler(actorId || 'admin', role || 'platform_admin');
+        return res.json({ success: true, action: 'pause', state });
+      } else if (action === 'resume') {
+        const state = await demoPersistentSchedulerService.resumeScheduler(actorId || 'admin', role || 'platform_admin');
+        return res.json({ success: true, action: 'resume', state });
+      } else if (action === 'reset') {
+        const resetResult = await demoLiveSimulationEngine.resetDemoData(actorId || 'admin', true);
+        return res.json({ success: true, action: 'reset', result: resetResult });
+      } else {
+        return res.status(400).json({ success: false, error: `Invalid action: ${action}` });
+      }
+    } catch (e: any) {
+      res.status(400).json({ success: false, error: e?.message || "Control operation failed" });
+    }
+  });
+
   // Secure Username-to-Identity Resolution (Protects against email enumeration)
   app.post("/api/auth/resolve-identity", async (req, res) => {
     try {
@@ -382,6 +440,67 @@ async function startServer() {
     } catch (err: any) {
       console.error("Admin delete user error:", err);
       return res.status(500).json({ error: "Unable to complete this operation." });
+    }
+  });
+
+  // ============================================================================
+  // ORION-9 DEMO PERSISTENT SCHEDULER & 25-PACKAGE HOURLY GENERATION API
+  // ============================================================================
+  app.get("/api/demo/scheduler-status", async (req, res) => {
+    try {
+      const state = demoPersistentSchedulerService.getSchedulerState();
+      const isActive = demoPersistentSchedulerService.isSchedulerActive();
+      return res.json({
+        success: true,
+        scheduler: state,
+        isSchedulerActive: isActive,
+        engineRate: "25 packages / hour",
+        schedulerMode: "CLOUD_PERSISTENT",
+        targetDatabase: "demo-orion9-db-2026"
+      });
+    } catch (e: any) {
+      return res.status(500).json({ success: false, error: e.message || "Failed to fetch scheduler status" });
+    }
+  });
+
+  app.post("/api/demo/generate-hourly-batch", async (req, res) => {
+    try {
+      const targetHour = req.body?.targetHour;
+      const forceTrigger = Boolean(req.body?.forceTrigger);
+      const audit = await demoPersistentSchedulerService.executeScheduledHourlyGeneration(targetHour, forceTrigger);
+      return res.json({
+        success: true,
+        batch: audit,
+        packagesGenerated: audit.packagesCount,
+        batchId: audit.batchId,
+        completedAt: audit.completedAt
+      });
+    } catch (e: any) {
+      console.error("[DEMO-SCHEDULER-ENDPOINT] Batch generation error:", e);
+      return res.status(500).json({ success: false, error: e.message || "Batch generation failed" });
+    }
+  });
+
+  app.post("/api/demo/scheduler-control", async (req, res) => {
+    try {
+      const { action, actorId, role } = req.body || {};
+      const resolvedActor = actorId || "admin";
+      const resolvedRole = role || "platform_admin";
+
+      if (action === "PAUSE") {
+        const state = await demoPersistentSchedulerService.pauseScheduler(resolvedActor, resolvedRole);
+        return res.json({ success: true, action: "PAUSED", state });
+      } else if (action === "RESUME") {
+        const state = await demoPersistentSchedulerService.resumeScheduler(resolvedActor, resolvedRole);
+        return res.json({ success: true, action: "RESUMED", state });
+      } else if (action === "RUN_NOW") {
+        const audit = await demoPersistentSchedulerService.triggerImmediateBatch(resolvedActor, resolvedRole);
+        return res.json({ success: true, action: "RUN_NOW_COMPLETED", batch: audit, state: demoPersistentSchedulerService.getSchedulerState() });
+      } else {
+        return res.status(400).json({ success: false, error: "Invalid action. Supported: PAUSE, RESUME, RUN_NOW" });
+      }
+    } catch (e: any) {
+      return res.status(500).json({ success: false, error: e.message || "Scheduler control action failed" });
     }
   });
 
@@ -855,6 +974,14 @@ Analyze the supplied document and return a strict JSON object with:
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
+  }
+
+  // Start authoritative background persistent scheduler daemon for 25 synthetic packages/hour
+  try {
+    demoPersistentSchedulerService.startPersistentScheduler(60000);
+    console.log("[DEMO-SCHEDULER] Persistent cloud daemon started (Rate: 25 packages/hour, Environment: DEMO isolated)");
+  } catch (err) {
+    console.warn("[DEMO-SCHEDULER] Daemon startup warning:", err);
   }
 
   server.listen(PORT, "0.0.0.0", () => {

@@ -16,7 +16,7 @@ const getEnvVar = (key: string, fallback: string): string => {
   return fallback;
 };
 
-export const firebaseConfig = {
+export const LIVE_FIREBASE_CONFIG = {
   apiKey: getEnvVar('VITE_FIREBASE_API_KEY', "AIzaSyC5qgG4DkMfCEdhNYHIb8hsIQ00pIkYRGo"),
   authDomain: getEnvVar('VITE_FIREBASE_AUTH_DOMAIN', "orion9-dev-db-2026.firebaseapp.com"),
   projectId: getEnvVar('VITE_FIREBASE_PROJECT_ID', "orion9-dev-db-2026"),
@@ -25,29 +25,72 @@ export const firebaseConfig = {
   appId: getEnvVar('VITE_FIREBASE_APP_ID', "1:1031466156269:web:44dd23cdcc883f809b8ce4")
 };
 
-let app: FirebaseApp | null = null;
-let auth: Auth | null = null;
-let db: Firestore | null = null;
+export const DEMO_FIREBASE_CONFIG = {
+  apiKey: getEnvVar('VITE_DEMO_FIREBASE_API_KEY', "AIzaSyDemo00000000000000000000000000000"),
+  authDomain: getEnvVar('VITE_DEMO_FIREBASE_AUTH_DOMAIN', "demo-orion9-db-2026.firebaseapp.com"),
+  projectId: getEnvVar('VITE_DEMO_FIREBASE_PROJECT_ID', "demo-orion9-db-2026"),
+  storageBucket: getEnvVar('VITE_DEMO_FIREBASE_STORAGE_BUCKET', "demo-orion9-db-2026.firebasestorage.app"),
+  messagingSenderId: getEnvVar('VITE_DEMO_FIREBASE_MESSAGING_SENDER_ID', "999999999999"),
+  appId: getEnvVar('VITE_DEMO_FIREBASE_APP_ID', "1:999999999999:web:demo44dd23cdcc883f809b8ce4")
+};
 
-export const getFirebaseApp = (): FirebaseApp => {
-  if (!getApps().length) {
-    app = initializeApp(firebaseConfig);
+// Backwards compatibility export
+export const firebaseConfig = LIVE_FIREBASE_CONFIG;
+
+const appInstances: Map<string, FirebaseApp> = new Map();
+const authInstances: Map<string, Auth> = new Map();
+const firestoreInstances: Map<string, Firestore> = new Map();
+
+/**
+ * Returns the isolated Firebase App instance for the given environment.
+ * LIVE uses the default instance ('orion9-dev-db-2026'), DEMO uses named instance ('demo-orion9-db-2026').
+ */
+export const getFirebaseApp = (environment: 'LIVE' | 'DEMO' = 'LIVE'): FirebaseApp => {
+  const envKey = (environment || 'LIVE').toUpperCase();
+  if (appInstances.has(envKey)) {
+    return appInstances.get(envKey)!;
+  }
+
+  const existingApps = getApps();
+  const targetConfig = envKey === 'DEMO' ? DEMO_FIREBASE_CONFIG : LIVE_FIREBASE_CONFIG;
+
+  let targetApp: FirebaseApp;
+  const found = existingApps.find(a => (envKey === 'DEMO' ? a.name === 'DEMO_ORION9_APP' : a.name === '[DEFAULT]'));
+
+  if (found) {
+    targetApp = found;
   } else {
-    app = getApp();
+    if (envKey === 'DEMO') {
+      targetApp = initializeApp(targetConfig, 'DEMO_ORION9_APP');
+    } else {
+      targetApp = existingApps.length === 0 ? initializeApp(targetConfig) : getApp();
+    }
   }
-  return app;
+
+  appInstances.set(envKey, targetApp);
+  return targetApp;
 };
 
-export const getFirebaseAuth = (): Auth => {
-  if (!auth) {
-    auth = getAuth(getFirebaseApp());
+/**
+ * Returns Auth instance isolated per environment.
+ */
+export const getFirebaseAuth = (environment: 'LIVE' | 'DEMO' = 'LIVE'): Auth => {
+  const envKey = (environment || 'LIVE').toUpperCase();
+  if (!authInstances.has(envKey)) {
+    const app = getFirebaseApp(environment);
+    authInstances.set(envKey, getAuth(app));
   }
-  return auth;
+  return authInstances.get(envKey)!;
 };
 
-export const getFirebaseFirestore = (): Firestore => {
-  if (!db) {
-    db = getFirestore(getFirebaseApp());
+/**
+ * Returns Cloud Firestore instance strictly connected to the corresponding environment project.
+ */
+export const getFirebaseFirestore = (environment: 'LIVE' | 'DEMO' = 'LIVE'): Firestore => {
+  const envKey = (environment || 'LIVE').toUpperCase();
+  if (!firestoreInstances.has(envKey)) {
+    const app = getFirebaseApp(environment);
+    firestoreInstances.set(envKey, getFirestore(app));
   }
-  return db;
+  return firestoreInstances.get(envKey)!;
 };

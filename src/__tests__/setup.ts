@@ -35,9 +35,18 @@ vi.mock('localforage', () => ({
   },
 }));
 
-// Suppress Firebase network calls — return mock instances in test mode
+// Suppress Firebase network calls — return mock instances in test mode with proper environment names
 vi.mock('../lib/firebaseClient', () => ({
-  getFirebaseApp: vi.fn().mockReturnValue(null),
-  getFirebaseAuth: vi.fn().mockReturnValue(null),
+  LIVE_FIREBASE_CONFIG: { projectId: 'orion9-dev-db-2026' },
+  DEMO_FIREBASE_CONFIG: { projectId: 'demo-orion9-db-2026' },
+  firebaseConfig: { projectId: 'orion9-dev-db-2026' },
+  getFirebaseApp: vi.fn((env?: 'LIVE' | 'DEMO') => ({
+    name: env === 'DEMO' ? 'DEMO_ORION9_APP' : '[DEFAULT]',
+    options: { projectId: env === 'DEMO' ? 'demo-orion9-db-2026' : 'orion9-dev-db-2026' }
+  })),
+  getFirebaseAuth: vi.fn((env?: 'LIVE' | 'DEMO') => ({
+    app: { name: env === 'DEMO' ? 'DEMO_ORION9_APP' : '[DEFAULT]' },
+    currentUser: null
+  })),
   getFirebaseFirestore: vi.fn().mockReturnValue(null),
 }));

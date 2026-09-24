@@ -3,7 +3,7 @@
  * Generates relationally consistent, tenant-aware, lifecycle-complete
  * synthetic enterprise business packages for the DEMO environment.
  * 
- * Target: 20 Complete Enterprise Packages per Batch / Hour.
+ * Target: Exactly 25 Complete Enterprise Packages per Batch / Hour.
  * Hard Guard: Strictly prohibited from running or writing in LIVE mode.
  */
 
@@ -140,7 +140,7 @@ export interface SyntheticPurchaseOrder {
   expectedDeliveryDate: string;
   totalAmount: number;
   currency: string;
-  status: 'CREATED' | 'APPROVED' | 'RELEASED' | 'CONFIRMED' | 'ASN_RECEIVED' | 'IN_TRANSIT' | 'RECEIVED' | 'INVOICED' | 'MATCHED';
+  status: 'DRAFT' | 'APPROVED' | 'IN_TRANSIT' | 'RECEIVED' | 'CANCELLED';
   items: Array<{
     sku: string;
     productName: string;
@@ -166,7 +166,7 @@ export interface SyntheticShipment {
   destination: string;
   carrier: string;
   shippingMode: 'OCEAN' | 'AIR' | 'ROAD' | 'RAIL';
-  status: 'BOOKED' | 'PICKED_UP' | 'IN_TRANSIT' | 'CUSTOMS_HOLD' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
+  status: 'DISPATCHED' | 'IN_TRANSIT' | 'CUSTOMS_HOLD' | 'DELIVERED';
   eta: string;
   shippedDate: string;
   asnQuantity: number;
@@ -207,8 +207,8 @@ export interface SyntheticInvoice {
   poId: string;
   supplierId: string;
   amount: number;
-  status: 'RECEIVED' | 'MATCHED' | 'VARIANCE_HOLD' | 'APPROVED' | 'PAID';
-  matchStatus: '3_WAY_MATCHED' | 'PRICE_VARIANCE' | 'QTY_VARIANCE' | 'UNMATCHED';
+  status: 'DRAFT' | 'PENDING_APPROVAL' | 'MATCHED' | 'PAID' | 'DISPUTED';
+  matchStatus: '3_WAY_MATCHED' | 'PRICE_VARIANCE' | 'QTY_VARIANCE';
   tenantId: string;
   organizationId: string;
   syntheticData: true;
@@ -226,7 +226,7 @@ export interface SyntheticContract {
   startDate: string;
   endDate: string;
   slaOnTimeTarget: number;
-  status: 'ACTIVE' | 'EXPIRING_SOON' | 'EXPIRED';
+  status: 'ACTIVE' | 'EXPIRED' | 'PENDING';
   tenantId: string;
   organizationId: string;
   syntheticData: true;
@@ -240,11 +240,11 @@ export interface SyntheticException {
   id: string;
   title: string;
   description: string;
-  category: 'SUPPLIER_DELAY' | 'STOCKOUT_RISK' | 'QUALITY_HOLD' | 'PRICE_VARIANCE' | 'TRANSPORT_DISRUPTION';
+  category: 'SUPPLIER_DELAY' | 'INVENTORY_SHORTAGE' | 'QUALITY_DEFECT' | 'INVOICE_MISMATCH' | 'TRANSPORT_DISRUPTION';
   severity: 'Critical' | 'High' | 'Medium' | 'Low';
-  status: 'Open' | 'Investigating' | 'Mitigated' | 'Resolved';
+  status: 'Open' | 'Investigating' | 'Resolved' | 'Ignored';
   relatedEntityId: string;
-  relatedEntityType: 'PO' | 'SHIPMENT' | 'SKU' | 'SUPPLIER';
+  relatedEntityType: 'PURCHASE_ORDER' | 'SHIPMENT' | 'INVENTORY' | 'INVOICE';
   recommendedAction: string;
   tenantId: string;
   organizationId: string;
@@ -297,7 +297,7 @@ export interface GenerationBatchAudit {
 }
 
 // ---------------------------------------------------------------------------
-// Realistic Fictional Seed Catalogs for High-Fidelity Enterprise Simulation
+// Realistic Seed Catalogs for High-Fidelity Enterprise Simulation
 // ---------------------------------------------------------------------------
 
 const COMPANY_PREFIXES = [
@@ -364,11 +364,11 @@ export class DemoSyntheticDataEngine {
   }
 
   /**
-   * Generates a batch of synthetic enterprise packages.
-   * Default package count is 20 complete business ecosystems.
+   * Generates exactly 25 complete synthetic enterprise packages per hourly batch.
+   * Default package count is 25 complete business ecosystems.
    */
   public async generateEnterpriseBatch(
-    targetPackageCount: number = 20,
+    targetPackageCount: number = 25,
     customBatchId?: string,
     targetTenant: string = 'DEMO_TENANT_ORION',
     targetOrg: string = 'DEMO_ORG_GLOBAL'
@@ -387,7 +387,7 @@ export class DemoSyntheticDataEngine {
     // 2. IDEMPOTENCY IDENTIFIER
     const now = new Date();
     const isoHour = now.toISOString().substring(0, 13).replace(/[-:]/g, '');
-    const generationBatchId = customBatchId || `DEMO-${isoHour}-BATCH-${String(Math.floor(Math.random() * 900) + 100)}`;
+    const generationBatchId = customBatchId || `DEMO-${isoHour}00Z-BATCH`;
 
     if (this.executedBatchIds.has(generationBatchId)) {
       console.warn(`[DEMO-ENGINE] Batch ${generationBatchId} was already executed. Skipping duplicate invocation.`);
@@ -395,7 +395,7 @@ export class DemoSyntheticDataEngine {
       if (existing) return existing;
     }
 
-    const firestore = dbManager.getFirestore();
+    const firestore = dbManager.getFirestore('DEMO');
     const errors: string[] = [];
 
     const recordCounts = {
@@ -414,7 +414,7 @@ export class DemoSyntheticDataEngine {
 
     const packages: SyntheticCompanyPackage[] = [];
 
-    // 3. GENERATE TARGET NUMBER OF COMPLETE ENTERPRISE PACKAGES
+    // 3. GENERATE TARGET NUMBER OF COMPLETE ENTERPRISE PACKAGES (EXACTLY 25)
     for (let i = 0; i < targetPackageCount; i++) {
       const pkg = this.generateSingleEnterprisePackage(i, generationBatchId, targetTenant, targetOrg, now);
       packages.push(pkg);
@@ -432,61 +432,36 @@ export class DemoSyntheticDataEngine {
       recordCounts.signals += pkg.signals.length;
     }
 
-    // 4. PERSIST TO DEMO FIRESTORE PROVIDER (Batched Write)
+    // 4. PERSIST TO DEMO FIRESTORE PROVIDER IN CHUNKS OF <= 250 OPS
     if (firestore) {
       try {
-        const batch = writeBatch(firestore);
+        const writeQueue: Array<{ collection: string; id: string; data: any }> = [];
 
-        // Write batch documents into Demo collections
         for (const pkg of packages) {
-          // Company
-          const compRef = doc(firestore, 'companies', pkg.company.id);
-          batch.set(compRef, pkg.company);
-
-          // Suppliers
-          for (const sup of pkg.suppliers) {
-            const sRef = doc(firestore, 'suppliers', sup.id);
-            batch.set(sRef, sup);
-          }
-
-          // Products
-          for (const prod of pkg.products) {
-            const pRef = doc(firestore, 'products', prod.id);
-            batch.set(pRef, prod);
-          }
-
-          // Purchase Orders
-          for (const po of pkg.purchaseOrders) {
-            const poRef = doc(firestore, 'purchase_orders', po.id);
-            batch.set(poRef, po);
-          }
-
-          // Shipments
-          for (const shp of pkg.shipments) {
-            const shpRef = doc(firestore, 'shipments', shp.id);
-            batch.set(shpRef, shp);
-          }
-
-          // Inventory
-          for (const inv of pkg.inventoryItems) {
-            const invRef = doc(firestore, 'inventory', inv.id);
-            batch.set(invRef, inv);
-          }
-
-          // Exceptions
-          for (const exc of pkg.exceptions) {
-            const excRef = doc(firestore, 'exceptions', exc.id);
-            batch.set(excRef, exc);
-          }
-
-          // Signals
-          for (const sig of pkg.signals) {
-            const sigRef = doc(firestore, 'signals', sig.id);
-            batch.set(sigRef, sig);
-          }
+          writeQueue.push({ collection: 'companies', id: pkg.company.id, data: pkg.company });
+          pkg.suppliers.forEach(s => writeQueue.push({ collection: 'suppliers', id: s.id, data: s }));
+          pkg.customers.forEach(c => writeQueue.push({ collection: 'customers', id: c.id, data: c }));
+          pkg.products.forEach(p => writeQueue.push({ collection: 'products', id: p.id, data: p }));
+          pkg.warehouses.forEach(w => writeQueue.push({ collection: 'warehouses', id: w.id, data: w }));
+          pkg.purchaseOrders.forEach(po => writeQueue.push({ collection: 'purchase_orders', id: po.id, data: po }));
+          pkg.shipments.forEach(shp => writeQueue.push({ collection: 'shipments', id: shp.id, data: shp }));
+          pkg.inventoryItems.forEach(inv => writeQueue.push({ collection: 'inventory', id: inv.id, data: inv }));
+          pkg.invoices.forEach(invDoc => writeQueue.push({ collection: 'invoices', id: invDoc.id, data: invDoc }));
+          pkg.exceptions.forEach(exc => writeQueue.push({ collection: 'exceptions', id: exc.id, data: exc }));
+          pkg.signals.forEach(sig => writeQueue.push({ collection: 'signals', id: sig.id, data: sig }));
         }
 
-        await batch.commit();
+        // Commit in chunks of 200 operations
+        const chunkSize = 200;
+        for (let idx = 0; idx < writeQueue.length; idx += chunkSize) {
+          const chunk = writeQueue.slice(idx, idx + chunkSize);
+          const batch = writeBatch(firestore);
+          for (const item of chunk) {
+            const itemRef = doc(firestore, item.collection, item.id);
+            batch.set(itemRef, item.data, { merge: true });
+          }
+          await batch.commit();
+        }
       } catch (err: any) {
         console.error('[DEMO-ENGINE] Firestore write error:', err);
         errors.push(err?.message || 'Database write warning');
@@ -499,21 +474,28 @@ export class DemoSyntheticDataEngine {
     const audit: GenerationBatchAudit = {
       generationBatchId,
       environment: 'DEMO',
-      generatedBy: 'ORION_SYNTHETIC_DATA_ENGINE_V2',
-      generatorVersion: '2.4.0',
+      generatedBy: 'ORION_PERSISTENT_CLOUD_SCHEDULER',
+      generatorVersion: '2.5.0',
       packageCount: targetPackageCount,
       recordCounts,
       startedAt,
       completedAt,
       durationMs,
       errors,
-      status: errors.length === 0 ? 'COMPLETED' : 'COMPLETED',
+      status: 'COMPLETED',
     };
+
+    // Save batch audit to DEMO Firestore
+    if (firestore) {
+      try {
+        const auditRef = doc(firestore, 'demo_generation_batches', generationBatchId);
+        await setDoc(auditRef, audit, { merge: true });
+      } catch (e) {}
+    }
 
     this.executedBatchIds.add(generationBatchId);
     this.batchHistory.unshift(audit);
 
-    // Keep history capped at 100 entries
     if (this.batchHistory.length > 100) {
       this.batchHistory.pop();
     }
@@ -540,12 +522,12 @@ export class DemoSyntheticDataEngine {
     organizationId: string,
     baseDate: Date
   ): SyntheticCompanyPackage {
-    const prefix = COMPANY_PREFIXES[Math.floor(Math.random() * COMPANY_PREFIXES.length)];
-    const suffix = COMPANY_SUFFIXES[Math.floor(Math.random() * COMPANY_SUFFIXES.length)];
+    const prefix = COMPANY_PREFIXES[index % COMPANY_PREFIXES.length];
+    const suffix = COMPANY_SUFFIXES[index % COMPANY_SUFFIXES.length];
     const companyName = `${prefix} ${suffix}`;
     const legalName = `${companyName}, Incorporated`;
-    const location = GLOBAL_CITIES[Math.floor(Math.random() * GLOBAL_CITIES.length)];
-    const industry = INDUSTRIES[Math.floor(Math.random() * INDUSTRIES.length)];
+    const location = GLOBAL_CITIES[index % GLOBAL_CITIES.length];
+    const industry = INDUSTRIES[index % INDUSTRIES.length];
 
     const companyId = `SYN_COMP_${String(index + 1).padStart(3, '0')}_${Math.floor(Math.random() * 9000 + 1000)}`;
     const nowIso = baseDate.toISOString();
@@ -577,12 +559,12 @@ export class DemoSyntheticDataEngine {
       generatedAt: nowIso,
     };
 
-    // 2. Suppliers
+    // 2. Suppliers (2 to 3 suppliers per company)
     const suppliers: SyntheticSupplier[] = [];
-    const supplierCount = Math.floor(Math.random() * 2) + 2; // 2 to 3 suppliers per company
+    const supplierCount = Math.floor(Math.random() * 2) + 2;
     for (let s = 0; s < supplierCount; s++) {
-      const supLoc = GLOBAL_CITIES[Math.floor(Math.random() * GLOBAL_CITIES.length)];
-      const supPrefix = COMPANY_PREFIXES[Math.floor(Math.random() * COMPANY_PREFIXES.length)];
+      const supLoc = GLOBAL_CITIES[(index + s + 1) % GLOBAL_CITIES.length];
+      const supPrefix = COMPANY_PREFIXES[(index + s + 3) % COMPANY_PREFIXES.length];
       const supName = `${supPrefix} ${industry.split(' ')[0]} Technologies`;
       const supId = `SYN_SUP_${companyId.split('_')[2]}_${s + 1}`;
 
@@ -611,11 +593,11 @@ export class DemoSyntheticDataEngine {
       });
     }
 
-    // 3. Customers
+    // 3. Customers (1 to 2 customers)
     const customers: SyntheticCustomer[] = [
       {
         id: `SYN_CUST_${companyId.split('_')[2]}_01`,
-        name: `${COMPANY_PREFIXES[Math.floor(Math.random() * COMPANY_PREFIXES.length)]} Global Operations`,
+        name: `${COMPANY_PREFIXES[(index + 5) % COMPANY_PREFIXES.length]} Global Operations`,
         industry,
         tier: 'Enterprise',
         country: location.country,
@@ -632,11 +614,31 @@ export class DemoSyntheticDataEngine {
       }
     ];
 
-    // 4. Products & SKUs
+    if (Math.random() > 0.4) {
+      customers.push({
+        id: `SYN_CUST_${companyId.split('_')[2]}_02`,
+        name: `${COMPANY_PREFIXES[(index + 7) % COMPANY_PREFIXES.length]} Systems Distribution`,
+        industry,
+        tier: 'Strategic',
+        country: location.country,
+        creditLimit: Math.floor(Math.random() * 300000) + 150000,
+        paymentTerms: 'Net 30',
+        status: 'ACTIVE',
+        tenantId,
+        organizationId,
+        syntheticData: true,
+        environment: 'DEMO',
+        generationBatchId: batchId,
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      });
+    }
+
+    // 4. Products & SKUs (3 to 5 products)
     const products: SyntheticProduct[] = [];
-    const productCount = Math.floor(Math.random() * 3) + 3; // 3 to 5 products
+    const productCount = Math.floor(Math.random() * 3) + 3;
     for (let p = 0; p < productCount; p++) {
-      const template = PRODUCT_TEMPLATES[p % PRODUCT_TEMPLATES.length];
+      const template = PRODUCT_TEMPLATES[(index + p) % PRODUCT_TEMPLATES.length];
       const sku = `SYN-SKU-${companyId.split('_')[2]}-${String(p + 1).padStart(3, '0')}`;
       const assignedSupplier = suppliers[p % suppliers.length];
 
@@ -682,7 +684,7 @@ export class DemoSyntheticDataEngine {
       }
     ];
 
-    // 6. Purchase Orders
+    // 6. Purchase Orders, Shipments, Inventory, Invoices, Exceptions
     const purchaseOrders: SyntheticPurchaseOrder[] = [];
     const shipments: SyntheticShipment[] = [];
     const inventoryItems: SyntheticInventoryItem[] = [];
@@ -697,7 +699,6 @@ export class DemoSyntheticDataEngine {
       const poNum = `PO-SYN-${companyId.split('_')[2]}-${String(i + 1).padStart(3, '0')}`;
       const totalAmount = poQty * prod.unitCost;
 
-      // Realistic statuses
       const isShipped = Math.random() > 0.3;
       const isReceived = isShipped && Math.random() > 0.4;
       const poStatus = isReceived ? 'RECEIVED' : isShipped ? 'IN_TRANSIT' : 'APPROVED';

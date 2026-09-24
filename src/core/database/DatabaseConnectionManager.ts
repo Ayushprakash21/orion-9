@@ -55,7 +55,7 @@ export class DatabaseConnectionManager {
 
   private initDatabaseProvider(): void {
     try {
-      this.firestoreInstance = getFirebaseFirestore();
+      this.firestoreInstance = getFirebaseFirestore(this.currentEnvironment);
       this.connectionStatus = 'CONNECTED';
       this.lastError = null;
     } catch (err: any) {
@@ -73,7 +73,10 @@ export class DatabaseConnectionManager {
     return this.currentEnvironment === 'LIVE' ? LIVE_DATABASE_CONFIG : DEMO_DATABASE_CONFIG;
   }
 
-  public getFirestore(): Firestore | null {
+  public getFirestore(environment?: DatabaseEnvironmentMode): Firestore | null {
+    if (environment && environment !== this.currentEnvironment) {
+      return getFirebaseFirestore(environment);
+    }
     return this.firestoreInstance;
   }
 

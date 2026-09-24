@@ -1,7 +1,11 @@
 /**
  * ORION-9 DEMO LIVE-SIMULATION ENGINE
- * Continuously advances synthetic business lifecycles (POs, Shipments, Inventory, Manufacturing)
+ * Advances synthetic business lifecycles (POs, Shipments, Inventory, Manufacturing)
  * and generates realistic controlled exceptions and telemetry signals for the DEMO environment.
+ * 
+ * Note: Hourly batch generation is owned authoritatively by the persistent cloud scheduler
+ * (DemoPersistentSchedulerService / Cloud daemon). This engine manages client/local visual
+ * telemetry animation and lifecycle progression when the Orion UI is active.
  * 
  * Hard Guard: Strictly prohibited from running or writing against the LIVE database.
  */
@@ -15,7 +19,7 @@ export type DemoRetentionPolicy = '7_DAYS' | '30_DAYS' | '90_DAYS' | 'UNLIMITED'
 
 export interface SimulationConfig {
   speed: SimulationSpeed;
-  hourlyGenerationRate: number; // default 20
+  hourlyGenerationRate: number; // exactly 25
   retentionPolicy: DemoRetentionPolicy;
   exceptionProbabilities: {
     supplierDelayProbability: number; // 0..1
@@ -48,7 +52,7 @@ export class DemoLiveSimulationEngine {
 
   private config: SimulationConfig = {
     speed: '1x',
-    hourlyGenerationRate: 20,
+    hourlyGenerationRate: 25,
     retentionPolicy: '30_DAYS',
     exceptionProbabilities: {
       supplierDelayProbability: 0.15,
@@ -65,19 +69,18 @@ export class DemoLiveSimulationEngine {
     speed: '1x',
     environment: 'DEMO',
     lastCycleAt: new Date().toISOString(),
-    nextCycleAt: new Date(Date.now() + 3600000).toISOString(),
+    nextCycleAt: new Date(Date.now() + 60000).toISOString(),
     totalCyclesExecuted: 0,
     totalEventsProcessed: 0,
     exceptionsGeneratedToday: 0,
-    activeCompaniesCount: 20,
-    activeSuppliersCount: 48,
-    activeProductsCount: 96,
-    activePOsCount: 64,
-    activeShipmentsCount: 38,
+    activeCompaniesCount: 25,
+    activeSuppliersCount: 62,
+    activeProductsCount: 100,
+    activePOsCount: 80,
+    activeShipmentsCount: 50,
   };
 
   private tickerTimer: any = null;
-  private hourlyTimer: any = null;
 
   private constructor() {
     this.startEngine();
@@ -150,7 +153,7 @@ export class DemoLiveSimulationEngine {
     const now = new Date();
     const nowIso = now.toISOString();
 
-    const firestore = dbManager.getFirestore();
+    const firestore = dbManager.getFirestore('DEMO');
     if (firestore) {
       try {
         const batch = writeBatch(firestore);
@@ -228,7 +231,7 @@ export class DemoLiveSimulationEngine {
   }
 
   /**
-   * Governed Demo Reset: Purges synthetic data and restores clean baseline dataset
+   * Governed Demo Reset: Purges synthetic data and restores clean 25-package baseline dataset
    */
   public async resetDemoData(actorUserId: string, isPlatformAdmin: boolean): Promise<{ success: boolean; message: string }> {
     const activeEnv = dbManager.getEnvironment();
@@ -244,9 +247,9 @@ export class DemoLiveSimulationEngine {
 
     console.info(`[DEMO-RESET] Administrator ${actorUserId} triggered governed Demo data reset.`);
 
-    // 1. Generate clean 20-package baseline dataset
+    // 1. Generate clean 25-package baseline dataset
     await demoSyntheticDataEngine.generateEnterpriseBatch(
-      20,
+      25,
       `DEMO-BASELINE-RESET-${Date.now()}`
     );
 
@@ -261,23 +264,12 @@ export class DemoLiveSimulationEngine {
 
     return {
       success: true,
-      message: 'Demo dataset successfully reset. Restored 20 fresh synthetic enterprise ecosystems.',
+      message: 'Demo dataset successfully reset. Restored 25 fresh synthetic enterprise ecosystems.',
     };
   }
 
   private startEngine(): void {
     this.restartTicker();
-
-    // Setup hourly batch generation trigger (every 60 minutes)
-    if (typeof window !== 'undefined') {
-      this.hourlyTimer = setInterval(() => {
-        if (dbManager.getEnvironment() === 'DEMO' && this.config.autoGenerateHourly && this.state.speed !== 'PAUSED') {
-          demoSyntheticDataEngine.generateEnterpriseBatch(this.config.hourlyGenerationRate).catch((e) => {
-            console.error('[DEMO-SCHEDULER] Hourly generation error:', e);
-          });
-        }
-      }, 3600000);
-    }
   }
 
   private getIntervalMs(): number {
