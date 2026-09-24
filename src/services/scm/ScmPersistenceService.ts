@@ -195,7 +195,10 @@ export class ScmPersistenceService {
     // 1. Fetch current inventory
     let currentInv = await this.getRecord<Inventory & { tenantId: string }>('inventory', params.tenantId, invId);
     let balanceBefore = currentInv ? currentInv.onHand : 0;
-    let balanceAfter = Math.max(0, balanceBefore + params.quantityDelta);
+    if (balanceBefore + params.quantityDelta < 0) {
+      throw new Error(`Inventory overdraw rejected: cannot reduce stock for product [${params.productId}] at warehouse [${params.warehouseId}] below 0 (current on-hand: ${balanceBefore}, requested delta: ${params.quantityDelta})`);
+    }
+    let balanceAfter = balanceBefore + params.quantityDelta;
 
     const updatedInv: Inventory & { tenantId: string } = {
       id: invId,
