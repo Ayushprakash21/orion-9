@@ -1381,6 +1381,77 @@ service cloud.firestore {
       allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
       allow delete: if isAdmin();
     }
+
+    // Historical Core Operations & Logistics (Tenant Isolated)
+    match /contracts/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /echelon_nodes/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /sku_buffers/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /replenishment_orders/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /bullwhip_metrics/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /freight_consignments/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /yard_appointments/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /consolidation_plans/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /lane_congestion_metrics/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /contingency_plans/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /system_metadata/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /system_status/{id} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
   }
 }
 
