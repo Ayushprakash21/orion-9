@@ -91,7 +91,21 @@ export class DataEngine {
   
   public getExceptions(): Exception[] { return this._exceptions; }
   
-  public getKPIs(): KPI[] { return []; }
+  public getKPIs(): KPI[] {
+    const inv = this._inventory;
+    const curr = 'USD';
+    const totalVal = inv.reduce((sum, item) => sum + (item.onHand * item.unitCost), 0);
+    const otifs = this._suppliers.map(s => s.otif || 95);
+    const avgOtif = otifs.length > 0 ? otifs.reduce((a, b) => a + b, 0) / otifs.length : 95;
+    const stockoutCount = inv.filter(i => (i.onHand - i.reserved) < i.safetyStock).length;
+
+    return [
+      { id: 'INV_VAL', name: 'Inventory Value', value: Math.round(totalVal), unit: curr },
+      { id: 'EXC_CNT', name: 'Exception Count', value: this._exceptions.length, unit: 'count' },
+      { id: 'SUP_OTD', name: 'Supplier On-Time Delivery', value: parseFloat(avgOtif.toFixed(1)), unit: '%' },
+      { id: 'STK_RSK', name: 'Items at Stockout Risk', value: stockoutCount, unit: 'count' }
+    ];
+  }
 }
 
 export const dataEngine = DataEngine.getInstance();

@@ -12,6 +12,7 @@ import { useSupplyChain } from '../store/SupplyChainContext';
 import { useEntityDrawer } from '../store/EntityDrawerContext';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency, formatCurrencyCompact, formatCurrencyPair, formatNumber } from '../lib/formatters';
+import { useLiveMetric } from '../core/visualization';
 
 type TimeRange = '7D' | '14D' | '30D';
 type DomainKey = 'all' | 'overall' | 'inventory' | 'supplier' | 'procurement' | 'logistics' | 'demand' | 'warehouse';
@@ -19,10 +20,13 @@ type DomainKey = 'all' | 'overall' | 'inventory' | 'supplier' | 'procurement' | 
 export const CommandCenterAnalytics: React.FC = () => {
   const { 
     inventory, suppliers, purchaseOrders, shipments, exceptions, 
-    currency, settings, warehouses 
+    currency, settings, warehouses, dataMode 
   } = useSupplyChain();
   const { openEntity } = useEntityDrawer();
   const navigate = useNavigate();
+
+  const { metric: liveMetric } = useLiveMetric('CONTROL_TOWER_EXCEPTIONS');
+  const liveTelemetryStatus = liveMetric?.status || (dataMode === 'demo' ? 'DEMO' : 'LIVE');
 
   const [timeRange, setTimeRange] = useState<TimeRange>('14D');
   const [activeDomain, setActiveDomain] = useState<DomainKey>('all');
@@ -225,8 +229,14 @@ export const CommandCenterAnalytics: React.FC = () => {
               <h2 className="text-sm font-semibold uppercase tracking-wider text-os-text-primary">
                 Operational Control Tower Analytics
               </h2>
-              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 font-medium">
-                LIVE TELEMETRY
+              <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border font-medium ${
+                liveTelemetryStatus === 'LIVE'
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400'
+                  : liveTelemetryStatus === 'DEMO'
+                  ? 'border-blue-500/30 bg-blue-500/10 text-blue-400'
+                  : 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+              }`}>
+                {liveTelemetryStatus === 'LIVE' ? 'LIVE TELEMETRY' : liveTelemetryStatus === 'DEMO' ? 'DEMO SIMULATION' : liveTelemetryStatus}
               </span>
             </div>
             <p className="text-xs text-os-text-muted mt-0.5">
