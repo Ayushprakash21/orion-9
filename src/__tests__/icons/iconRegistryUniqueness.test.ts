@@ -9,9 +9,9 @@ import {
 import { SYSTEM_ICONS } from '../../os/icons/OrionSystemIcons';
 
 describe('ORION-9 macOS-Style Icon System Certification', () => {
-  it('contains registered icon metadata for all 103 applications in ORION_REGISTRY', () => {
+  it('contains registered icon metadata for all 107 applications in ORION_REGISTRY', () => {
     const appIds = Object.keys(ORION_REGISTRY);
-    expect(appIds.length).toBe(103);
+    expect(appIds.length).toBe(107);
 
     for (const appId of appIds) {
       const iconDef = ORION_ICON_REGISTRY[appId];
@@ -27,10 +27,10 @@ describe('ORION-9 macOS-Style Icon System Certification', () => {
     }
   });
 
-  it('guarantees 100% uniqueness of icon IDs across all 103 applications with zero collisions', () => {
+  it('guarantees 100% uniqueness of icon IDs across all 107 applications with zero collisions', () => {
     const result = validateIconRegistryUniqueness();
-    expect(result.totalApps).toBe(103);
-    expect(result.uniqueIconIds).toBe(103);
+    expect(result.totalApps).toBe(107);
+    expect(result.uniqueIconIds).toBe(107);
     expect(result.duplicates).toEqual([]);
     expect(result.is100PercentUnique).toBe(true);
   });
@@ -48,7 +48,7 @@ describe('ORION-9 macOS-Style Icon System Certification', () => {
     }
 
     expect(duplicateComponents).toEqual([]);
-    expect(seenComponents.size).toBe(103);
+    expect(seenComponents.size).toBe(107);
   });
 
   it('verifies getAppIconDefinition returns authoritative metadata and safe fallback', () => {

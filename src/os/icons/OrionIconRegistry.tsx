@@ -111,7 +111,11 @@ import {
   IconReleaseCenter,
   IconIntegrationGateway,
   IconScalePerformance,
-  IconPlatformMaturity
+  IconPlatformMaturity,
+  IconFileManager,
+  IconNotepad,
+  IconOrionComputer,
+  IconRecycleBin
 } from './icons/PlatformIcons';
 
 export interface OrionIconDefinition {
@@ -1180,6 +1184,42 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     description: 'Enterprise operational maturity scorecard.',
     palette: { from: '#047857', to: '#064E3B', accent: '#10B981', surface: '#10B98115' },
     component: IconPlatformMaturity
+  },
+  'file-manager': {
+    appId: 'file-manager',
+    iconId: 'icon-file-mgr',
+    name: 'File Explorer',
+    category: 'Platform',
+    description: 'Enterprise virtual file explorer, folder hierarchy, and storage management.',
+    palette: { from: '#0284C7', to: '#0F172A', accent: '#38BDF8', surface: '#38BDF815' },
+    component: IconFileManager
+  },
+  'notepad': {
+    appId: 'notepad',
+    iconId: 'icon-notepad',
+    name: 'Notepad',
+    category: 'Platform',
+    description: 'Full-featured desktop text editor and supply chain memo pad.',
+    palette: { from: '#00F2FE', to: '#0E7490', accent: '#00F2FE', surface: '#00F2FE15' },
+    component: IconNotepad
+  },
+  'orion-computer': {
+    appId: 'orion-computer',
+    iconId: 'icon-orion-comp',
+    name: 'This Computer',
+    category: 'Platform',
+    description: 'Orion workstation storage volumes, system drives, and hardware telemetry.',
+    palette: { from: '#4F46E5', to: '#0F172A', accent: '#6366F1', surface: '#6366F115' },
+    component: IconOrionComputer
+  },
+  'recycle-bin': {
+    appId: 'recycle-bin',
+    iconId: 'icon-recycle-bin',
+    name: 'Recycle Bin',
+    category: 'Platform',
+    description: 'Deleted system items, recoverable documents, and permanent purge canister.',
+    palette: { from: '#E11D48', to: '#4C0519', accent: '#FB7185', surface: '#FB718515' },
+    component: IconRecycleBin
   }
 };
 

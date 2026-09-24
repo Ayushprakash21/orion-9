@@ -18,6 +18,9 @@ import { Integrations } from '../components/Integrations';
 import { Reports } from '../components/Reports';
 import { DocumentWorkspace } from '../components/DocumentWorkspace';
 import { Settings } from '../components/Settings';
+import { Notepad } from '../components/Notepad';
+import { FileManager } from '../components/FileManager';
+import { OrionComputer } from '../components/OrionComputer';
 import { Inbound } from '../components/Inbound';
 import { Outbound } from '../components/Outbound';
 import { Predictions } from '../components/Predictions';
@@ -212,6 +215,10 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'supplier-collaboration': SupplierCollaborationCenter,
   'network-design': NetworkDesignCenter,
   'sustainability': SustainabilityCenter,
+  'file-manager': FileManager,
+  'notepad': Notepad,
+  'orion-computer': OrionComputer,
+  'recycle-bin': () => <FileManager initialFolderKey="recycle_bin" />,
 };
 
 export function getAppComponent(appId: string): React.ComponentType<any> | null {

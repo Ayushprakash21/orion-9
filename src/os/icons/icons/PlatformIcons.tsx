@@ -222,3 +222,53 @@ export const IconPlatformMaturity: React.FC<{ size?: number; className?: string;
     <polygon points="64,42 68,52 78,54 70,62 72,72 64,66 56,72 58,62 50,54 60,52" fill="#FEF08A" stroke="#FFFFFF" strokeWidth="1" />
   </OrionSquircleBase>
 );
+
+// 104. File Manager (File Explorer)
+export const IconFileManager: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
+  <OrionSquircleBase gradientId="icon-file-mgr" from="#0284C7" to="#0F172A" {...props}>
+    {/* Enterprise File Explorer & Hierarchical Workspace Folders */}
+    <path d="M 26 36 L 48 36 L 56 44 L 102 44 L 102 92 L 26 92 Z" fill="#38BDF8" stroke="#BAE6FD" strokeWidth="2" />
+    <rect x="34" y="50" width="60" height="36" rx="4" fill="#0284C7" stroke="#BAE6FD" strokeWidth="1.5" />
+    <circle cx="48" cy="68" r="4" fill="#FEF08A" />
+    <line x1="58" y1="68" x2="84" y2="68" stroke="#E0F2FE" strokeWidth="2" strokeLinecap="round" />
+  </OrionSquircleBase>
+);
+
+// 105. Notepad
+export const IconNotepad: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
+  <OrionSquircleBase gradientId="icon-notepad" from="#00F2FE" to="#0E7490" {...props}>
+    {/* Native OS Text Editor & SCM Memo Pad */}
+    <rect x="32" y="24" width="64" height="80" rx="8" fill="#F8FAFC" stroke="#BAE6FD" strokeWidth="2" />
+    <line x1="44" y1="42" x2="84" y2="42" stroke="#0284C7" strokeWidth="3" strokeLinecap="round" />
+    <line x1="44" y1="56" x2="84" y2="56" stroke="#64748B" strokeWidth="2.5" strokeLinecap="round" />
+    <line x1="44" y1="70" x2="74" y2="70" stroke="#64748B" strokeWidth="2.5" strokeLinecap="round" />
+    <line x1="44" y1="84" x2="64" y2="84" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" />
+    <circle cx="82" cy="82" r="5" fill="#00F2FE" stroke="#0284C7" strokeWidth="1.5" />
+  </OrionSquircleBase>
+);
+
+// 106. Orion Computer ("This PC")
+export const IconOrionComputer: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
+  <OrionSquircleBase gradientId="icon-orion-comp" from="#4F46E5" to="#0F172A" {...props}>
+    {/* Enterprise Workstation PC & Multi-Volume Node */}
+    <rect x="26" y="28" width="76" height="52" rx="6" fill="#1E1B4B" stroke="#A5B4FC" strokeWidth="2" />
+    <rect x="32" y="34" width="64" height="40" rx="3" fill="#6366F1" />
+    <polygon points="56,80 72,80 78,96 50,96" fill="#4338CA" stroke="#A5B4FC" strokeWidth="1.5" />
+    <line x1="42" y1="96" x2="86" y2="96" stroke="#A5B4FC" strokeWidth="3" strokeLinecap="round" />
+    <circle cx="64" cy="54" r="7" fill="#00F2FE" />
+  </OrionSquircleBase>
+);
+
+// 107. Recycle Bin
+export const IconRecycleBin: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
+  <OrionSquircleBase gradientId="icon-recycle-bin" from="#E11D48" to="#4C0519" {...props}>
+    {/* Enterprise OS Trash & Shredder Canister */}
+    <path d="M 38 40 L 90 40 L 84 94 C 84 96 82 98 80 98 L 48 98 C 46 98 44 96 44 94 Z" fill="#FB7185" stroke="#FFE4E6" strokeWidth="2" />
+    <line x1="32" y1="40" x2="96" y2="40" stroke="#FFE4E6" strokeWidth="3" strokeLinecap="round" />
+    <path d="M 52 40 L 52 32 C 52 30 54 28 56 28 L 72 28 C 74 28 76 30 76 32 L 76 40" stroke="#FFE4E6" strokeWidth="2" fill="none" />
+    <line x1="54" y1="52" x2="54" y2="86" stroke="#9F1239" strokeWidth="2" strokeLinecap="round" />
+    <line x1="64" y1="52" x2="64" y2="86" stroke="#9F1239" strokeWidth="2" strokeLinecap="round" />
+    <line x1="74" y1="52" x2="74" y2="86" stroke="#9F1239" strokeWidth="2" strokeLinecap="round" />
+  </OrionSquircleBase>
+);
+

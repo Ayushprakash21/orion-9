@@ -20,6 +20,7 @@ import { useAuth } from '../../store/AuthContext';
 import { useSupplyChain } from '../../store/SupplyChainContext';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
 import { OrionMobileShell } from '../mobile';
+import { DesktopWorkspace } from '../desktop/DesktopWorkspace';
 import { cn } from '../../lib/utils';
 import { 
   Search, 
@@ -236,51 +237,13 @@ export function OrionDesktop() {
         data-desktop-surface="true"
         className="orion-desktop-backdrop absolute inset-0 z-0 pointer-events-auto"
         onClick={() => setSelectedDesktopApp(null)}
-        {...desktopTriggerProps}
       >
         {isRefreshing && (
           <div className="absolute inset-0 bg-os-accent/[0.03] animate-pulse pointer-events-none transition-opacity duration-300" />
         )}
 
-        {/* Desktop Application Icons Grid */}
-        {showDesktopIcons && (
-          <div className="absolute top-12 left-6 bottom-20 flex flex-col flex-wrap gap-4 p-2 pointer-events-auto z-10 max-h-[calc(100vh-140px)] overflow-hidden">
-            {currentWorkspace.pinnedApps.map(id => {
-              const app = ORION_REGISTRY[id];
-              if (!app) return null;
-              const isSelected = selectedDesktopApp === id;
-
-              return (
-                <button
-                  type="button"
-                  key={`desktop-icon-${id}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedDesktopApp(id);
-                  }}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    openApplication(id);
-                  }}
-                  className={cn(
-                    "flex flex-col items-center justify-center w-24 p-2 rounded-xl transition-all group cursor-pointer focus:outline-none",
-                    isSelected
-                      ? "bg-os-accent/20 border border-os-accent/40 shadow-sm"
-                      : "hover:bg-os-surface-hover/30 border border-transparent"
-                  )}
-                >
-                  <OrionAppIcon app={id} size={52} active={isSelected} />
-                  <span className={cn(
-                    "mt-1.5 text-[11px] font-medium text-center line-clamp-2 px-1 rounded transition-colors drop-shadow-sm",
-                    isSelected ? "text-os-accent font-semibold" : "text-os-text-primary group-hover:text-os-text-primary"
-                  )}>
-                    {app.name}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {/* Dynamic Draggable Grid-Snapped Desktop Workspace */}
+        {showDesktopIcons && <DesktopWorkspace />}
       </div>
 
       {/* OS Layer 1: Top System Bar (PERSISTENT DESKTOP SHELL CHROME) */}
