@@ -109,4 +109,22 @@ describe('DesktopWorkspaceService Tests', () => {
     const afterRemove = await desktopWorkspaceService.listShortcuts('operations', testTenant, 'LIVE');
     expect(afterRemove.some(s => s.id === created.id)).toBe(false);
   });
+
+  it('renames desktop shortcuts properly', async () => {
+    const created = await desktopWorkspaceService.addShortcut({
+      targetType: 'file',
+      targetId: 'file-rename-test',
+      name: 'Initial Name.txt',
+      workspaceId: 'operations',
+      tenantId: testTenant,
+      environment: 'LIVE',
+    });
+
+    const renamed = await desktopWorkspaceService.renameShortcut(created.id, 'Renamed Document.txt', testTenant, 'LIVE');
+    expect(renamed.name).toBe('Renamed Document.txt');
+
+    const listed = await desktopWorkspaceService.listShortcuts('operations', testTenant, 'LIVE');
+    const found = listed.find(s => s.id === created.id);
+    expect(found?.name).toBe('Renamed Document.txt');
+  });
 });

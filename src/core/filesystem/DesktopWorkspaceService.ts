@@ -318,6 +318,29 @@ export class DesktopWorkspaceService {
   }
 
   /**
+   * Rename a shortcut on Desktop.
+   */
+  public async renameShortcut(
+    shortcutId: string,
+    newName: string,
+    tenantId?: string,
+    environment?: 'DEMO' | 'LIVE'
+  ): Promise<DesktopShortcut> {
+    const { activeTenant } = this.getContext(tenantId, environment);
+    const existing = await scmPersistenceService.getRecord<DesktopShortcut>('desktop_items', activeTenant, shortcutId);
+    if (!existing) {
+      throw new Error(`Shortcut ${shortcutId} not found`);
+    }
+    const updated: DesktopShortcut = {
+      ...existing,
+      name: newName,
+      updatedAt: new Date().toISOString(),
+    };
+    await scmPersistenceService.saveRecord('desktop_items', shortcutId, updated);
+    return updated;
+  }
+
+  /**
    * Remove a shortcut from Desktop by shortcut ID.
    */
   public async removeShortcut(

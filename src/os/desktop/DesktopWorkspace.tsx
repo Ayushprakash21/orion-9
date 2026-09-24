@@ -460,6 +460,8 @@ export function DesktopWorkspace() {
         await orionFileSystemService.renameFile(renameItem.targetId, renameValue.trim());
       } else if (renameItem.targetType === 'folder') {
         await orionFileSystemService.renameFolder(renameItem.targetId, renameValue.trim());
+      } else {
+        await desktopWorkspaceService.renameShortcut(renameItem.id, renameValue.trim());
       }
       setRenameItem(null);
       await loadShortcuts();
@@ -560,15 +562,16 @@ export function DesktopWorkspace() {
         );
       })}
 
-      {/* Desktop Right-Click / Long-Press Context Menu (Portal to Body at z-[100]) */}
+      {/* Desktop Right-Click / Long-Press Context Menu (Portal to Body at z-[2147483500]) */}
       {desktopMenu && typeof document !== 'undefined' && createPortal(
         <div
           data-orion-context-menu="true"
           data-testid="desktop-context-menu"
-          className="fixed z-[100] bg-os-surface/98 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.05)] py-1.5 w-56 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto"
+          className="fixed z-[2147483500] bg-os-surface/98 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.05)] py-1.5 w-56 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto"
           style={{
             top: `${clampedDesktopPos.y}px`,
             left: `${clampedDesktopPos.x}px`,
+            zIndex: 2147483500,
           }}
           onClick={e => e.stopPropagation()}
         >
@@ -658,15 +661,16 @@ export function DesktopWorkspace() {
         document.body
       )}
 
-      {/* Item Right-Click / Long-Press Context Menu (Portal to Body at z-[100]) */}
+      {/* Item Right-Click / Long-Press Context Menu (Portal to Body at z-[2147483500]) */}
       {itemMenu && typeof document !== 'undefined' && createPortal(
         <div
           data-orion-context-menu="true"
           data-testid="desktop-item-context-menu"
-          className="fixed z-[100] bg-os-surface/98 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.05)] py-1.5 w-56 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto"
+          className="fixed z-[2147483500] bg-os-surface/98 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.05)] py-1.5 w-56 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto"
           style={{
             top: `${clampedItemPos.y}px`,
             left: `${clampedItemPos.x}px`,
+            zIndex: 2147483500,
           }}
           onClick={e => e.stopPropagation()}
         >
@@ -686,16 +690,18 @@ export function DesktopWorkspace() {
             <span>Open</span>
           </button>
 
-          {itemMenu.shortcut.targetType === 'file' && (
+          {(itemMenu.shortcut.targetType === 'file' || itemMenu.shortcut.targetId === 'notepad') && (
             <button
               type="button"
               onClick={() => {
                 openApplication('notepad');
-                setTimeout(() => {
-                  window.dispatchEvent(
-                    new CustomEvent('orion:open-file', { detail: { fileId: itemMenu.shortcut.targetId } })
-                  );
-                }, 150);
+                if (itemMenu.shortcut.targetType === 'file') {
+                  setTimeout(() => {
+                    window.dispatchEvent(
+                      new CustomEvent('orion:open-file', { detail: { fileId: itemMenu.shortcut.targetId } })
+                    );
+                  }, 150);
+                }
                 setItemMenu(null);
               }}
               className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
@@ -705,21 +711,19 @@ export function DesktopWorkspace() {
             </button>
           )}
 
-          {(itemMenu.shortcut.targetType === 'file' || itemMenu.shortcut.targetType === 'folder') && (
-            <button
-              type="button"
-              onClick={() => {
-                setRenameItem(itemMenu.shortcut);
-                setRenameValue(itemMenu.shortcut.name);
-                setItemMenu(null);
-              }}
-              className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
-            >
-              <Edit2 size={14} />
-              <span>Rename</span>
-              <span className="ml-auto text-[10px] font-mono text-os-text-muted bg-white/[0.05] px-1.5 py-0.5 rounded border border-os-border/50">F2</span>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => {
+              setRenameItem(itemMenu.shortcut);
+              setRenameValue(itemMenu.shortcut.name);
+              setItemMenu(null);
+            }}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
+          >
+            <Edit2 size={14} />
+            <span>Rename</span>
+            <span className="ml-auto text-[10px] font-mono text-os-text-muted bg-white/[0.05] px-1.5 py-0.5 rounded border border-os-border/50">F2</span>
+          </button>
 
           <button
             type="button"
@@ -750,7 +754,10 @@ export function DesktopWorkspace() {
 
       {/* Rename Modal */}
       {renameItem && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4 pointer-events-auto">
+        <div
+          style={{ zIndex: 2147483600 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2147483600] flex items-center justify-center p-4 pointer-events-auto"
+        >
           <div className="bg-os-surface border border-os-border rounded-xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-3 animate-in fade-in zoom-in-95">
             <h3 className="text-sm font-semibold text-os-text-primary flex items-center gap-2">
               <Edit2 size={16} className="text-cyan-400" />
@@ -790,7 +797,10 @@ export function DesktopWorkspace() {
 
       {/* Properties Modal */}
       {propertiesItem && typeof document !== 'undefined' && createPortal(
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4 pointer-events-auto">
+        <div
+          style={{ zIndex: 2147483600 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2147483600] flex items-center justify-center p-4 pointer-events-auto"
+        >
           <div className="bg-os-surface border border-os-border rounded-xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-os-border/60 pb-3">
               <h3 className="text-sm font-semibold text-os-text-primary flex items-center gap-2">
