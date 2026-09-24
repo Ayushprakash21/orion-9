@@ -989,4 +989,411 @@ export interface PPVRecord {
   evaluatedAt: string;
 }
 
+// ── 1. STRATEGY & S&OP CONSENSUS ─────────────────────────────────────────────
+
+export interface StrategicObjectiveRecord {
+  strategyId: string;
+  tenantId: string;
+  title: string;
+  targetYear: number;
+  serviceLevelTargetPct: number; // e.g. 98.5%
+  targetInventoryTurnover: number;
+  costReductionTargetPct: number;
+  sustainabilityTargetCarbonReductionPct: number;
+  sourcingResilienceStrategy: 'DUAL_SOURCE' | 'NEARSHORING' | 'REGIONAL_HUBS' | 'SINGLE_PREFERRED';
+  inventoryStrategy: 'JIT' | 'SAFETY_BUFFERED' | 'HYBRID_POSTPONEMENT';
+  status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED';
+  updatedAt: string;
+}
+
+export interface SopConsensusPlanRecord {
+  sopPlanId: string;
+  tenantId: string;
+  planningCycle: string; // e.g. "2026-M10"
+  cycleName: string;
+  demandForecastUnits: number;
+  supplyCapacityUnits: number;
+  consensusUnits: number;
+  consensusRevenue: number;
+  currency: string;
+  inventoryBufferUnits: number;
+  financialGap: number; // Forecast - Budget
+  approvalStatus: 'DRAFT' | 'IN_REVIEW' | 'EXECUTIVE_APPROVED' | 'REJECTED';
+  approvedBy?: string;
+  scenarios: Array<{
+    scenarioId: string;
+    name: string;
+    demandShiftPct: number;
+    capacityShiftPct: number;
+    projectedServiceLevelPct: number;
+    financialExposure: number;
+  }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── 2. DEMAND SENSING ────────────────────────────────────────────────────────
+
+export interface DemandSensingSignalRecord {
+  signalId: string;
+  tenantId: string;
+  productId: string;
+  channel: 'ECOMMERCE' | 'RETAIL_POS' | 'WHOLESALE' | 'EDI_830' | 'MARKETPLACE';
+  signalType: 'ORDER_SURGE' | 'WEATHER_EVENT' | 'PROMOTION_LIFT' | 'SUPPLY_DEFICIT' | 'COMPETITOR_MOVE';
+  observedDemandUnits: number;
+  baselineForecastUnits: number;
+  liftPct: number;
+  confidenceScore: number; // 0.0 - 1.0
+  recommendedAdjustmentUnits: number;
+  governanceState: 'DETECTED' | 'PROPOSED' | 'APPLIED' | 'DISMISSED';
+  detectedAt: string;
+}
+
+// ── 3. MULTI-TIER SUPPLIER GRAPH ──────────────────────────────────────────────
+
+export interface MultiTierNode {
+  nodeId: string;
+  supplierName: string;
+  tier: 1 | 2 | 3;
+  country: string;
+  criticalMaterial: string;
+  singleSource: boolean;
+  disruptionRiskScore: number; // 0 - 100
+  parentSupplierIds: string[]; // Connected Tier 1/2 partners
+}
+
+export interface MultiTierSupplierNetworkRecord {
+  networkId: string;
+  tenantId: string;
+  productId: string;
+  nodes: MultiTierNode[];
+  overallResilienceScore: number;
+  concentrationRisk: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  analyzedAt: string;
+}
+
+// ── 4. AVAILABLE-TO-PROMISE (ATP) ────────────────────────────────────────────
+
+export interface AtpCalculationRecord {
+  atpId: string;
+  tenantId: string;
+  productId: string;
+  warehouseId: string;
+  requestedQuantity: number;
+  onHandQuantity: number;
+  reservedQuantity: number;
+  confirmedIncomingSupply: number;
+  expectedProductionSupply: number;
+  transferSupply: number;
+  safetyStockProtected: number;
+  availableToPromiseQuantity: number; // OnHand - Reserved + Incoming + Prod + Trans - SafetyStock
+  requestedDeliveryDate: string;
+  promisedDeliveryDate: string;
+  fulfillmentStatus: 'FULL_PROMISE' | 'PARTIAL_PROMISE' | 'BACKORDER_REQUIRED' | 'SPLIT_FULFILLMENT';
+  alternativeWarehouseId?: string;
+  allocated: boolean;
+  calculatedAt: string;
+}
+
+// ── 5. OUTBOUND WAREHOUSE (PICK & PACK) ───────────────────────────────────────
+
+export interface PickTaskRecord {
+  taskId: string;
+  tenantId: string;
+  waveId: string;
+  orderId: string;
+  productId: string;
+  sourceLocation: string; // e.g. "Aisle-04-Bin-B2"
+  requestedQuantity: number;
+  pickedQuantity: number;
+  shortPickedQuantity: number;
+  substitutedProductId?: string;
+  pickerId: string;
+  status: 'QUEUED' | 'IN_PROGRESS' | 'COMPLETED' | 'SHORT_PICKED';
+  startedAt?: string;
+  completedAt?: string;
+}
+
+export interface CartonPackageRecord {
+  packageId: string;
+  tenantId: string;
+  orderId: string;
+  waveId: string;
+  packingStationId: string;
+  cartonBarcode: string;
+  weightKg: number;
+  dimensionsCm: { length: number; width: number; height: number };
+  items: Array<{ productId: string; quantity: number }>;
+  status: 'OPEN' | 'PACKED' | 'SEALED' | 'STAGED_FOR_DISPATCH';
+  packedAt: string;
+}
+
+// ── 6. LAST-MILE DELIVERY & PROOF OF DELIVERY (POD) ──────────────────────────
+
+export interface DeliveryPodRecord {
+  podId: string;
+  tenantId: string;
+  shipmentId: string;
+  orderId: string;
+  carrierId: string;
+  carrierTrackingNumber: string;
+  recipientName: string;
+  recipientSignatureRef?: string; // doc://signature-...
+  deliveredAt: string;
+  deliveryStatus: 'DELIVERED_CLEAN' | 'DELIVERED_DAMAGED' | 'PARTIAL_DELIVERY' | 'ATTEMPTED_FAILED';
+  deliveryLatitude?: number;
+  deliveryLongitude?: number;
+  exceptionNotes?: string;
+}
+
+// ── 7. CUSTOMER INVOICING & ACCOUNTS RECEIVABLE (AR) ─────────────────────────
+
+export interface CustomerInvoiceRecord {
+  invoiceId: string;
+  tenantId: string;
+  invoiceNumber: string;
+  orderId: string;
+  customerId: string;
+  currency: string;
+  subtotal: number;
+  taxAmount: number;
+  totalAmount: number;
+  paidAmount: number;
+  outstandingBalance: number;
+  issueDate: string;
+  dueDate: string;
+  status: 'DRAFT' | 'ISSUED' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+  arAgingBucket: 'CURRENT' | '1_30' | '31_60' | '61_90' | '90_PLUS';
+  paymentReference?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── 8. SUPPLIER ACCOUNTS PAYABLE (AP) ────────────────────────────────────────
+
+export interface SupplierApLedgerRecord {
+  apId: string;
+  tenantId: string;
+  supplierInvoiceId: string;
+  supplierId: string;
+  poId: string;
+  totalPayableAmount: number;
+  paidAmount: number;
+  outstandingBalance: number;
+  currency: string;
+  dueDate: string;
+  matchStatus: '3_WAY_MATCHED' | 'PRICE_VARIANCE' | 'QTY_VARIANCE' | 'PENDING_MATCH';
+  paymentStatus: 'UNPAID' | 'SCHEDULED' | 'PAID' | 'HELD_DISPUTED';
+  apAgingBucket: 'CURRENT' | '1_30' | '31_60' | '61_90' | '90_PLUS';
+  paymentBatchReference?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── 9. WORKING CAPITAL INTELLIGENCE ──────────────────────────────────────────
+
+export interface WorkingCapitalRecord {
+  metricId: string;
+  tenantId: string;
+  period: string; // e.g. "2026-Q3"
+  daysSalesOutstanding: number; // DSO (AR / Revenue * 365)
+  daysInventoryOutstanding: number; // DIO (Inventory / COGS * 365)
+  daysPayableOutstanding: number; // DPO (AP / COGS * 365)
+  cashConversionCycleDays: number; // CCC = DIO + DSO - DPO
+  totalInventoryValue: number;
+  totalArExposure: number;
+  totalApLiability: number;
+  netWorkingCapital: number; // Inventory + AR - AP
+  calculatedAt: string;
+}
+
+// ── 10. CUSTOMS & INTERNATIONAL TRADE COMPLIANCE ─────────────────────────────
+
+export interface CustomsDeclarationRecord {
+  declarationId: string;
+  tenantId: string;
+  shipmentId: string;
+  declarationNumber: string;
+  exportCountry: string;
+  importCountry: string;
+  hsCode: string;
+  commercialInvoiceRef: string;
+  billOfLadingRef: string;
+  certificateOfOriginRef: string;
+  declaredValue: number;
+  dutyCalculatedAmount: number;
+  taxCalculatedAmount: number;
+  currency: string;
+  clearanceStatus: 'SUBMITTED' | 'UNDER_INSPECTION' | 'CUSTOMS_HOLD' | 'CLEARED' | 'REJECTED';
+  holdReason?: string;
+  clearedAt?: string;
+  updatedAt: string;
+}
+
+// ── 11. WARRANTY MANAGEMENT & SUPPLIER RECOVERY ──────────────────────────────
+
+export interface WarrantyClaimRecord {
+  claimId: string;
+  tenantId: string;
+  claimNumber: string;
+  customerId: string;
+  productId: string;
+  productSerialNumber: string;
+  orderId: string;
+  purchaseDate: string;
+  claimDate: string;
+  claimReason: string;
+  inspectionFinding?: string;
+  resolution: 'REPAIR' | 'REPLACE' | 'REFUND' | 'CREDIT_ISSUED' | 'REJECTED';
+  totalWarrantyCost: number;
+  supplierRecoveryAmount: number;
+  supplierRecoveryStatus: 'NOT_APPLICABLE' | 'PENDING_CLAIM' | 'RECOVERED';
+  status: 'SUBMITTED' | 'INSPECTION' | 'APPROVED' | 'RESOLVED' | 'DENIED';
+  resolvedAt?: string;
+}
+
+// ── 12. SUPPLIER RETURN / RETURN-TO-VENDOR (RTV) ─────────────────────────────
+
+export interface SupplierRtvRecord {
+  rtvId: string;
+  tenantId: string;
+  rtvNumber: string;
+  supplierId: string;
+  poId: string;
+  grnId: string;
+  productId: string;
+  returnedQuantity: number;
+  rejectionReason: 'QUALITY_DEFECT' | 'WRONG_SPECIFICATION' | 'OVER_DELIVERY' | 'TRANSIT_DAMAGE';
+  status: 'REQUESTED' | 'SUPPLIER_AUTHORIZED' | 'DISPATCHED' | 'CREDIT_MEMO_RECEIVED';
+  creditAmount: number;
+  currency: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── 13. SUPPLY CHAIN NETWORK DESIGN & SCENARIOS ──────────────────────────────
+
+export interface NetworkDesignScenarioRecord {
+  scenarioId: string;
+  tenantId: string;
+  name: string;
+  description: string;
+  isBaseline: boolean;
+  facilitiesCount: number;
+  supplierNodesCount: number;
+  totalProjectedFreightCost: number;
+  totalProjectedWarehouseCost: number;
+  averageLeadTimeDays: number;
+  networkResilienceScore: number; // 0 - 100
+  serviceLevelProjectedPct: number;
+  approvalStatus: 'DRAFT' | 'SIMULATED' | 'GOVERNED_APPROVED' | 'REJECTED';
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── 14. LOGISTICS OPTIMIZATION ───────────────────────────────────────────────
+
+export interface LogisticsOptimizationPlanRecord {
+  planId: string;
+  tenantId: string;
+  originHub: string;
+  destinationHub: string;
+  totalShipmentsConsolidated: number;
+  recommendedCarrier: string;
+  mode: 'ROAD_FTL' | 'ROAD_LTL' | 'OCEAN_FCL' | 'AIR_EXPRESS' | 'INTERMODAL_RAIL';
+  baselineCost: number;
+  optimizedCost: number;
+  costSavingsPct: number;
+  co2ReductionKg: number;
+  status: 'PROPOSED' | 'APPROVED_DISPATCH' | 'EXECUTED';
+  optimizedAt: string;
+}
+
+// ── 15. SUPPLIER COLLABORATION & CPFR ────────────────────────────────────────
+
+export interface SupplierCommitmentRecord {
+  commitmentId: string;
+  tenantId: string;
+  supplierId: string;
+  productId: string;
+  monthPeriod: string;
+  sharedForecastUnits: number;
+  supplierCommittedUnits: number;
+  capacityConstraintGap: number;
+  acknowledgementStatus: 'PENDING' | 'COMMITTED_IN_FULL' | 'COMMITTED_PARTIAL' | 'REJECTED_CAPACITY';
+  committedAt: string;
+}
+
+// ── 16. VENDOR MANAGED INVENTORY (VMI) & CONSIGNMENT ─────────────────────────
+
+export interface VmiConsignmentRecord {
+  vmiId: string;
+  tenantId: string;
+  supplierId: string;
+  facilityLocationId: string;
+  productId: string;
+  stockType: 'VMI_SUPPLIER_OWNED' | 'CONSIGNMENT_HELD' | 'STANDARD_OWNED';
+  currentStockUnits: number;
+  minThresholdUnits: number;
+  maxThresholdUnits: number;
+  reorderTriggerUnits: number;
+  supplierReplenishmentProposedQty?: number;
+  settledUnitsConsumedThisMonth: number;
+  settlementTriggerPending: boolean;
+  lastAuditedAt: string;
+}
+
+// ── 17. CUSTOMER SERVICE & CASE MANAGEMENT ───────────────────────────────────
+
+export interface CustomerServiceCaseRecord {
+  caseId: string;
+  tenantId: string;
+  caseNumber: string;
+  customerId: string;
+  orderId?: string;
+  shipmentId?: string;
+  issueCategory: 'LATE_DELIVERY' | 'DAMAGED_GOODS' | 'SHORT_SHIPMENT' | 'WRONG_ITEM' | 'INVOICE_DISPUTE' | 'RETURN_INQUIRY';
+  priority: 'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL_SLA';
+  slaDeadline: string;
+  status: 'OPEN' | 'INVESTIGATING' | 'REPLACED_DISPATCHED' | 'CREDITED' | 'CLOSED';
+  resolutionNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ── 18. SUPPLY CHAIN SUSTAINABILITY & CARBON EMISSIONS ────────────────────────
+
+export interface SustainabilityMetricsRecord {
+  sustainabilityId: string;
+  tenantId: string;
+  period: string; // e.g. "2026-M10"
+  totalTransportCo2Kg: number;
+  totalWarehouseEnergyKwh: number;
+  packagingRecycledContentPct: number;
+  supplierEsggAvgScore: number; // 0 - 100
+  scope1DirectCo2Kg: number;
+  scope2IndirectCo2Kg: number;
+  scope3ValueChainCo2Kg: number;
+  offsetPurchasedKg: number;
+  netCarbonIntensityKgPerUnit: number;
+  calculatedAt: string;
+}
+
+// ── 19. SUPPLIER CAPACITY PLANNING ───────────────────────────────────────────
+
+export interface SupplierCapacityPlanRecord {
+  capacityId: string;
+  tenantId: string;
+  supplierId: string;
+  period: string;
+  totalAvailableCapacityUnits: number;
+  allocatedCommittedUnits: number;
+  utilizationRatePct: number;
+  isOverloaded: boolean;
+  shortageRiskUnits: number;
+  contingencySupplierId?: string;
+  updatedAt: string;
+}
+
+
 

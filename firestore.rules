@@ -1452,6 +1452,134 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }
+
+    // ── EXTENDED SCM 0-100 COLLECTIONS ────────────────────────────────────────
+
+    match /strategic_objectives/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /sop_consensus_plans/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /demand_sensing_signals/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /multi_tier_networks/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /atp_calculations/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /pick_tasks/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /carton_packages/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /delivery_pods/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /customer_invoices/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /supplier_ap_records/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /working_capital_metrics/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /customs_declarations/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /warranty_claims/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /supplier_rtvs/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /network_design_scenarios/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /logistics_optimization_plans/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /supplier_commitments/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /vmi_consignments/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /customer_service_cases/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /sustainability_metrics/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /supplier_capacity_plans/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
   }
 }
 

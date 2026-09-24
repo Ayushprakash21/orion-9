@@ -94,6 +94,15 @@ import { ManufacturingCenter } from '../components/ManufacturingCenter';
 import { ReturnsCenter } from '../components/ReturnsCenter';
 import { SupplyPlanningCenter } from '../components/SupplyPlanningCenter';
 import { PlatformMaturityCenter } from '../components/PlatformMaturityCenter';
+import { AtpOrderPromisingCenter } from '../components/AtpOrderPromisingCenter';
+import { OutboundExecutionCenter } from '../components/OutboundExecutionCenter';
+import { DeliveryPodCenter } from '../components/DeliveryPodCenter';
+import { FinanceLedgerCenter } from '../components/FinanceLedgerCenter';
+import { CustomsTradeCenter } from '../components/CustomsTradeCenter';
+import { WarrantyServiceCenter } from '../components/WarrantyServiceCenter';
+import { SupplierCollaborationCenter } from '../components/SupplierCollaborationCenter';
+import { NetworkDesignCenter } from '../components/NetworkDesignCenter';
+import { SustainabilityCenter } from '../components/SustainabilityCenter';
 
 
 const ProfileUserView: React.FC = () => <Profile initialTab="profile" />;
@@ -194,8 +203,16 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'returns': ReturnsCenter,
   'supply-planning': SupplyPlanningCenter,
   'platform-maturity': PlatformMaturityCenter,
+  'atp-center': AtpOrderPromisingCenter,
+  'outbound-execution': OutboundExecutionCenter,
+  'delivery-pod': DeliveryPodCenter,
+  'finance-ledger': FinanceLedgerCenter,
+  'customs-trade': CustomsTradeCenter,
+  'warranty-service': WarrantyServiceCenter,
+  'supplier-collaboration': SupplierCollaborationCenter,
+  'network-design': NetworkDesignCenter,
+  'sustainability': SustainabilityCenter,
 };
-
 
 export function getAppComponent(appId: string): React.ComponentType<any> | null {
   return ORION_COMPONENT_MAP[appId] || null;

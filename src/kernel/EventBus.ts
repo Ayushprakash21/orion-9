@@ -271,6 +271,23 @@ export class KernelEventBus {
   }
 
   /**
+   * Emits an event with automatic envelope resolution
+   */
+  public emit(event: any): void {
+    const type = event.type || event.eventType || 'orion:scm:event';
+    const payload = event.payload || event;
+    this.publish(type, payload, {
+      tenant: {
+        tenantId: event.tenantId || event.organizationId || 'DEFAULT',
+        organizationId: event.organizationId || 'DEFAULT',
+        organizationName: event.organizationName || 'DEFAULT'
+      } as any,
+      entityId: event.entityId,
+      entityType: event.entityType
+    });
+  }
+
+  /**
    * Clears event history (testing & maintenance only)
    */
   public async clearHistory(): Promise<void> {
@@ -287,3 +304,5 @@ export class KernelEventBus {
 }
 
 export const kernelEventBus = KernelEventBus.getInstance();
+export const eventBus = kernelEventBus;
+
