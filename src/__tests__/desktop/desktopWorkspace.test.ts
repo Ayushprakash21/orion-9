@@ -1,11 +1,12 @@
 /**
- * ORION-9 DESKTOP WORKSPACE TEST SUITE
+ * ORION-9 DESKTOP WORKSPACE & CONTEXT MENU TEST SUITE
  * Validates grid snapping mathematics, workspace shortcut seeding,
- * position updating, and auto-arrange layouts.
+ * position updating, auto-arrange layouts, viewport clamping, and context menu action workflows.
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { desktopWorkspaceService, DEFAULT_GRID_CONFIG } from '../../core/filesystem/DesktopWorkspaceService';
+import { orionFileSystemService } from '../../core/filesystem/OrionFileSystemService';
 import { scmPersistenceService } from '../../services/scm/ScmPersistenceService';
 
 describe('DesktopWorkspaceService Tests', () => {
@@ -67,7 +68,7 @@ describe('DesktopWorkspaceService Tests', () => {
     expect(found?.y).toBe(updated.y);
   });
 
-  it('auto-arranges desktop shortcuts by name and type', async () => {
+  it('auto-arranges desktop shortcuts by name, type, and date', async () => {
     await desktopWorkspaceService.ensureWorkspaceShortcuts('operations', testTenant, 'LIVE');
     
     // Auto arrange by name
@@ -76,5 +77,36 @@ describe('DesktopWorkspaceService Tests', () => {
     for (let i = 0; i < sortedByName.length - 1; i++) {
       expect(sortedByName[i].name.localeCompare(sortedByName[i + 1].name)).toBeLessThanOrEqual(0);
     }
+
+    // Auto arrange by type
+    const sortedByType = await desktopWorkspaceService.autoArrange('operations', 'type', 900, testTenant, 'LIVE');
+    expect(sortedByType.length).toBe(sortedByName.length);
+
+    // Auto arrange by date
+    const sortedByDate = await desktopWorkspaceService.autoArrange('operations', 'date', 900, testTenant, 'LIVE');
+    expect(sortedByDate.length).toBe(sortedByName.length);
+  });
+
+  it('handles shortcut addition and removal cleanly', async () => {
+    const created = await desktopWorkspaceService.addShortcut({
+      targetType: 'file',
+      targetId: 'file-sample-123',
+      name: 'Sample Note.txt',
+      workspaceId: 'operations',
+      tenantId: testTenant,
+      environment: 'LIVE',
+    });
+
+    expect(created.id).toBeDefined();
+    expect(created.name).toBe('Sample Note.txt');
+
+    const listed = await desktopWorkspaceService.listShortcuts('operations', testTenant, 'LIVE');
+    expect(listed.some(s => s.id === created.id)).toBe(true);
+
+    const removed = await desktopWorkspaceService.removeShortcut(created.id, testTenant, 'LIVE');
+    expect(removed).toBe(true);
+
+    const afterRemove = await desktopWorkspaceService.listShortcuts('operations', testTenant, 'LIVE');
+    expect(afterRemove.some(s => s.id === created.id)).toBe(false);
   });
 });

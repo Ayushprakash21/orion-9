@@ -230,6 +230,7 @@ export function OrionDesktop() {
         data-desktop-surface="true"
         className="orion-desktop-backdrop absolute inset-0 z-0 pointer-events-auto"
         onClick={() => setSelectedDesktopApp(null)}
+        {...(!showDesktopIcons ? desktopTriggerProps : {})}
       >
         {isRefreshing && (
           <div className="absolute inset-0 bg-os-accent/[0.03] animate-pulse pointer-events-none transition-opacity duration-300" />

@@ -316,6 +316,17 @@ export class DesktopWorkspaceService {
     await scmPersistenceService.saveRecord('desktop_items', shortcut.id, shortcut);
     return shortcut;
   }
+
+  /**
+   * Remove a shortcut from Desktop by shortcut ID.
+   */
+  public async removeShortcut(
+    shortcutId: string,
+    tenantId?: string
+  ): Promise<boolean> {
+    const { activeTenant } = this.getContext(tenantId);
+    return await scmPersistenceService.deleteRecord('desktop_items', activeTenant, shortcutId);
+  }
 }
 
 export const desktopWorkspaceService = DesktopWorkspaceService.getInstance();

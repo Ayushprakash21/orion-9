@@ -7,6 +7,7 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useWindowManager, WorkspaceId } from '../WindowManagerContext';
 import { desktopWorkspaceService, DEFAULT_GRID_CONFIG } from '../../core/filesystem/DesktopWorkspaceService';
 import { orionFileSystemService } from '../../core/filesystem/OrionFileSystemService';
@@ -34,6 +35,42 @@ import {
   FolderInput,
 } from 'lucide-react';
 
+/**
+ * Robust Viewport Clamping Helper for Desktop Context Menus
+ * Keeps popup menus strictly within visible bounds across 1280x800, 1440x900, 1920x1080+,
+ * leaving a 48px top margin for the global system bar.
+ */
+function clampContextMenu(
+  x: number,
+  y: number,
+  menuWidth = 220,
+  menuHeight = 310,
+  padding = 8,
+  minTop = 48
+): { x: number; y: number } {
+  const vWidth = typeof window !== 'undefined' ? window.innerWidth : 1440;
+  const vHeight = typeof window !== 'undefined' ? window.innerHeight : 900;
+
+  let nextX = x;
+  let nextY = y;
+
+  if (nextX + menuWidth > vWidth - padding) {
+    nextX = Math.max(padding, vWidth - menuWidth - padding);
+  }
+  if (nextX < padding) {
+    nextX = padding;
+  }
+
+  if (nextY + menuHeight > vHeight - padding) {
+    nextY = Math.max(minTop, vHeight - menuHeight - padding);
+  }
+  if (nextY < minTop) {
+    nextY = minTop;
+  }
+
+  return { x: nextX, y: nextY };
+}
+
 export function DesktopWorkspace() {
   const { activeWorkspaceId, openApplication } = useWindowManager();
   const { showToast } = useToast();
@@ -45,7 +82,7 @@ export function DesktopWorkspace() {
   const [draggedItem, setDraggedItem] = useState<{ id: string; startX: number; startY: number; curX: number; curY: number } | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
-  // Modals / Dialogs
+  // Modals / Dialogs / Context Menus
   const [desktopMenu, setDesktopMenu] = useState<{ x: number; y: number } | null>(null);
   const [itemMenu, setItemMenu] = useState<{ x: number; y: number; shortcut: DesktopShortcut } | null>(null);
   const [renameItem, setRenameItem] = useState<DesktopShortcut | null>(null);
@@ -84,6 +121,37 @@ export function DesktopWorkspace() {
       window.removeEventListener('orion:filesystem-change', handleRefresh);
     };
   }, [loadShortcuts]);
+
+  // Global Pointerdown / ESC Dismissal Listener for Context Menus
+  useEffect(() => {
+    if (!desktopMenu && !itemMenu) return;
+
+    const handleGlobalPointerDown = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (target?.closest('[data-orion-context-menu="true"]')) {
+        return;
+      }
+      setDesktopMenu(null);
+      setItemMenu(null);
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setDesktopMenu(null);
+        setItemMenu(null);
+      }
+    };
+
+    document.addEventListener('pointerdown', handleGlobalPointerDown, true);
+    window.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('resize', handleGlobalPointerDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handleGlobalPointerDown, true);
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('resize', handleGlobalPointerDown);
+    };
+  }, [desktopMenu, itemMenu]);
 
   // Keyboard Shortcuts: Enter, F2, Delete, Ctrl+N, Ctrl+A
   useEffect(() => {
@@ -139,6 +207,8 @@ export function DesktopWorkspace() {
 
   // Canvas Touch / Pointer Down (Desktop Context Menu on Long Press)
   const handleCanvasPointerDown = (e: React.PointerEvent) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return; // Mouse left click or touch only
+
     if (e.target !== containerRef.current && (e.target as HTMLElement).dataset.desktopCanvas !== 'true') {
       return;
     }
@@ -154,7 +224,6 @@ export function DesktopWorkspace() {
     // Start 600ms long press timer for touch
     cancelLongPress();
     longPressTimerRef.current = setTimeout(() => {
-      // Trigger Desktop context menu
       setDesktopMenu({ x: clientX, y: clientY });
       cancelLongPress();
     }, 600);
@@ -162,8 +231,8 @@ export function DesktopWorkspace() {
 
   // Item Pointer Down (Drag + Long Press on Icon)
   const handleItemPointerDown = (e: React.PointerEvent, shortcut: DesktopShortcut) => {
-    if (e.button !== 0) return; // Primary pointer only
     e.stopPropagation();
+    if (e.button !== 0 && e.pointerType === 'mouse') return; // Mouse left click or touch only
 
     // Multi-selection with Ctrl / Shift
     if (e.ctrlKey || e.metaKey) {
@@ -332,6 +401,10 @@ export function DesktopWorkspace() {
 
       await loadShortcuts();
       setDesktopMenu(null);
+      openApplication('notepad');
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('orion:open-file', { detail: { fileId: file.id } }));
+      }, 150);
       showToast('Created text document on Desktop', 'success', 'Desktop');
     } catch (e: any) {
       showToast(`Create file failed: ${e?.message || 'Error'}`, 'error', 'Desktop');
@@ -412,6 +485,10 @@ export function DesktopWorkspace() {
     return <HardDrive size={iconSize} className="text-os-accent drop-shadow" />;
   };
 
+  // Clamped positions for portals
+  const clampedDesktopPos = desktopMenu ? clampContextMenu(desktopMenu.x, desktopMenu.y, 220, 310) : { x: 0, y: 0 };
+  const clampedItemPos = itemMenu ? clampContextMenu(itemMenu.x, itemMenu.y, 220, 250) : { x: 0, y: 0 };
+
   return (
     <div
       ref={containerRef}
@@ -423,6 +500,7 @@ export function DesktopWorkspace() {
       onPointerCancel={cancelLongPress}
       onContextMenu={e => {
         e.preventDefault();
+        e.stopPropagation();
         setItemMenu(null);
         setDesktopMenu({ x: e.clientX, y: e.clientY });
       }}
@@ -482,19 +560,21 @@ export function DesktopWorkspace() {
         );
       })}
 
-      {/* Desktop Right-Click / Long-Press Context Menu */}
-      {desktopMenu && (
+      {/* Desktop Right-Click / Long-Press Context Menu (Portal to Body at z-[100]) */}
+      {desktopMenu && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed z-50 bg-os-surface/95 backdrop-blur-md border border-os-border rounded-xl shadow-2xl py-1.5 w-52 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95"
+          data-orion-context-menu="true"
+          data-testid="desktop-context-menu"
+          className="fixed z-[100] bg-os-surface/98 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.05)] py-1.5 w-56 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto"
           style={{
-            top: Math.min(desktopMenu.y, typeof window !== 'undefined' ? window.innerHeight - 260 : 600),
-            left: Math.min(desktopMenu.x, typeof window !== 'undefined' ? window.innerWidth - 220 : 1200),
+            top: `${clampedDesktopPos.y}px`,
+            left: `${clampedDesktopPos.x}px`,
           }}
           onClick={e => e.stopPropagation()}
         >
-          <div className="px-3 py-1 text-[10px] font-bold text-os-text-muted uppercase tracking-wider flex items-center justify-between">
-            <span>Desktop Workspace</span>
-            {isTablet && <span className="text-os-accent text-[9px]">Touch</span>}
+          <div className="px-3 py-1.5 text-[10px] font-bold text-os-text-muted uppercase tracking-wider flex items-center justify-between border-b border-os-border/40 mb-0.5">
+            <span className="text-os-text-primary">Desktop Workspace</span>
+            {isTablet && <span className="text-os-accent text-[9px] bg-os-accent/10 px-1.5 py-0.5 rounded">Touch</span>}
           </div>
 
           <button
@@ -503,20 +583,20 @@ export function DesktopWorkspace() {
               window.dispatchEvent(new CustomEvent('orion:desktop-refresh', { detail: { timestamp: Date.now() } }));
               setDesktopMenu(null);
             }}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
           >
             <RefreshCw size={14} className="text-os-accent" />
             <span>Refresh Desktop</span>
-            <span className="ml-auto text-[10px] text-os-text-muted">F5</span>
+            <span className="ml-auto text-[10px] font-mono text-os-text-muted bg-white/[0.05] px-1.5 py-0.5 rounded border border-os-border/50">F5</span>
           </button>
 
-          <div className="h-px bg-os-border/50 my-1" />
+          <div className="h-px bg-os-border/50 my-1 mx-2" />
 
           {/* Sort Actions */}
           <button
             type="button"
             onClick={() => handleAutoArrange('name')}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
           >
             <ArrowUpDown size={14} className="text-cyan-400" />
             <span>Sort by Name</span>
@@ -525,7 +605,7 @@ export function DesktopWorkspace() {
           <button
             type="button"
             onClick={() => handleAutoArrange('type')}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
           >
             <Layers size={14} className="text-amber-400" />
             <span>Sort by Item Type</span>
@@ -534,19 +614,19 @@ export function DesktopWorkspace() {
           <button
             type="button"
             onClick={() => handleAutoArrange('date')}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
           >
             <Sliders size={14} className="text-purple-400" />
             <span>Sort by Date Modified</span>
           </button>
 
-          <div className="h-px bg-os-border/50 my-1" />
+          <div className="h-px bg-os-border/50 my-1 mx-2" />
 
           {/* New Item */}
           <button
             type="button"
             onClick={handleCreateDesktopFile}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
           >
             <Plus size={14} className="text-cyan-400" />
             <span>New Text Document</span>
@@ -555,13 +635,13 @@ export function DesktopWorkspace() {
           <button
             type="button"
             onClick={handleCreateDesktopFolder}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
           >
             <Plus size={14} className="text-amber-400" />
             <span>New Folder</span>
           </button>
 
-          <div className="h-px bg-os-border/50 my-1" />
+          <div className="h-px bg-os-border/50 my-1 mx-2" />
 
           <button
             type="button"
@@ -569,31 +649,38 @@ export function DesktopWorkspace() {
               openApplication('settings');
               setDesktopMenu(null);
             }}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
           >
             <Sparkles size={14} className="text-os-accent" />
             <span>Personalize Desktop...</span>
           </button>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* Item Right-Click / Long-Press Context Menu */}
-      {itemMenu && (
+      {/* Item Right-Click / Long-Press Context Menu (Portal to Body at z-[100]) */}
+      {itemMenu && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed z-50 bg-os-surface/95 backdrop-blur-md border border-os-border rounded-xl shadow-2xl py-1.5 w-52 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95"
+          data-orion-context-menu="true"
+          data-testid="desktop-item-context-menu"
+          className="fixed z-[100] bg-os-surface/98 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.05)] py-1.5 w-56 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto"
           style={{
-            top: Math.min(itemMenu.y, typeof window !== 'undefined' ? window.innerHeight - 240 : 600),
-            left: Math.min(itemMenu.x, typeof window !== 'undefined' ? window.innerWidth - 220 : 1200),
+            top: `${clampedItemPos.y}px`,
+            left: `${clampedItemPos.x}px`,
           }}
           onClick={e => e.stopPropagation()}
         >
+          <div className="px-3 py-1.5 text-[10px] font-bold text-os-text-muted uppercase tracking-wider flex items-center justify-between border-b border-os-border/40 mb-0.5 truncate">
+            <span className="truncate">{itemMenu.shortcut.name}</span>
+          </div>
+
           <button
             type="button"
             onClick={() => {
               handleDoubleClick(itemMenu.shortcut);
               setItemMenu(null);
             }}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left font-medium min-h-[36px]"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left font-medium min-h-[36px] transition-colors rounded-lg mx-1"
           >
             <ExternalLink size={14} className="text-os-accent" />
             <span>Open</span>
@@ -611,7 +698,7 @@ export function DesktopWorkspace() {
                 }, 150);
                 setItemMenu(null);
               }}
-              className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
+              className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
             >
               <FileText size={14} className="text-cyan-400" />
               <span>Edit in Notepad</span>
@@ -626,11 +713,11 @@ export function DesktopWorkspace() {
                 setRenameValue(itemMenu.shortcut.name);
                 setItemMenu(null);
               }}
-              className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
+              className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
             >
               <Edit2 size={14} />
               <span>Rename</span>
-              <span className="ml-auto text-[10px] text-os-text-muted">F2</span>
+              <span className="ml-auto text-[10px] font-mono text-os-text-muted bg-white/[0.05] px-1.5 py-0.5 rounded border border-os-border/50">F2</span>
             </button>
           )}
 
@@ -640,30 +727,31 @@ export function DesktopWorkspace() {
               setPropertiesItem(itemMenu.shortcut);
               setItemMenu(null);
             }}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px]"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
           >
             <Info size={14} />
             <span>Properties</span>
           </button>
 
-          <div className="h-px bg-os-border/50 my-1" />
+          <div className="h-px bg-os-border/50 my-1 mx-2" />
 
           <button
             type="button"
             onClick={() => handleDeleteShortcut(itemMenu.shortcut)}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-rose-500/20 text-rose-400 text-left min-h-[36px]"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-rose-500/20 text-rose-400 text-left min-h-[36px] transition-colors rounded-lg mx-1"
           >
             <Trash2 size={14} />
             <span>Move to Recycle Bin</span>
-            <span className="ml-auto text-[10px] text-rose-400/70">Del</span>
+            <span className="ml-auto text-[10px] font-mono text-rose-400/80 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">Del</span>
           </button>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Rename Modal */}
-      {renameItem && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-os-surface border border-os-border rounded-xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-3">
+      {renameItem && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4 pointer-events-auto">
+          <div className="bg-os-surface border border-os-border rounded-xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-3 animate-in fade-in zoom-in-95">
             <h3 className="text-sm font-semibold text-os-text-primary flex items-center gap-2">
               <Edit2 size={16} className="text-cyan-400" />
               Rename Desktop Shortcut
@@ -672,6 +760,10 @@ export function DesktopWorkspace() {
               type="text"
               value={renameValue}
               onChange={e => setRenameValue(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleExecuteRename();
+                if (e.key === 'Escape') setRenameItem(null);
+              }}
               className="bg-os-surface-tint border border-os-border/70 rounded-lg px-3 py-2 text-xs text-os-text-primary outline-none focus:border-os-accent min-h-[44px]"
               autoFocus
             />
@@ -692,13 +784,14 @@ export function DesktopWorkspace() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Properties Modal */}
-      {propertiesItem && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-os-surface border border-os-border rounded-xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4">
+      {propertiesItem && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4 pointer-events-auto">
+          <div className="bg-os-surface border border-os-border rounded-xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-os-border/60 pb-3">
               <h3 className="text-sm font-semibold text-os-text-primary flex items-center gap-2">
                 <Info size={16} className="text-cyan-400" />
@@ -747,7 +840,8 @@ export function DesktopWorkspace() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

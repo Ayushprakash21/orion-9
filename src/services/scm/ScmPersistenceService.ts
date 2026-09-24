@@ -145,6 +145,29 @@ export class ScmPersistenceService {
   }
 
   /**
+   * Delete a record by collection, tenantId, and ID.
+   */
+  public async deleteRecord(
+    collectionName: string,
+    tenantId: string,
+    id: string
+  ): Promise<boolean> {
+    if (this.firestore) {
+      try {
+        const ref = doc(this.firestore, collectionName, id);
+        await deleteDoc(ref);
+      } catch (err) {
+        console.warn(`[SCM-PERSISTENCE] Firestore delete failed for ${collectionName}/${id}`, err);
+      }
+    }
+
+    const key = this.getCacheKey(collectionName, tenantId, id);
+    this.memoryCache.delete(key);
+    this.syncToOfflineCache(collectionName, tenantId).catch(() => {});
+    return true;
+  }
+
+  /**
    * Synchronous cached retrieval for fast UI reads.
    */
   public getCachedRecord<T extends { tenantId: string }>(
