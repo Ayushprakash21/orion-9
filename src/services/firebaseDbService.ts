@@ -47,33 +47,35 @@ class FirebaseDbService {
 
   async setDocument<T extends Record<string, any>>(collectionName: string, id: string, data: T): Promise<void> {
     const firestore = this.db;
-    if (!firestore) return;
+    if (!firestore) throw new Error(`[FirebaseDb] Firestore instance unavailable for setDocument(${collectionName}, ${id})`);
     try {
       await setDoc(doc(firestore, collectionName, id), {
         ...data,
         updatedAt: serverTimestamp()
       }, { merge: true });
-    } catch (err) {
-      console.warn(`[FirebaseDb] setDocument(${collectionName}, ${id}) fallback:`, err);
+    } catch (err: any) {
+      console.error(`[FirebaseDb] Authoritative write failed for ${collectionName}/${id}:`, err);
+      throw err;
     }
   }
 
   async deleteDocument(collectionName: string, id: string): Promise<void> {
     const firestore = this.db;
-    if (!firestore) return;
+    if (!firestore) throw new Error(`[FirebaseDb] Firestore instance unavailable for deleteDocument(${collectionName}, ${id})`);
     try {
       await deleteDoc(doc(firestore, collectionName, id));
-    } catch (err) {
-      console.warn(`[FirebaseDb] deleteDocument(${collectionName}, ${id}) fallback:`, err);
+    } catch (err: any) {
+      console.error(`[FirebaseDb] Authoritative delete failed for ${collectionName}/${id}:`, err);
+      throw err;
     }
   }
 
   async saveUserProfile(profile: UserProfile): Promise<void> {
-    await this.setDocument('profiles', profile.id, profile);
+    await this.setDocument('users', profile.id, profile);
   }
 
   async getUserProfile(id: string): Promise<UserProfile | null> {
-    return this.getDocument<UserProfile>('profiles', id);
+    return this.getDocument<UserProfile>('users', id);
   }
 
   async saveOrganization(org: Organization): Promise<void> {

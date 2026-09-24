@@ -4,6 +4,8 @@ import { BrandingConfig } from '../../types/auth';
 import { OrionMark } from './OrionLogo';
 import { cn } from '../../lib/utils';
 
+export const AUTHORITATIVE_DEFAULT_LOGO = '/orion-9-official-logo.png';
+
 export interface BrandLogoProps {
   sizePreset?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'hero';
   size?: number; // legacy/fallback
@@ -32,7 +34,8 @@ const isCustomTenantLogo = (source?: string | null): boolean => {
     trimmed === '/orion-9-logo.png' ||
     trimmed === '/orion-9-brand-logo.png' ||
     trimmed === '/orion-9-official-logo.png' ||
-    trimmed === '/orion-9-logo-cropped.png'
+    trimmed === '/orion-9-logo-cropped.png' ||
+    trimmed === '/orion-9-logo-transparent-v2.png'
   ) {
     return false;
   }
@@ -75,12 +78,16 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
     };
   }, []);
 
-  const logoSource = branding.logo || branding.logoUrl;
-  const isCustomLogo = isCustomTenantLogo(logoSource);
+  const rawLogo = branding.logo || branding.logoUrl;
+  const isCustomLogo = isCustomTenantLogo(rawLogo);
+  const logoSource = (rawLogo && typeof rawLogo === 'string' && rawLogo.trim()) 
+    ? rawLogo.trim() 
+    : AUTHORITATIVE_DEFAULT_LOGO;
+
   const appName = branding.appName || branding.productName || branding.applicationName || branding.osName || 'ORION-9';
   const appTagline = branding.description || branding.tagline || 'AI Supply Chain Operating System';
   
-  const hasCustomLogoWithText = Boolean(isCustomLogo && logoSource && !imgError && (branding.logoIncludesName || branding.logoIncludesWordmark));
+  const hasCustomLogoWithText = Boolean(isCustomLogo && rawLogo && !imgError && (branding.logoIncludesName || branding.logoIncludesWordmark));
 
   useEffect(() => {
     setImgError(false);
@@ -92,14 +99,14 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
     <div className={cn("flex items-center gap-3 select-none min-w-0 box-border", variant !== 'mark' && "w-full", className)}>
       {/* Vertically centered logo */}
       <div className="shrink-0 flex items-center justify-center">
-        {isCustomLogo && logoSource && !imgError ? (
+        {logoSource && !imgError ? (
           <img 
             src={logoSource} 
             alt={appName} 
             style={{ 
-              width: variant === 'mark' ? sizing.markSize : sizing.width, 
+              width: variant === 'mark' ? 'auto' : sizing.width, 
               height: variant === 'mark' ? sizing.markSize : sizing.height,
-              maxWidth: sizing.maxWidth || '100%',
+              maxWidth: sizing.maxWidth || (variant === 'mark' ? '100%' : undefined),
               maxHeight: sizing.maxHeight,
               objectFit: 'contain'
             }}

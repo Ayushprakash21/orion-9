@@ -88,6 +88,13 @@ export function normalizeBranding(raw: any): BrandingConfig {
   };
 }
 
+function getRemoteApiUrl(): string | null {
+  if (typeof window !== 'undefined' && window.location?.origin && window.location.origin !== 'null' && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
+    return `${window.location.origin}/api/branding`;
+  }
+  return null;
+}
+
 export class BrandingService {
   private cachedBranding: BrandingConfig | null = null;
 
@@ -99,10 +106,8 @@ export class BrandingService {
     if (typeof window === 'undefined') return { ...defaultBranding };
     try {
       // Check primary key first, fallback to legacy key or sessionStorage
-      const raw = localStorage.getItem(PRIMARY_BRANDING_KEY) || 
-                  localStorage.getItem(LEGACY_BRANDING_KEY) ||
-                  (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(PRIMARY_BRANDING_KEY) : null) ||
-                  (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(LEGACY_BRANDING_KEY) : null);
+      const raw = (typeof localStorage !== 'undefined' ? localStorage.getItem(PRIMARY_BRANDING_KEY) || localStorage.getItem(LEGACY_BRANDING_KEY) : null) ||
+                  (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(PRIMARY_BRANDING_KEY) || sessionStorage.getItem(LEGACY_BRANDING_KEY) : null);
       if (!raw) return { ...defaultBranding };
       const parsed = JSON.parse(raw);
       const normalized = normalizeBranding(parsed);
@@ -141,51 +146,56 @@ export class BrandingService {
    * Asynchronously loads branding configuration from remote API, falling back to local stores.
    */
   async getBranding(): Promise<BrandingConfig> {
-    // 1. Try remote fetch if available
-    try {
-      const apiUrl = typeof window !== 'undefined' ? `${window.location.origin}/api/branding` : '/api/branding';
-      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const timeoutId = controller ? setTimeout(() => controller.abort(), 2500) : null;
+    // 1. Try remote fetch if available in browser http/https context
+    const apiUrl = getRemoteApiUrl();
+    if (apiUrl) {
+      try {
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const timeoutId = controller ? setTimeout(() => controller.abort(), 2500) : null;
 
-      const res = await fetch(apiUrl, {
-        method: 'GET',
-        headers: { 'Accept': 'application/json' },
-        signal: controller ? controller.signal : undefined,
-      });
+        const res = await fetch(apiUrl, {
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+          signal: controller ? controller.signal : undefined,
+        });
 
-      if (timeoutId) clearTimeout(timeoutId);
+        if (timeoutId) clearTimeout(timeoutId);
 
-      if (res.ok) {
-        const json = await res.json();
-        if (json && json.success && json.data && typeof json.data === 'object') {
-          const normalized = normalizeBranding(json.data);
-          
-          // Cache locally to both keys
-          try {
-            localStorage.setItem(PRIMARY_BRANDING_KEY, JSON.stringify(normalized));
-            localStorage.setItem(LEGACY_BRANDING_KEY, JSON.stringify(normalized));
-          } catch (e) {}
-
-          if (brandingStore) {
+        if (res.ok) {
+          const json = await res.json();
+          if (json && json.success && json.data && typeof json.data === 'object') {
+            const normalized = normalizeBranding(json.data);
+            
+            // Cache locally to both keys
             try {
-              await brandingStore.setItem(PRIMARY_BRANDING_KEY, JSON.stringify(normalized));
-              await brandingStore.setItem(LEGACY_BRANDING_KEY, JSON.stringify(normalized));
+              if (typeof localStorage !== 'undefined') {
+                localStorage.setItem(PRIMARY_BRANDING_KEY, JSON.stringify(normalized));
+                localStorage.setItem(LEGACY_BRANDING_KEY, JSON.stringify(normalized));
+              }
             } catch (e) {}
-          }
 
-          return normalized;
+            if (brandingStore) {
+              try {
+                await brandingStore.setItem(PRIMARY_BRANDING_KEY, JSON.stringify(normalized));
+                await brandingStore.setItem(LEGACY_BRANDING_KEY, JSON.stringify(normalized));
+              } catch (e) {}
+            }
+
+            return normalized;
+          }
         }
+      } catch (err) {
+        // Non-fatal: remote backend route may be absent or offline in demo/hosted mode
+        console.warn('[ORION-BR] Remote branding fetch unavailable, using local persistence.', err);
       }
-    } catch (err) {
-      // Non-fatal: remote backend route may be absent or offline in demo/hosted mode
-      console.warn('[ORION-BR] Remote branding fetch unavailable, using local persistence.', err);
     }
 
     // 2. Fallback to LocalForage (IndexedDB)
     try {
       if (brandingStore) {
-        const raw = await brandingStore.getItem<string>(PRIMARY_BRANDING_KEY) || 
-                    await brandingStore.getItem<string>(LEGACY_BRANDING_KEY);
+        const item1 = await brandingStore.getItem<string>(PRIMARY_BRANDING_KEY);
+        const item2 = await brandingStore.getItem<string>(LEGACY_BRANDING_KEY);
+        const raw = item1 || item2;
         if (raw) {
           const parsed = JSON.parse(raw);
           return normalizeBranding(parsed);
@@ -244,9 +254,11 @@ export class BrandingService {
 
     // 2. Perform Local Persistence (localStorage)
     try {
-      localStorage.setItem(PRIMARY_BRANDING_KEY, JSON.stringify(updated));
-      localStorage.setItem(LEGACY_BRANDING_KEY, JSON.stringify(updated));
-      localSaved = true;
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(PRIMARY_BRANDING_KEY, JSON.stringify(updated));
+        localStorage.setItem(LEGACY_BRANDING_KEY, JSON.stringify(updated));
+        localSaved = true;
+      }
     } catch (err) {
       localStorageError = err;
       console.warn('[ORION-BR] LocalStorage branding save failed:', err);
@@ -254,10 +266,12 @@ export class BrandingService {
       // Handle QuotaExceededError by storing metadata without large image in localStorage
       // while IndexedDB retains the full asset
       try {
-        const lightweightConfig = { ...updated, logo: null, logoUrl: null };
-        localStorage.setItem(PRIMARY_BRANDING_KEY, JSON.stringify(lightweightConfig));
-        localStorage.setItem(LEGACY_BRANDING_KEY, JSON.stringify(lightweightConfig));
-        localSaved = true;
+        if (typeof localStorage !== 'undefined') {
+          const lightweightConfig = { ...updated, logo: null, logoUrl: null };
+          localStorage.setItem(PRIMARY_BRANDING_KEY, JSON.stringify(lightweightConfig));
+          localStorage.setItem(LEGACY_BRANDING_KEY, JSON.stringify(lightweightConfig));
+          localSaved = true;
+        }
       } catch (innerErr) {
         console.warn('[ORION-BR] Fallback lightweight localStorage save failed:', innerErr);
       }
@@ -277,27 +291,29 @@ export class BrandingService {
 
     // 3. Perform Remote Persistence (if server endpoint available)
     let remoteSaved = false;
-    try {
-      const apiUrl = typeof window !== 'undefined' ? `${window.location.origin}/api/branding` : '/api/branding';
-      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      const timeoutId = controller ? setTimeout(() => controller.abort(), 3500) : null;
+    const apiUrl = getRemoteApiUrl();
+    if (apiUrl) {
+      try {
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const timeoutId = controller ? setTimeout(() => controller.abort(), 3500) : null;
 
-      const res = await fetch(apiUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updated),
-        signal: controller ? controller.signal : undefined,
-      });
+        const res = await fetch(apiUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updated),
+          signal: controller ? controller.signal : undefined,
+        });
 
-      if (timeoutId) clearTimeout(timeoutId);
+        if (timeoutId) clearTimeout(timeoutId);
 
-      if (res.ok) {
-        remoteSaved = true;
-      } else {
-        console.warn('[ORION-BR] Remote branding save returned non-OK status:', res.status);
+        if (res.ok) {
+          remoteSaved = true;
+        } else {
+          console.warn('[ORION-BR] Remote branding save returned non-OK status:', res.status);
+        }
+      } catch (e) {
+        console.warn('[ORION-BR] Remote branding save network/timeout error, falling back to local.', e);
       }
-    } catch (e) {
-      console.warn('[ORION-BR] Remote branding save network/timeout error, falling back to local.', e);
     }
 
     // 4. Verify outcome: Only throw if BOTH remote and local persistence failed
@@ -316,8 +332,10 @@ export class BrandingService {
 
     // 6. Dispatch events to notify all active UI components immediately
     try {
-      window.dispatchEvent(new CustomEvent('orion-branding-updated', { detail: updated }));
-      window.dispatchEvent(new Event('storage'));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('orion-branding-updated', { detail: updated }));
+        window.dispatchEvent(new Event('storage'));
+      }
     } catch (e) {}
 
     return {
@@ -340,22 +358,26 @@ export class BrandingService {
   async resetBranding(): Promise<BrandingConfig> {
     const resetConfig = { ...defaultBranding };
 
-    try {
-      const apiUrl = typeof window !== 'undefined' ? `${window.location.origin}/api/branding` : '/api/branding';
-      await fetch(apiUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(resetConfig),
-      });
-    } catch (e) {}
+    const apiUrl = getRemoteApiUrl();
+    if (apiUrl) {
+      try {
+        await fetch(apiUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(resetConfig),
+        });
+      } catch (e) {}
+    }
 
     try {
       if (brandingStore) {
         await brandingStore.removeItem(PRIMARY_BRANDING_KEY);
         await brandingStore.removeItem(LEGACY_BRANDING_KEY);
       }
-      localStorage.removeItem(PRIMARY_BRANDING_KEY);
-      localStorage.removeItem(LEGACY_BRANDING_KEY);
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(PRIMARY_BRANDING_KEY);
+        localStorage.removeItem(LEGACY_BRANDING_KEY);
+      }
       if (typeof sessionStorage !== 'undefined') {
         sessionStorage.removeItem(PRIMARY_BRANDING_KEY);
         sessionStorage.removeItem(LEGACY_BRANDING_KEY);

@@ -5,7 +5,7 @@ import { organizationService } from './organizationService';
 import { auditService } from './AuditService';
 import { privilegedSessionManager } from '../kernel/security/privilegedSession';
 import { getFirebaseAuth } from '../lib/firebaseClient';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { generateCorrelationId } from '../kernel/security/crypto';
 
 export interface AuthSessionDetails {
@@ -81,13 +81,14 @@ export const authService = {
     const cleanId = (identifier || '').trim().toLowerCase();
     const cleanPass = (passwordString || '').trim();
 
-    // DEMO/LOCAL ONLY — hard-coded credentials. Do not use for production.
-    const isNormalUser = (cleanId === 'user' || cleanId === 'user@orion.network' || cleanId === 'user@orion.local') && 
-      (cleanPass === 'user' || cleanPass === 'OrionUser2026!');
-    const isAdminUser = (cleanId === 'admin' || cleanId === 'admin@orion.network' || cleanId === 'admin@orion.local') && 
-      (cleanPass === 'admin' || cleanPass === 'OrionAdmin2026!');
+    // Map username to standard email format if needed
+    const email = cleanId.includes('@') ? cleanId : (cleanId === 'admin' ? 'admin@orion.network' : (cleanId === 'user' ? 'user@orion.network' : `${cleanId}@orion.network`));
 
-    if (!isNormalUser && !isAdminUser) {
+    // Resolve authoritative demo identity and verify credentials
+    const targetUsername = (cleanId === 'admin' || cleanId.startsWith('admin@')) ? 'admin' : (cleanId === 'user' || cleanId.startsWith('user@') ? 'user' : cleanId);
+    const verifiedUser = await userService.verifyCredentials(targetUsername, cleanPass);
+
+    if (!verifiedUser) {
       await auditService.log({
         actorUserId: identifier,
         actorName: identifier,
@@ -97,24 +98,6 @@ export const authService = {
         status: 'failure',
         correlationId,
         metadata: { identifier, reason: 'Invalid username or password' }
-      });
-      throw new Error('Invalid username or password.');
-    }
-
-    // Resolve authoritative demo identity
-    const targetUsername = isAdminUser ? 'admin' : 'user';
-    const verifiedUser = await userService.verifyCredentials(targetUsername, cleanPass);
-
-    if (!verifiedUser) {
-      await auditService.log({
-        actorUserId: targetUsername,
-        actorName: targetUsername,
-        action: 'LOGIN_FAILURE',
-        operation: 'CREDENTIAL_REJECTED',
-        resourceType: 'auth_session',
-        status: 'failure',
-        correlationId,
-        metadata: { identifier: targetUsername, reason: 'Invalid username or password' }
       });
       throw new Error('Invalid username or password.');
     }
@@ -134,6 +117,35 @@ export const authService = {
       throw new Error('Account inactive. Please contact your administrator.');
     }
 
+    // Authoritative Firebase Authentication execution
+    let firebaseUid = verifiedUser.id;
+    let idToken = '';
+    const auth = getFirebaseAuth();
+    if (auth) {
+      try {
+        const userCredential = await signInWithEmailAndPassword(auth, email, cleanPass).catch(async (signInErr) => {
+          // If user doesn't exist in Firebase Auth yet, provision identity
+          if (signInErr.code === 'auth/user-not-found' || signInErr.code === 'auth/invalid-credential') {
+            try {
+              return await createUserWithEmailAndPassword(auth, email, cleanPass);
+            } catch (createErr) {
+              return null;
+            }
+          }
+          return null;
+        });
+
+        if (userCredential?.user) {
+          firebaseUid = userCredential.user.uid;
+          idToken = await userCredential.user.getIdToken();
+        }
+      } catch (authErr) {
+        console.warn('[AUTH] Firebase Auth synchronization notice:', authErr);
+      }
+    }
+
+    const isAdminUser = verifiedUser.role === 'platform_admin' || verifiedUser.role === 'organization_admin';
+
     // Admin privilege establishment
     if (isAdminUser) {
       privilegedSessionManager.issuePrivilegedSession(
@@ -146,10 +158,13 @@ export const authService = {
       privilegedSessionManager.revoke('Normal user login');
     }
 
-    // Load full session details (passwords are NOT contained in profile or session)
-    const details = await authService.loadFullSession(verifiedUser.id, verifiedUser.email);
+    // Load full session details bound to authoritative identity
+    const details = await authService.loadFullSession(verifiedUser.id, email);
+    if (idToken) {
+      details.token = idToken;
+    }
 
-    // Save session locally (contains ONLY public identity and short-lived session token)
+    // Save session locally for UI caching
     if (typeof window !== 'undefined') {
       localStorage.setItem('orion_auth_session', JSON.stringify(details));
     }
@@ -160,7 +175,7 @@ export const authService = {
       actorRole: verifiedUser.role,
       organizationId: verifiedUser.organizationId,
       action: 'LOGIN_SUCCESS',
-      operation: 'DEMO_LOCAL_AUTH',
+      operation: 'FIREBASE_AUTHORITATIVE_AUTH',
       resourceType: 'auth_session',
       resourceId: verifiedUser.id,
       status: 'success',
@@ -287,6 +302,12 @@ export const authService = {
    */
   logout: async (): Promise<void> => {
     privilegedSessionManager.revoke('User signed out');
+    const auth = getFirebaseAuth();
+    if (auth) {
+      try {
+        await auth.signOut();
+      } catch (e) {}
+    }
     if (typeof window !== 'undefined') {
       localStorage.removeItem('orion_auth_session');
     }

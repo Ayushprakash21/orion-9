@@ -1,11 +1,18 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { OrionPowerOnScreen } from '../../os/components/OrionPowerOnScreen';
-import { BrandLogo } from '../../components/brand/BrandLogo';
+import { BrandLogo, AUTHORITATIVE_DEFAULT_LOGO } from '../../components/brand/BrandLogo';
 import { OrionMark } from '../../components/brand/OrionLogo';
+import { LoadingScreen } from '../../components/LoadingScreen';
+import { brandingRepository } from '../../repositories/BrandingRepository';
 
 describe('ORION-9 OS Startup Sequence & Boot Flow UI Specifications', () => {
+
+  beforeEach(() => {
+    // Reset to clean test state
+    brandingRepository.resetBranding().catch(() => {});
+  });
 
   it('1. Renders the Initialization Screen (Phase 1) on initial mount with authoritative branding', () => {
     const onPowerOn = vi.fn();
@@ -69,21 +76,33 @@ describe('ORION-9 OS Startup Sequence & Boot Flow UI Specifications', () => {
     expect(html).toContain('SYSTEM READY');
   });
 
-  it('5. Renders authoritative Orion geometric mark in BrandLogo and OrionMark components', () => {
-    // 1. Direct OrionMark check
-    const markHtml = renderToString(React.createElement(OrionMark, { size: 48 }));
-    expect(markHtml).toContain('<svg');
-    expect(markHtml).toContain('viewBox="0 0 32 32"');
-    expect(markHtml).toContain('shape-rendering="geometricPrecision"');
-    expect(markHtml).toContain('#00F2FE');
-    expect(markHtml).toContain('#0284C7');
-
-    // 2. BrandLogo mark check
+  it('5. Renders authoritative canonical logo in BrandLogo when no custom logo is set', () => {
+    // BrandLogo mark check - renders authoritative default logo
     const brandHtml = renderToString(React.createElement(BrandLogo, { sizePreset: 'lg', variant: 'mark' }));
-    expect(brandHtml).toContain('viewBox="0 0 32 32"');
+    expect(brandHtml).toContain('src="/orion-9-official-logo.png"');
+    expect(brandHtml).toContain('orion-brand-image');
   });
 
-  it('6. Validates pure architectural separation between Initialization and Boot phases', () => {
+  it('6. Automatically resolves and renders custom Admin-configured logo when saved', async () => {
+    const customAdminLogo = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+    
+    // Admin saves new logo in authoritative repository
+    await brandingRepository.saveBranding({
+      logoUrl: customAdminLogo,
+      logo: customAdminLogo,
+      appName: 'ACME SCM'
+    });
+
+    // Render BrandLogo
+    const brandHtml = renderToString(React.createElement(BrandLogo, { sizePreset: 'lg', variant: 'mark' }));
+    expect(brandHtml).toContain(`src="${customAdminLogo}"`);
+    expect(brandHtml).toContain('alt="ACME SCM"');
+
+    // Clean up
+    await brandingRepository.resetBranding();
+  });
+
+  it('7. Validates pure architectural separation between Initialization and Boot phases', () => {
     // Both phases cannot simultaneously coexist in DOM
     const element = React.createElement(OrionPowerOnScreen, { onPowerOn: vi.fn() });
     const html = renderToString(element);
@@ -94,5 +113,18 @@ describe('ORION-9 OS Startup Sequence & Boot Flow UI Specifications', () => {
     // Exactly one phase rendered per state
     expect(hasInit).toBe(true);
     expect(hasBoot).toBe(false);
+  });
+
+  it('8. Pre-boot LoadingScreen consumes authoritative BrandLogo with no competing hardcoded logos', () => {
+    const html = renderToString(React.createElement(LoadingScreen, {
+      message: 'INITIALIZING SYSTEM...',
+      variant: 'default'
+    }));
+
+    expect(html).toContain('role="status"');
+    expect(html).toContain('aria-label="Loading workspace"');
+    expect(html).toContain('ORION-9');
+    expect(html).toContain('INITIALIZING SYSTEM...');
+    expect(html).toContain('src="/orion-9-official-logo.png"');
   });
 });

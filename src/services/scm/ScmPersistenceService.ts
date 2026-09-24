@@ -58,19 +58,20 @@ export class ScmPersistenceService {
     id: string,
     data: T
   ): Promise<T> {
-    const key = this.getCacheKey(collectionName, data.tenantId, id);
-    this.memoryCache.set(key, { ...data });
-
     if (this.firestore) {
       try {
         const ref = doc(this.firestore, collectionName, id);
         await setDoc(ref, { ...data }, { merge: true });
-      } catch (err) {
-        console.warn(`[SCM-PERSISTENCE] Firestore write failed for ${collectionName}/${id}, cached locally.`, err);
+      } catch (err: any) {
+        console.error(`[SCM-PERSISTENCE] Authoritative Firestore write failed for ${collectionName}/${id}:`, err);
+        throw new Error(`[SCM-AUTHORITATIVE-ERROR] Firestore persistence failed for ${collectionName}/${id}: ${err?.message || err}`);
       }
     }
 
-    // Offline cache sync
+    const key = this.getCacheKey(collectionName, data.tenantId, id);
+    this.memoryCache.set(key, { ...data });
+
+    // Offline cache sync (read cache only)
     this.syncToOfflineCache(collectionName, data.tenantId).catch(() => {});
 
     return data;
