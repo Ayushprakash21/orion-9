@@ -100,6 +100,7 @@ import { SecurityRedTeamCenter } from './components/SecurityRedTeamCenter';
 import { ScalePerformanceCenter } from './components/admin/ScalePerformanceCenter';
 import { PlatformMaturityCenter } from './components/PlatformMaturityCenter';
 import { ManualCenter } from './components/ManualCenter';
+import { DatabaseControlCenter } from './components/admin/DatabaseControlCenter';
 
 import { LoadingScreen } from './components/LoadingScreen';
 import { OrionBootSequence } from './os/components/OrionBootSequence';
@@ -212,6 +213,7 @@ function AuthenticatedApplication() {
           <Route path="demo-data" element={<AdminDemoData />} />
           <Route path="settings" element={<AdminSettings />} />
           <Route path="branding" element={<AdminBranding />} />
+          <Route path="database" element={<DatabaseControlCenter />} />
         </Route>
       )}
 

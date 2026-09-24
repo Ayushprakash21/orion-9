@@ -8,10 +8,12 @@ import {
   Palette, LayoutDashboard, Menu, X,
   Building2, Shield, BrainCircuit, BookOpen,
   FileCheck, Sliders, Compass, RotateCcw, ShieldCheck, Award,
-  AlertOctagon, GitCommit, Globe, Globe2, Network, Users2, FileSpreadsheet, ShieldAlert, Gauge
-
+  AlertOctagon, GitCommit, Globe, Globe2, Network, Users2, FileSpreadsheet, ShieldAlert, Gauge,
+  Database
 } from 'lucide-react';
 import { AccountMenu } from '../layout/AccountMenu';
+import { dbManager } from '../../core/database/DatabaseConnectionManager';
+import { DatabaseEnvironmentMode } from '../../core/database/DatabaseEnvironment';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../store/AuthContext';
 import { ErrorBoundary } from '../ErrorBoundary';
@@ -30,6 +32,7 @@ export const AdminLayout = () => {
   const navigate = useNavigate();
   
   const [branding, setBranding] = React.useState<BrandingConfig>(() => brandingRepository.getBrandingSync());
+  const [dbEnv, setDbEnv] = React.useState<DatabaseEnvironmentMode>(() => dbManager.getEnvironment());
 
   React.useEffect(() => {
     const loadBranding = async () => {
@@ -44,8 +47,15 @@ export const AdminLayout = () => {
     const handleBrandingUpdate = () => {
       loadBranding().catch(() => {});
     };
+    const handleEnvUpdate = () => {
+      setDbEnv(dbManager.getEnvironment());
+    };
     window.addEventListener('orion-branding-updated', handleBrandingUpdate);
-    return () => window.removeEventListener('orion-branding-updated', handleBrandingUpdate);
+    window.addEventListener('orion-database-environment-changed', handleEnvUpdate);
+    return () => {
+      window.removeEventListener('orion-branding-updated', handleBrandingUpdate);
+      window.removeEventListener('orion-database-environment-changed', handleEnvUpdate);
+    };
   }, []);
 
   // Redirect non-admins away from this layout entirely
@@ -57,6 +67,7 @@ export const AdminLayout = () => {
 
   const menuItems: MenuItem[] = [
     { name: 'Overview', path: '/admin', icon: LayoutDashboard, exact: true },
+    { name: 'Database Control Plane', path: '/admin/database', icon: Database },
     { name: 'Operations Center', path: '/admin/operations', icon: Activity },
     { name: 'Incident Center', path: '/admin/incidents', icon: AlertOctagon },
     { name: 'Configuration Center', path: '/admin/configurations', icon: Sliders },
@@ -114,6 +125,21 @@ export const AdminLayout = () => {
             <span className="text-white/20 font-mono text-[10px] select-none mx-1">|</span>
             <span className="text-[11px] font-mono tracking-widest text-os-text-muted uppercase whitespace-nowrap">
               PLATFORM CONTROL PLANE
+            </span>
+            <span
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate('/admin/database');
+              }}
+              className={cn(
+                "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider select-none transition-all cursor-pointer",
+                dbEnv === 'LIVE'
+                  ? "bg-emerald-950/80 text-emerald-400 border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.2)] hover:border-emerald-400 hover:text-white"
+                  : "bg-amber-950/80 text-amber-400 border-amber-500/50 shadow-[0_0_8px_rgba(245,158,11,0.2)] hover:border-amber-400 hover:text-white"
+              )}
+              title={`Database: ${dbEnv}. Click to open Control Plane.`}
+            >
+              {dbEnv}
             </span>
           </div>
         </div>

@@ -14,6 +14,8 @@ import { SystemStatusModal } from '../../components/modals/SystemStatusModal';
 import { NetworkConnectionPopover } from './NetworkConnectionPopover';
 import { BrandLogo } from '../../components/brand/BrandLogo';
 import { useBranding } from '../../store/BrandingContext';
+import { dbManager } from '../../core/database/DatabaseConnectionManager';
+import { DatabaseEnvironmentMode } from '../../core/database/DatabaseEnvironment';
 import { cn } from '../../lib/utils';
 
 export function OrionSystemBar() {
@@ -30,6 +32,7 @@ export function OrionSystemBar() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [networkOpen, setNetworkOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
+  const [dbEnv, setDbEnv] = useState<DatabaseEnvironmentMode>(() => dbManager.getEnvironment());
   
   const menuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -37,6 +40,14 @@ export function OrionSystemBar() {
 
   // Check for critical exceptions to inform notification badge status
   const hasCriticalExceptions = exceptions?.some(e => e.severity === 'Critical') ?? false;
+
+  useEffect(() => {
+    const handleEnvChanged = () => {
+      setDbEnv(dbManager.getEnvironment());
+    };
+    window.addEventListener('orion-database-environment-changed', handleEnvChanged);
+    return () => window.removeEventListener('orion-database-environment-changed', handleEnvChanged);
+  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -96,6 +107,24 @@ export function OrionSystemBar() {
           <BrandLogo sizePreset="sm" variant="mark" />
           <span className="font-mono font-bold text-[13px] md:text-[14px] tracking-wider uppercase hidden sm:inline-block shrink-0 whitespace-nowrap text-os-text-primary group-hover:text-os-text-primary transition-all">
             ORION
+          </span>
+          <span 
+            onClick={(e) => {
+              if (isAdmin) {
+                e.stopPropagation();
+                navigate('/admin/database');
+              }
+            }}
+            className={cn(
+              "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider select-none transition-all",
+              dbEnv === 'LIVE'
+                ? "bg-emerald-950/80 text-emerald-400 border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.2)]"
+                : "bg-amber-950/80 text-amber-400 border-amber-500/50 shadow-[0_0_8px_rgba(245,158,11,0.2)]",
+              isAdmin && "hover:border-cyan-400 hover:text-white"
+            )}
+            title={isAdmin ? `Database: ${dbEnv}. Click to open Control Plane.` : `Database: ${dbEnv}`}
+          >
+            {dbEnv}
           </span>
           {isAdmin && (
             <>
