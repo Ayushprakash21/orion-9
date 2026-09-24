@@ -198,7 +198,7 @@ function AuthenticatedApplication() {
           <Route path="integration-gateway" element={<IntegrationControlCenter />} />
           <Route path="trading-partners" element={<TradingPartnerCenter />} />
           <Route path="reconciliation" element={<ReconciliationCenter />} />
-          <Route path="failover" element={<ResilienceCenter />} />
+          <Route path="failover" element={<FailoverCenter />} />
           <Route path="resilience" element={<ResilienceCenter />} />
           <Route path="security-redteam" element={<SecurityRedTeamCenter />} />
           <Route path="platform-maturity" element={<PlatformMaturityCenter />} />

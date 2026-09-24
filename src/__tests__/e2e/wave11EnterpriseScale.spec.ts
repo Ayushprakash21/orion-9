@@ -29,7 +29,9 @@ test.describe('Orion-9 Wave 11 Global Enterprise Scale & Integration E2E Suite',
     await page.fill('input#password', 'admin');
     await page.click('button[type="submit"]');
 
-    await page.waitForTimeout(500);
+    await expect.poll(async () => {
+      return await page.evaluate(() => !!localStorage.getItem('orion_auth_session'));
+    }, { timeout: 10000 }).toBe(true);
     await page.goto('/admin/global-ops');
 
     // Verify Heading
@@ -51,7 +53,9 @@ test.describe('Orion-9 Wave 11 Global Enterprise Scale & Integration E2E Suite',
     await page.fill('input#password', 'admin');
     await page.click('button[type="submit"]');
 
-    await page.waitForTimeout(500);
+    await expect.poll(async () => {
+      return await page.evaluate(() => !!localStorage.getItem('orion_auth_session'));
+    }, { timeout: 10000 }).toBe(true);
     await page.goto('/admin/regional-ops');
 
     // Verify Heading & Truthful Claims Badge
@@ -73,7 +77,9 @@ test.describe('Orion-9 Wave 11 Global Enterprise Scale & Integration E2E Suite',
     await page.fill('input#password', 'admin');
     await page.click('button[type="submit"]');
 
-    await page.waitForTimeout(500);
+    await expect.poll(async () => {
+      return await page.evaluate(() => !!localStorage.getItem('orion_auth_session'));
+    }, { timeout: 10000 }).toBe(true);
     await page.goto('/admin/integration-gateway');
 
     // Verify Heading
@@ -99,7 +105,9 @@ test.describe('Orion-9 Wave 11 Global Enterprise Scale & Integration E2E Suite',
     await page.fill('input#password', 'admin');
     await page.click('button[type="submit"]');
 
-    await page.waitForTimeout(500);
+    await expect.poll(async () => {
+      return await page.evaluate(() => !!localStorage.getItem('orion_auth_session'));
+    }, { timeout: 10000 }).toBe(true);
     await page.goto('/admin/trading-partners');
 
     // Verify Heading
@@ -125,7 +133,9 @@ test.describe('Orion-9 Wave 11 Global Enterprise Scale & Integration E2E Suite',
     await page.fill('input#password', 'admin');
     await page.click('button[type="submit"]');
 
-    await page.waitForTimeout(500);
+    await expect.poll(async () => {
+      return await page.evaluate(() => !!localStorage.getItem('orion_auth_session'));
+    }, { timeout: 10000 }).toBe(true);
     await page.goto('/admin/reconciliation');
 
     // Verify Heading
@@ -144,7 +154,9 @@ test.describe('Orion-9 Wave 11 Global Enterprise Scale & Integration E2E Suite',
     await page.fill('input#password', 'admin');
     await page.click('button[type="submit"]');
 
-    await page.waitForTimeout(500);
+    await expect.poll(async () => {
+      return await page.evaluate(() => !!localStorage.getItem('orion_auth_session'));
+    }, { timeout: 10000 }).toBe(true);
     await page.goto('/admin/failover');
 
     // Verify Heading & Fencing Banner
@@ -164,7 +176,9 @@ test.describe('Orion-9 Wave 11 Global Enterprise Scale & Integration E2E Suite',
     await page.fill('input#password', 'admin');
     await page.click('button[type="submit"]');
 
-    await page.waitForTimeout(500);
+    await expect.poll(async () => {
+      return await page.evaluate(() => !!localStorage.getItem('orion_auth_session'));
+    }, { timeout: 10000 }).toBe(true);
     await page.goto('/admin/scale-performance');
 
     // Verify Heading & Workload Queue

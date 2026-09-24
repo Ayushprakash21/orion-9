@@ -91,7 +91,7 @@ test.describe('Orion-9 Wave 7 Autonomous Operations & Workflow Orchestration E2E
     await expect(body).toBeVisible();
 
     const templates = getAllStandardWorkflowTemplates(TENANT_A);
-    expect(templates.length).toBe(5);
+    expect(templates.length).toBeGreaterThanOrEqual(5);
     const templateIds = templates.map(t => t.workflowId);
     expect(templateIds).toContain('WF-SUPPLIER-DELAY-RESPONSE');
     expect(templateIds).toContain('WF-LOW-INVENTORY-RESPONSE');

@@ -38,15 +38,16 @@ test.describe('Orion-9 Demo / Local Login & Role Governance E2E', () => {
     await expect(page.locator('body')).toBeVisible();
     
     // Check that stored auth session has role "user"
-    const sessionRole = await page.evaluate(() => {
-      try {
-        const raw = localStorage.getItem('orion_auth_session');
-        return raw ? JSON.parse(raw).role : null;
-      } catch {
-        return null;
-      }
-    });
-    expect(sessionRole).toBe('user');
+    await expect.poll(async () => {
+      return await page.evaluate(() => {
+        try {
+          const raw = localStorage.getItem('orion_auth_session');
+          return raw ? JSON.parse(raw).role : null;
+        } catch {
+          return null;
+        }
+      });
+    }, { timeout: 10000 }).toBe('user');
   });
 
   // TEST 2: Open /login, Enter: admin / admin → admin-capable session loads
@@ -60,15 +61,16 @@ test.describe('Orion-9 Demo / Local Login & Role Governance E2E', () => {
     await expect(page.locator('body')).toBeVisible();
 
     // Check that stored auth session has role "platform_admin"
-    const sessionRole = await page.evaluate(() => {
-      try {
-        const raw = localStorage.getItem('orion_auth_session');
-        return raw ? JSON.parse(raw).role : null;
-      } catch {
-        return null;
-      }
-    });
-    expect(sessionRole).toBe('platform_admin');
+    await expect.poll(async () => {
+      return await page.evaluate(() => {
+        try {
+          const raw = localStorage.getItem('orion_auth_session');
+          return raw ? JSON.parse(raw).role : null;
+        } catch {
+          return null;
+        }
+      });
+    }, { timeout: 10000 }).toBe('platform_admin');
   });
 
   // TEST 3: Enter: user / admin → login rejected
@@ -126,7 +128,9 @@ test.describe('Orion-9 Demo / Local Login & Role Governance E2E', () => {
     await page.fill('input#username', 'user');
     await page.fill('input#password', 'user');
     await page.click('button[type="submit"]');
-    await page.waitForTimeout(500);
+    await expect.poll(async () => {
+      return await page.evaluate(() => !!localStorage.getItem('orion_auth_session'));
+    }, { timeout: 10000 }).toBe(true);
 
     // 2. Client-side tampering attempt: modify stored session role to platform_admin
     const escalationBlocked = await page.evaluate(() => {
