@@ -193,9 +193,11 @@ export const OrionMobileNavBar: React.FC = () => {
         <button
           type="button"
           onClick={() => openApplication('ai-copilot')}
+          data-testid="orion-mobile-copilot-button"
+          aria-label="Open Orion AI Copilot"
           className={cn(
             "flex flex-col items-center justify-center min-w-[54px] h-full py-1 gap-1 text-[10px] font-medium transition-colors cursor-pointer",
-            activeAppId === 'ai-copilot' ? "text-os-accent font-semibold" : "text-os-text-muted hover:text-os-text-primary"
+            activeAppId === 'orion-ai' ? "text-os-accent font-semibold" : "text-os-text-muted hover:text-os-text-primary"
           )}
           title="Orion AI Copilot"
         >

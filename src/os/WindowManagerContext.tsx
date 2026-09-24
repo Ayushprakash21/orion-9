@@ -91,6 +91,9 @@ const DEFAULT_DOCK_PINNED = [
 ];
 
 const normalizeAppId = (id: string): string => {
+  // Canonical alias map: button IDs → ORION_REGISTRY keys
+  if (id === 'ai-copilot') return 'orion-ai';
+  if (id === 'copilot') return 'orion-ai';
   if (id === 'about-orion') return 'about';
   return id;
 };

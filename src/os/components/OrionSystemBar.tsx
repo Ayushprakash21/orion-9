@@ -200,8 +200,11 @@ export function OrionSystemBar() {
         {/* Orion Copilot AI Quick Launch */}
         <button 
           onClick={() => openApplication('ai-copilot')}
+          data-testid="orion-copilot-button"
           className="flex items-center gap-1.5 px-2.5 py-1 text-sky-400 hover:text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 rounded-lg transition-all cursor-pointer text-[11px] font-medium"
           title="Open Orion AI Copilot"
+          aria-label="Open Orion AI Copilot"
+          type="button"
         >
           <Brain className="w-3.5 h-3.5" />
           <span className="hidden sm:inline">Copilot</span>
