@@ -22,7 +22,22 @@ const getSizing = (preset?: string, fallbackSize: number = 28) => {
     case 'hero': return { width: 'clamp(200px, 20vw, 300px)', height: 'auto', maxHeight: '160px', markSize: 120 };
     default: return { maxWidth: `${fallbackSize * 2.8}px`, maxHeight: `${fallbackSize}px`, width: 'auto', height: 'auto', markSize: fallbackSize };
   }
-}
+};
+
+const isCustomTenantLogo = (source?: string | null): boolean => {
+  if (!source) return false;
+  const trimmed = source.trim();
+  if (
+    trimmed === '' ||
+    trimmed === '/orion-9-logo.png' ||
+    trimmed === '/orion-9-brand-logo.png' ||
+    trimmed === '/orion-9-official-logo.png' ||
+    trimmed === '/orion-9-logo-cropped.png'
+  ) {
+    return false;
+  }
+  return true;
+};
 
 export const BrandLogo: React.FC<BrandLogoProps> = ({ 
   sizePreset,
@@ -61,10 +76,11 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   }, []);
 
   const logoSource = branding.logo || branding.logoUrl;
+  const isCustomLogo = isCustomTenantLogo(logoSource);
   const appName = branding.appName || branding.productName || branding.applicationName || branding.osName || 'ORION-9';
   const appTagline = branding.description || branding.tagline || 'AI Supply Chain Operating System';
   
-  const hasCustomLogoWithText = Boolean(logoSource && !imgError && (branding.logoIncludesName || branding.logoIncludesWordmark));
+  const hasCustomLogoWithText = Boolean(isCustomLogo && logoSource && !imgError && (branding.logoIncludesName || branding.logoIncludesWordmark));
 
   useEffect(() => {
     setImgError(false);
@@ -76,7 +92,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
     <div className={cn("flex items-center gap-3 select-none min-w-0 box-border", variant !== 'mark' && "w-full", className)}>
       {/* Vertically centered logo */}
       <div className="shrink-0 flex items-center justify-center">
-        {logoSource && !imgError ? (
+        {isCustomLogo && logoSource && !imgError ? (
           <img 
             src={logoSource} 
             alt={appName} 

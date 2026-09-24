@@ -24,11 +24,11 @@ export const defaultBranding: BrandingConfig = {
   description: 'AI Supply Chain Operating System',
   version: '9.4.2',
   organizationName: 'Enterprise Supply Chain',
-  logoUrl: '/orion-9-logo.png',
-  logo: '/orion-9-logo.png',
+  logoUrl: null,
+  logo: null,
   faviconUrl: null,
-  logoIncludesName: true,
-  logoIncludesWordmark: true,
+  logoIncludesName: false,
+  logoIncludesWordmark: false,
 };
 
 export function normalizeBranding(raw: any): BrandingConfig {

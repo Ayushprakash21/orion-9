@@ -80,7 +80,7 @@ describe('ORION-9 OS Startup Sequence & Boot Flow UI Specifications', () => {
 
     // 2. BrandLogo mark check
     const brandHtml = renderToString(React.createElement(BrandLogo, { sizePreset: 'lg', variant: 'mark' }));
-    expect(brandHtml).toContain('orion-brand-image');
+    expect(brandHtml).toContain('viewBox="0 0 32 32"');
   });
 
   it('6. Validates pure architectural separation between Initialization and Boot phases', () => {
