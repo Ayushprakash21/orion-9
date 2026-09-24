@@ -290,9 +290,12 @@ export function OrionDesktop() {
       </div>
 
         
-        {/* Render all open windows for the current workspace */}
+        {/* Render open windows: single active surface on mobile, multi-window on desktop */}
         <AnimatePresence>
-          {currentWorkspaceWindows.map(win => (
+          {(isMobile 
+            ? (currentWorkspaceWindows.filter(w => w.id === activeAppId && w.state !== 'minimized'))
+            : currentWorkspaceWindows
+          ).map(win => (
             <OrionWindow
               key={win.id}
               window={win}

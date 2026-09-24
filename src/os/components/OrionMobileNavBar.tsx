@@ -8,6 +8,8 @@ import {
   Search, 
   Sparkles, 
   Layers, 
+  Activity,
+  MoreHorizontal,
   X,
   ChevronUp
 } from 'lucide-react';
@@ -49,23 +51,49 @@ export const OrionMobileNavBar: React.FC = () => {
             <div className="flex items-center justify-between pb-2 border-b border-os-border">
               <span className="text-xs font-mono uppercase tracking-wider text-os-text-primary font-semibold flex items-center gap-1.5">
                 <Layers className="w-3.5 h-3.5 text-os-accent" />
-                Active Applications ({openWindowsList.length})
+                Active Tasks & Tools ({openWindowsList.length})
               </span>
               <button 
                 type="button"
                 onClick={() => setActiveSwitcherOpen(false)}
-                className="p-1 rounded-md text-os-text-muted hover:text-os-text-primary"
+                className="p-1 rounded-md text-os-text-muted hover:text-os-text-primary cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
+            {/* Quick Actions in More drawer */}
+            <div className="grid grid-cols-2 gap-2 pb-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSwitcherOpen(false);
+                  setCommandPaletteOpen(true);
+                }}
+                className="flex items-center gap-2 p-2.5 rounded-xl bg-os-surface-hover/80 border border-os-border text-xs font-medium text-os-text-primary hover:bg-os-surface-active cursor-pointer"
+              >
+                <Search className="w-4 h-4 text-os-accent" />
+                Search & Palette
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveSwitcherOpen(false);
+                  openApplication('settings');
+                }}
+                className="flex items-center gap-2 p-2.5 rounded-xl bg-os-surface-hover/80 border border-os-border text-xs font-medium text-os-text-primary hover:bg-os-surface-active cursor-pointer"
+              >
+                <Activity className="w-4 h-4 text-os-accent" />
+                System Settings
+              </button>
+            </div>
+
             {openWindowsList.length === 0 ? (
-              <div className="py-6 text-center text-xs text-os-text-muted">
+              <div className="py-4 text-center text-xs text-os-text-muted">
                 No active background applications
               </div>
             ) : (
-              <div className="max-h-60 overflow-y-auto space-y-2 py-1">
+              <div className="max-h-52 overflow-y-auto space-y-2 py-1 custom-scrollbar">
                 {openWindowsList.map(win => {
                   const app = ORION_REGISTRY[win.id];
                   if (!app) return null;
@@ -118,17 +146,16 @@ export const OrionMobileNavBar: React.FC = () => {
         className="orion-mobile-bottom-bar fixed bottom-0 left-0 right-0 z-[2147483400] h-14 bg-[#080A0E]/95 backdrop-blur-xl border-t border-os-border/80 flex items-center justify-around px-2 text-os-text-secondary select-none pointer-events-auto md:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
-        {/* 1. Home / Desktop */}
+        {/* 1. Home */}
         <button
           type="button"
           onClick={() => {
-            // Minimize or unfocus to return to desktop wallpaper view
             if (activeAppId) {
               focusApplication('');
             }
           }}
           className={cn(
-            "flex flex-col items-center justify-center min-w-[56px] h-full py-1 gap-1 text-[10px] font-medium transition-colors cursor-pointer",
+            "flex flex-col items-center justify-center min-w-[54px] h-full py-1 gap-1 text-[10px] font-medium transition-colors cursor-pointer",
             !activeAppId ? "text-os-accent font-semibold" : "text-os-text-muted hover:text-os-text-primary"
           )}
           title="Home Desktop"
@@ -137,34 +164,37 @@ export const OrionMobileNavBar: React.FC = () => {
           <span>Home</span>
         </button>
 
-        {/* 2. All Applications Launcher */}
+        {/* 2. Apps (103 Launcher) */}
         <button
           type="button"
           onClick={() => setLauncherOpen(true)}
-          className="flex flex-col items-center justify-center min-w-[56px] h-full py-1 gap-1 text-[10px] font-medium text-os-text-muted hover:text-os-text-primary transition-colors cursor-pointer"
+          className="flex flex-col items-center justify-center min-w-[54px] h-full py-1 gap-1 text-[10px] font-medium text-os-text-muted hover:text-os-text-primary transition-colors cursor-pointer"
           title="All Applications (103)"
         >
           <LayoutGrid className="w-5 h-5" />
           <span>Apps</span>
         </button>
 
-        {/* 3. Global Search / Command Palette */}
+        {/* 3. Control (Control Tower / Command Center) */}
         <button
           type="button"
-          onClick={() => setCommandPaletteOpen(true)}
-          className="flex flex-col items-center justify-center min-w-[56px] h-full py-1 gap-1 text-[10px] font-medium text-os-text-muted hover:text-os-text-primary transition-colors cursor-pointer"
-          title="Search & Commands"
+          onClick={() => openApplication('command-center')}
+          className={cn(
+            "flex flex-col items-center justify-center min-w-[54px] h-full py-1 gap-1 text-[10px] font-medium transition-colors cursor-pointer",
+            activeAppId === 'command-center' ? "text-os-accent font-semibold" : "text-os-text-muted hover:text-os-text-primary"
+          )}
+          title="Control Tower"
         >
-          <Search className="w-5 h-5" />
-          <span>Search</span>
+          <Activity className="w-5 h-5" />
+          <span>Control</span>
         </button>
 
-        {/* 4. AI Copilot */}
+        {/* 4. AI (Orion AI Copilot) */}
         <button
           type="button"
           onClick={() => openApplication('ai-copilot')}
           className={cn(
-            "flex flex-col items-center justify-center min-w-[56px] h-full py-1 gap-1 text-[10px] font-medium transition-colors cursor-pointer",
+            "flex flex-col items-center justify-center min-w-[54px] h-full py-1 gap-1 text-[10px] font-medium transition-colors cursor-pointer",
             activeAppId === 'ai-copilot' ? "text-os-accent font-semibold" : "text-os-text-muted hover:text-os-text-primary"
           )}
           title="Orion AI Copilot"
@@ -173,25 +203,25 @@ export const OrionMobileNavBar: React.FC = () => {
           <span>AI</span>
         </button>
 
-        {/* 5. Active Task Switcher */}
+        {/* 5. More (Search, Tasks, & Settings) */}
         <button
           type="button"
           onClick={() => setActiveSwitcherOpen(!activeSwitcherOpen)}
           className={cn(
-            "relative flex flex-col items-center justify-center min-w-[56px] h-full py-1 gap-1 text-[10px] font-medium transition-colors cursor-pointer",
+            "relative flex flex-col items-center justify-center min-w-[54px] h-full py-1 gap-1 text-[10px] font-medium transition-colors cursor-pointer",
             activeSwitcherOpen ? "text-os-accent" : "text-os-text-muted hover:text-os-text-primary"
           )}
-          title="Task Switcher"
+          title="More & Tasks"
         >
           <div className="relative">
-            <Layers className="w-5 h-5" />
+            <MoreHorizontal className="w-5 h-5" />
             {openWindowsList.length > 0 && (
               <span className="absolute -top-1 -right-1.5 bg-os-accent text-black font-bold text-[9px] rounded-full w-3.5 h-3.5 flex items-center justify-center">
                 {openWindowsList.length}
               </span>
             )}
           </div>
-          <span>Tasks</span>
+          <span>More</span>
         </button>
       </nav>
     </>

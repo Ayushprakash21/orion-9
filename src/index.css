@@ -159,6 +159,12 @@ html, body {
   padding: 0;
   width: 100%;
   height: 100%;
+  max-width: 100vw;
+  max-height: 100dvh;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  position: fixed;
+  inset: 0;
 }
 
 body::after {
@@ -175,8 +181,12 @@ body::after {
 #root {
   width: 100%;
   height: 100%;
+  max-width: 100vw;
+  max-height: 100dvh;
   margin: 0;
   padding: 0;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
 }
 
 /* GLOBAL ORION WINDOW CHROME RESET: no route may introduce shell margins. */

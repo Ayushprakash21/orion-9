@@ -13,14 +13,14 @@ import { test, expect } from '@playwright/test';
  */
 
 const VIEWPORTS = [
-  { name: 'Desktop 1920x1080', width: 1920, height: 1080, isMobile: false },
-  { name: 'Laptop 1366x768', width: 1366, height: 768, isMobile: false },
-  { name: 'Tablet Landscape 1024x768', width: 1024, height: 768, isMobile: false },
+  { name: 'Mobile 390x844', width: 390, height: 844, isMobile: true },
+  { name: 'Mobile 393x852', width: 393, height: 852, isMobile: true },
+  { name: 'Mobile 412x915', width: 412, height: 915, isMobile: true },
   { name: 'Tablet Portrait 768x1024', width: 768, height: 1024, isMobile: false },
-  { name: 'Mobile Large 430x932 (iPhone 15 Pro Max)', width: 430, height: 932, isMobile: true },
-  { name: 'Mobile Standard 390x844 (iPhone 14)', width: 390, height: 844, isMobile: true },
-  { name: 'Mobile Compact 375x812 (iPhone SE/Mini)', width: 375, height: 812, isMobile: true },
-  { name: 'Mobile Small 360x800 (Android)', width: 360, height: 800, isMobile: true },
+  { name: 'Tablet Landscape 1024x768', width: 1024, height: 768, isMobile: false },
+  { name: 'Laptop Compact 1280x800', width: 1280, height: 800, isMobile: false },
+  { name: 'Desktop Standard 1440x900', width: 1440, height: 900, isMobile: false },
+  { name: 'Desktop Large 1920x1080', width: 1920, height: 1080, isMobile: false },
 ];
 
 test.describe('Orion-9 Multi-Device Responsive Verification', () => {
@@ -60,11 +60,16 @@ test.describe('Orion-9 Multi-Device Responsive Verification', () => {
       const desktopShell = page.locator('.orion-desktop-shell');
       await expect(desktopShell).toBeVisible({ timeout: 15000 });
 
-      // 4. Assert zero horizontal page overflow
-      const hasNoHorizontalOverflow = await page.evaluate(() => {
-        return document.documentElement.scrollWidth <= window.innerWidth;
+      // 4. Assert zero document page scrolling (BOTH vertical and horizontal must be ZERO)
+      const hasZeroPageScroll = await page.evaluate(() => {
+        return (
+          document.documentElement.scrollHeight <= window.innerHeight &&
+          document.documentElement.scrollWidth <= window.innerWidth &&
+          document.body.scrollHeight <= window.innerHeight &&
+          document.body.scrollWidth <= window.innerWidth
+        );
       });
-      expect(hasNoHorizontalOverflow).toBe(true);
+      expect(hasZeroPageScroll).toBe(true);
 
       // 5. Verify OS System Bar is rendered
       const systemBar = page.locator('.orion-global-topbar');
