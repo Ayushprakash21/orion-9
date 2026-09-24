@@ -467,7 +467,7 @@ export function OrionDock() {
           aria-label="Reveal Dock"
           role="button"
           tabIndex={0}
-          className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[61] w-[140px] h-[8px] rounded-t-full bg-white/20 border border-white/10 shadow-[0_0_16px_rgba(0,242,254,0.16)] backdrop-blur-sm cursor-pointer transition-all duration-200 hover:bg-[#00F2FE]/40 hover:h-[10px]"
+          className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[61] w-[140px] h-[6px] rounded-t-full bg-white/20 border border-white/10 backdrop-blur-md cursor-pointer transition-all duration-200 hover:bg-sky-500/50 hover:h-[8px]"
           onMouseEnter={() => { clearDockHideTimer(); setDockVisibility(true); }}
           onPointerEnter={() => { clearDockHideTimer(); setDockVisibility(true); }}
           onFocus={() => { clearDockHideTimer(); setDockVisibility(true); }}
@@ -487,7 +487,7 @@ export function OrionDock() {
       onMouseLeave={() => scheduleDockHide()}
     >
       <div 
-        className="flex items-center gap-2 p-2 backdrop-blur-2xl bg-os-surface/75 dark:bg-[#121316]/75 border border-os-border/60 shadow-[0_20px_50px_rgba(0,0,0,0.18)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.55)] rounded-2xl transition-all duration-300 overflow-x-auto max-w-[calc(100vw-24px)]"
+        className="flex items-center gap-2 p-2 backdrop-blur-2xl bg-[#12151a]/85 dark:bg-[#0c0e11]/90 border border-white/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.4)] rounded-2xl transition-all duration-300 overflow-x-auto max-w-[calc(100vw-24px)]"
         style={{ scrollbarWidth: 'none' }}
         onMouseLeave={() => { setHoveredApp(null); scheduleDockHide(); }}
       >
@@ -532,7 +532,7 @@ export function OrionDock() {
               onContextMenu={(e) => handleDockItemContextMenu(e, id)}
               onMouseEnter={() => setHoveredApp(id)}
               className={cn(
-                "relative group flex flex-col items-center justify-center transition-all duration-300 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-os-accent hover:-translate-y-1.5",
+                "relative group flex flex-col items-center justify-center transition-all duration-300 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 hover:-translate-y-1.5",
                 draggedApp === id && "opacity-50",
                 dragOverApp === id && "scale-110 mx-4"
               )}
@@ -556,26 +556,26 @@ export function OrionDock() {
               {isOpen && (
                 <div 
                   className={cn(
-                    "absolute -bottom-1.5 transition-all duration-200",
+                    "absolute -bottom-1 transition-all duration-200",
                     isActive 
-                      ? "w-2 h-1.5 rounded-full bg-os-accent shadow-[0_0_8px_var(--os-accent)]" 
+                      ? "w-2 h-1 rounded-full bg-sky-400 shadow-xs" 
                       : isMinimized
-                      ? "w-1 h-1 rounded-full bg-os-text-muted/40"
-                      : "w-1.5 h-1.5 rounded-full bg-os-text-secondary"
+                      ? "w-1 h-1 rounded-full bg-white/30"
+                      : "w-1.5 h-1.5 rounded-full bg-white/60"
                   )}
                 />
               )}
 
               {/* Tooltip */}
-              <div className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-os-surface/95 backdrop-blur-md text-os-text-primary text-[11px] font-medium tracking-wide whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-os-border shadow-xl z-50">
+              <div className="absolute -top-11 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#12151a]/95 backdrop-blur-xl text-white text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/[0.08] shadow-xl z-50">
                 {app.name}
-                {isMinimized && <span className="text-os-text-muted ml-1.5 text-[10px]">(Minimized)</span>}
+                {isMinimized && <span className="text-white/50 ml-1.5 text-[10px]">(Minimized)</span>}
               </div>
             </button>
           );
         })}
 
-        <div className="w-px h-8 bg-os-surface-active mx-1 shrink-0" />
+        <div className="w-px h-7 bg-white/[0.1] mx-1 shrink-0" />
 
         {/* All Applications launcher button */}
         <button
@@ -594,18 +594,18 @@ export function OrionDock() {
           }}
           onContextMenu={handleLauncherContextMenu}
           onMouseEnter={() => setHoveredApp('launcher')}
-          className="relative group flex flex-col items-center justify-center transition-all duration-300 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#00F2FE] hover:-translate-y-1"
+          className="relative group flex flex-col items-center justify-center transition-all duration-300 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 hover:-translate-y-1"
           style={{ 
             transform: `scale(${hoveredApp === 'launcher' ? 1.05 : 1})`,
             width: '48px', height: '48px' 
           }}
           title="All Applications"
         >
-          <div className="flex items-center justify-center w-full h-full rounded-[16px] bg-gradient-to-b from-black/5 to-transparent dark:from-white/10 dark:to-white/5 border border-black/10 dark:border-white/[0.08] group-hover:border-black/20 dark:group-hover:border-white/[0.2] text-os-text-primary shadow-inner">
-            <Grid className="w-5 h-5 drop-shadow-sm transition-transform duration-300 group-hover:scale-110" />
+          <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] text-os-text-primary transition-colors">
+            <Grid className="w-5 h-5 transition-transform duration-300 group-hover:scale-105 text-white/80" />
           </div>
 
-          <div className="absolute -top-12 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-os-surface/95 backdrop-blur-md text-os-text-primary text-[11px] font-medium tracking-wide whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-os-border shadow-xl z-50">
+          <div className="absolute -top-11 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#12151a]/95 backdrop-blur-xl text-white text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/[0.08] shadow-xl z-50">
             All Applications
           </div>
         </button>

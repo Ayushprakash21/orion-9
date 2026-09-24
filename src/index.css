@@ -33,89 +33,89 @@
 }
 
 :root, :root.dark {
-  /* DARK MODE (Default for Orion-9) */
-  --os-bg: #090A0B;
-  --os-surface: #111214;
-  --os-surface-secondary: #16181A;
-  --os-surface-elevated: #181A1D;
-  --os-surface-hover: #1E2023;
-  --os-surface-active: #2A2C30;
-  --os-border: #292C2F;
-  --os-border-strong: #3F4449;
+  /* DARK MODE (Orion Aurora Deep Charcoal/Graphite) */
+  --os-bg: #0c0e11;
+  --os-surface: #12151a;
+  --os-surface-secondary: #181c22;
+  --os-surface-elevated: #1e232b;
+  --os-surface-hover: #262c36;
+  --os-surface-active: #313845;
+  --os-border: rgba(255, 255, 255, 0.08);
+  --os-border-strong: rgba(255, 255, 255, 0.16);
   --os-border-inverse: #E1E4E2;
-  --os-text-primary: #E7E5E0;
-  --os-text-secondary: #A7A6A1;
-  --os-text-muted: #777873;
+  --os-text-primary: #F0F3F6;
+  --os-text-secondary: #94A3B8;
+  --os-text-muted: #64748B;
   --os-text-primary-inverse: #0A0A0A;
-  --os-input-bg: #111214;
-  --os-accent: #00F2FE;
+  --os-input-bg: #12151a;
+  --os-accent: #0284C7;
 
   /* Semantic --orion-* Tokens */
-  --orion-background: #090A0B;
-  --orion-surface: #111214;
-  --orion-surface-secondary: #16181A;
-  --orion-surface-elevated: #181A1D;
-  --orion-surface-hover: #1E2023;
-  --orion-surface-active: #2A2C30;
-  --orion-text: #E7E5E0;
-  --orion-text-secondary: #A7A6A1;
-  --orion-text-muted: #777873;
-  --orion-border: #292C2F;
-  --orion-border-strong: #3F4449;
-  --orion-accent: #00F2FE;
+  --orion-background: #0c0e11;
+  --orion-surface: #12151a;
+  --orion-surface-secondary: #181c22;
+  --orion-surface-elevated: #1e232b;
+  --orion-surface-hover: #262c36;
+  --orion-surface-active: #313845;
+  --orion-text: #F0F3F6;
+  --orion-text-secondary: #94A3B8;
+  --orion-text-muted: #64748B;
+  --orion-border: rgba(255, 255, 255, 0.08);
+  --orion-border-strong: rgba(255, 255, 255, 0.16);
+  --orion-accent: #0284C7;
   --orion-success: #10B981;
   --orion-warning: #F59E0B;
   --orion-critical: #EF4444;
-  --orion-radius: 10px;
-  --orion-blur: blur(16px);
+  --orion-radius: 12px;
+  --orion-blur: blur(20px);
 
   background-color: var(--os-bg);
   color: var(--os-text-primary);
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 :root.light {
-  /* LIGHT MODE (Dedicated Premium Light Theme) */
-  --os-bg: #F4F5F7;
+  /* LIGHT MODE (Orion Aurora Warm Clean Porcelain/Slate) */
+  --os-bg: #F8FAFC;
   --os-surface: #FFFFFF;
-  --os-surface-secondary: #F0F2F5;
+  --os-surface-secondary: #F1F5F9;
   --os-surface-elevated: #FFFFFF;
-  --os-surface-hover: #E4E7EB;
-  --os-surface-active: #D8DCE2;
-  --os-border: #D0D5DD;
-  --os-border-strong: #98A2B3;
-  --os-border-inverse: #1D2939;
-  --os-text-primary: #101828;
-  --os-text-secondary: #475467;
-  --os-text-muted: #667085;
-  --os-text-primary-inverse: #F4F5F7;
+  --os-surface-hover: #E2E8F0;
+  --os-surface-active: #CBD5E1;
+  --os-border: rgba(0, 0, 0, 0.08);
+  --os-border-strong: rgba(0, 0, 0, 0.16);
+  --os-border-inverse: #0F172A;
+  --os-text-primary: #0F172A;
+  --os-text-secondary: #475569;
+  --os-text-muted: #94A3B8;
+  --os-text-primary-inverse: #F8FAFC;
   --os-input-bg: #FFFFFF;
-  --os-accent: #0066FF;
+  --os-accent: #0284C7;
 
   /* Semantic --orion-* Tokens */
-  --orion-background: #F4F5F7;
+  --orion-background: #F8FAFC;
   --orion-surface: #FFFFFF;
-  --orion-surface-secondary: #F0F2F5;
+  --orion-surface-secondary: #F1F5F9;
   --orion-surface-elevated: #FFFFFF;
-  --orion-surface-hover: #E4E7EB;
-  --orion-surface-active: #D8DCE2;
-  --orion-text: #101828;
-  --orion-text-secondary: #475467;
-  --orion-text-muted: #667085;
-  --orion-border: #D0D5DD;
-  --orion-border-strong: #98A2B3;
-  --orion-accent: #0066FF;
-  --orion-success: #12B76A;
-  --orion-warning: #F79009;
-  --orion-critical: #F04438;
-  --orion-radius: 10px;
-  --orion-blur: blur(16px);
+  --orion-surface-hover: #E2E8F0;
+  --orion-surface-active: #CBD5E1;
+  --orion-text: #0F172A;
+  --orion-text-secondary: #475569;
+  --orion-text-muted: #94A3B8;
+  --orion-border: rgba(0, 0, 0, 0.08);
+  --orion-border-strong: rgba(0, 0, 0, 0.16);
+  --orion-accent: #0284C7;
+  --orion-success: #10B981;
+  --orion-warning: #F59E0B;
+  --orion-critical: #EF4444;
+  --orion-radius: 12px;
+  --orion-blur: blur(20px);
 
   background-color: var(--os-bg);
   color: var(--os-text-primary);
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Custom OS Scrollbars */
@@ -298,6 +298,93 @@ body::after {
   .no-scrollbar {
     -ms-overflow-style: none;  /* IE and Edge */
     scrollbar-width: none;  /* Firefox */
+  }
+
+  /* Orion Aurora Design Utilities */
+  .aurora-acrylic {
+    background-color: rgba(18, 21, 26, 0.78);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  :root.light .aurora-acrylic {
+    background-color: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  .aurora-acrylic-subtle {
+    background-color: rgba(24, 28, 34, 0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+  :root.light .aurora-acrylic-subtle {
+    background-color: rgba(241, 245, 249, 0.75);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .aurora-card {
+    background-color: var(--os-surface);
+    border: 1px solid var(--os-border);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.25);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  :root.light .aurora-card {
+    box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.05);
+  }
+
+  .aurora-window-shadow {
+    box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+  :root.light .aurora-window-shadow {
+    box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  }
+
+  .aurora-dock-shadow {
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  }
+  :root.light .aurora-dock-shadow {
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  }
+
+  .aurora-button-primary {
+    background-color: #0284C7;
+    color: #FFFFFF;
+    font-weight: 500;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+  }
+  .aurora-button-primary:hover {
+    background-color: #0369A1;
+  }
+  .aurora-button-primary:active {
+    transform: scale(0.98);
+  }
+
+  .aurora-button-secondary {
+    background-color: rgba(255, 255, 255, 0.06);
+    color: var(--os-text-primary);
+    border: 1px solid var(--os-border);
+    font-weight: 500;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+  :root.light .aurora-button-secondary {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+  .aurora-button-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: var(--os-border-strong);
+  }
+  :root.light .aurora-button-secondary:hover {
+    background-color: rgba(0, 0, 0, 0.08);
   }
 }
 

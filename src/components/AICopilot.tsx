@@ -114,85 +114,67 @@ export const AICopilot = () => {
   };
 
   return (
-    <div className="w-full h-full min-h-0 flex flex-col overflow-hidden bg-os-bg">
-      <div className="flex-1 min-h-0 max-w-[1200px] w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-hidden">
+    <div className="w-full h-full min-h-0 flex flex-col overflow-hidden bg-[#0c0e11]">
+      <div className="flex-1 min-h-0 max-w-[1200px] w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-5 overflow-hidden">
         
         {/* Header Console */}
-        <div className="bg-[#0A0C0E] border border-os-border rounded-2xl p-6 md:p-8 flex items-center justify-between relative overflow-hidden shrink-0 shadow-lg">
-          {/* Background grid */}
-          <div 
-            className="absolute inset-0 opacity-[0.03] pointer-events-none" 
-            style={{ 
-              backgroundImage: 'linear-gradient(to right, #00F2FE 1px, transparent 1px), linear-gradient(to bottom, #00F2FE 1px, transparent 1px)', 
-              backgroundSize: '20px 20px' 
-            }} 
-          />
-          
-          <div className="flex items-center gap-6 relative z-10">
-            <div className="relative flex items-center justify-center w-16 h-16">
-              <div className={`absolute inset-0 border border-[#00F2FE]/20 rounded-full transition-all duration-1000 ${
-                aiState === 'thinking' ? 'animate-[spin_2s_linear_infinite]' :
-                aiState === 'analyzing' ? 'animate-[spin_1s_linear_infinite]' :
-                'animate-[spin_10s_linear_infinite]'
-              }`} />
-              <div className={`absolute inset-2 border border-dashed border-[#00F2FE]/40 rounded-full transition-all duration-700 ${
-                aiState === 'thinking' ? 'animate-[spin_1.5s_linear_infinite_reverse]' :
-                aiState === 'analyzing' ? 'animate-[spin_0.5s_linear_infinite_reverse]' :
-                'animate-[spin_8s_linear_infinite_reverse]'
-              }`} />
-              <Cpu className={`text-[#00F2FE] w-6 h-6 transition-opacity duration-300 ${
-                aiState === 'analyzing' ? 'opacity-100 animate-pulse' : 'opacity-70'
-              }`} />
+        <div className="bg-[#12151a] border border-white/[0.08] rounded-2xl p-5 md:p-6 flex items-center justify-between relative overflow-hidden shrink-0 shadow-lg">
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="relative flex items-center justify-center w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-400">
+              <Cpu className="w-6 h-6" />
             </div>
             
             <div>
-              <h1 className="text-xl md:text-2xl font-light text-white tracking-widest uppercase mb-1 flex items-center gap-3">
-                ORION AI <span className="text-[10px] font-mono tracking-widest text-[#00F2FE] px-2 py-0.5 border border-[#00F2FE]/30 bg-[#00F2FE]/10 rounded uppercase">Intelligence Console</span>
+              <h1 className="text-lg md:text-xl font-semibold text-white tracking-normal mb-0.5 flex items-center gap-2.5">
+                Orion Copilot <span className="text-[10px] font-medium text-sky-400 px-2 py-0.5 border border-sky-500/30 bg-sky-500/10 rounded-md">Enterprise Intelligence</span>
               </h1>
-              <div className="text-xs font-mono text-os-text-muted flex items-center gap-2 uppercase tracking-wider">
-                System Status: 
-                <span className={`font-bold ${aiState === 'ready' || aiState === 'idle' ? 'text-[#30D158]' : 'text-[#00F2FE]'}`}>
-                  {aiState === 'ready' || aiState === 'idle' ? 'ONLINE' : aiState.toUpperCase()}
+              <div className="text-xs text-slate-400 flex items-center gap-2">
+                Engine Status: 
+                <span className={cn(
+                  "font-medium",
+                  aiState === 'ready' || aiState === 'idle' ? 'text-emerald-400' : 'text-sky-400'
+                )}>
+                  {aiState === 'ready' || aiState === 'idle' ? 'Ready' : 'Analyzing Telemetry...'}
                 </span>
               </div>
             </div>
           </div>
           
-          <div className="hidden md:flex flex-col items-end gap-1.5 opacity-60">
-            <div className="text-[9px] font-mono tracking-widest text-os-text-muted uppercase">Engine Core</div>
-            <div className="text-[10px] font-mono tracking-widest text-[#00F2FE] uppercase flex items-center gap-2">
-              Gemini Intelligence <span className="w-1.5 h-1.5 bg-[#00F2FE] rounded-full animate-pulse" />
+          <div className="hidden md:flex flex-col items-end gap-1 text-right">
+            <div className="text-[10px] text-slate-400">Intelligence Core</div>
+            <div className="text-xs font-medium text-slate-200 flex items-center gap-1.5">
+              Gemini Pro Grounding <span className="w-2 h-2 bg-emerald-400 rounded-full" />
             </div>
           </div>
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 bg-os-surface border border-os-border rounded-2xl flex flex-col min-h-0 overflow-hidden relative">
+        <div className="flex-1 bg-[#12151a] border border-white/[0.08] rounded-2xl flex flex-col min-h-0 overflow-hidden relative shadow-lg">
           
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-6 min-h-0">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 min-h-0 custom-scrollbar">
             {messages.map((message, index) => (
               <div 
                 key={index} 
                 className={cn(
-                  "max-w-[85%] animate-in slide-in-from-bottom-2 fade-in duration-300",
+                  "max-w-[85%] animate-in slide-in-from-bottom-2 fade-in duration-200",
                   message.role === 'user' ? "ml-auto" : "mr-auto"
                 )}
               >
                 <div className={cn(
-                  "text-[10px] font-mono tracking-widest uppercase mb-1.5 flex items-center gap-2",
-                  message.role === 'user' ? "justify-end text-os-text-muted" : "text-[#00F2FE]"
+                  "text-[11px] font-medium mb-1.5 flex items-center gap-2",
+                  message.role === 'user' ? "justify-end text-slate-400" : "text-sky-400"
                 )}>
-                  {message.role === 'user' ? 'Operator' : (
+                  {message.role === 'user' ? 'You' : (
                     <>
-                      <span>ORION AI</span>
+                      <span className="font-semibold">Orion Copilot</span>
                       {message.governanceStatus && (
                         <span className={cn(
-                          "px-2 py-0.5 rounded text-[9px] font-bold border",
-                          message.governanceStatus === 'EXECUTED' && "bg-[#30D158]/10 text-[#30D158] border-[#30D158]/30",
-                          message.governanceStatus === 'PENDING APPROVAL' && "bg-[#FF9F0A]/10 text-[#FF9F0A] border-[#FF9F0A]/30",
-                          message.governanceStatus === 'RECOMMENDATION' && "bg-[#00F2FE]/10 text-[#00F2FE] border-[#00F2FE]/30",
-                          message.governanceStatus === 'REJECTED' && "bg-[#FF453A]/10 text-[#FF453A] border-[#FF453A]/30",
-                          message.governanceStatus === 'ANSWER' && "bg-white/5 text-os-text-muted border-white/10"
+                          "px-2 py-0.5 rounded-md text-[9px] font-medium border",
+                          message.governanceStatus === 'EXECUTED' && "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+                          message.governanceStatus === 'PENDING APPROVAL' && "bg-amber-500/10 text-amber-400 border-amber-500/30",
+                          message.governanceStatus === 'RECOMMENDATION' && "bg-sky-500/10 text-sky-400 border-sky-500/30",
+                          message.governanceStatus === 'REJECTED' && "bg-rose-500/10 text-rose-400 border-rose-500/30",
+                          message.governanceStatus === 'ANSWER' && "bg-white/5 text-slate-400 border-white/10"
                         )}>
                           {message.governanceStatus}
                         </span>
@@ -202,30 +184,30 @@ export const AICopilot = () => {
                 </div>
                 
                 <div className={cn(
-                  "p-4 rounded-xl text-sm leading-relaxed",
+                  "p-4 rounded-2xl text-sm leading-relaxed",
                   message.role === 'user' 
-                    ? "bg-[#0A0C0E] border border-os-border text-white shadow-sm" 
-                    : "bg-transparent text-os-text-primary"
+                    ? "bg-sky-600 text-white shadow-sm" 
+                    : "bg-white/[0.04] border border-white/[0.08] text-slate-200"
                 )}>
                   <div className="prose prose-invert prose-sm max-w-none">
                     <ReactMarkdown>{message.content}</ReactMarkdown>
                   </div>
                   
                   {message.evidence && (
-                    <div className="mt-4 p-3 bg-[#00F2FE]/5 border border-[#00F2FE]/20 rounded-lg">
-                      <div className="text-[9px] font-mono font-bold tracking-widest text-[#00F2FE] uppercase mb-1 flex items-center gap-1.5">
-                        <Database size={10} /> TELEMETRY EVIDENCE
+                    <div className="mt-3.5 p-3 bg-sky-500/5 border border-sky-500/20 rounded-xl">
+                      <div className="text-[10px] font-semibold tracking-wide text-sky-400 uppercase mb-1 flex items-center gap-1.5">
+                        <Database size={12} /> Grounded Telemetry Evidence
                       </div>
-                      <div className="text-xs font-mono text-os-text-secondary">{message.evidence}</div>
+                      <div className="text-xs font-mono text-slate-300">{message.evidence}</div>
                     </div>
                   )}
                   
                   {message.recommendation && (
-                    <div className="mt-3 p-3 bg-[#30D158]/5 border border-[#30D158]/20 rounded-lg">
-                      <div className="text-[9px] font-mono font-bold tracking-widest text-[#30D158] uppercase mb-1 flex items-center gap-1.5">
-                        <CheckCircle2 size={10} /> STRATEGIC RECOMMENDATION
+                    <div className="mt-3 p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
+                      <div className="text-[10px] font-semibold tracking-wide text-emerald-400 uppercase mb-1 flex items-center gap-1.5">
+                        <CheckCircle2 size={12} /> Strategic Recommendation
                       </div>
-                      <div className="text-xs text-os-text-secondary">{message.recommendation}</div>
+                      <div className="text-xs text-slate-300">{message.recommendation}</div>
                     </div>
                   )}
                 </div>
@@ -233,33 +215,33 @@ export const AICopilot = () => {
             ))}
             
             {isLoading && (
-              <div className="max-w-[80%] mr-auto animate-in fade-in duration-300">
-                <div className="text-[10px] font-mono tracking-widest uppercase text-[#00F2FE] mb-1.5">
-                  ORION AI
+              <div className="max-w-[80%] mr-auto animate-in fade-in duration-200">
+                <div className="text-[11px] font-semibold text-sky-400 mb-1.5">
+                  Orion Copilot
                 </div>
-                <div className="p-4 rounded-xl bg-transparent border border-os-border/50 flex items-center gap-3 text-os-text-muted">
-                  <Loader2 className="w-4 h-4 animate-spin text-[#00F2FE]" />
-                  <span className="text-xs font-mono uppercase tracking-widest">{aiState === 'thinking' ? 'Synthesizing Request...' : 'Analyzing Telemetry...'}</span>
+                <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center gap-3 text-slate-400">
+                  <Loader2 className="w-4 h-4 animate-spin text-sky-400" />
+                  <span className="text-xs">{aiState === 'thinking' ? 'Synthesizing response...' : 'Analyzing real-time SCM data...'}</span>
                 </div>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Actions (only show when few messages to not clutter) */}
+          {/* Quick Actions */}
           {messages.length < 3 && !isLoading && (
-            <div className="px-6 pb-4">
-              <div className="text-[9px] font-mono text-os-text-muted uppercase tracking-widest mb-2 flex items-center gap-2">
-                <CornerDownRight size={10} /> Quick Intelligence Actions
+            <div className="px-6 pb-3 pt-1">
+              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <CornerDownRight size={11} /> Suggested Actions
               </div>
               <div className="flex flex-wrap gap-2">
                 {QUICK_ACTIONS.map((action, i) => (
                   <button
                     key={i}
                     onClick={() => handleSubmit(undefined, action.prompt)}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-os-border bg-os-bg hover:bg-os-surface-hover hover:border-[#00F2FE]/30 text-xs text-os-text-secondary hover:text-[#00F2FE] transition-colors group"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] hover:border-sky-500/30 text-xs text-slate-300 hover:text-white transition-colors cursor-pointer"
                   >
-                    <action.icon size={12} className="group-hover:text-[#00F2FE]" />
+                    <action.icon size={13} className="text-sky-400" />
                     {action.label}
                   </button>
                 ))}
@@ -268,29 +250,28 @@ export const AICopilot = () => {
           )}
 
           {/* Input Area */}
-          <div className="p-4 sm:p-6 bg-[#0A0C0E] border-t border-os-border shrink-0 z-10">
+          <div className="p-4 bg-[#0c0e11] border-t border-white/[0.08] shrink-0 z-10">
             <form onSubmit={(e) => handleSubmit(e)} className="relative flex items-center max-w-4xl mx-auto">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask ORION AI about your supply chain..."
-                className="w-full pl-5 pr-14 py-4 bg-os-surface border border-os-border rounded-xl text-sm text-white placeholder:text-os-text-muted focus:outline-none focus:border-[#00F2FE]/50 focus:ring-1 focus:ring-[#00F2FE]/50 transition-all font-mono"
+                placeholder="Ask Orion Copilot about stock levels, supply risks, POs..."
+                className="w-full pl-4 pr-12 py-3.5 bg-white/[0.05] border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500/50 transition-all"
                 disabled={isLoading}
               />
               <button
                 type="submit"
                 disabled={!input.trim() || isLoading}
-                className="absolute right-2 p-2.5 rounded-lg bg-[#00F2FE]/10 text-[#00F2FE] hover:bg-[#00F2FE] hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="absolute right-2 p-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </button>
             </form>
-            <div className="text-center mt-3 text-[9px] font-mono text-os-text-muted uppercase tracking-widest flex items-center justify-center gap-2">
-              <ShieldCheck size={10} /> ORION AI utilizes deterministic supply chain data for analysis
+            <div className="text-center mt-2.5 text-[10px] text-slate-500 flex items-center justify-center gap-1.5">
+              <ShieldCheck size={11} /> Orion Copilot operates under governed enterprise supply chain telemetry
             </div>
           </div>
-          
         </div>
       </div>
     </div>

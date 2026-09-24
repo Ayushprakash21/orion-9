@@ -504,53 +504,55 @@ export const Settings = ({ initialCategory }: { initialCategory?: SettingsCatego
   const filteredAdminDomainItems = adminDomainItems.filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
-    <div className="flex flex-col md:flex-row w-full h-full bg-os-bg text-os-text-primary overflow-hidden font-sans">
-      <div className="w-full md:w-64 shrink-0 bg-os-surface/50 border-r border-os-border flex flex-col">
+    <div className="flex flex-col md:flex-row w-full h-full bg-[#0c0e11] text-os-text-primary overflow-hidden font-sans">
+      <div className="w-full md:w-64 shrink-0 bg-[#12151a] border-r border-white/[0.08] flex flex-col">
         {/* Search */}
-        <div className="p-4 border-b border-os-border backdrop-blur-md sticky top-0 z-10">
+        <div className="p-3.5 border-b border-white/[0.08] backdrop-blur-md sticky top-0 z-10">
           <div className="relative">
-            <Search className="absolute left-2.5 top-2 text-os-text-muted" size={14} />
+            <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
             <input 
               type="text" 
               placeholder="Search Settings" 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-os-input-bg border border-os-border rounded-md pl-8 pr-3 py-1.5 text-sm text-os-text-primary focus:outline-none focus:border-os-accent transition-colors"
+              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500/50 transition-colors"
             />
           </div>
         </div>
 
         {/* User Mini Profile */}
-        <div className="p-4 border-b border-os-border flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full overflow-hidden bg-os-surface-hover flex items-center justify-center shrink-0 border border-os-border">
+        <div className="p-3.5 border-b border-white/[0.08] flex items-center gap-3">
+          <div className="w-9 h-9 rounded-full overflow-hidden bg-white/[0.06] flex items-center justify-center shrink-0 border border-white/[0.08]">
             {profile?.avatarUrl ? (
               <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
-              <User size={20} className="text-os-text-muted" />
+              <User size={18} className="text-slate-400" />
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-medium text-os-text-primary truncate">{profile?.fullName || profile?.displayName || 'User'}</div>
-            <div className="text-[10px] text-os-text-muted truncate uppercase tracking-widest">{profile?.role || 'Operator'}</div>
+            <div className="text-[13px] font-medium text-white truncate">{profile?.fullName || profile?.displayName || 'User'}</div>
+            <div className="text-[10px] text-slate-400 truncate uppercase tracking-wider">{profile?.role || 'Operator'}</div>
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-3 space-y-6 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-3 space-y-5 custom-scrollbar">
           {/* SYSTEM PREFERENCES */}
           {filteredMenuItems.length > 0 && (
             <div>
-              <div className="px-3 mb-2 text-[10px] font-mono tracking-widest uppercase text-os-text-secondary">System Preferences</div>
-              <div className="space-y-0.5">
+              <div className="px-2.5 mb-2 text-[10px] font-semibold tracking-wider uppercase text-slate-400">System Preferences</div>
+              <div className="space-y-1">
                 {filteredMenuItems.map(item => (
                   <button
                     key={item.id}
                     onClick={() => setActiveCategory(item.id as SettingsCategory)}
                     className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left",
-                      activeCategory === item.id ? "bg-os-accent/10 text-os-accent" : "text-os-text-secondary hover:bg-os-surface-hover hover:text-os-text-primary"
+                      "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all text-left cursor-pointer",
+                      activeCategory === item.id 
+                        ? "bg-sky-500/15 text-sky-400 border border-sky-500/25 font-semibold" 
+                        : "text-slate-400 hover:bg-white/[0.05] hover:text-white border border-transparent"
                     )}
                   >
-                    <item.icon size={16} className={activeCategory === item.id ? "text-os-accent" : "text-os-text-muted"} /> {item.label}
+                    <item.icon size={15} className={activeCategory === item.id ? "text-sky-400" : "text-slate-400"} /> {item.label}
                   </button>
                 ))}
               </div>
@@ -560,18 +562,20 @@ export const Settings = ({ initialCategory }: { initialCategory?: SettingsCatego
           {/* ADMINISTRATION */}
           {isAdmin && filteredAdminCoreItems.length > 0 && (
             <div>
-              <div className="px-3 mb-2 text-[10px] font-mono tracking-widest uppercase text-os-text-secondary">Administration</div>
-              <div className="space-y-0.5">
+              <div className="px-2.5 mb-2 text-[10px] font-semibold tracking-wider uppercase text-slate-400">Administration</div>
+              <div className="space-y-1">
                 {filteredAdminCoreItems.map(item => (
                   <button
                     key={item.id}
                     onClick={() => setActiveCategory(item.id as SettingsCategory)}
                     className={cn(
-                      "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-left",
-                      activeCategory === item.id ? "bg-emerald-500/10 text-emerald-400" : "text-os-text-secondary hover:bg-os-surface-hover hover:text-os-text-primary"
+                      "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all text-left cursor-pointer",
+                      activeCategory === item.id 
+                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 font-semibold" 
+                        : "text-slate-400 hover:bg-white/[0.05] hover:text-white border border-transparent"
                     )}
                   >
-                    <item.icon size={16} className={activeCategory === item.id ? "text-emerald-400" : "text-os-text-muted"} /> {item.label}
+                    <item.icon size={15} className={activeCategory === item.id ? "text-emerald-400" : "text-slate-400"} /> {item.label}
                   </button>
                 ))}
               </div>
@@ -581,18 +585,20 @@ export const Settings = ({ initialCategory }: { initialCategory?: SettingsCatego
           {/* GOVERNED DOMAINS QUICK SWITCH */}
           {isAdmin && filteredAdminDomainItems.length > 0 && (
             <div>
-              <div className="px-3 mb-2 text-[10px] font-mono tracking-widest uppercase text-os-text-secondary">Governed Domains (17)</div>
+              <div className="px-2.5 mb-2 text-[10px] font-semibold tracking-wider uppercase text-slate-400">Governed Domains (17)</div>
               <div className="space-y-0.5">
                 {filteredAdminDomainItems.map(item => (
                   <button
                     key={item.id}
                     onClick={() => setActiveCategory(item.id as SettingsCategory)}
                     className={cn(
-                      "w-full flex items-center gap-3 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors text-left",
-                      activeCategory === item.id ? "bg-cyan-500/15 text-cyan-300 font-semibold" : "text-os-text-secondary hover:bg-os-surface-hover hover:text-os-text-primary"
+                      "w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all text-left cursor-pointer",
+                      activeCategory === item.id 
+                        ? "bg-sky-500/15 text-sky-300 font-semibold" 
+                        : "text-slate-400 hover:bg-white/[0.05] hover:text-white"
                     )}
                   >
-                    <item.icon size={14} className={activeCategory === item.id ? "text-cyan-300" : "text-os-text-muted"} /> {item.label}
+                    <item.icon size={13} className={activeCategory === item.id ? "text-sky-300" : "text-slate-400"} /> {item.label}
                   </button>
                 ))}
               </div>
@@ -601,8 +607,8 @@ export const Settings = ({ initialCategory }: { initialCategory?: SettingsCatego
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col overflow-hidden relative bg-os-bg">
-        <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar relative">
+      <div className="flex-1 flex flex-col overflow-hidden relative bg-[#0c0e11]">
+        <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar relative">
           {isAdminTab ? renderCategoryContent() : (
             <div className="max-w-3xl mx-auto">
               {renderCategoryContent()}
@@ -611,26 +617,26 @@ export const Settings = ({ initialCategory }: { initialCategory?: SettingsCatego
         </div>
         
         {!isAdminTab && (
-          <div className="p-4 md:px-10 border-t border-os-border bg-os-surface/80 backdrop-blur-md shrink-0">
+          <div className="p-4 md:px-8 border-t border-white/[0.08] bg-[#12151a]/90 backdrop-blur-xl shrink-0">
             <div className="max-w-3xl mx-auto flex justify-end gap-3 items-center">
               {isSaved && (
-                <span className="text-emerald-400 text-xs font-mono uppercase tracking-widest flex items-center gap-1.5 animate-in fade-in mr-2">
+                <span className="text-emerald-400 text-xs font-medium flex items-center gap-1.5 animate-in fade-in mr-2">
                   <CheckCircle2 size={14} /> Saved
                 </span>
               )}
               <button 
                 onClick={handleReset} 
                 type="button"
-                className="flex items-center gap-1.5 px-4 py-2 text-[10px] uppercase tracking-widest font-medium text-os-text-secondary border border-os-border rounded-sm shadow-sm hover:bg-os-surface-hover transition-colors"
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-slate-300 border border-white/[0.08] rounded-xl hover:bg-white/[0.06] hover:text-white transition-colors cursor-pointer"
               >
-                <RotateCcw size={12} />
+                <RotateCcw size={13} />
                 Reset
               </button>
               <button 
                 onClick={handleSave} 
                 disabled={isSaving}
                 type="button"
-                className="flex items-center gap-2 px-6 py-2 text-[10px] uppercase tracking-widest font-medium text-black bg-os-accent border border-os-accent rounded-sm hover:brightness-110 disabled:opacity-50 transition-all font-bold shadow-[0_0_15px_rgba(0,242,254,0.3)]"
+                className="flex items-center gap-2 px-5 py-2 text-xs font-medium text-white bg-sky-600 hover:bg-sky-500 rounded-xl disabled:opacity-50 transition-all cursor-pointer shadow-sm"
               >
                 <Save size={14} />
                 {isSaving ? 'Saving...' : 'Apply Changes'}

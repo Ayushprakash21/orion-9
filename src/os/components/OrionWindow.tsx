@@ -462,9 +462,9 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
       className={cn(
         "orion-window-surface flex flex-col text-os-text-primary overflow-hidden select-text pointer-events-auto",
         isMinimized && "pointer-events-none",
-        isMaximized ? "rounded-none border-none shadow-none" : "shadow-[0_15px_40px_rgba(0,0,0,0.12)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.55)] rounded-xl border border-os-border/70",
+        isMaximized ? "rounded-none border-none shadow-none" : "aurora-window-shadow rounded-xl border border-white/[0.08] bg-[#0c0e11]",
         isActive && !isMaximized
-          ? "ring-1 ring-os-accent/30 border-os-border-strong"
+          ? "ring-1 ring-sky-500/30 border-white/[0.15]"
           : ""
       )}
     >
@@ -484,7 +484,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
           }
         }}
         className={cn(
-          "orion-window-titlebar h-10 bg-os-surface/90 dark:bg-os-surface/85 backdrop-blur-md border-b border-os-border/50 px-3.5 flex items-center justify-between select-none relative z-[100] transition-colors cursor-default",
+          "orion-window-titlebar h-10 bg-[#12151a]/95 dark:bg-[#12151a]/95 backdrop-blur-2xl border-b border-white/[0.08] px-3.5 flex items-center justify-between select-none relative z-[100] transition-colors cursor-default",
           isActive ? "text-os-text-primary" : "text-os-text-muted"
         )}
       >
@@ -492,12 +492,12 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
         <div className="flex items-center gap-2 min-w-0 pr-3 pointer-events-none">
           <OrionAppIcon app={win.id} size={18} showContainer={false} />
           <span className={cn(
-            "text-[12px] font-medium tracking-wide truncate",
-            isActive ? "text-os-text-primary" : "text-os-text-muted"
+            "text-[12px] font-semibold tracking-normal truncate",
+            isActive ? "text-white" : "text-os-text-muted"
           )}>
             {app.name}
           </span>
-          <span className="text-[10px] text-os-text-muted font-mono uppercase tracking-widest hidden sm:inline-block ml-1 opacity-70 truncate">
+          <span className="text-[10px] text-os-text-muted font-medium uppercase tracking-wider hidden sm:inline-block ml-1 opacity-70 truncate">
             • {app.category}
           </span>
         </div>

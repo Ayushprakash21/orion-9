@@ -341,18 +341,18 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
 
   return (
     <div
-      className="flex h-full w-full bg-os-surface text-os-text-primary select-none overflow-hidden rounded-b-xl"
+      className="flex h-full w-full bg-[#0c0e11] text-os-text-primary select-none overflow-hidden rounded-b-xl"
       onClick={() => setContextMenu(null)}
     >
       {/* Left Sidebar: Navigation & Storage */}
-      <div className="w-56 bg-os-surface-tint border-r border-os-border/50 flex flex-col justify-between p-3 gap-3">
+      <div className="w-60 bg-[#12151a] border-r border-white/[0.08] flex flex-col justify-between p-3.5 gap-3">
         <div className="flex flex-col gap-4 overflow-y-auto">
           {/* Quick Access Title */}
           <div>
-            <div className="text-[10px] font-bold text-os-text-muted uppercase tracking-wider px-2 mb-1.5">
-              System Folders
+            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider px-2.5 mb-2">
+              Locations
             </div>
-            <div className="flex flex-col gap-0.5">
+            <div className="flex flex-col gap-1">
               {systemFolders.map(sys => {
                 const isActive = currentFolder?.id === sys.id;
                 return (
@@ -361,10 +361,10 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
                     key={sys.id}
                     onClick={() => navigateToFolder(sys)}
                     className={cn(
-                      "flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors text-left group",
+                      "flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] font-medium transition-all text-left group cursor-pointer",
                       isActive
-                        ? "bg-os-accent/20 text-os-accent border border-os-accent/30 font-semibold"
-                        : "hover:bg-os-surface-hover text-os-text-secondary hover:text-os-text-primary"
+                        ? "bg-sky-500/15 text-sky-400 border border-sky-500/25 font-semibold"
+                        : "hover:bg-white/[0.06] text-slate-400 hover:text-white border border-transparent"
                     )}
                   >
                     {getFolderIcon(sys.systemKey)}
@@ -377,42 +377,42 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
         </div>
 
         {/* Bottom Storage Meter */}
-        <div className="bg-os-surface p-2.5 rounded-lg border border-os-border/50 flex flex-col gap-1.5">
+        <div className="bg-white/[0.03] p-3 rounded-xl border border-white/[0.08] flex flex-col gap-2">
           <div className="flex items-center justify-between text-[11px]">
-            <span className="font-semibold text-os-text-primary flex items-center gap-1">
-              <HardDrive size={13} className="text-cyan-400" />
+            <span className="font-medium text-white flex items-center gap-1.5">
+              <HardDrive size={14} className="text-sky-400" />
               Virtual Disk
             </span>
-            <span className="text-os-text-muted text-[10px]">
+            <span className="text-slate-400 text-[10px]">
               {storageInfo ? `${Math.round(storageInfo.usedBytes / (1024 * 1024) * 10) / 10} MB / 50 GB` : '0 MB / 50 GB'}
             </span>
           </div>
-          <div className="w-full bg-os-surface-tint rounded-full h-1.5 overflow-hidden">
+          <div className="w-full bg-white/[0.06] rounded-full h-1.5 overflow-hidden">
             <div
-              className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all duration-500"
+              className="bg-sky-500 h-full rounded-full transition-all duration-500"
               style={{
                 width: `${storageInfo ? Math.max(4, (storageInfo.usedBytes / storageInfo.totalCapacityBytes) * 100) : 4}%`,
               }}
             />
           </div>
-          <div className="text-[10px] text-os-text-muted">
+          <div className="text-[10px] text-slate-400">
             {storageInfo ? `${storageInfo.fileCount} files • ${storageInfo.folderCount} folders` : 'Reading storage...'}
           </div>
         </div>
       </div>
 
       {/* Main Explorer Pane */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-os-surface">
+      <div className="flex-1 flex flex-col overflow-hidden bg-[#0c0e11]">
         {/* Top Explorer Toolbar */}
-        <div className="flex flex-wrap items-center justify-between px-3 py-2 bg-os-surface-tint border-b border-os-border/50 gap-2 text-xs">
+        <div className="flex flex-wrap items-center justify-between px-4 py-2.5 bg-[#12151a]/90 border-b border-white/[0.08] gap-2.5 text-xs">
           {/* Nav Controls & Breadcrumb */}
-          <div className="flex items-center gap-2 flex-1 min-w-[240px]">
+          <div className="flex items-center gap-2.5 flex-1 min-w-[240px]">
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={handleGoBack}
                 disabled={historyIndex <= 0}
-                className="p-1 rounded hover:bg-os-surface-hover disabled:opacity-30 text-os-text-secondary"
+                className="p-1.5 rounded-lg hover:bg-white/[0.08] disabled:opacity-30 text-slate-400 hover:text-white cursor-pointer transition-colors"
                 title="Back"
               >
                 <ChevronLeft size={16} />
@@ -421,7 +421,7 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
                 type="button"
                 onClick={handleGoForward}
                 disabled={historyIndex >= history.length - 1}
-                className="p-1 rounded hover:bg-os-surface-hover disabled:opacity-30 text-os-text-secondary"
+                className="p-1.5 rounded-lg hover:bg-white/[0.08] disabled:opacity-30 text-slate-400 hover:text-white cursor-pointer transition-colors"
                 title="Forward"
               >
                 <ChevronRight size={16} />
@@ -430,7 +430,7 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
                 type="button"
                 onClick={handleGoUp}
                 disabled={!currentFolder?.parentId}
-                className="p-1 rounded hover:bg-os-surface-hover disabled:opacity-30 text-os-text-secondary"
+                className="p-1.5 rounded-lg hover:bg-white/[0.08] disabled:opacity-30 text-slate-400 hover:text-white cursor-pointer transition-colors"
                 title="Up"
               >
                 <ArrowUp size={16} />
@@ -438,7 +438,7 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
               <button
                 type="button"
                 onClick={() => currentFolder && loadDirectory(currentFolder.id)}
-                className="p-1 rounded hover:bg-os-surface-hover text-os-text-secondary"
+                className="p-1.5 rounded-lg hover:bg-white/[0.08] text-slate-400 hover:text-white cursor-pointer transition-colors"
                 title="Refresh"
               >
                 <RotateCw size={14} />
@@ -446,35 +446,35 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
             </div>
 
             {/* Breadcrumb Path */}
-            <div className="flex items-center gap-1 bg-os-surface px-2.5 py-1 rounded-lg border border-os-border/60 text-xs text-os-text-primary flex-1 overflow-hidden">
-              <HardDrive size={13} className="text-os-accent shrink-0" />
-              <span className="text-os-text-muted">Orion OS</span>
-              <ChevronRight size={12} className="text-os-text-muted shrink-0" />
-              <span className="font-semibold text-os-text-primary truncate">
+            <div className="flex items-center gap-1.5 bg-white/[0.04] px-3 py-1.5 rounded-xl border border-white/[0.08] text-xs text-white flex-1 overflow-hidden">
+              <HardDrive size={13} className="text-sky-400 shrink-0" />
+              <span className="text-slate-400">Orion OS</span>
+              <ChevronRight size={12} className="text-slate-500 shrink-0" />
+              <span className="font-semibold text-white truncate">
                 {currentFolder?.name || 'Explorer'}
               </span>
             </div>
           </div>
 
           {/* Search Box */}
-          <div className="flex items-center gap-1.5 bg-os-surface px-2.5 py-1 rounded-lg border border-os-border/60 text-xs w-48">
-            <Search size={13} className="text-os-text-muted" />
+          <div className="flex items-center gap-2 bg-white/[0.04] px-3 py-1.5 rounded-xl border border-white/[0.08] text-xs w-52 focus-within:border-sky-500/50 transition-colors">
+            <Search size={13} className="text-slate-400 shrink-0" />
             <input
               type="text"
               placeholder={`Search ${currentFolder?.name || 'files'}...`}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="bg-transparent border-none outline-none w-full text-os-text-primary text-xs"
+              className="bg-transparent border-none outline-none w-full text-white placeholder:text-slate-500 text-xs"
             />
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             {isRecycleBin ? (
               <button
                 type="button"
                 onClick={handleEmptyRecycleBin}
-                className="flex items-center gap-1 px-2.5 py-1 rounded bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-medium text-xs border border-rose-500/40"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 font-medium text-xs border border-rose-500/30 cursor-pointer transition-colors"
               >
                 <Trash2 size={13} />
                 <span>Empty Bin</span>
@@ -484,7 +484,7 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
                 <button
                   type="button"
                   onClick={() => setIsNewFolderOpen(true)}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded bg-os-surface hover:bg-os-surface-hover border border-os-border/60 text-os-text-secondary hover:text-os-text-primary text-xs"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 hover:text-white text-xs cursor-pointer transition-colors"
                 >
                   <Plus size={13} className="text-amber-400" />
                   <span>New Folder</span>
@@ -493,7 +493,7 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
                 <button
                   type="button"
                   onClick={() => setIsNewFileOpen(true)}
-                  className="flex items-center gap-1 px-2.5 py-1 rounded bg-os-accent/20 hover:bg-os-accent/30 text-os-accent font-medium text-xs border border-os-accent/30"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium text-xs cursor-pointer transition-colors"
                 >
                   <Plus size={13} />
                   <span>New Document</span>
@@ -501,15 +501,15 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
               </>
             )}
 
-            <div className="h-4 w-px bg-os-border/60 mx-0.5" />
+            <div className="h-4 w-px bg-white/[0.1] mx-0.5" />
 
             {/* View Mode Toggle */}
             <button
               type="button"
               onClick={() => setViewMode('grid')}
               className={cn(
-                "p-1.5 rounded transition-colors",
-                viewMode === 'grid' ? "bg-os-accent/20 text-os-accent" : "hover:bg-os-surface-hover text-os-text-muted"
+                "p-1.5 rounded-lg transition-colors cursor-pointer",
+                viewMode === 'grid' ? "bg-white/[0.12] text-white" : "hover:bg-white/[0.06] text-slate-400"
               )}
               title="Grid View"
             >
@@ -520,8 +520,8 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
               type="button"
               onClick={() => setViewMode('list')}
               className={cn(
-                "p-1.5 rounded transition-colors",
-                viewMode === 'list' ? "bg-os-accent/20 text-os-accent" : "hover:bg-os-surface-hover text-os-text-muted"
+                "p-1.5 rounded-lg transition-colors cursor-pointer",
+                viewMode === 'list' ? "bg-white/[0.12] text-white" : "hover:bg-white/[0.06] text-slate-400"
               )}
               title="List View"
             >

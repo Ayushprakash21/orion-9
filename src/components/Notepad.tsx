@@ -326,18 +326,18 @@ export function Notepad({ initialFileId, onClose }: NotepadProps) {
   });
 
   return (
-    <div className="flex flex-col h-full w-full bg-os-surface text-os-text-primary select-none overflow-hidden rounded-b-xl">
+    <div className="flex flex-col h-full w-full bg-[#0c0e11] text-os-text-primary select-none overflow-hidden rounded-b-xl">
       {/* Top Application Bar & Menu */}
-      <div className="flex flex-wrap items-center justify-between px-3 py-1.5 bg-os-surface-tint border-b border-os-border/50 text-xs gap-2">
-        <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center justify-between px-3.5 py-2 bg-[#12151a] border-b border-white/[0.08] text-xs gap-2.5">
+        <div className="flex items-center gap-1.5">
           {/* Quick Actions */}
           <button
             type="button"
             onClick={handleNewFile}
             title="New File (Ctrl+N)"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded hover:bg-os-surface-hover text-os-text-secondary hover:text-os-text-primary transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/[0.06] text-slate-300 hover:text-white transition-colors cursor-pointer"
           >
-            <FilePlus size={14} className="text-cyan-400" />
+            <FilePlus size={14} className="text-sky-400" />
             <span className="font-medium">New</span>
           </button>
 
@@ -345,7 +345,7 @@ export function Notepad({ initialFileId, onClose }: NotepadProps) {
             type="button"
             onClick={handleOpenDialog}
             title="Open File (Ctrl+O)"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded hover:bg-os-surface-hover text-os-text-secondary hover:text-os-text-primary transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/[0.06] text-slate-300 hover:text-white transition-colors cursor-pointer"
           >
             <FolderOpen size={14} className="text-amber-400" />
             <span className="font-medium">Open</span>
@@ -355,23 +355,28 @@ export function Notepad({ initialFileId, onClose }: NotepadProps) {
             type="button"
             onClick={handleSave}
             title="Save File (Ctrl+S)"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded hover:bg-os-surface-hover text-os-text-secondary hover:text-os-text-primary transition-colors"
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer font-medium",
+              isDirty 
+                ? "bg-sky-600 hover:bg-sky-500 text-white" 
+                : "bg-white/[0.05] hover:bg-white/[0.08] text-slate-300"
+            )}
           >
-            <Save size={14} className={isDirty ? "text-emerald-400 animate-pulse" : "text-emerald-400/70"} />
-            <span className={cn("font-medium", isDirty && "text-emerald-400")}>Save</span>
+            <Save size={14} />
+            <span>Save</span>
           </button>
 
           <button
             type="button"
             onClick={handleOpenSaveAs}
             title="Save As..."
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded hover:bg-os-surface-hover text-os-text-secondary hover:text-os-text-primary transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/[0.06] text-slate-300 hover:text-white transition-colors cursor-pointer"
           >
-            <FileText size={14} className="text-blue-400" />
+            <FileText size={14} className="text-slate-400" />
             <span>Save As...</span>
           </button>
 
-          <div className="h-4 w-px bg-os-border/60 mx-1" />
+          <div className="h-4 w-px bg-white/[0.1] mx-1" />
 
           {/* Edit Tools */}
           <button
@@ -379,8 +384,8 @@ export function Notepad({ initialFileId, onClose }: NotepadProps) {
             onClick={() => setIsFindOpen(!isFindOpen)}
             title="Find & Replace (Ctrl+F)"
             className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1 rounded transition-colors",
-              isFindOpen ? "bg-os-accent/20 text-os-accent" : "hover:bg-os-surface-hover text-os-text-secondary"
+              "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer",
+              isFindOpen ? "bg-white/[0.12] text-white" : "hover:bg-white/[0.06] text-slate-400 hover:text-white"
             )}
           >
             <Search size={14} />
@@ -392,8 +397,8 @@ export function Notepad({ initialFileId, onClose }: NotepadProps) {
             onClick={() => setIsWordWrap(!isWordWrap)}
             title="Toggle Word Wrap"
             className={cn(
-              "flex items-center gap-1.5 px-2.5 py-1 rounded transition-colors",
-              isWordWrap ? "bg-os-accent/20 text-os-accent" : "hover:bg-os-surface-hover text-os-text-secondary"
+              "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg transition-colors cursor-pointer",
+              isWordWrap ? "bg-white/[0.12] text-white" : "hover:bg-white/[0.06] text-slate-400 hover:text-white"
             )}
           >
             <WrapText size={14} />
@@ -404,7 +409,7 @@ export function Notepad({ initialFileId, onClose }: NotepadProps) {
             type="button"
             onClick={() => setFontFamily(fontFamily === 'mono' ? 'sans' : 'mono')}
             title="Toggle Font (Monospace / Sans)"
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded hover:bg-os-surface-hover text-os-text-secondary transition-colors"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-white/[0.06] text-slate-400 hover:text-white transition-colors cursor-pointer"
           >
             <Type size={14} />
             <span>{fontFamily === 'mono' ? 'Mono' : 'Sans'}</span>
@@ -412,19 +417,24 @@ export function Notepad({ initialFileId, onClose }: NotepadProps) {
         </div>
 
         {/* File Name & Status */}
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-os-text-primary flex items-center gap-1">
-            {fileName}
-            {isDirty && <span className="text-amber-400 font-bold">*</span>}
-          </span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-white/[0.04] px-3 py-1 rounded-lg border border-white/[0.08]">
+            <span className="font-medium text-white text-xs">
+              {fileName}
+            </span>
+            <span className={cn(
+              "w-2 h-2 rounded-full",
+              isDirty ? "bg-amber-400" : "bg-emerald-400"
+            )} title={isDirty ? "Unsaved changes" : "All changes saved"} />
+          </div>
 
           <button
             type="button"
             onClick={handleExportLocal}
             title="Export to Local PC"
-            className="flex items-center gap-1 px-2 py-0.5 rounded bg-os-surface hover:bg-os-surface-hover border border-os-border/40 text-os-text-muted hover:text-os-text-primary text-[11px]"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-slate-300 hover:text-white text-xs cursor-pointer transition-colors"
           >
-            <Download size={12} />
+            <Download size={13} />
             <span>Export</span>
           </button>
         </div>
