@@ -77,21 +77,36 @@ export interface OrionFolder {
 
 export type DesktopItemType = 'application' | 'folder' | 'file' | 'system' | 'shortcut';
 
-export interface DesktopShortcut {
+/**
+ * Authoritative Firestore document contract for Desktop Items.
+ * Stored in `desktop_items/{id}` collection.
+ */
+export interface DesktopItemRecord {
   id: string;
+  name: string;
+  type: DesktopItemType;
   targetType: DesktopItemType;
   targetId: string; // appId, fileId, folderId, systemId
-  name: string;
-  icon?: string;
+  isDirectory: boolean;
+  parentId: string | null;
+  path: string;
+  iconId: string;
+  mimeType: string | null;
+  size: number;
   x: number;
   y: number;
   workspaceId: WorkspaceId;
   ownerId: string;
   tenantId: string;
+  organizationId: string;
   environment: 'DEMO' | 'LIVE';
   createdAt: string;
   updatedAt: string;
   metadata?: Record<string, any>;
+}
+
+export interface DesktopShortcut extends DesktopItemRecord {
+  icon?: string; // Legacy fallback
 }
 
 export interface VirtualStorageInfo {

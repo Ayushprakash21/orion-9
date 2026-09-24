@@ -20,6 +20,8 @@ import {
 import { db, loadData, saveData } from '../../data/db';
 import { InventoryTransactionRecord, InventoryTransactionType } from '../../scm/types';
 import { Inventory } from '../../types';
+import { DatabaseConnectionManager } from '../../core/database/DatabaseConnectionManager';
+import { sanitizeFirestorePayload, validateDesktopItemRecord } from '../../core/database/firestoreSanitizer';
 
 export class ScmPersistenceService {
   private static instance: ScmPersistenceService;
@@ -58,10 +60,28 @@ export class ScmPersistenceService {
     id: string,
     data: T
   ): Promise<T> {
-    if (this.firestore) {
+    if (!id) {
+      throw new Error(`[SCM-VALIDATION-ERROR] Document id is required for ${collectionName}`);
+    }
+    if (!data || !data.tenantId) {
+      throw new Error(`[SCM-VALIDATION-ERROR] tenantId is required for ${collectionName}/${id}`);
+    }
+
+    // Collection-specific contract validation
+    if (collectionName === 'desktop_items') {
+      validateDesktopItemRecord(data);
+    }
+
+    // Sanitize payload: strip any undefined fields and reject non-serializable objects
+    const sanitizedData = sanitizeFirestorePayload(data, `${collectionName}/${id}`);
+
+    const env = (data as any).environment;
+    const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore(env) || this.firestore;
+
+    if (firestoreInstance) {
       try {
-        const ref = doc(this.firestore, collectionName, id);
-        await setDoc(ref, { ...data }, { merge: true });
+        const ref = doc(firestoreInstance, collectionName, id);
+        await setDoc(ref, sanitizedData, { merge: true });
       } catch (err: any) {
         console.error(`[SCM-PERSISTENCE] Authoritative Firestore write failed for ${collectionName}/${id}:`, err);
         throw new Error(`[SCM-AUTHORITATIVE-ERROR] Firestore persistence failed for ${collectionName}/${id}: ${err?.message || err}`);
@@ -69,12 +89,12 @@ export class ScmPersistenceService {
     }
 
     const key = this.getCacheKey(collectionName, data.tenantId, id);
-    this.memoryCache.set(key, { ...data });
+    this.memoryCache.set(key, sanitizedData);
 
     // Offline cache sync (read cache only)
     this.syncToOfflineCache(collectionName, data.tenantId).catch(() => {});
 
-    return data;
+    return sanitizedData as T;
   }
 
   /**

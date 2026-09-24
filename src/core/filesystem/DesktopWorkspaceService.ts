@@ -103,39 +103,39 @@ export class DesktopWorkspaceService {
     }
 
     // Default applications mapped per workspace
-    const defaultApps: Record<WorkspaceId, Array<{ id: string; name: string; type: DesktopItemType }>> = {
+    const defaultApps: Record<WorkspaceId, Array<{ id: string; name: string; type: DesktopItemType; iconId: string; isDir: boolean }>> = {
       operations: [
-        { id: 'orion-computer', name: 'This Computer', type: 'system' },
-        { id: 'file-manager', name: 'File Explorer', type: 'system' },
-        { id: 'notepad', name: 'Notepad', type: 'application' },
-        { id: 'command-center', name: 'Command Center', type: 'application' },
-        { id: 'inventory', name: 'Inventory', type: 'application' },
-        { id: 'procurement', name: 'Procurement', type: 'application' },
-        { id: 'shipments', name: 'Shipments', type: 'application' },
-        { id: 'suppliers', name: 'Suppliers', type: 'application' },
-        { id: 'recycle-bin', name: 'Recycle Bin', type: 'system' },
+        { id: 'orion-computer', name: 'This Computer', type: 'system', iconId: 'computer', isDir: false },
+        { id: 'file-manager', name: 'File Explorer', type: 'system', iconId: 'folder', isDir: true },
+        { id: 'notepad', name: 'Notepad', type: 'application', iconId: 'notepad', isDir: false },
+        { id: 'command-center', name: 'Command Center', type: 'application', iconId: 'command-center', isDir: false },
+        { id: 'inventory', name: 'Inventory', type: 'application', iconId: 'inventory', isDir: false },
+        { id: 'procurement', name: 'Procurement', type: 'application', iconId: 'procurement', isDir: false },
+        { id: 'shipments', name: 'Shipments', type: 'application', iconId: 'shipments', isDir: false },
+        { id: 'suppliers', name: 'Suppliers', type: 'application', iconId: 'suppliers', isDir: false },
+        { id: 'recycle-bin', name: 'Recycle Bin', type: 'system', iconId: 'recycle-bin', isDir: false },
       ],
       intelligence: [
-        { id: 'orion-computer', name: 'This Computer', type: 'system' },
-        { id: 'file-manager', name: 'File Explorer', type: 'system' },
-        { id: 'notepad', name: 'Notepad', type: 'application' },
-        { id: 'intelligence-center', name: 'Intelligence Center', type: 'application' },
-        { id: 'predictions', name: 'Predictions', type: 'application' },
-        { id: 'demand-forecasting', name: 'Demand Forecasting', type: 'application' },
-        { id: 'scenarios', name: 'Scenarios', type: 'application' },
-        { id: 'digital-twin', name: 'Digital Twin', type: 'application' },
-        { id: 'recycle-bin', name: 'Recycle Bin', type: 'system' },
+        { id: 'orion-computer', name: 'This Computer', type: 'system', iconId: 'computer', isDir: false },
+        { id: 'file-manager', name: 'File Explorer', type: 'system', iconId: 'folder', isDir: true },
+        { id: 'notepad', name: 'Notepad', type: 'application', iconId: 'notepad', isDir: false },
+        { id: 'intelligence-center', name: 'Intelligence Center', type: 'application', iconId: 'intelligence-center', isDir: false },
+        { id: 'predictions', name: 'Predictions', type: 'application', iconId: 'predictions', isDir: false },
+        { id: 'demand-forecasting', name: 'Demand Forecasting', type: 'application', iconId: 'demand-forecasting', isDir: false },
+        { id: 'scenarios', name: 'Scenarios', type: 'application', iconId: 'scenarios', isDir: false },
+        { id: 'digital-twin', name: 'Digital Twin', type: 'application', iconId: 'digital-twin', isDir: false },
+        { id: 'recycle-bin', name: 'Recycle Bin', type: 'system', iconId: 'recycle-bin', isDir: false },
       ],
       control: [
-        { id: 'orion-computer', name: 'This Computer', type: 'system' },
-        { id: 'file-manager', name: 'File Explorer', type: 'system' },
-        { id: 'notepad', name: 'Notepad', type: 'application' },
-        { id: 'control-center', name: 'Control Policy', type: 'application' },
-        { id: 'exceptions', name: 'Exceptions', type: 'application' },
-        { id: 'decision-center', name: 'Decisions', type: 'application' },
-        { id: 'observability', name: 'Observability', type: 'application' },
-        { id: 'settings', name: 'System Settings', type: 'application' },
-        { id: 'recycle-bin', name: 'Recycle Bin', type: 'system' },
+        { id: 'orion-computer', name: 'This Computer', type: 'system', iconId: 'computer', isDir: false },
+        { id: 'file-manager', name: 'File Explorer', type: 'system', iconId: 'folder', isDir: true },
+        { id: 'notepad', name: 'Notepad', type: 'application', iconId: 'notepad', isDir: false },
+        { id: 'control-center', name: 'Control Policy', type: 'application', iconId: 'control-center', isDir: false },
+        { id: 'exceptions', name: 'Exceptions', type: 'application', iconId: 'exceptions', isDir: false },
+        { id: 'decision-center', name: 'Decisions', type: 'application', iconId: 'decision-center', isDir: false },
+        { id: 'observability', name: 'Observability', type: 'application', iconId: 'observability', isDir: false },
+        { id: 'settings', name: 'System Settings', type: 'application', iconId: 'settings', isDir: false },
+        { id: 'recycle-bin', name: 'Recycle Bin', type: 'system', iconId: 'recycle-bin', isDir: false },
       ],
     };
 
@@ -157,14 +157,22 @@ export class DesktopWorkspaceService {
 
       const shortcut: DesktopShortcut = {
         id: `shortcut_${workspaceId}_${item.id}_${activeTenant}`,
+        type: item.type,
         targetType: item.type,
         targetId: item.id,
         name: item.name,
+        iconId: item.iconId,
+        isDirectory: item.isDir,
+        parentId: null,
+        path: `/Desktop/${item.name}`,
+        mimeType: null,
+        size: 0,
         x,
         y,
         workspaceId,
         ownerId: 'system',
         tenantId: activeTenant,
+        organizationId: activeTenant,
         environment: activeEnv,
         createdAt: now,
         updatedAt: now,
@@ -179,6 +187,55 @@ export class DesktopWorkspaceService {
   }
 
   /**
+   * Normalizes legacy or raw Firestore records to conform strictly to DesktopShortcut contract.
+   */
+  public normalizeShortcut(raw: any): DesktopShortcut {
+    const isDir = raw.isDirectory !== undefined ? Boolean(raw.isDirectory) : raw.targetType === 'folder';
+    let iconId = raw.iconId;
+    if (!iconId) {
+      if (typeof raw.icon === 'string') {
+        iconId = raw.icon;
+      } else if (raw.targetType === 'folder' || isDir) {
+        iconId = 'folder';
+      } else if (raw.targetType === 'file') {
+        iconId = 'notepad';
+      } else if (raw.targetType === 'application') {
+        iconId = raw.targetId;
+      } else {
+        iconId = raw.targetId === 'orion-computer' ? 'computer' : (raw.targetId === 'recycle-bin' ? 'recycle-bin' : 'system');
+      }
+    }
+
+    const targetType: DesktopItemType = raw.targetType || (isDir ? 'folder' : 'file');
+    const name = raw.name || 'Untitled';
+    const tenantId = raw.tenantId || 'tenant_default';
+
+    return {
+      id: raw.id || `shortcut_${raw.workspaceId || 'operations'}_${raw.targetId || 'item'}_${tenantId}`,
+      name,
+      type: raw.type || targetType,
+      targetType,
+      targetId: raw.targetId || raw.id,
+      isDirectory: isDir,
+      parentId: raw.parentId ?? null,
+      path: raw.path || `/Desktop/${name}`,
+      iconId,
+      mimeType: raw.mimeType ?? (targetType === 'file' ? 'text/plain' : null),
+      size: typeof raw.size === 'number' ? raw.size : 0,
+      x: typeof raw.x === 'number' ? raw.x : DEFAULT_GRID_CONFIG.paddingX,
+      y: typeof raw.y === 'number' ? raw.y : DEFAULT_GRID_CONFIG.paddingY,
+      workspaceId: raw.workspaceId || 'operations',
+      ownerId: raw.ownerId || 'user_current',
+      tenantId,
+      organizationId: raw.organizationId || tenantId,
+      environment: raw.environment === 'LIVE' ? 'LIVE' : 'DEMO',
+      createdAt: raw.createdAt || new Date().toISOString(),
+      updatedAt: raw.updatedAt || new Date().toISOString(),
+      metadata: raw.metadata || {},
+    };
+  }
+
+  /**
    * List all shortcuts for a specific workspace.
    */
   public async listShortcuts(
@@ -188,9 +245,9 @@ export class DesktopWorkspaceService {
   ): Promise<DesktopShortcut[]> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const all = await scmPersistenceService.listRecords<DesktopShortcut>('desktop_items', activeTenant);
-    return all.filter(
-      s => s.tenantId === activeTenant && s.environment === activeEnv && s.workspaceId === workspaceId
-    );
+    return all
+      .filter(s => s.tenantId === activeTenant && s.environment === activeEnv && s.workspaceId === workspaceId)
+      .map(s => this.normalizeShortcut(s));
   }
 
   /**
@@ -211,9 +268,10 @@ export class DesktopWorkspaceService {
       throw new Error(`Shortcut ${shortcutId} not found`);
     }
 
+    const normalized = this.normalizeShortcut(existing);
     const snapped = this.snapToGrid(x, y, DEFAULT_GRID_CONFIG, viewportWidth, viewportHeight);
     const updated: DesktopShortcut = {
-      ...existing,
+      ...normalized,
       x: snapped.x,
       y: snapped.y,
       updatedAt: new Date().toISOString(),
@@ -277,11 +335,18 @@ export class DesktopWorkspaceService {
     targetType: DesktopItemType;
     targetId: string;
     name: string;
+    iconId?: string;
     icon?: string;
     workspaceId: WorkspaceId;
     tenantId?: string;
+    organizationId?: string;
     environment?: 'DEMO' | 'LIVE';
     viewportHeight?: number;
+    isDirectory?: boolean;
+    parentId?: string | null;
+    path?: string;
+    mimeType?: string | null;
+    size?: number;
   }): Promise<DesktopShortcut> {
     const { activeTenant, activeEnv } = this.getContext(params.tenantId, params.environment);
     const existing = await this.listShortcuts(params.workspaceId, activeTenant, activeEnv);
@@ -296,21 +361,51 @@ export class DesktopWorkspaceService {
     const x = DEFAULT_GRID_CONFIG.paddingX + col * effectiveWidth;
     const y = DEFAULT_GRID_CONFIG.paddingY + row * effectiveHeight;
 
+    const isDirectory = params.isDirectory !== undefined ? Boolean(params.isDirectory) : (params.targetType === 'folder');
+    
+    // Resolve stable iconId
+    let iconId = params.iconId || params.icon;
+    if (!iconId) {
+      if (params.targetType === 'folder' || isDirectory) {
+        iconId = 'folder';
+      } else if (params.targetType === 'file') {
+        iconId = 'notepad';
+      } else if (params.targetType === 'application') {
+        iconId = params.targetId;
+      } else {
+        iconId = params.targetId === 'orion-computer' ? 'computer' : (params.targetId === 'recycle-bin' ? 'recycle-bin' : 'system');
+      }
+    }
+
+    const parentId = params.parentId ?? null;
+    const path = params.path ?? `/Desktop/${params.name}`;
+    const mimeType = params.mimeType !== undefined ? params.mimeType : (params.targetType === 'file' ? 'text/plain' : null);
+    const size = typeof params.size === 'number' ? params.size : 0;
+    const organizationId = params.organizationId || activeTenant;
     const now = new Date().toISOString();
+
     const shortcut: DesktopShortcut = {
       id: `shortcut_${params.workspaceId}_${params.targetType}_${params.targetId}_${activeTenant}`,
+      type: params.targetType,
       targetType: params.targetType,
       targetId: params.targetId,
       name: params.name,
-      icon: params.icon,
+      iconId,
+      isDirectory,
+      parentId,
+      path,
+      mimeType,
+      size,
       x,
       y,
       workspaceId: params.workspaceId,
       ownerId: 'user_current',
       tenantId: activeTenant,
+      organizationId,
       environment: activeEnv,
       createdAt: now,
       updatedAt: now,
+      metadata: {},
     };
 
     await scmPersistenceService.saveRecord('desktop_items', shortcut.id, shortcut);
@@ -331,9 +426,12 @@ export class DesktopWorkspaceService {
     if (!existing) {
       throw new Error(`Shortcut ${shortcutId} not found`);
     }
+
+    const normalized = this.normalizeShortcut(existing);
     const updated: DesktopShortcut = {
-      ...existing,
+      ...normalized,
       name: newName,
+      path: `/Desktop/${newName}`,
       updatedAt: new Date().toISOString(),
     };
     await scmPersistenceService.saveRecord('desktop_items', shortcutId, updated);

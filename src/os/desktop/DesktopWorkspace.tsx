@@ -386,7 +386,7 @@ export function DesktopWorkspace() {
       const desktopFolder = await orionFileSystemService.getSystemFolder('desktop');
       const folderId = desktopFolder ? desktopFolder.id : 'folder_sys_desktop_tenant_default';
       const file = await orionFileSystemService.createFile({
-        name: 'New Document',
+        name: 'New Text Document',
         extension: 'txt',
         content: '',
         folderId,
@@ -396,6 +396,11 @@ export function DesktopWorkspace() {
         targetType: 'file',
         targetId: file.id,
         name: `${file.name}.${file.extension}`,
+        iconId: 'notepad',
+        isDirectory: false,
+        path: `/Desktop/${file.name}.${file.extension}`,
+        mimeType: 'text/plain',
+        size: 0,
         workspaceId: activeWorkspaceId,
       });
 
@@ -407,7 +412,8 @@ export function DesktopWorkspace() {
       }, 150);
       showToast('Created text document on Desktop', 'success', 'Desktop');
     } catch (e: any) {
-      showToast(`Create file failed: ${e?.message || 'Error'}`, 'error', 'Desktop');
+      console.error('Failed to create file on Desktop', e);
+      showToast(`Couldn't create document: ${e?.message || 'Error'}`, 'error', 'Desktop');
     }
   };
 
@@ -425,6 +431,11 @@ export function DesktopWorkspace() {
         targetType: 'folder',
         targetId: folder.id,
         name: folder.name,
+        iconId: 'folder',
+        isDirectory: true,
+        path: `/Desktop/${folder.name}`,
+        mimeType: null,
+        size: 0,
         workspaceId: activeWorkspaceId,
       });
 
@@ -432,7 +443,8 @@ export function DesktopWorkspace() {
       setDesktopMenu(null);
       showToast('Created folder on Desktop', 'success', 'Desktop');
     } catch (e: any) {
-      showToast(`Create folder failed: ${e?.message || 'Error'}`, 'error', 'Desktop');
+      console.error('Failed to create folder on Desktop', e);
+      showToast(`Couldn't create folder: ${e?.message || 'Error'}`, 'error', 'Desktop');
     }
   };
 
@@ -474,15 +486,16 @@ export function DesktopWorkspace() {
   // Icon Renderer Helper
   const renderShortcutIcon = (shortcut: DesktopShortcut, isSelected: boolean) => {
     const iconSize = isTablet ? 54 : 48;
+    const iconId = shortcut.iconId || shortcut.icon || shortcut.targetId;
 
-    if (shortcut.targetType === 'application' || shortcut.targetType === 'system') {
-      return <OrionAppIcon app={shortcut.targetId} size={iconSize} active={isSelected} />;
-    }
-    if (shortcut.targetType === 'folder') {
+    if (shortcut.targetType === 'folder' || shortcut.isDirectory || iconId === 'folder') {
       return <Folder size={iconSize} className="text-amber-400 drop-shadow" />;
     }
     if (shortcut.targetType === 'file') {
       return <FileText size={iconSize} className="text-cyan-400 drop-shadow" />;
+    }
+    if (shortcut.targetType === 'application' || shortcut.targetType === 'system') {
+      return <OrionAppIcon app={shortcut.targetId} size={iconSize} active={isSelected} />;
     }
     return <HardDrive size={iconSize} className="text-os-accent drop-shadow" />;
   };
