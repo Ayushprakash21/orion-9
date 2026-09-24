@@ -1,6 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { OrionSystemBar } from './OrionSystemBar';
 import { OrionDock } from './OrionDock';
+import { OrionMobileNavBar } from './OrionMobileNavBar';
+import { useResponsiveLayout } from '../../lib/useResponsiveLayout';
 import { OrionApplicationLauncher } from './OrionApplicationLauncher';
 import { OrionCommandPalette } from './OrionCommandPalette';
 import { OrionLiveWallpaper } from './OrionLiveWallpaper';
@@ -50,6 +52,7 @@ export function OrionDesktop() {
   const { showConfirmModal } = useEntityDrawer();
   const supplyChain = useSupplyChain();
   const showDesktopIcons = supplyChain?.settings?.showDesktopIcons ?? true;
+  const { isMobile } = useResponsiveLayout();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedDesktopApp, setSelectedDesktopApp] = useState<string | null>(null);
@@ -300,8 +303,8 @@ export function OrionDesktop() {
 
       </div>
 
-      {/* OS Layer 3: Core Desktop Taskbar — always visible, including with maximized apps. */}
-      <OrionDock />
+      {/* OS Layer 3: Taskbar / Navigation */}
+      {isMobile ? <OrionMobileNavBar /> : <OrionDock />}
 
       {/* OS Layer 4: Floating Transient Overlays */}
       <OrionApplicationLauncher />

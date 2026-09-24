@@ -5,6 +5,7 @@ import { getAppComponent } from '../OrionComponentMap';
 import { useOrionContextMenu, ContextMenuItem } from '../contextMenu/OrionContextMenuContext';
 import { useToast } from '../../store/ToastContext';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
+import { useResponsiveLayout } from '../../lib/useResponsiveLayout';
 import { Minus, Square, X, RotateCcw, AlertTriangle, Move, Maximize2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { motion } from 'motion/react';
@@ -310,16 +311,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
     direction: 'se'
   });
 
-  // Check if mobile screen (< 768px)
-  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const { isMobile } = useResponsiveLayout();
 
   // Titlebar dragging
   const handleTitlePointerDown = (e: React.PointerEvent) => {
@@ -513,7 +505,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
         {/* Right: Window Controls */}
         <div 
           data-window-controls="true"
-          className="flex items-center gap-1.5 group/controls ml-auto z-[120] pointer-events-auto h-full shrink-0"
+          className="flex items-center gap-1 group/controls ml-auto z-[120] pointer-events-auto h-full shrink-0"
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           onContextMenu={(e) => e.stopPropagation()}
@@ -530,9 +522,11 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
               e.preventDefault();
               minimizeApplication(win.id);
             }}
-            className="w-3.5 h-3.5 rounded-full bg-amber-500/80 hover:bg-amber-500 border border-amber-600/40 flex items-center justify-center transition-all cursor-pointer shadow-sm"
+            className="w-7 h-7 sm:w-3.5 sm:h-3.5 flex items-center justify-center cursor-pointer transition-all"
           >
-            <Minus className="w-2 h-2 text-white opacity-0 group-hover/controls:opacity-100" />
+            <span className="w-3.5 h-3.5 rounded-full bg-amber-500/80 hover:bg-amber-500 border border-amber-600/40 flex items-center justify-center shadow-sm">
+              <Minus className="w-2 h-2 text-white opacity-0 group-hover/controls:opacity-100" />
+            </span>
           </button>
 
           {/* 2. Maximize / Restore Button (Middle) */}
@@ -566,9 +560,11 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
               e.preventDefault();
               closeApplication(win.id);
             }}
-            className="w-3.5 h-3.5 rounded-full bg-red-500/80 hover:bg-red-500 border border-red-600/40 flex items-center justify-center transition-all cursor-pointer shadow-sm"
+            className="w-7 h-7 sm:w-3.5 sm:h-3.5 flex items-center justify-center cursor-pointer transition-all"
           >
-            <X className="w-2 h-2 text-white opacity-0 group-hover/controls:opacity-100" />
+            <span className="w-3.5 h-3.5 rounded-full bg-red-500/80 hover:bg-red-500 border border-red-600/40 flex items-center justify-center shadow-sm">
+              <X className="w-2 h-2 text-white opacity-0 group-hover/controls:opacity-100" />
+            </span>
           </button>
         </div>
       </div>
@@ -577,7 +573,10 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
       <div 
         ref={contentContainerRef}
         data-window-body="true"
-        className="flex-1 overflow-auto relative bg-os-bg min-h-0 custom-scrollbar"
+        className={cn(
+          "flex-1 overflow-auto relative bg-os-bg min-h-0 custom-scrollbar",
+          isMobile ? "pb-16" : ""
+        )}
       >
         <WindowErrorBoundary appId={win.id} onClose={() => closeApplication(win.id)}>
           {Component ? (

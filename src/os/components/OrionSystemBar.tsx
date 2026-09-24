@@ -144,7 +144,7 @@ export function OrionSystemBar() {
           onClick={() => {
             window.dispatchEvent(new CustomEvent('orion:desktop-refresh', { detail: { timestamp: Date.now() } }));
           }}
-          className="flex items-center h-full px-2 text-os-text-muted hover:bg-os-surface-active hover:text-os-accent transition-colors cursor-pointer rounded-sm"
+          className="hidden sm:flex items-center h-full px-2 text-os-text-muted hover:bg-os-surface-active hover:text-os-accent transition-colors cursor-pointer rounded-sm"
           title="Refresh State"
         >
           <RefreshCw className="w-3.5 h-3.5" />
@@ -161,7 +161,7 @@ export function OrionSystemBar() {
               }
             }
           }}
-          className="flex items-center h-full px-2 text-os-text-muted hover:bg-os-surface-active hover:text-os-accent transition-colors cursor-pointer rounded-sm"
+          className="hidden md:flex items-center h-full px-2 text-os-text-muted hover:bg-os-surface-active hover:text-os-accent transition-colors cursor-pointer rounded-sm"
           title="Toggle Fullscreen"
         >
           <Maximize2 className="w-3.5 h-3.5" />
@@ -174,8 +174,8 @@ export function OrionSystemBar() {
         )}
       </div>
 
-      {/* CENTER: WORKSPACE SWITCHER & ACTIVE APP */}
-      <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2 max-w-[42vw] min-w-0">
+      {/* CENTER: WORKSPACE SWITCHER & ACTIVE APP (Tablet / Desktop) */}
+      <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-2 max-w-[42vw] min-w-0">
         <div className="flex items-center bg-os-surface-active/60 p-0.5 rounded-lg border border-os-border/40">
           {WORKSPACES.map(ws => (
             <button
@@ -194,7 +194,7 @@ export function OrionSystemBar() {
         </div>
 
         {activeApp && (
-          <div className="hidden sm:flex items-center gap-1.5 pl-1.5 text-os-text-muted border-l border-os-border">
+          <div className="hidden lg:flex items-center gap-1.5 pl-1.5 text-os-text-muted border-l border-os-border">
             <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: activeApp.color }} />
             <span className="text-[11px] font-medium text-os-text-primary truncate max-w-[160px]">
               {activeApp.name}
@@ -204,7 +204,7 @@ export function OrionSystemBar() {
       </div>
 
       {/* RIGHT: SYSTEM TRAY */}
-      <div className="flex items-center h-full gap-1 shrink-0 min-w-0">
+      <div className="flex items-center h-full gap-0.5 sm:gap-1 shrink-0 min-w-0">
         <button 
           onClick={() => setCommandPaletteOpen(true)}
           className="flex items-center hover:bg-os-surface-hover hover:text-os-text-primary rounded-md p-1.5 transition-colors text-os-text-muted cursor-pointer"
@@ -212,8 +212,6 @@ export function OrionSystemBar() {
         >
           <Search className="w-3.5 h-3.5" />
         </button>
-
-        
 
         <div className="relative flex items-center notification-anchor" ref={notifRef}>
           <button 
@@ -265,7 +263,7 @@ export function OrionSystemBar() {
         <button
           type="button"
           onClick={() => openApplication('time-world')}
-          className="group relative flex items-center font-mono text-[11px] text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-hover rounded-md p-1.5 transition-colors cursor-pointer"
+          className="hidden sm:flex group relative items-center font-mono text-[11px] text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-hover rounded-md p-1.5 transition-colors cursor-pointer"
           aria-label="Open Time & World settings"
           title="Open Time & World"
         >
@@ -277,7 +275,7 @@ export function OrionSystemBar() {
           </span>
         </button>
 
-        <div className="flex items-center h-full pl-1">
+        <div className="flex items-center h-full pl-0.5 sm:pl-1">
           <AccountMenu />
         </div>
       </div>

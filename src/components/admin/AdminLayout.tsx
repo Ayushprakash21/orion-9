@@ -116,8 +116,8 @@ export const AdminLayout = () => {
             <span className="font-mono font-bold text-[13px] tracking-wider uppercase text-os-text-primary group-hover:text-white group-hover:drop-shadow-[0_0_8px_rgba(0,242,254,0.6)] transition-all whitespace-nowrap">
               ORION
             </span>
-            <span className="text-white/20 font-mono text-[10px] select-none mx-1">|</span>
-            <span className="text-[11px] font-mono tracking-widest text-os-text-muted uppercase whitespace-nowrap">
+            <span className="text-white/20 font-mono text-[10px] select-none mx-1 hidden sm:inline">|</span>
+            <span className="text-[11px] font-mono tracking-widest text-os-text-muted uppercase whitespace-nowrap hidden sm:inline">
               PLATFORM CONTROL PLANE
             </span>
             <span

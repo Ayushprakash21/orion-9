@@ -335,11 +335,11 @@ export function OrionCommandPalette() {
 
   return (
     <div 
-      className="fixed inset-0 z-[2147483620] bg-black/60 backdrop-blur-md flex items-start justify-center pt-[12vh] p-4 animate-in fade-in duration-150 select-none"
+      className="fixed inset-0 z-[2147483620] bg-black/60 backdrop-blur-md flex items-start justify-center pt-8 sm:pt-[12vh] p-2 sm:p-4 animate-in fade-in duration-150 select-none"
       onClick={() => setCommandPaletteOpen(false)}
     >
       <div 
-        className="w-full max-w-2xl bg-os-surface/95 backdrop-blur-2xl border border-os-border rounded-2xl shadow-[0_35px_60px_-15px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.06)] overflow-hidden flex flex-col max-h-[75vh]"
+        className="w-full max-w-2xl bg-os-surface/95 backdrop-blur-2xl border border-os-border rounded-2xl shadow-[0_35px_60px_-15px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.06)] overflow-hidden flex flex-col max-h-[82vh] sm:max-h-[75vh]"
         onClick={e => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
