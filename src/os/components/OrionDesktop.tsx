@@ -19,6 +19,7 @@ import { useEntityDrawer } from '../../store/EntityDrawerContext';
 import { useAuth } from '../../store/AuthContext';
 import { useSupplyChain } from '../../store/SupplyChainContext';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
+import { OrionMobileShell } from '../mobile';
 import { cn } from '../../lib/utils';
 import { 
   Search, 
@@ -36,6 +37,7 @@ import {
 
 export function OrionDesktop() {
   const { isAuthenticated, currentUser } = useAuth();
+  const { isMobile } = useResponsiveLayout();
 
   const {
     activeAppId,
@@ -52,14 +54,19 @@ export function OrionDesktop() {
   const { showConfirmModal } = useEntityDrawer();
   const supplyChain = useSupplyChain();
   const showDesktopIcons = supplyChain?.settings?.showDesktopIcons ?? true;
-  const { isMobile } = useResponsiveLayout();
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedDesktopApp, setSelectedDesktopApp] = useState<string | null>(null);
 
-  // Invariant Guard: Desktop MUST NOT render if unauthenticated
+  // Invariant Guard: Shell MUST NOT render if unauthenticated
   if (!isAuthenticated || !currentUser) {
     return null;
+  }
+
+  // FIRST-CLASS MOBILE SHELL DISPATCH:
+  // Mobile uses dedicated Single-Screen Application Shell & Bottom Navigation
+  if (isMobile) {
+    return <OrionMobileShell />;
   }
 
   // Filter windows to current workspace and non-closed
@@ -307,7 +314,7 @@ export function OrionDesktop() {
       </div>
 
       {/* OS Layer 3: Taskbar / Navigation */}
-      {isMobile ? <OrionMobileNavBar /> : <OrionDock />}
+      <OrionDock />
 
       {/* OS Layer 4: Floating Transient Overlays */}
       <OrionApplicationLauncher />
