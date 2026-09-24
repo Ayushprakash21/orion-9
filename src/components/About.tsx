@@ -609,7 +609,7 @@ export const About: React.FC = () => {
         <div className="font-bold text-os-text-muted">{appName} CONTROL PANEL</div>
         <div className="flex justify-center gap-4 flex-wrap">
           <span>System Version: 9.0.0</span>
-          <span>Core Build: 2026.09.08</span>
+          <span>Git SHA: {import.meta.env.VITE_GIT_SHA || '0337510'}</span>
           <span>AI Core: Gemini LLM</span>
           <span>Environment: {dataMode === 'real' ? 'Connected' : 'Demo/Local'}</span>
         </div>
