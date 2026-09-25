@@ -218,6 +218,13 @@ export const Login: React.FC = () => {
     };
 
     window.addEventListener('orion-database-environment-changed', handleEnvChange);
+    // Demo auto-login for DEMO environment
+    if (dbManager.getEnvironment() === 'DEMO') {
+      setUsername('admin');
+      setPassword('admin');
+      // Attempt login programmatically (bypass UI)
+      login('admin', 'admin', { destination: '/' }).catch(() => {});
+    }
 
     return () => {
       mounted = false;
