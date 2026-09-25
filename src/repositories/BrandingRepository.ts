@@ -29,6 +29,11 @@ export const defaultBranding: BrandingConfig = {
   faviconUrl: null,
   logoIncludesName: false,
   logoIncludesWordmark: false,
+  creatorName: 'Ayush Prakash',
+  creatorTitle: 'Creator & Supply Chain OS Architect',
+  creatorQuote: 'What if the supply chain had an operating system?',
+  creatorPhotoUrl: null,
+  founderNote: `Orion-9 was created out of a fundamental observation: modern supply chains run the world, yet they are managed using tools designed in the 1990s—fragmented ERP systems, endless disconnected spreadsheets, email threads, and frantic firefighting. Enterprise supply chains are not a collection of static tables; they are dynamic, high-velocity networks of signals, events, constraints, and operational dependencies. Orion-9 was born to bridge this gap: building a true Operating System for the supply chain where data is unified, events trigger real-time awareness, AI governs risks, decisions create measurable outcomes, and the entire system continuously learns from every action.`,
 };
 
 export function normalizeBranding(raw: any): BrandingConfig {
@@ -71,6 +76,14 @@ export function normalizeBranding(raw: any): BrandingConfig {
     ? Boolean(raw.logoIncludesName)
     : logoIncludesWordmark;
 
+  const creatorName = safeStr(raw.creatorName, defaultBranding.creatorName!);
+  const creatorTitle = safeStr(raw.creatorTitle, defaultBranding.creatorTitle!);
+  const creatorQuote = safeStr(raw.creatorQuote, defaultBranding.creatorQuote!);
+  const creatorPhotoUrl = (typeof raw.creatorPhotoUrl === 'string' && raw.creatorPhotoUrl.trim() && raw.creatorPhotoUrl !== 'null' && raw.creatorPhotoUrl !== 'undefined')
+    ? raw.creatorPhotoUrl.trim()
+    : null;
+  const founderNote = safeStr(raw.founderNote, defaultBranding.founderNote!);
+
   return {
     osName,
     productName,
@@ -85,6 +98,11 @@ export function normalizeBranding(raw: any): BrandingConfig {
     faviconUrl,
     logoIncludesName,
     logoIncludesWordmark,
+    creatorName,
+    creatorTitle,
+    creatorQuote,
+    creatorPhotoUrl,
+    founderNote,
   };
 }
 

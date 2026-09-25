@@ -3,8 +3,9 @@ import { ORION_REGISTRY } from '../../os/OrionApplicationRegistry';
 import { ORION_COMPONENT_MAP } from '../../os/OrionComponentMap';
 import { About } from '../../components/About';
 import { Login } from '../../components/auth/Login';
+import { brandingRepository } from '../../repositories/BrandingRepository';
 
-describe('ORION-9 Canonical OS About Application & Login Screen Footer Cleanup', () => {
+describe('ORION-9 Canonical OS About Application & Origin/Creator Experience', () => {
   it('1. About is registered in ORION_REGISTRY as a platform app', () => {
     const aboutApp = ORION_REGISTRY['about'];
     expect(aboutApp).toBeDefined();
@@ -23,17 +24,48 @@ describe('ORION-9 Canonical OS About Application & Login Screen Footer Cleanup',
     expect(loginCode).not.toContain('href="#"');
   });
 
-  it('4. About application source code contains canonical Privacy Policy and Terms of Service', () => {
+  it('4. About application source code contains prominent Creator Attribution and Quote', () => {
     const aboutCode = About.toString();
-    expect(aboutCode).toContain('Privacy Policy');
-    expect(aboutCode).toContain('Terms of Service');
-    expect(aboutCode).toContain('Open Source Licenses');
+    expect(aboutCode).toContain('Created by');
+    expect(aboutCode).toContain('creatorName');
+    expect(aboutCode).toContain('creatorQuote');
   });
 
-  it('5. About application includes System Information, Build SHA, and Environment metadata', () => {
+  it('5. About application includes all 14 native sidebar navigation sections', () => {
     const aboutCode = About.toString();
+    expect(aboutCode).toContain('Overview');
+    expect(aboutCode).toContain('Why Orion-9');
+    expect(aboutCode).toContain('The Idea');
+    expect(aboutCode).toContain('Created By');
+    expect(aboutCode).toContain('Principles');
+    expect(aboutCode).toContain('System Architecture');
+    expect(aboutCode).toContain('Evolution');
+    expect(aboutCode).toContain("What's New");
     expect(aboutCode).toContain('System Information');
-    expect(aboutCode).toContain('Build Commit Git SHA');
-    expect(aboutCode).toContain('Firebase Authentication');
+    expect(aboutCode).toContain('Help & Documentation');
+    expect(aboutCode).toContain('Privacy');
+    expect(aboutCode).toContain('Terms');
+    expect(aboutCode).toContain('Licenses');
+    expect(aboutCode).toContain('Support');
+  });
+
+  it('6. About application includes 7 Principles of ORION-9 and System Architectural Model', () => {
+    const aboutCode = About.toString();
+    expect(aboutCode).toContain('One Operating Environment');
+    expect(aboutCode).toContain('Data Connected');
+    expect(aboutCode).toContain('Events Drive Awareness');
+    expect(aboutCode).toContain('AI Governed');
+    expect(aboutCode).toContain('Humans in Control');
+    expect(aboutCode).toContain('Decisions Create Outcomes');
+    expect(aboutCode).toContain('System Learns');
+    expect(aboutCode).toContain('14 CORE ORION ENGINES');
+  });
+
+  it('7. Branding repository default configuration includes Creator Identity properties', () => {
+    const branding = brandingRepository.getBrandingSync();
+    expect(branding.creatorName).toBe('Ayush Prakash');
+    expect(branding.creatorTitle).toBe('Creator & Supply Chain OS Architect');
+    expect(branding.creatorQuote).toBe('What if the supply chain had an operating system?');
+    expect(branding.founderNote).toBeDefined();
   });
 });

@@ -98,6 +98,11 @@ export interface BrandingConfig {
   faviconUrl?: string | null;
   logoIncludesName?: boolean;
   logoIncludesWordmark?: boolean;
+  creatorName?: string;
+  creatorTitle?: string;
+  creatorQuote?: string;
+  creatorPhotoUrl?: string | null;
+  founderNote?: string;
 }
 
 export interface AuditEvent {
