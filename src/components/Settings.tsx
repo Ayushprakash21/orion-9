@@ -1052,7 +1052,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
   return (
     <div className="flex flex-col md:flex-row w-full h-full bg-[#0c0e11] text-white overflow-hidden font-sans select-none">
       {/* ─── LEFT SIDEBAR ─── */}
-      <div className="w-full md:w-64 max-h-[35vh] md:max-h-full shrink-0 bg-[#12151a] border-b md:border-b-0 md:border-r border-white/[0.08] flex flex-col">
+      <div className="w-full md:w-[230px] max-h-[35vh] md:max-h-full shrink-0 bg-[#12151a] border-b md:border-b-0 md:border-r border-white/[0.08] flex flex-col">
         {/* Search */}
         <div className="p-3.5 border-b border-white/[0.08] backdrop-blur-md sticky top-0 z-10 bg-[#12151a]">
           <div className="relative">
@@ -1133,7 +1133,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
       </div>
 
       {/* ─── MAIN CONTENT PANEL ─── */}
-      <div className="flex-1 flex flex-col overflow-hidden relative bg-[#0c0e11]">
+      <div className="flex-1 flex flex-col overflow-hidden relative bg-[#0c0e11] max-w-[800px] mx-auto px-4">
         <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar relative">
           {renderSectionContent()}
         </div>

@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { ORION_REGISTRY, OrionApp } from '../OrionApplicationRegistry';
 
 export type MobileTab = 'home' | 'control' | 'ai' | 'alerts' | 'apps' | 'app_view';
@@ -32,44 +33,80 @@ interface MobileNavigationContextType {
 const MobileNavigationContext = createContext<MobileNavigationContextType | null>(null);
 
 export const MobileNavigationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [activeTab, setActiveTab] = useState<MobileTab>('home');
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const getTabFromPath = useCallback((pathname: string): MobileTab => {
+    const p = pathname.toLowerCase();
+    if (p.startsWith('/mobile/control') || p === '/control') return 'control';
+    if (p.startsWith('/mobile/ai') || p === '/copilot' || p === '/ai') return 'ai';
+    if (p.startsWith('/mobile/alerts') || p === '/exceptions' || p === '/alerts') return 'alerts';
+    if (p.startsWith('/mobile/apps') || p === '/apps') return 'apps';
+    if (p.startsWith('/mobile/home') || p === '/mobile' || p === '/') return 'home';
+    return 'home';
+  }, []);
+
+  const [activeTab, setActiveTabState] = useState<MobileTab>(() => getTabFromPath(location.pathname));
   const [openedAppId, setOpenedAppId] = useState<string | null>(null);
   const [selectedEntity, setSelectedEntity] = useState<MobileEntityDetail | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
+  useEffect(() => {
+    const tabFromUrl = getTabFromPath(location.pathname);
+    if (tabFromUrl !== activeTab && activeTab !== 'app_view') {
+      setActiveTabState(tabFromUrl);
+    }
+  }, [location.pathname, getTabFromPath, activeTab]);
+
   const navigateToTab = useCallback((tab: MobileTab) => {
     setIsDetailSheetOpen(false);
     setSelectedEntity(null);
-    setActiveTab(tab);
+    setActiveTabState(tab);
     if (tab !== 'app_view') {
       setOpenedAppId(null);
     }
-    // Scroll to top on navigation change
     window.scrollTo({ top: 0, behavior: 'instant' });
-  }, []);
+
+    const targetRoute = tab === 'home' ? '/mobile/home' : `/mobile/${tab}`;
+    if (location.pathname !== targetRoute) {
+      try {
+        navigate(targetRoute, { replace: true });
+      } catch (e) {}
+    }
+  }, [location.pathname, navigate]);
 
   const openApp = useCallback((appId: string) => {
     setIsDetailSheetOpen(false);
     setSelectedEntity(null);
     setOpenedAppId(appId);
-    setActiveTab('app_view');
+    setActiveTabState('app_view');
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
 
   const closeApp = useCallback(() => {
     setOpenedAppId(null);
-    setActiveTab('apps');
+    setActiveTabState('apps');
     window.scrollTo({ top: 0, behavior: 'instant' });
-  }, []);
+    if (location.pathname !== '/mobile/apps') {
+      try {
+        navigate('/mobile/apps', { replace: true });
+      } catch (e) {}
+    }
+  }, [location.pathname, navigate]);
 
   const openOrionAI = useCallback(() => {
     setIsDetailSheetOpen(false);
     setSelectedEntity(null);
     setOpenedAppId(null);
-    setActiveTab('ai');
+    setActiveTabState('ai');
     window.scrollTo({ top: 0, behavior: 'instant' });
-  }, []);
+    if (location.pathname !== '/mobile/ai') {
+      try {
+        navigate('/mobile/ai', { replace: true });
+      } catch (e) {}
+    }
+  }, [location.pathname, navigate]);
 
   const openEntityDetail = useCallback((entity: MobileEntityDetail) => {
     setSelectedEntity(entity);
@@ -84,14 +121,14 @@ export const MobileNavigationProvider: React.FC<{ children: ReactNode }> = ({ ch
   }, []);
 
   // Back Button / ESC Key Interception for transient surfaces
-  React.useEffect(() => {
+  useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         if (isDetailSheetOpen) {
           closeEntityDetail();
         } else if (activeTab === 'app_view') {
           closeApp();
-        } else if (activeTab === 'ai') {
+        } else if (activeTab !== 'home') {
           navigateToTab('home');
         }
       }

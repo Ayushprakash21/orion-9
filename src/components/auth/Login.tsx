@@ -365,7 +365,9 @@ export const Login: React.FC = () => {
 
     try {
       const rawFrom = (location.state as any)?.from?.pathname;
-      const from = (rawFrom && !rawFrom.startsWith('/admin')) ? rawFrom : "/";
+      const isMobileDevice = typeof window !== 'undefined' && window.innerWidth < 768;
+      const defaultDest = isMobileDevice ? "/mobile/home" : "/";
+      const from = (rawFrom && !rawFrom.startsWith('/admin') && rawFrom !== '/login') ? rawFrom : defaultDest;
       await login(username, password, { destination: from });
     } catch (err: any) {
       console.warn("Login authentication error:", err.message);
@@ -408,29 +410,21 @@ export const Login: React.FC = () => {
       />
 
       {/* Header — Top Bar */}
-      <header className="relative z-10 w-full flex items-center justify-between px-8 py-6 select-none">
-        {/* Top Left OS Branding & Environment Indicator */}
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3.5">
-            <img 
-              src="/orion-9-brand-logo.png" 
-              alt="Orion-9 Logo" 
-              className="h-8 w-auto drop-shadow-[0_0_12px_rgba(59,130,246,0.5)] orion-brand-image" 
-            />
-            <div className="flex flex-col">
-              <span className="text-white font-bold text-base tracking-wider leading-none drop-shadow-sm">
-                ORION-9
-              </span>
-              <span className="text-white/60 text-[9.5px] uppercase tracking-[0.25em] font-medium mt-1">
-                SUPPLY CHAIN OPERATING SYSTEM
-              </span>
-            </div>
-          </div>
-
-          {/* Authoritative Environment Badge */}
-          <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md text-[11px] font-mono select-none">
-            <span className={`w-2 h-2 rounded-full animate-pulse ${dbEnv === 'DEMO' ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.8)]' : 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]'}`} />
-            <span className="text-white/90 font-semibold tracking-wider">{dbEnv} MODE</span>
+      <header className="relative z-10 w-full flex items-center justify-between px-4 sm:px-8 py-3.5 sm:py-6 pt-[calc(14px+env(safe-area-inset-top,0px))] select-none">
+        {/* Top Left Primary Orion Identity */}
+        <div className="flex items-center gap-3.5">
+          <img 
+            src="/orion-9-brand-logo.png" 
+            alt="Orion-9 Logo" 
+            className="h-7 sm:h-8 w-auto drop-shadow-[0_0_12px_rgba(59,130,246,0.5)] orion-brand-image" 
+          />
+          <div className="flex flex-col">
+            <span className="text-white font-bold text-sm sm:text-base tracking-wider leading-none drop-shadow-sm">
+              ORION-9
+            </span>
+            <span className="text-white/60 text-[9px] sm:text-[9.5px] uppercase tracking-[0.2em] font-medium mt-0.5 sm:mt-1 hidden xs:block">
+              SUPPLY CHAIN OPERATING SYSTEM
+            </span>
           </div>
         </div>
         
@@ -446,7 +440,7 @@ export const Login: React.FC = () => {
                 setIsLangMenuOpen(!isLangMenuOpen);
               }
             }}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 backdrop-blur-md transition-all duration-200 cursor-pointer text-white/90 hover:text-white text-xs font-medium group shadow-lg"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 backdrop-blur-md transition-all duration-200 cursor-pointer text-white/90 hover:text-white text-xs font-medium group shadow-lg"
             aria-label={t.selectLanguage}
             aria-expanded={isLangMenuOpen}
           >
@@ -476,24 +470,43 @@ export const Login: React.FC = () => {
         </div>
       </header>
 
-      {/* Main Content — Clean Floating Authentication Card */}
+      {/* Main Content — Compact Acrylic Authentication Surface */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 w-full my-auto">
         
-        <div className="backdrop-blur-2xl bg-[#090d16]/75 border border-white/15 shadow-[0_0_50px_rgba(0,0,0,0.85)] rounded-2xl p-8 max-w-[380px] w-full mx-4 relative overflow-hidden transition-all duration-300">
+        {/* Real OS Runtime Environment & Diagnostic Status Badge */}
+        <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 font-mono text-[10px] text-white/60 select-none">
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+            <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${systemHealth.runtimeStatus === 'ONLINE' ? 'bg-emerald-400 shadow-[0_0_6px_#34D399]' : 'bg-amber-400'}`} />
+            <span className="text-white/90 font-semibold tracking-wide">SYSTEM READY</span>
+          </span>
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+            <span>Environment:</span>
+            <strong className={dbEnv === 'LIVE' ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold'}>{dbEnv}</strong>
+          </span>
+          <span className="hidden xs:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+            <span>Authentication:</span>
+            <strong className="text-cyan-400 font-semibold">{systemHealth.authStatus}</strong>
+          </span>
+        </div>
+
+        <div className="backdrop-blur-2xl bg-[#070e1c]/75 border border-cyan-500/20 shadow-[0_0_50px_rgba(0,0,0,0.85)] rounded-[22px] p-5 sm:p-7 max-w-[400px] w-[calc(100vw-32px)] mx-auto relative overflow-hidden transition-all duration-300">
           
           {/* STAGE 1: USER ID STAGE */}
           {stage === 1 && (
             <div className="animate-fadeIn">
-              <div className="flex flex-col items-center justify-center mb-6 select-none text-center">
-                <h1 className="text-white font-bold tracking-wide text-xl">
+              <div className="flex flex-col items-center justify-center mb-5 select-none text-center">
+                <span className="text-cyan-400 font-mono font-bold tracking-wider text-xs uppercase mb-1">
+                  ORION-9
+                </span>
+                <h1 className="text-white font-bold tracking-normal text-lg sm:text-xl">
                   {t.signInTitle}
                 </h1>
-                <p className="text-white/60 text-xs font-normal mt-1.5 max-w-[260px]">
+                <p className="text-white/60 text-xs font-normal mt-1 max-w-[260px]">
                   {t.subtitle}
                 </p>
               </div>
 
-              <form className="space-y-4" onSubmit={handleStage1Submit} noValidate>
+              <form className="space-y-3.5" onSubmit={handleStage1Submit} noValidate>
                 {errorMsg && (
                   <div className="p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-white text-xs flex items-start gap-2 font-medium backdrop-blur-md">
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
@@ -525,7 +538,7 @@ export const Login: React.FC = () => {
                       }}
                       onFocus={() => setIsInputFocused(true)}
                       onBlur={() => setIsInputFocused(false)}
-                      className="w-full pl-10 pr-4 py-3 bg-[#111622]/90 border border-white/15 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/40 transition-all shadow-inner"
+                      className="w-full pl-10 pr-4 py-3 bg-[#111622]/90 border border-white/15 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/40 transition-all shadow-inner"
                       placeholder={t.userIdPlaceholder}
                     />
                   </div>
@@ -535,7 +548,7 @@ export const Login: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isIdentifying}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 active:from-blue-700 active:to-blue-600 text-white font-medium text-sm transition-all duration-200 rounded-xl shadow-[0_0_25px_rgba(37,99,235,0.45)] disabled:opacity-50 cursor-pointer border border-blue-400/40 flex items-center justify-center gap-2 mt-2"
+                  className="h-[52px] w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 active:scale-[0.98] text-white font-semibold text-sm transition-all duration-200 rounded-[14px] shadow-[0_0_24px_rgba(37,99,235,0.45)] hover:shadow-[0_0_32px_rgba(37,99,235,0.6)] disabled:opacity-50 cursor-pointer border border-blue-400/40 flex items-center justify-center gap-2 mt-3"
                 >
                   {isIdentifying ? (
                     <>
@@ -557,9 +570,9 @@ export const Login: React.FC = () => {
           {stage === 2 && (
             <div className="animate-fadeIn">
               {/* Resolved User Photo & Name Display */}
-              <div className="flex flex-col items-center justify-center mb-6 select-none text-center">
-                {/* 72-96px Avatar Photo */}
-                <div className="w-20 h-20 rounded-full border-2 border-white/20 shadow-xl bg-[#111622] flex items-center justify-center overflow-hidden mb-3.5 backdrop-blur-md">
+              <div className="flex flex-col items-center justify-center mb-5 select-none text-center">
+                {/* Avatar Photo */}
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-cyan-500/30 shadow-xl bg-[#111622] flex items-center justify-center overflow-hidden mb-2.5 backdrop-blur-md">
                   {resolvedUser?.avatarUrl || (resolvedUser as any)?.photoURL ? (
                     <img 
                       src={resolvedUser?.avatarUrl || (resolvedUser as any)?.photoURL} 
@@ -567,12 +580,12 @@ export const Login: React.FC = () => {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <User className="w-10 h-10 text-white/80" />
+                    <User className="w-8 h-8 text-white/80" />
                   )}
                 </div>
 
                 {/* Display Name & Username Handle */}
-                <h2 className="text-white font-bold tracking-wide text-lg leading-tight">
+                <h2 className="text-white font-bold tracking-normal text-base sm:text-lg leading-tight">
                   {resolvedUser?.displayName || resolvedUser?.fullName || username}
                 </h2>
                 <span className="text-white/60 text-xs font-mono mt-0.5">
@@ -580,7 +593,7 @@ export const Login: React.FC = () => {
                 </span>
               </div>
 
-              <form className="space-y-4" onSubmit={handleStage2Submit} noValidate>
+              <form className="space-y-3.5" onSubmit={handleStage2Submit} noValidate>
                 {errorMsg && (
                   <div className="p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-white text-xs flex items-start gap-2 font-medium backdrop-blur-md">
                     <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
@@ -612,7 +625,7 @@ export const Login: React.FC = () => {
                       }}
                       onFocus={() => setIsInputFocused(true)}
                       onBlur={() => setIsInputFocused(false)}
-                      className="w-full pl-10 pr-10 py-3 bg-[#111622]/90 border border-white/15 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/40 transition-all shadow-inner"
+                      className="w-full pl-10 pr-10 py-3 bg-[#111622]/90 border border-white/15 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/40 transition-all shadow-inner"
                       placeholder="••••••••"
                     />
                     <button
@@ -630,12 +643,12 @@ export const Login: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 active:from-blue-700 active:to-blue-600 text-white font-medium text-sm transition-all duration-200 rounded-xl shadow-[0_0_25px_rgba(37,99,235,0.45)] disabled:opacity-50 cursor-pointer border border-blue-400/40 flex items-center justify-center gap-2 mt-2"
+                  className="h-[52px] w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 active:scale-[0.98] text-white font-semibold text-sm transition-all duration-200 rounded-[14px] shadow-[0_0_24px_rgba(37,99,235,0.45)] hover:shadow-[0_0_32px_rgba(37,99,235,0.6)] disabled:opacity-50 cursor-pointer border border-blue-400/40 flex items-center justify-center gap-2 mt-3"
                 >
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>{t.identifying}</span>
+                      <span>ENTERING ORION...</span>
                     </>
                   ) : (
                     <>
@@ -663,7 +676,7 @@ export const Login: React.FC = () => {
                 </div>
 
                 {/* Other User Button */}
-                <div className="pt-2 flex justify-center">
+                <div className="pt-1.5 flex justify-center">
                   <button
                     type="button"
                     onClick={handleBackToStage1}
@@ -681,7 +694,7 @@ export const Login: React.FC = () => {
       </main>
 
       {/* Footer — Bottom Bar */}
-      <footer className="relative z-10 w-full px-8 py-6 flex items-center justify-between select-none">
+      <footer className="relative z-10 w-full px-4 sm:px-8 py-3.5 sm:py-6 pb-[calc(14px+env(safe-area-inset-bottom,0px))] flex items-center justify-between select-none">
         
         {/* Bottom Left Power Button & OS Session Power Menu + Telemetry */}
         <div className="flex items-center gap-4">
@@ -768,20 +781,13 @@ export const Login: React.FC = () => {
           </div>
         </div>
 
-        {/* System Subsystems Readiness Status Chips */}
-        <div className="hidden lg:flex items-center gap-3 text-[10.5px] font-mono text-white/60 select-none">
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/5 border border-white/10 backdrop-blur-md">
-            <Activity className="w-3 h-3 text-emerald-400" />
-            <span>Auth: <strong className="text-white/90">{systemHealth.authStatus}</strong></span>
-          </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/5 border border-white/10 backdrop-blur-md">
-            <Database className="w-3 h-3 text-blue-400" />
-            <span>DB: <strong className="text-white/90">{systemHealth.dbStatus}</strong></span>
-          </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/5 border border-white/10 backdrop-blur-md">
-            <ShieldCheck className="w-3 h-3 text-amber-400" />
-            <span>Kernel: <strong className="text-white/90">{systemHealth.controlPlane}</strong></span>
-          </div>
+        {/* Minimal Non-Competing System Links for Mobile */}
+        <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono select-none">
+          <span>Privacy</span>
+          <span>•</span>
+          <span>Terms</span>
+          <span>•</span>
+          <span>Help</span>
         </div>
       </footer>
     </div>

@@ -18,8 +18,9 @@ export const OrionMobileHeader: React.FC = () => {
   const isLive = environment === 'LIVE';
 
   // Determine current screen title
-  let displayTitle = 'COMMAND CENTER';
-  if (activeTab === 'control') displayTitle = 'CONTROL TOWER';
+  let displayTitle = 'ORION HOME';
+  if (activeTab === 'home') displayTitle = 'ORION HOME';
+  else if (activeTab === 'control') displayTitle = 'CONTROL TOWER';
   else if (activeTab === 'ai') displayTitle = 'ORION AI';
   else if (activeTab === 'alerts') displayTitle = 'ALERTS & RISKS';
   else if (activeTab === 'apps') displayTitle = 'ALL APPLICATIONS';

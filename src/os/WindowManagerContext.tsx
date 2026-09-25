@@ -233,14 +233,17 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
     // Small screens become full-screen; larger displays use the full workspace
     // by default while retaining a modest desktop margin for window chrome.
     const topChrome = 48;
+    const dockSafeHeight = typeof window !== 'undefined'
+      ? parseInt(getComputedStyle(document.documentElement).getPropertyValue('--orion-dock-safe-height') || '76', 10) || 76
+      : 76;
     const margin = screenW < 1100 ? 0 : Math.max(8, Math.round(Math.min(screenW, screenH) * 0.012));
     const availableW = Math.max(360, screenW - margin * 2);
-    const availableH = Math.max(300, screenH - topChrome - margin * 2);
+    const availableH = Math.max(300, screenH - topChrome - dockSafeHeight - margin * 2);
 
     if (screenW < 900 || screenH < 620) {
       return {
         position: { x: 0, y: 0 },
-        size: { width: screenW, height: Math.max(300, screenH - topChrome) }
+        size: { width: screenW, height: Math.max(300, screenH - topChrome - dockSafeHeight) }
       };
     }
 
@@ -248,7 +251,7 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
     const width = Math.min(availableW, Math.max(900, Math.round(availableW * (screenW >= 2560 ? 0.96 : 0.94))));
     const height = Math.min(availableH, Math.max(560, Math.round(availableH * 0.94)));
     const x = Math.max(0, Math.min(screenW - width, Math.round((screenW - width) / 2) + stagger - 24));
-    const y = Math.max(0, Math.min(screenH - topChrome - height, margin + Math.round(stagger / 2)));
+    const y = Math.max(0, Math.min(screenH - topChrome - dockSafeHeight - height, margin + Math.round(stagger / 2)));
 
     return {
       position: { x, y },

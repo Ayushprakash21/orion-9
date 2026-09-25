@@ -115,17 +115,17 @@ export const AICopilot = () => {
 
   return (
     <div className="w-full h-full min-h-0 flex flex-col overflow-hidden bg-[#0c0e11]">
-      <div className="flex-1 min-h-0 max-w-[1200px] w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-5 overflow-hidden">
+      <div className="flex-1 min-h-0 max-w-[1200px] w-full mx-auto p-3 sm:p-5 lg:p-6 flex flex-col gap-3.5 sm:gap-5 overflow-hidden">
         
         {/* Header Console */}
-        <div className="bg-[#12151a] border border-white/[0.08] rounded-2xl p-5 md:p-6 flex items-center justify-between relative overflow-hidden shrink-0 shadow-lg">
-          <div className="flex items-center gap-4 relative z-10">
-            <div className="relative flex items-center justify-center w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-400">
-              <Cpu className="w-6 h-6" />
+        <div className="bg-[#12151a] border border-white/[0.08] rounded-2xl p-3.5 sm:p-5 md:p-6 flex items-center justify-between relative overflow-hidden shrink-0 shadow-lg">
+          <div className="flex items-center gap-3 sm:gap-4 relative z-10">
+            <div className="relative flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-400 shrink-0">
+              <Cpu className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             
             <div>
-              <h1 className="text-lg md:text-xl font-semibold text-white tracking-normal mb-0.5 flex items-center gap-2.5">
+              <h1 className="text-base sm:text-lg md:text-xl font-semibold text-white tracking-normal mb-0.5 flex items-center gap-2">
                 Orion Copilot <span className="text-[10px] font-medium text-sky-400 px-2 py-0.5 border border-sky-500/30 bg-sky-500/10 rounded-md">Enterprise Intelligence</span>
               </h1>
               <div className="text-xs text-slate-400 flex items-center gap-2">
@@ -151,7 +151,7 @@ export const AICopilot = () => {
         {/* Chat Area */}
         <div className="flex-1 bg-[#12151a] border border-white/[0.08] rounded-2xl flex flex-col min-h-0 overflow-hidden relative shadow-lg">
           
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 min-h-0 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4 sm:space-y-5 min-h-0 custom-scrollbar">
             {messages.map((message, index) => (
               <div 
                 key={index} 
@@ -184,7 +184,7 @@ export const AICopilot = () => {
                 </div>
                 
                 <div className={cn(
-                  "p-4 rounded-2xl text-sm leading-relaxed",
+                  "p-3.5 sm:p-4 rounded-2xl text-sm leading-relaxed",
                   message.role === 'user' 
                     ? "bg-sky-600 text-white shadow-sm" 
                     : "bg-white/[0.04] border border-white/[0.08] text-slate-200"
@@ -230,11 +230,11 @@ export const AICopilot = () => {
 
           {/* Quick Actions */}
           {messages.length < 3 && !isLoading && (
-            <div className="px-6 pb-3 pt-1">
-              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            <div className="px-3.5 sm:px-6 pb-2.5 pt-1 shrink-0">
+              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                 <CornerDownRight size={11} /> Suggested Actions
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2 max-h-24 overflow-x-auto custom-scrollbar">
                 {QUICK_ACTIONS.map((action, i) => (
                   <button
                     key={i}
@@ -250,14 +250,14 @@ export const AICopilot = () => {
           )}
 
           {/* Input Area */}
-          <div className="p-4 bg-[#0c0e11] border-t border-white/[0.08] shrink-0 z-10">
+          <div className="p-3 sm:p-4 bg-[#0c0e11] border-t border-white/[0.08] shrink-0 z-10">
             <form onSubmit={(e) => handleSubmit(e)} className="relative flex items-center max-w-4xl mx-auto">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask Orion Copilot about stock levels, supply risks, POs..."
-                className="w-full pl-4 pr-12 py-3.5 bg-white/[0.05] border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500/50 transition-all"
+                className="w-full pl-4 pr-12 py-3 sm:py-3.5 bg-white/[0.05] border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500/50 transition-all"
                 disabled={isLoading}
               />
               <button
@@ -268,7 +268,7 @@ export const AICopilot = () => {
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </button>
             </form>
-            <div className="text-center mt-2.5 text-[10px] text-slate-500 flex items-center justify-center gap-1.5">
+            <div className="text-center mt-2 text-[10px] text-slate-500 flex items-center justify-center gap-1.5">
               <ShieldCheck size={11} /> Orion Copilot operates under governed enterprise supply chain telemetry
             </div>
           </div>

@@ -63,6 +63,12 @@ export function OrionDock() {
     setDockVisible(visible);
   }, []);
 
+  useEffect(() => {
+    const safeHeight = dockVisible ? '76px' : '12px';
+    document.documentElement.style.setProperty('--orion-dock-safe-height', safeHeight);
+    window.dispatchEvent(new CustomEvent('orion-dock-geometry-changed', { detail: { visible: dockVisible, safeHeight } }));
+  }, [dockVisible]);
+
   // OS-style contextual auto-hide. Home/Desktop always shows the Dock;
   // application mode uses the bottom-edge reveal handle.
   const clearDockHideTimer = useCallback(() => {

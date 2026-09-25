@@ -33,6 +33,7 @@
 }
 
 :root, :root.dark {
+  --orion-dock-safe-height: 76px;
   /* DARK MODE (Orion Aurora Deep Charcoal/Graphite) */
   --os-bg: #0c0e11;
   --os-surface: #12151a;
@@ -76,6 +77,7 @@
 }
 
 :root.light {
+  --orion-dock-safe-height: 76px;
   /* LIGHT MODE (Orion Aurora Warm Clean Porcelain/Slate) */
   --os-bg: #F8FAFC;
   --os-surface: #FFFFFF;
@@ -629,6 +631,7 @@ html, body, #root {
 .orion-app-viewport > [data-window-id] {
   max-width: 100% !important;
   max-height: 100% !important;
+  transition: bottom 0.25s cubic-bezier(0.16, 1, 0.3, 1), height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ADMIN DESKTOP ----------------------------------------------------------- */
