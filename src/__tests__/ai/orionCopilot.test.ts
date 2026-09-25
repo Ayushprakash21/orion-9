@@ -22,7 +22,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { ORION_REGISTRY } from '../../os/OrionApplicationRegistry';
 import { ORION_COMPONENT_MAP } from '../../os/OrionComponentMap';
 
