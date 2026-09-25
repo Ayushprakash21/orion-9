@@ -469,17 +469,20 @@ export const Login: React.FC = () => {
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 w-full my-auto">
         
         {/* Real OS Runtime Environment & Diagnostic Status Badge */}
-        <div className="flex items-center justify-center gap-2 sm:gap-3 mb-3 font-mono text-[10px] text-white/60 select-none">
+        <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 mb-3 font-mono text-[10px] text-white/60 select-none">
           <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
-            <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${systemHealth.runtimeStatus === 'ONLINE' ? 'bg-emerald-400 shadow-[0_0_6px_#34D399]' : 'bg-amber-400'}`} />
-            <span className="text-white/90 font-semibold tracking-wide">SYSTEM READY</span>
+            <span className={`w-1.5 h-1.5 rounded-full ${systemHealth.runtimeStatus === 'ONLINE' ? 'bg-emerald-400 shadow-[0_0_6px_#34D399]' : 'bg-amber-400 animate-pulse'}`} />
+            <span className="text-white/90 font-semibold tracking-wide">
+              {systemHealth.runtimeStatus === 'ONLINE' ? 'SYSTEM READY' : 'SYSTEM CHECKING'}
+            </span>
           </span>
           <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
             <span>Environment:</span>
             <strong className={dbEnv === 'LIVE' ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold'}>{dbEnv} MODE</strong>
           </span>
-          <span className="hidden xs:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
-            <span>Authentication: READY</span>
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
+            <span className={`w-1.5 h-1.5 rounded-full ${systemHealth.authStatus === 'READY' ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+            <span>Authentication: {systemHealth.authStatus}</span>
           </span>
         </div>
 

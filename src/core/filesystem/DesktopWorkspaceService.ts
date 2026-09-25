@@ -478,6 +478,133 @@ export class DesktopWorkspaceService {
     const { activeTenant } = this.getContext(tenantId, environment);
     return await scmPersistenceService.deleteRecord('desktop_items', activeTenant, shortcutId);
   }
+
+  // ---------------------------------------------------------------------------
+  // DESKTOP SPATIAL WIDGET MANAGEMENT
+  // ---------------------------------------------------------------------------
+
+  /**
+   * List all active widgets for a workspace.
+   */
+  public async listWidgets(
+    workspaceId: WorkspaceId = 'workspace-main',
+    tenantId?: string,
+    environment?: 'DEMO' | 'LIVE'
+  ): Promise<import('./types').DesktopWidgetRecord[]> {
+    const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
+    const records = await scmPersistenceService.listRecords<import('./types').DesktopWidgetRecord>('desktop_widgets', activeTenant);
+    return records.filter((r) => r && r.workspaceId === workspaceId && r.environment === activeEnv && r.visible !== false);
+  }
+
+  /**
+   * Save or update a widget instance in Firestore / persistence.
+   */
+  public async saveWidget(
+    widget: import('./types').DesktopWidgetRecord,
+    tenantId?: string,
+    environment?: 'DEMO' | 'LIVE'
+  ): Promise<import('./types').DesktopWidgetRecord> {
+    const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
+    const record: import('./types').DesktopWidgetRecord = {
+      ...widget,
+      tenantId: activeTenant,
+      environment: activeEnv,
+      updatedAt: new Date().toISOString(),
+    };
+    await scmPersistenceService.saveRecord('desktop_widgets', widget.id, record);
+    return record;
+  }
+
+  /**
+   * Delete a widget instance.
+   */
+  public async removeWidget(
+    widgetId: string,
+    tenantId?: string,
+    environment?: 'DEMO' | 'LIVE'
+  ): Promise<boolean> {
+    const { activeTenant } = this.getContext(tenantId, environment);
+    return await scmPersistenceService.deleteRecord('desktop_widgets', activeTenant, widgetId);
+  }
+
+  /**
+   * Ensure baseline default desktop widgets exist for workspace.
+   */
+  public async ensureDefaultWidgets(
+    workspaceId: WorkspaceId = 'workspace-main',
+    tenantId?: string,
+    environment?: 'DEMO' | 'LIVE'
+  ): Promise<import('./types').DesktopWidgetRecord[]> {
+    const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
+    const existing = await this.listWidgets(workspaceId, activeTenant, activeEnv);
+    if (existing.length > 0) return existing;
+
+    const now = new Date().toISOString();
+    const defaults: import('./types').DesktopWidgetRecord[] = [
+      {
+        id: `widget_${workspaceId}_clock_${activeTenant}`,
+        widgetType: 'clock',
+        title: 'System Clock',
+        size: 'MEDIUM',
+        x: 1200,
+        y: 52,
+        width: 340,
+        height: 150,
+        zIndex: 10,
+        visible: true,
+        workspaceId,
+        ownerId: 'user_current',
+        tenantId: activeTenant,
+        organizationId: activeTenant,
+        environment: activeEnv,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: `widget_${workspaceId}_control_tower_${activeTenant}`,
+        widgetType: 'control_tower',
+        title: 'Control Tower Radar',
+        size: 'LARGE',
+        x: 1200,
+        y: 218,
+        width: 440,
+        height: 250,
+        zIndex: 10,
+        visible: true,
+        workspaceId,
+        ownerId: 'user_current',
+        tenantId: activeTenant,
+        organizationId: activeTenant,
+        environment: activeEnv,
+        createdAt: now,
+        updatedAt: now,
+      },
+      {
+        id: `widget_${workspaceId}_supply_chain_pulse_${activeTenant}`,
+        widgetType: 'supply_chain_pulse',
+        title: 'Supply Chain Pulse',
+        size: 'MEDIUM',
+        x: 1200,
+        y: 484,
+        width: 440,
+        height: 180,
+        zIndex: 10,
+        visible: true,
+        workspaceId,
+        ownerId: 'user_current',
+        tenantId: activeTenant,
+        organizationId: activeTenant,
+        environment: activeEnv,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ];
+
+    for (const w of defaults) {
+      await scmPersistenceService.saveRecord('desktop_widgets', w.id, w);
+    }
+    return defaults;
+  }
 }
 
 export const desktopWorkspaceService = DesktopWorkspaceService.getInstance();

@@ -11,11 +11,14 @@ import { createPortal } from 'react-dom';
 import { useWindowManager, WorkspaceId } from '../WindowManagerContext';
 import { desktopWorkspaceService, DEFAULT_GRID_CONFIG } from '../../core/filesystem/DesktopWorkspaceService';
 import { orionFileSystemService } from '../../core/filesystem/OrionFileSystemService';
-import { DesktopShortcut, OrionFile, OrionFolder } from '../../core/filesystem/types';
+import { DesktopShortcut, OrionFile, OrionFolder, DesktopWidgetRecord, WidgetSize } from '../../core/filesystem/types';
+import { DesktopWidgetSystem } from './DesktopWidgetSystem';
+import { DesktopWidgetGalleryModal, WidgetGalleryItem } from './DesktopWidgetGalleryModal';
 import { ORION_REGISTRY } from '../OrionApplicationRegistry';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
 import { useOrionDeviceMode } from '../../lib/useOrionDeviceMode';
 import { useToast } from '../../store/ToastContext';
+import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { cn } from '../../lib/utils';
 import {
   FileText,
@@ -33,6 +36,8 @@ import {
   Layers,
   Copy,
   FolderInput,
+  LayoutGrid,
+  Check,
 } from 'lucide-react';
 
 /**
@@ -94,6 +99,11 @@ export function DesktopWorkspace() {
   const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Desktop Widgets & Edit Mode State
+  const [widgets, setWidgets] = useState<DesktopWidgetRecord[]>([]);
+  const [isEditMode, setIsEditMode] = useState<boolean>(false);
+  const [isWidgetGalleryOpen, setIsWidgetGalleryOpen] = useState<boolean>(false);
+
   // Load shortcuts for active workspace
   const loadShortcuts = useCallback(async () => {
     try {
@@ -105,9 +115,107 @@ export function DesktopWorkspace() {
     }
   }, [activeWorkspaceId]);
 
+  // Load widgets for active workspace
+  const loadWidgets = useCallback(async () => {
+    try {
+      const list = await desktopWorkspaceService.ensureDefaultWidgets(activeWorkspaceId);
+      setWidgets(list);
+    } catch (e) {
+      console.error('Failed to load desktop widgets', e);
+    }
+  }, [activeWorkspaceId]);
+
   useEffect(() => {
     loadShortcuts();
-  }, [loadShortcuts]);
+    loadWidgets();
+  }, [loadShortcuts, loadWidgets]);
+
+  const handleWidgetMoveStart = (e: React.PointerEvent, widget: DesktopWidgetRecord) => {
+    e.stopPropagation();
+    e.preventDefault();
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const initX = widget.x;
+    const initY = widget.y;
+
+    const handlePointerMove = (moveEvt: PointerEvent) => {
+      const dx = moveEvt.clientX - startX;
+      const dy = moveEvt.clientY - startY;
+
+      const newX = Math.max(16, Math.min(window.innerWidth - widget.width - 16, initX + dx));
+      const newY = Math.max(52, Math.min(window.innerHeight - widget.height - 84, initY + dy));
+
+      setWidgets((prev) =>
+        prev.map((w) => (w.id === widget.id ? { ...w, x: newX, y: newY } : w))
+      );
+    };
+
+    const handlePointerUp = async (upEvt: PointerEvent) => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+
+      const dx = upEvt.clientX - startX;
+      const dy = upEvt.clientY - startY;
+      const finalX = Math.max(16, Math.min(window.innerWidth - widget.width - 16, initX + dx));
+      const finalY = Math.max(52, Math.min(window.innerHeight - widget.height - 84, initY + dy));
+
+      const updated = { ...widget, x: finalX, y: finalY };
+      await desktopWorkspaceService.saveWidget(updated);
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+  };
+
+  const handleRemoveWidget = async (widgetId: string) => {
+    await desktopWorkspaceService.removeWidget(widgetId);
+    setWidgets((prev) => prev.filter((w) => w.id !== widgetId));
+    showToast('Widget removed from desktop', 'info');
+  };
+
+  const handleResizeWidget = async (widgetId: string, newSize: WidgetSize) => {
+    const target = widgets.find(w => w.id === widgetId);
+    if (!target) return;
+    const width = newSize === 'SMALL' ? 240 : newSize === 'MEDIUM' ? 340 : 440;
+    const height = newSize === 'SMALL' ? 150 : newSize === 'MEDIUM' ? 180 : 250;
+    const updated = { ...target, size: newSize, width, height };
+    await desktopWorkspaceService.saveWidget(updated);
+    setWidgets(prev => prev.map(w => w.id === widgetId ? updated : w));
+  };
+
+  const handleAddWidgetFromGallery = async (item: WidgetGalleryItem) => {
+    const now = new Date().toISOString();
+    const activeEnv = dbManager.getEnvironment();
+    const id = `widget_${activeWorkspaceId}_${item.type}_${Date.now()}`;
+
+    const x = Math.min(1200, window.innerWidth - item.dimensions.width - 40);
+    const y = 52 + (widgets.length * 40) % (window.innerHeight - 300);
+
+    const newWidget: DesktopWidgetRecord = {
+      id,
+      widgetType: item.type,
+      title: item.title,
+      size: item.defaultSize,
+      x,
+      y,
+      width: item.dimensions.width,
+      height: item.dimensions.height,
+      zIndex: 10,
+      visible: true,
+      workspaceId: activeWorkspaceId,
+      ownerId: 'user_current',
+      tenantId: 'tenant_default',
+      organizationId: 'ORION_PLATFORM',
+      environment: activeEnv,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await desktopWorkspaceService.saveWidget(newWidget);
+    setWidgets((prev) => [...prev, newWidget]);
+    showToast(`Added ${item.title} to desktop`, 'success');
+  };
 
   // Listen for refresh event
   useEffect(() => {
@@ -569,6 +677,72 @@ export function DesktopWorkspace() {
         setDesktopMenu({ x: e.clientX, y: e.clientY });
       }}
     >
+      {/* Edit Mode Top Governance Banner */}
+      {isEditMode && (
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[2147483600] bg-[#091322]/95 border border-cyan-400/60 shadow-[0_0_40px_rgba(34,211,238,0.3)] rounded-2xl px-6 py-2.5 flex items-center gap-4 backdrop-blur-xl animate-in fade-in slide-in-from-top-4 select-none pointer-events-auto">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
+            <span className="text-xs font-bold text-white uppercase tracking-wider">Spatial Edit Mode</span>
+          </div>
+          <div className="h-4 w-px bg-white/20" />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsWidgetGalleryOpen(true)}
+              className="px-3.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Widget</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateDesktopShortcut}
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5 text-blue-400" />
+              <span>Add Shortcut</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateDesktopFolder}
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5 text-amber-400" />
+              <span>New Folder</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateDesktopFile}
+              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5 text-emerald-400" />
+              <span>New Document</span>
+            </button>
+          </div>
+          <div className="h-4 w-px bg-white/20" />
+          <button
+            type="button"
+            onClick={() => setIsEditMode(false)}
+            className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition-all active:scale-95 cursor-pointer"
+          >
+            <Check className="w-3.5 h-3.5" />
+            <span>Done</span>
+          </button>
+        </div>
+      )}
+
+      {/* Spatial Widgets Canvas */}
+      {widgets.map((widget) => (
+        <DesktopWidgetSystem
+          key={widget.id}
+          widget={widget}
+          isEditMode={isEditMode}
+          onRemove={handleRemoveWidget}
+          onResize={handleResizeWidget}
+          onMoveStart={handleWidgetMoveStart}
+        />
+      ))}
+
       {/* Desktop Shortcuts Canvas */}
       {shortcuts.map(shortcut => {
         const isBeingDragged = draggedItem?.id === shortcut.id && isDragging;
@@ -734,6 +908,18 @@ export function DesktopWorkspace() {
           </button>
 
           <div className="h-px bg-os-border/50 my-1 mx-2" />
+
+          <button
+            type="button"
+            onClick={() => {
+              setIsEditMode(true);
+              setDesktopMenu(null);
+            }}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left font-semibold min-h-[36px] transition-colors rounded-lg mx-1"
+          >
+            <LayoutGrid size={14} className="text-cyan-400" />
+            <span>Customize Desktop & Widgets...</span>
+          </button>
 
           <button
             type="button"
@@ -947,6 +1133,13 @@ export function DesktopWorkspace() {
         </div>,
         document.body
       )}
+
+      {/* Widget Gallery Modal */}
+      <DesktopWidgetGalleryModal
+        isOpen={isWidgetGalleryOpen}
+        onClose={() => setIsWidgetGalleryOpen(false)}
+        onAddWidget={handleAddWidgetFromGallery}
+      />
     </div>
   );
 }

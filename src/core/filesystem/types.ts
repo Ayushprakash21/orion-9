@@ -150,3 +150,44 @@ export interface FileSystemEvent {
   environment: 'DEMO' | 'LIVE';
   timestamp: string;
 }
+
+export type WidgetSize = 'SMALL' | 'MEDIUM' | 'LARGE';
+
+export type DesktopWidgetType =
+  | 'clock'
+  | 'calendar'
+  | 'weather'
+  | 'control_tower'
+  | 'supply_chain_pulse'
+  | 'inventory_health'
+  | 'orders'
+  | 'shipments'
+  | 'supplier_health'
+  | 'ai_copilot'
+  | 'alerts'
+  | 'system_health'
+  | 'network'
+  | 'files'
+  | 'notes'
+  | 'quick_actions';
+
+export interface DesktopWidgetRecord {
+  id: string;
+  widgetType: DesktopWidgetType;
+  title: string;
+  size: WidgetSize;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  zIndex: number;
+  visible: boolean;
+  workspaceId: WorkspaceId;
+  ownerId: string;
+  tenantId: string;
+  organizationId: string;
+  environment: 'DEMO' | 'LIVE';
+  config?: Record<string, any>;
+  createdAt: string;
+  updatedAt: string;
+}
