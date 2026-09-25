@@ -34,11 +34,15 @@ import { AdminSettings } from './admin/AdminSettings';
 import { AdminDatabaseHealth } from './admin/AdminDatabaseHealth';
 import { privilegedSessionManager } from '../kernel/security/privilegedSession';
 import { authService } from '../services/authService';
+import { UserWallpaperStudio } from './wallpaper/UserWallpaperStudio';
+import { AdminWallpaperStudio } from './admin/AdminWallpaperStudio';
+import { Sparkles as SparklesIcon } from 'lucide-react';
 
 export type SettingsSection = 
   | 'account'
   | 'organization'
   | 'appearance'
+  | 'wallpaper_studio'
   | 'desktop'
   | 'time_region'
   | 'notifications'
@@ -54,6 +58,7 @@ export type SettingsSection =
   | 'admin_orgs'
   | 'admin_roles'
   | 'admin_branding'
+  | 'admin_wallpaper'
   | 'admin_audit'
   | 'admin_demo'
   | 'admin_security'
@@ -273,6 +278,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
     { id: 'account', label: 'My Account', icon: User, group: 'user' },
     { id: 'organization', label: 'Organization', icon: Building2, group: 'user' },
     { id: 'appearance', label: 'Appearance', icon: Eye, group: 'system' },
+    { id: 'wallpaper_studio', label: 'Wallpaper Studio', icon: SparklesIcon, group: 'system' },
     { id: 'desktop', label: 'Desktop & Windows', icon: Monitor, group: 'system' },
     { id: 'time_region', label: 'Time & Region', icon: Clock, group: 'system' },
     { id: 'notifications', label: 'Notifications', icon: Volume2, group: 'system' },
@@ -289,6 +295,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
     { id: 'admin_orgs', label: 'Organizations & Tenants', icon: Building2, group: 'admin' },
     { id: 'admin_roles', label: 'Roles & Capabilities', icon: Key, group: 'admin' },
     { id: 'admin_branding', label: 'Branding & Whitelabel', icon: Brush, group: 'admin' },
+    { id: 'admin_wallpaper', label: 'Wallpaper Studio (Admin)', icon: SparklesIcon, group: 'admin' },
     { id: 'admin_security', label: 'Security & Policy Engine', icon: ShieldCheck, group: 'admin' },
     { id: 'admin_audit', label: 'Audit & Compliance Activity', icon: Clock, group: 'admin' },
     { id: 'admin_demo', label: 'Demo Data & Sandbox', icon: Database, group: 'admin' },
@@ -366,6 +373,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
           {activeSection === 'admin_orgs' && <AdminOrganizations />}
           {activeSection === 'admin_roles' && <AdminRoles />}
           {activeSection === 'admin_branding' && <AdminBranding />}
+          {activeSection === 'admin_wallpaper' && <AdminWallpaperStudio />}
           {activeSection === 'admin_audit' && <AdminAuditLogs />}
           {activeSection === 'admin_demo' && <AdminDemoData />}
           {activeSection === 'admin_security' && <AdminSettings />}
@@ -610,6 +618,9 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
           </div>
         );
 
+      case 'wallpaper_studio':
+        return <UserWallpaperStudio />;
+
       case 'appearance':
         return (
           <div className="space-y-6">
@@ -693,6 +704,24 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
               {/* Display Preferences Controls Component */}
               <div className="p-5">
                 <DisplayPreferencesControls />
+              </div>
+
+              {/* Wallpaper Studio Quick Link */}
+              <div className="px-5 py-4 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium text-white flex items-center gap-1.5">
+                    <SparklesIcon size={14} className="text-sky-400" />
+                    <span>Orion Wallpaper Studio</span>
+                  </div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Customize, generate with AI, and configure live desktop motion engine.</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveSection('wallpaper_studio')}
+                  className="px-3 py-1.5 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-400 text-xs font-semibold transition-all cursor-pointer"
+                >
+                  Open Studio →
+                </button>
               </div>
             </div>
           </div>
