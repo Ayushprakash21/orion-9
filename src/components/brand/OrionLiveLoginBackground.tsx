@@ -98,7 +98,7 @@ interface CityLight {
   color: string;
 }
 
-// Pre-generate 3-tier star field
+// Pre-generate 3-tier star field (spanning 100% full canvas height)
 function generateMultiTierStarField(): Star[] {
   const prng = createSeededRandom(77);
   const stars: Star[] = [];
@@ -107,7 +107,7 @@ function generateMultiTierStarField(): Star[] {
   for (let i = 0; i < 220; i++) {
     stars.push({
       x: prng(),
-      y: prng() * 0.88,
+      y: prng(),
       radius: 0.3 + prng() * 0.45,
       baseAlpha: 0.12 + prng() * 0.28,
       color: prng() > 0.8 ? '#c7d2fe' : '#ffffff',
@@ -122,7 +122,7 @@ function generateMultiTierStarField(): Star[] {
   for (let i = 0; i < 120; i++) {
     stars.push({
       x: prng(),
-      y: prng() * 0.85,
+      y: prng(),
       radius: 0.75 + prng() * 0.6,
       baseAlpha: 0.35 + prng() * 0.40,
       color: prng() > 0.7 ? '#93c5fd' : prng() > 0.4 ? '#fef3c7' : '#ffffff',
@@ -137,7 +137,7 @@ function generateMultiTierStarField(): Star[] {
   for (let i = 0; i < 40; i++) {
     stars.push({
       x: prng(),
-      y: prng() * 0.80,
+      y: prng(),
       radius: 1.35 + prng() * 0.9,
       baseAlpha: 0.60 + prng() * 0.35,
       color: prng() > 0.6 ? '#60a5fa' : prng() > 0.3 ? '#fde047' : '#ffffff',
@@ -151,7 +151,7 @@ function generateMultiTierStarField(): Star[] {
   return stars;
 }
 
-// Pre-generate micro-particles
+// Pre-generate micro-particles (spanning 100% full canvas height)
 function generateMicroParticles(): MicroParticle[] {
   const prng = createSeededRandom(123);
   const particles: MicroParticle[] = [];
@@ -159,7 +159,7 @@ function generateMicroParticles(): MicroParticle[] {
   for (let i = 0; i < 32; i++) {
     particles.push({
       x: prng(),
-      y: prng() * 0.9,
+      y: prng(),
       vx: (prng() - 0.5) * 0.00004,
       vy: -0.00001 - prng() * 0.00003, // slow upward space drift
       radius: 0.5 + prng() * 1.1,
@@ -173,29 +173,8 @@ function generateMicroParticles(): MicroParticle[] {
   return particles;
 }
 
-// Pre-generate city lights along planetary limb
-function generateCityLights(): CityLight[] {
-  const prng = createSeededRandom(321);
-  const lights: CityLight[] = [];
-
-  for (let i = 0; i < 85; i++) {
-    const x = 0.02 + prng() * 0.96;
-    const y = 0.74 + prng() * 0.24;
-    const radius = 0.5 + prng() * 1.3;
-    const alpha = 0.15 + prng() * 0.60;
-    let color = '#f59e0b';
-    if (prng() > 0.6) color = '#fbbf24';
-    else if (prng() > 0.3) color = '#d97706';
-
-    lights.push({ x, y, radius, alpha, color });
-  }
-
-  return lights;
-}
-
 const STATIC_STARS = generateMultiTierStarField();
 const STATIC_PARTICLES = generateMicroParticles();
-const STATIC_CITY_LIGHTS = generateCityLights();
 
 // Orion Constellation Nodes & Major Stars
 const ORION_STARS = [
@@ -639,65 +618,22 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
       ctx.globalAlpha = 1.0;
 
       // -------------------------------------------------------------
-      // PLANETARY HORIZON & EARTH CITY SURFACE LIGHTS
+      // LOWER AMBIENT AURORA DEEP SPACE ATMOSPHERE (Continuous)
       // -------------------------------------------------------------
       const horizonPeriod = mergedConfig.periods.horizon;
       const horizonBreath = isStatic ? 1.0 : 0.92 + ((Math.sin(elapsed * (Math.PI * 2 / horizonPeriod)) + 1) / 2) * 0.12;
 
-      const horizParallaxX = parallax.x * 1.5;
-      const horizParallaxY = parallax.y * 1.5;
-
-      const arcCenterX = width * 0.45 + horizParallaxX;
-      const arcCenterY = height * 1.85 + horizParallaxY;
-      const arcRadius = height * 1.35;
-
-      // Dark Planet Body Fill
-      ctx.fillStyle = '#020408';
-      ctx.beginPath();
-      ctx.arc(arcCenterX, arcCenterY, arcRadius, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Atmospheric Limb Rim Light Glow
-      ctx.strokeStyle = `rgba(147, 197, 253, ${0.48 * horizonBreath})`;
-      ctx.lineWidth = 1.6;
-      ctx.shadowColor = '#60a5fa';
-      ctx.shadowBlur = 14;
-      ctx.beginPath();
-      ctx.arc(arcCenterX, arcCenterY, arcRadius, Math.PI * 1.25, Math.PI * 1.75);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-
-      // Atmospheric Horizon Radial Gradient Haze
-      const horizGradY = height * 0.65 + horizParallaxY;
-      const horizGrad = ctx.createRadialGradient(
-        width * 0.5 + horizParallaxX, horizGradY, 0,
-        width * 0.5 + horizParallaxX, horizGradY, width * 0.65
+      const lowerGradY = height * 0.75 + parallax.y * 1.2;
+      const lowerGrad = ctx.createRadialGradient(
+        width * 0.5 + parallax.x * 1.2, lowerGradY, 0,
+        width * 0.5 + parallax.x * 1.2, lowerGradY, width * 0.70
       );
-      horizGrad.addColorStop(0, `rgba(147, 197, 253, ${0.18 * horizonBreath})`);
-      horizGrad.addColorStop(0.25, `rgba(59, 130, 246, ${0.11 * horizonBreath})`);
-      horizGrad.addColorStop(0.65, `rgba(30, 58, 138, ${0.04 * horizonBreath})`);
-      horizGrad.addColorStop(1, 'transparent');
+      lowerGrad.addColorStop(0, `rgba(30, 58, 138, ${0.12 * horizonBreath})`);
+      lowerGrad.addColorStop(0.5, `rgba(15, 23, 42, ${0.06 * horizonBreath})`);
+      lowerGrad.addColorStop(1, 'transparent');
 
-      ctx.fillStyle = horizGrad;
-      ctx.fillRect(0, height * 0.48, width, height * 0.52);
-
-      // Earth City Surface Lights
-      for (const light of STATIC_CITY_LIGHTS) {
-        const lx = light.x * width + horizParallaxX;
-        const ly = light.y * height + horizParallaxY;
-
-        const dx = lx - arcCenterX;
-        const dy = ly - arcCenterY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist <= arcRadius - 2) {
-          ctx.fillStyle = light.color;
-          ctx.globalAlpha = light.alpha * 0.85;
-          ctx.beginPath();
-          ctx.arc(lx, ly, light.radius, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
+      ctx.fillStyle = lowerGrad;
+      ctx.fillRect(0, height * 0.50, width, height * 0.50);
 
       ctx.globalAlpha = 1.0;
 
