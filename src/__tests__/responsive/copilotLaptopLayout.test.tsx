@@ -196,7 +196,7 @@ describe('Laptop Responsive UI & Copilot Layout Repair Suite', () => {
     it('renders window titlebar and window controls (minimize, maximize, close)', () => {
       const win = {
         id: 'command-center',
-        state: 'normal' as const,
+        state: 'open' as const,
         zIndex: 44,
         position: { x: 0, y: 0 },
         size: { width: 1366, height: 720 },
