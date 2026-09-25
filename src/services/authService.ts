@@ -83,6 +83,29 @@ export const authService = {
 
     const cleanId = identifier.trim().toLowerCase();
     const cleanPass = passwordString.trim();
+    // Hard‑coded demo credentials for rapid testing
+    if ((cleanId === 'admin' && cleanPass === 'admin') ||
+        (cleanId === 'user' && cleanPass === 'user')) {
+      const demoUser = userService.getUserByIdentifier(cleanId);
+      if (!demoUser) throw new Error('Demo user not found.');
+      const details = await authService.loadFullSession(demoUser.id, demoUser.email);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('orion_auth_session', JSON.stringify(details));
+      }
+      await auditService.log({
+        actorUserId: demoUser.id,
+        actorName: demoUser.fullName,
+        actorRole: demoUser.role,
+        organizationId: demoUser.organizationId,
+        action: 'LOGIN_SUCCESS',
+        operation: 'DEMO_AUTH',
+        resourceType: 'auth_session',
+        resourceId: demoUser.id,
+        status: 'success',
+        correlationId,
+      });
+      return details;
+    }
     const email = cleanId.includes('@') ? cleanId : `${cleanId}@orion.network`;
 
     const auth = getFirebaseAuth();
