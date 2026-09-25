@@ -44,7 +44,7 @@ export const DEFAULT_LIVE_BACKGROUND_CONFIG: LiveBackgroundConfig = {
   quality: 'auto',
   parallax: true,
   intensity: 1.0,
-  rotationSpeedSeconds: 120,
+  rotationSpeedSeconds: 60,
   periods: {
     twinkle: 60,
     constellation: 60,
@@ -524,7 +524,7 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
   const _constellationLandmarks = ['Betelgeuse', 'Rigel', 'Alnitak', 'Alnilam', 'Mintaka', 'ORION_LINES', ORION_LINES];
   const _meta = {
     stars: ['Betelgeuse', 'Rigel', 'Alnitak', 'Alnilam', 'Mintaka', 'ORION_LINES'],
-    rotationSpeedSeconds: 120,
+    rotationSpeedSeconds: 60,
   };
   if (false as any) console.log(_meta, _constellationLandmarks);
 
@@ -727,14 +727,13 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
     earthGroup.rotation.z = 23.44 * (Math.PI / 180);
     scene.add(earthGroup);
 
-    // 3. Textures
-    const dayMapCanvas = createPhotorealisticEarthDayMap();
-    const nightMapCanvas = createPhotorealisticEarthNightMap();
-    const cloudMapCanvas = createPhotorealisticCloudMap();
-
-    const dayTexture = new THREE.CanvasTexture(dayMapCanvas);
-    const nightTexture = new THREE.CanvasTexture(nightMapCanvas);
-    const cloudTexture = new THREE.CanvasTexture(cloudMapCanvas);
+    // 3. Textures - load realistic Earth textures from public assets
+    const loader = new THREE.TextureLoader();
+    const dayTexture = loader.load('/textures/earth_day.jpg');
+    const nightTexture = loader.load('/textures/earth_night.jpg');
+    const cloudTexture = loader.load('/textures/earth_clouds.png');
+    // Optional specular map can be loaded similarly if needed
+    // const specularTexture = loader.load('/textures/earth_specular.jpg');
 
     // 4. Earth Sphere Surface with Photorealistic Day/Night Sun Terminator & Glowing Night City Lights
     const earthGeo = new THREE.SphereGeometry(2.8, 64, 64);
@@ -802,8 +801,11 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
       opacity: 0.55,
       blending: THREE.AdditiveBlending,
     });
-    const cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
-    earthGroup.add(cloudMesh);
+    // Only render clouds on HIGH quality tier
+    if (qualityTier === 'HIGH') {
+      const cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
+      earthGroup.add(cloudMesh);
+    }
 
     // 6. Atmospheric Rayleigh Rim Glow Shader
     const atmGeo = new THREE.SphereGeometry(2.94, 64, 64);

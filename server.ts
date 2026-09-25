@@ -516,7 +516,53 @@ async function startServer() {
   });
 
   // AI Wallpaper Status Route
-  app.get("/api/ai/wallpaper-status", (_req, res) => {
+  // AI Wallpaper Status Route - Enhanced with real connectivity check
+app.get("/api/ai/wallpaper-status", async (_req, res) => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    // Gemini secret missing
+    return res.json({
+      providerConfigured: false,
+      configured: false,
+      providerName: "Google Gemini",
+      model: "imagen-3.0-generate-002",
+      available: false,
+      error: "GEMINI_SECRET_MISSING",
+      supportedDimensions: ["16:9", "2K"]
+    });
+  }
+  // Attempt a lightweight Gemini request to verify backend reachability
+  try {
+    const gemini = getGemini();
+    if (!gemini) throw new Error("Gemini client unavailable");
+    // Use a simple model list request as a ping
+    await gemini.models.list();
+    // If successful, provider is configured and reachable
+    return res.json({
+      providerConfigured: true,
+      configured: true,
+      providerName: "Google Gemini",
+      model: "imagen-3.0-generate-002",
+      available: true,
+      error: null,
+      supportedDimensions: ["16:9", "2K"]
+    });
+  } catch (err: any) {
+    // Determine error classification
+    let errorCode = "BACKEND_UNREACHABLE";
+    if (err?.status === 401 || err?.status === 403) errorCode = "GEMINI_AUTH_ERROR";
+    else if (err?.status === 429) errorCode = "GEMINI_RATE_LIMIT";
+    return res.json({
+      providerConfigured: true,
+      configured: true,
+      providerName: "Google Gemini",
+      model: "imagen-3.0-generate-002",
+      available: false,
+      error: errorCode,
+      supportedDimensions: ["16:9", "2K"]
+    });
+  }
+});
     const hasGemini = !!process.env.GEMINI_API_KEY;
     if (hasGemini) {
       res.json({
