@@ -580,6 +580,26 @@ export function DesktopWorkspace() {
     }
   };
 
+  // Create Application Shortcut on Desktop
+  const handleCreateDesktopShortcut = async () => {
+    try {
+      await desktopWorkspaceService.addShortcut({
+        targetType: 'application',
+        targetId: 'control-tower',
+        name: 'Control Tower',
+        iconId: 'control-tower',
+        isDirectory: false,
+        path: '/Apps/ControlTower',
+        workspaceId: activeWorkspaceId,
+      });
+      await loadShortcuts();
+      showToast('Added Control Tower Shortcut to Desktop', 'success', 'Desktop');
+    } catch (e: any) {
+      console.error('Failed to create shortcut on Desktop', e);
+      showToast(`Couldn't create shortcut: ${e?.message || 'Error'}`, 'error', 'Desktop');
+    }
+  };
+
   // Delete Desktop Item
   const handleDeleteShortcut = async (shortcut: DesktopShortcut) => {
     try {
@@ -712,7 +732,7 @@ export function DesktopWorkspace() {
             </button>
             <button
               type="button"
-              onClick={handleCreateDesktopFile}
+              onClick={() => handleCreateDesktopFile()}
               className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium text-xs flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5 text-emerald-400" />

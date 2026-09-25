@@ -832,6 +832,13 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   }
 
   /**
+   * Alias method for calculateStorageInfo for desktop widget compatibility.
+   */
+  public async calculateStorageInfo(tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<VirtualStorageInfo> {
+    return this.getVirtualStorageInfo(tenantId, environment);
+  }
+
+  /**
    * Subscribe to File System events.
    */
   public subscribe(listener: (event: FileSystemEvent) => void): () => void {

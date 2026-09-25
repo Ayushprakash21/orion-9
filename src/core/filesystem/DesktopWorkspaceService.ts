@@ -487,7 +487,7 @@ export class DesktopWorkspaceService {
    * List all active widgets for a workspace.
    */
   public async listWidgets(
-    workspaceId: WorkspaceId = 'workspace-main',
+    workspaceId: WorkspaceId = 'operations',
     tenantId?: string,
     environment?: 'DEMO' | 'LIVE'
   ): Promise<import('./types').DesktopWidgetRecord[]> {
@@ -531,7 +531,7 @@ export class DesktopWorkspaceService {
    * Ensure baseline default desktop widgets exist for workspace.
    */
   public async ensureDefaultWidgets(
-    workspaceId: WorkspaceId = 'workspace-main',
+    workspaceId: WorkspaceId = 'operations',
     tenantId?: string,
     environment?: 'DEMO' | 'LIVE'
   ): Promise<import('./types').DesktopWidgetRecord[]> {
