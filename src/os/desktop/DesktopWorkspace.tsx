@@ -381,14 +381,38 @@ export function DesktopWorkspace() {
   };
 
   // Create New File on Desktop
-  const handleCreateDesktopFile = async () => {
+  const handleCreateDesktopFile = async (ext: 'txt' | 'docx' | 'xlsx' | 'pptx' = 'txt') => {
     try {
       const desktopFolder = await orionFileSystemService.getSystemFolder('desktop');
       const folderId = desktopFolder ? desktopFolder.id : 'folder_sys_desktop_tenant_default';
+      
+      let defaultName = 'New Text Document';
+      let iconId = 'notepad';
+      let targetApp = 'notepad';
+      let mimeType = 'text/plain';
+
+      if (ext === 'docx') {
+        defaultName = 'New Document';
+        iconId = 'orion-documents';
+        targetApp = 'orion-documents';
+        mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      } else if (ext === 'xlsx') {
+        defaultName = 'New Spreadsheet';
+        iconId = 'orion-sheets';
+        targetApp = 'orion-sheets';
+        mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      } else if (ext === 'pptx') {
+        defaultName = 'New Presentation';
+        iconId = 'orion-slides';
+        targetApp = 'orion-slides';
+        mimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+      }
+
       const file = await orionFileSystemService.createFile({
-        name: 'New Text Document',
-        extension: 'txt',
+        name: defaultName,
+        extension: ext,
         content: '',
+        mimeType,
         folderId,
       });
 
@@ -396,21 +420,21 @@ export function DesktopWorkspace() {
         targetType: 'file',
         targetId: file.id,
         name: `${file.name}.${file.extension}`,
-        iconId: 'notepad',
+        iconId,
         isDirectory: false,
         path: `/Desktop/${file.name}.${file.extension}`,
-        mimeType: 'text/plain',
+        mimeType,
         size: 0,
         workspaceId: activeWorkspaceId,
       });
 
       await loadShortcuts();
       setDesktopMenu(null);
-      openApplication('notepad');
+      openApplication(targetApp);
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent('orion:open-file', { detail: { fileId: file.id } }));
       }, 150);
-      showToast('Created text document on Desktop', 'success', 'Desktop');
+      showToast(`Created ${defaultName} on Desktop`, 'success', 'Desktop');
     } catch (e: any) {
       console.error('Failed to create file on Desktop', e);
       showToast(`Couldn't create document: ${e?.message || 'Error'}`, 'error', 'Desktop');
@@ -488,10 +512,35 @@ export function DesktopWorkspace() {
     const iconSize = isTablet ? 54 : 48;
     const iconId = shortcut.iconId || shortcut.icon || shortcut.targetId;
 
+    if (shortcut.targetId === 'documents-folder') {
+      return <FileText size={iconSize} className="text-blue-400 drop-shadow" />;
+    }
+    if (shortcut.targetId === 'downloads-folder') {
+      return <Folder size={iconSize} className="text-emerald-400 drop-shadow" />;
+    }
+    if (shortcut.targetId === 'projects-folder') {
+      return <Folder size={iconSize} className="text-purple-400 drop-shadow" />;
+    }
+    if (shortcut.targetId === 'reports-folder') {
+      return <Folder size={iconSize} className="text-amber-400 drop-shadow" />;
+    }
     if (shortcut.targetType === 'folder' || shortcut.isDirectory || iconId === 'folder') {
       return <Folder size={iconSize} className="text-amber-400 drop-shadow" />;
     }
     if (shortcut.targetType === 'file') {
+      const name = shortcut.name.toLowerCase();
+      if (name.endsWith('.docx') || shortcut.mimeType?.includes('wordprocessingml')) {
+        return <OrionAppIcon app="orion-documents" size={iconSize} active={isSelected} />;
+      }
+      if (name.endsWith('.xlsx') || shortcut.mimeType?.includes('spreadsheetml')) {
+        return <OrionAppIcon app="orion-sheets" size={iconSize} active={isSelected} />;
+      }
+      if (name.endsWith('.pptx') || shortcut.mimeType?.includes('presentationml')) {
+        return <OrionAppIcon app="orion-slides" size={iconSize} active={isSelected} />;
+      }
+      if (name.endsWith('.pdf') || shortcut.mimeType?.includes('pdf')) {
+        return <OrionAppIcon app="orion-pdf" size={iconSize} active={isSelected} />;
+      }
       return <FileText size={iconSize} className="text-cyan-400 drop-shadow" />;
     }
     if (shortcut.targetType === 'application' || shortcut.targetType === 'system') {
@@ -501,8 +550,8 @@ export function DesktopWorkspace() {
   };
 
   // Clamped positions for portals
-  const clampedDesktopPos = desktopMenu ? clampContextMenu(desktopMenu.x, desktopMenu.y, 220, 310) : { x: 0, y: 0 };
-  const clampedItemPos = itemMenu ? clampContextMenu(itemMenu.x, itemMenu.y, 220, 250) : { x: 0, y: 0 };
+  const clampedDesktopPos = desktopMenu ? clampContextMenu(desktopMenu.x, desktopMenu.y, 240, 420) : { x: 0, y: 0 };
+  const clampedItemPos = itemMenu ? clampContextMenu(itemMenu.x, itemMenu.y, 220, 290) : { x: 0, y: 0 };
 
   return (
     <div
@@ -580,7 +629,7 @@ export function DesktopWorkspace() {
         <div
           data-orion-context-menu="true"
           data-testid="desktop-context-menu"
-          className="fixed z-[2147483500] bg-os-surface/98 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.05)] py-1.5 w-56 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto"
+          className="fixed z-[2147483500] bg-os-surface/98 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.05)] py-1.5 w-60 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto"
           style={{
             top: `${clampedDesktopPos.y}px`,
             left: `${clampedDesktopPos.x}px`,
@@ -589,7 +638,7 @@ export function DesktopWorkspace() {
           onClick={e => e.stopPropagation()}
         >
           <div className="px-3 py-1.5 text-[10px] font-bold text-os-text-muted uppercase tracking-wider flex items-center justify-between border-b border-os-border/40 mb-0.5">
-            <span className="text-os-text-primary">Desktop Workspace</span>
+            <span className="text-os-text-primary">Orion Desktop</span>
             {isTablet && <span className="text-os-accent text-[9px] bg-os-accent/10 px-1.5 py-0.5 rounded">Touch</span>}
           </div>
 
@@ -638,16 +687,7 @@ export function DesktopWorkspace() {
 
           <div className="h-px bg-os-border/50 my-1 mx-2" />
 
-          {/* New Item */}
-          <button
-            type="button"
-            onClick={handleCreateDesktopFile}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
-          >
-            <Plus size={14} className="text-cyan-400" />
-            <span>New Text Document</span>
-          </button>
-
+          {/* New Folder & Documents */}
           <button
             type="button"
             onClick={handleCreateDesktopFolder}
@@ -655,6 +695,42 @@ export function DesktopWorkspace() {
           >
             <Plus size={14} className="text-amber-400" />
             <span>New Folder</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleCreateDesktopFile('docx')}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
+          >
+            <Plus size={14} className="text-blue-400" />
+            <span>New Document (.docx)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleCreateDesktopFile('xlsx')}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
+          >
+            <Plus size={14} className="text-emerald-400" />
+            <span>New Spreadsheet (.xlsx)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleCreateDesktopFile('pptx')}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
+          >
+            <Plus size={14} className="text-amber-500" />
+            <span>New Presentation (.pptx)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleCreateDesktopFile('txt')}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
+          >
+            <Plus size={14} className="text-cyan-400" />
+            <span>New Text Document (.txt)</span>
           </button>
 
           <div className="h-px bg-os-border/50 my-1 mx-2" />
@@ -703,24 +779,29 @@ export function DesktopWorkspace() {
             <span>Open</span>
           </button>
 
-          {(itemMenu.shortcut.targetType === 'file' || itemMenu.shortcut.targetId === 'notepad') && (
+          {itemMenu.shortcut.targetType === 'file' && (
             <button
               type="button"
               onClick={() => {
-                openApplication('notepad');
-                if (itemMenu.shortcut.targetType === 'file') {
-                  setTimeout(() => {
-                    window.dispatchEvent(
-                      new CustomEvent('orion:open-file', { detail: { fileId: itemMenu.shortcut.targetId } })
-                    );
-                  }, 150);
-                }
+                const name = itemMenu.shortcut.name.toLowerCase();
+                let app = 'notepad';
+                if (name.endsWith('.docx')) app = 'orion-documents';
+                else if (name.endsWith('.xlsx')) app = 'orion-sheets';
+                else if (name.endsWith('.pptx')) app = 'orion-slides';
+                else if (name.endsWith('.pdf')) app = 'orion-pdf';
+
+                openApplication(app);
+                setTimeout(() => {
+                  window.dispatchEvent(
+                    new CustomEvent('orion:open-file', { detail: { fileId: itemMenu.shortcut.targetId } })
+                  );
+                }, 150);
                 setItemMenu(null);
               }}
               className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
             >
               <FileText size={14} className="text-cyan-400" />
-              <span>Edit in Notepad</span>
+              <span>Edit / View Content</span>
             </button>
           )}
 

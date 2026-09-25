@@ -98,92 +98,121 @@ export class DesktopWorkspaceService {
     const initKey = `${activeTenant}:${activeEnv}:${workspaceId}`;
 
     const existing = await this.listShortcuts(workspaceId, activeTenant, activeEnv);
-    if (existing.length > 0) {
-      return existing;
+    if (existing.length === 0) {
+      // Seed default 11 applications mapped per workspace
+      const defaultApps: Array<{ id: string; name: string; type: DesktopItemType; iconId: string; isDir: boolean }> = [
+        { id: 'orion-computer', name: 'This Computer', type: 'system', iconId: 'computer', isDir: false },
+        { id: 'file-manager', name: 'File Manager', type: 'system', iconId: 'folder', isDir: true },
+        { id: 'notepad', name: 'Notepad', type: 'application', iconId: 'notepad', isDir: false },
+        { id: 'inventory', name: 'Inventory', type: 'application', iconId: 'inventory', isDir: false },
+        { id: 'documents-folder', name: 'Documents', type: 'folder', iconId: 'documents-folder', isDir: true },
+        { id: 'downloads-folder', name: 'Downloads', type: 'folder', iconId: 'downloads-folder', isDir: true },
+        { id: 'projects-folder', name: 'Projects', type: 'folder', iconId: 'projects-folder', isDir: true },
+        { id: 'reports-folder', name: 'Reports', type: 'folder', iconId: 'reports-folder', isDir: true },
+        { id: 'command-center', name: 'Supply Chain', type: 'application', iconId: 'command-center', isDir: false },
+        { id: 'intelligence-center', name: 'AI', type: 'application', iconId: 'intelligence-center', isDir: false },
+        { id: 'copilot', name: 'Copilot', type: 'application', iconId: 'copilot', isDir: false },
+        { id: 'settings', name: 'Settings', type: 'application', iconId: 'settings', isDir: false },
+        { id: 'recycle-bin', name: 'Recycle Bin', type: 'system', iconId: 'recycle-bin', isDir: false },
+      ];
+
+      const now = new Date().toISOString();
+      const effectiveHeight = DEFAULT_GRID_CONFIG.cellHeight + DEFAULT_GRID_CONFIG.gapY;
+      const effectiveWidth = DEFAULT_GRID_CONFIG.cellWidth + DEFAULT_GRID_CONFIG.gapX;
+      const maxRows = Math.max(1, Math.floor((viewportHeight - DEFAULT_GRID_CONFIG.paddingY - DEFAULT_GRID_CONFIG.bottomPadding) / effectiveHeight));
+
+      for (let i = 0; i < defaultApps.length; i++) {
+        const item = defaultApps[i];
+        const col = Math.floor(i / maxRows);
+        const row = i % maxRows;
+
+        const x = DEFAULT_GRID_CONFIG.paddingX + col * effectiveWidth;
+        const y = DEFAULT_GRID_CONFIG.paddingY + row * effectiveHeight;
+
+        const shortcut: DesktopShortcut = {
+          id: `shortcut_${workspaceId}_${item.id}_${activeTenant}`,
+          type: item.type,
+          targetType: item.type,
+          targetId: item.id,
+          name: item.name,
+          iconId: item.iconId,
+          isDirectory: item.isDir,
+          parentId: null,
+          path: `/Desktop/${item.name}`,
+          mimeType: null,
+          size: 0,
+          x,
+          y,
+          workspaceId,
+          ownerId: 'system',
+          tenantId: activeTenant,
+          organizationId: activeTenant,
+          environment: activeEnv,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        await scmPersistenceService.saveRecord('desktop_items', shortcut.id, shortcut);
+      }
     }
 
-    // Default applications mapped per workspace
-    const defaultApps: Record<WorkspaceId, Array<{ id: string; name: string; type: DesktopItemType; iconId: string; isDir: boolean }>> = {
-      operations: [
-        { id: 'orion-computer', name: 'This Computer', type: 'system', iconId: 'computer', isDir: false },
-        { id: 'file-manager', name: 'File Explorer', type: 'system', iconId: 'folder', isDir: true },
-        { id: 'notepad', name: 'Notepad', type: 'application', iconId: 'notepad', isDir: false },
-        { id: 'command-center', name: 'Command Center', type: 'application', iconId: 'command-center', isDir: false },
-        { id: 'inventory', name: 'Inventory', type: 'application', iconId: 'inventory', isDir: false },
-        { id: 'procurement', name: 'Procurement', type: 'application', iconId: 'procurement', isDir: false },
-        { id: 'shipments', name: 'Shipments', type: 'application', iconId: 'shipments', isDir: false },
-        { id: 'suppliers', name: 'Suppliers', type: 'application', iconId: 'suppliers', isDir: false },
-        { id: 'recycle-bin', name: 'Recycle Bin', type: 'system', iconId: 'recycle-bin', isDir: false },
-      ],
-      intelligence: [
-        { id: 'orion-computer', name: 'This Computer', type: 'system', iconId: 'computer', isDir: false },
-        { id: 'file-manager', name: 'File Explorer', type: 'system', iconId: 'folder', isDir: true },
-        { id: 'notepad', name: 'Notepad', type: 'application', iconId: 'notepad', isDir: false },
-        { id: 'intelligence-center', name: 'Intelligence Center', type: 'application', iconId: 'intelligence-center', isDir: false },
-        { id: 'predictions', name: 'Predictions', type: 'application', iconId: 'predictions', isDir: false },
-        { id: 'demand-forecasting', name: 'Demand Forecasting', type: 'application', iconId: 'demand-forecasting', isDir: false },
-        { id: 'scenarios', name: 'Scenarios', type: 'application', iconId: 'scenarios', isDir: false },
-        { id: 'digital-twin', name: 'Digital Twin', type: 'application', iconId: 'digital-twin', isDir: false },
-        { id: 'recycle-bin', name: 'Recycle Bin', type: 'system', iconId: 'recycle-bin', isDir: false },
-      ],
-      control: [
-        { id: 'orion-computer', name: 'This Computer', type: 'system', iconId: 'computer', isDir: false },
-        { id: 'file-manager', name: 'File Explorer', type: 'system', iconId: 'folder', isDir: true },
-        { id: 'notepad', name: 'Notepad', type: 'application', iconId: 'notepad', isDir: false },
-        { id: 'control-center', name: 'Control Policy', type: 'application', iconId: 'control-center', isDir: false },
-        { id: 'exceptions', name: 'Exceptions', type: 'application', iconId: 'exceptions', isDir: false },
-        { id: 'decision-center', name: 'Decisions', type: 'application', iconId: 'decision-center', isDir: false },
-        { id: 'observability', name: 'Observability', type: 'application', iconId: 'observability', isDir: false },
-        { id: 'settings', name: 'System Settings', type: 'application', iconId: 'settings', isDir: false },
-        { id: 'recycle-bin', name: 'Recycle Bin', type: 'system', iconId: 'recycle-bin', isDir: false },
-      ],
-    };
+    // Auto-sync files and folders present in the system "desktop" folder
+    try {
+      const { orionFileSystemService } = await import('./OrionFileSystemService');
+      const desktopFolder = await orionFileSystemService.getSystemFolder('desktop', activeTenant, activeEnv);
+      if (desktopFolder) {
+        const [desktopFiles, desktopSubFolders] = await Promise.all([
+          orionFileSystemService.listFiles(desktopFolder.id, activeTenant, activeEnv),
+          orionFileSystemService.listFolders(desktopFolder.id, activeTenant, activeEnv),
+        ]);
 
-    const targetList = defaultApps[workspaceId] || defaultApps.operations;
-    const now = new Date().toISOString();
-    const createdShortcuts: DesktopShortcut[] = [];
+        const updatedList = await this.listShortcuts(workspaceId, activeTenant, activeEnv);
+        const existingTargetIds = new Set(updatedList.map(s => s.targetId));
 
-    const effectiveHeight = DEFAULT_GRID_CONFIG.cellHeight + DEFAULT_GRID_CONFIG.gapY;
-    const effectiveWidth = DEFAULT_GRID_CONFIG.cellWidth + DEFAULT_GRID_CONFIG.gapX;
-    const maxRows = Math.max(1, Math.floor((viewportHeight - DEFAULT_GRID_CONFIG.paddingY - DEFAULT_GRID_CONFIG.bottomPadding) / effectiveHeight));
+        for (const file of desktopFiles) {
+          if (!existingTargetIds.has(file.id)) {
+            await this.addShortcut({
+              targetType: 'file',
+              targetId: file.id,
+              name: `${file.name}.${file.extension}`,
+              iconId: 'notepad',
+              isDirectory: false,
+              path: `/Desktop/${file.name}.${file.extension}`,
+              mimeType: file.mimeType,
+              size: file.size,
+              workspaceId,
+              tenantId: activeTenant,
+              environment: activeEnv,
+              viewportHeight,
+            });
+          }
+        }
 
-    for (let i = 0; i < targetList.length; i++) {
-      const item = targetList[i];
-      const col = Math.floor(i / maxRows);
-      const row = i % maxRows;
-
-      const x = DEFAULT_GRID_CONFIG.paddingX + col * effectiveWidth;
-      const y = DEFAULT_GRID_CONFIG.paddingY + row * effectiveHeight;
-
-      const shortcut: DesktopShortcut = {
-        id: `shortcut_${workspaceId}_${item.id}_${activeTenant}`,
-        type: item.type,
-        targetType: item.type,
-        targetId: item.id,
-        name: item.name,
-        iconId: item.iconId,
-        isDirectory: item.isDir,
-        parentId: null,
-        path: `/Desktop/${item.name}`,
-        mimeType: null,
-        size: 0,
-        x,
-        y,
-        workspaceId,
-        ownerId: 'system',
-        tenantId: activeTenant,
-        organizationId: activeTenant,
-        environment: activeEnv,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      await scmPersistenceService.saveRecord('desktop_items', shortcut.id, shortcut);
-      createdShortcuts.push(shortcut);
+        for (const subFolder of desktopSubFolders) {
+          if (!existingTargetIds.has(subFolder.id)) {
+            await this.addShortcut({
+              targetType: 'folder',
+              targetId: subFolder.id,
+              name: subFolder.name,
+              iconId: 'folder',
+              isDirectory: true,
+              path: `/Desktop/${subFolder.name}`,
+              mimeType: null,
+              size: 0,
+              workspaceId,
+              tenantId: activeTenant,
+              environment: activeEnv,
+              viewportHeight,
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Desktop system folder auto-sync deferred:', err);
     }
 
     this.initializedWorkspaces.add(initKey);
-    return createdShortcuts;
+    return await this.listShortcuts(workspaceId, activeTenant, activeEnv);
   }
 
   /**

@@ -78,16 +78,14 @@ interface WindowManagerContextProps {
 const WindowManagerContext = createContext<WindowManagerContextProps | undefined>(undefined);
 
 const DEFAULT_DOCK_PINNED = [
+  'file-manager',
+  'orion-documents',
+  'orion-sheets',
+  'orion-slides',
+  'orion-ai',
   'command-center',
   'inventory',
-  'procurement',
-  'suppliers',
-  'shipments',
-  'exceptions',
-  'world-model',
-  'reports',
-  'settings',
-  'integrations'
+  'settings'
 ];
 
 const normalizeAppId = (id: string): string => {
