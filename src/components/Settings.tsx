@@ -17,7 +17,7 @@ import { SettingsCurrencyConverter } from "./SettingsCurrencyConverter";
 import { DisplayPreferencesControls } from '../os/DisplayPreferences';
 import { cn } from '../lib/utils';
 import { userRepository } from '../repositories/UserRepository';
-import Cropper from 'react-easy-crop';
+import { AvatarEditorModal } from './ui/AvatarEditorModal';
 import { TimeWorldPanel } from './TimeWorld';
 import { useOptionalWindowManager } from '../os/WindowManagerContext';
 
@@ -59,32 +59,7 @@ export type SettingsSection =
   | 'admin_security'
   | 'admin_database';
 
-const getCroppedImg = async (imageSrc: string, pixelCrop: any): Promise<string> => {
-  const image = new Image();
-  image.src = imageSrc;
-  await new Promise((resolve) => (image.onload = resolve));
 
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return '';
-
-  canvas.width = pixelCrop.width;
-  canvas.height = pixelCrop.height;
-
-  ctx.drawImage(
-    image,
-    pixelCrop.x,
-    pixelCrop.y,
-    pixelCrop.width,
-    pixelCrop.height,
-    0,
-    0,
-    pixelCrop.width,
-    pixelCrop.height
-  );
-
-  return canvas.toDataURL('image/jpeg');
-};
 
 export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initialSection = 'account' }) => {
   const { user, profile, organization, hasRole, refreshSession } = useAuth();
@@ -248,16 +223,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
     e.target.value = '';
   };
 
-  const handleSaveCroppedImage = async () => {
-    if (!selectedImage || !croppedAreaPixels) return;
-    try {
-      const croppedImage = await getCroppedImg(selectedImage, croppedAreaPixels);
-      setAvatarUrl(croppedImage);
-      setSelectedImage(null);
-    } catch (e) {
-      showToast('Failed to crop image', 'error');
-    }
-  };
+
 
   const saveProfileData = async () => {
     if (!profile) return;
@@ -1176,65 +1142,18 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
         )}
       </div>
 
-      {/* Image Crop Modal */}
-      {selectedImage && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-[#12151a] border border-white/[0.1] rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between p-4 border-b border-white/[0.08] bg-white/[0.02]">
-              <h3 className="font-semibold text-xs text-white">Adjust Profile Avatar</h3>
-              <button 
-                onClick={() => setSelectedImage(null)}
-                className="p-1 rounded-md hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            
-            <div className="relative w-full h-[320px] bg-black">
-              <Cropper
-                image={selectedImage}
-                crop={crop}
-                zoom={zoom}
-                aspect={1}
-                cropShape="round"
-                showGrid={false}
-                onCropChange={setCrop}
-                onCropComplete={(_area, pixels) => setCroppedAreaPixels(pixels)}
-                onZoomChange={setZoom}
-              />
-            </div>
-            
-            <div className="p-4 bg-white/[0.02] flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 flex-1">
-                <span className="text-xs text-slate-400 font-medium">Zoom</span>
-                <input
-                  type="range"
-                  value={zoom}
-                  min={1}
-                  max={3}
-                  step={0.1}
-                  onChange={(e) => setZoom(Number(e.target.value))}
-                  className="w-full accent-sky-400 h-1 bg-white/[0.1] rounded-lg"
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setSelectedImage(null)}
-                  className="px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSaveCroppedImage}
-                  className="px-4 py-1.5 bg-sky-500 hover:bg-sky-400 text-black text-xs font-semibold rounded-xl transition-colors cursor-pointer"
-                >
-                  Save Picture
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Reusable Centered Avatar Editor Modal */}
+      <AvatarEditorModal
+        isOpen={Boolean(selectedImage)}
+        imageSrc={selectedImage}
+        onClose={() => setSelectedImage(null)}
+        onApply={(croppedImage) => {
+          setAvatarUrl(croppedImage);
+          setSelectedImage(null);
+        }}
+        title="Adjust Profile Avatar"
+        applyButtonText="Save Picture"
+      />
     </div>
   );
 };

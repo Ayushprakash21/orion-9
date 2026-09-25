@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Search, Filter, Plus, Users as UsersIcon, X, Trash2, Edit2, 
-  Key, Eye, EyeOff, Shield, Building2, CheckCircle, AlertCircle, Power 
+  Key, Eye, EyeOff, Shield, Building2, CheckCircle, AlertCircle, Power, Camera, User 
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useToast } from '../../store/ToastContext';
@@ -9,6 +9,7 @@ import { useAuth } from '../../store/AuthContext';
 import { userService } from '../../services/userService';
 import { organizationService } from '../../services/organizationService';
 import { UserProfile, RoleCode, Organization } from '../../types/auth';
+import { AvatarEditorModal } from '../ui/AvatarEditorModal';
 
 export const AdminUsers = () => {
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -54,7 +55,27 @@ export const AdminUsers = () => {
   const [editRole, setEditRole] = useState<RoleCode>('user');
   const [editOrganizationId, setEditOrganizationId] = useState('');
   const [editStatus, setEditStatus] = useState<'active' | 'inactive'>('active');
+  const [editAvatarUrl, setEditAvatarUrl] = useState<string | null>(null);
+  const [adminSelectedImage, setAdminSelectedImage] = useState<string | null>(null);
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
+  const adminAvatarInputRef = useRef<HTMLInputElement>(null);
+
+  const handleAdminAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('Profile picture must be 5 MB or smaller.', 'error');
+        e.target.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAdminSelectedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = '';
+  };
 
   // Reset password state
   const [resetPass, setResetPass] = useState('');
@@ -186,6 +207,7 @@ export const AdminUsers = () => {
     setEditRole(user.role || 'user');
     setEditOrganizationId(user.organizationId || (organizations[0]?.id || ''));
     setEditStatus((user.status === 'inactive' ? 'inactive' : 'active') as 'active' | 'inactive');
+    setEditAvatarUrl(user.avatarUrl || null);
     setEditErrors({});
   };
 
@@ -231,7 +253,8 @@ export const AdminUsers = () => {
         role: editRole,
         organizationId: editOrganizationId,
         organizationName: selectedOrg ? selectedOrg.name : editingUser.organizationName,
-        status: editStatus
+        status: editStatus,
+        avatarUrl: editAvatarUrl
       });
 
       showToast('User updated successfully.', 'success');
@@ -827,6 +850,47 @@ export const AdminUsers = () => {
             </div>
             
             <form onSubmit={handleUpdateUser} className="p-6 space-y-4 overflow-y-auto flex-1">
+              {/* Profile Avatar Crop / Upload Section */}
+              <div className="flex items-center gap-4 pb-2 border-b border-os-border">
+                <div className="relative group shrink-0">
+                  <div className="w-14 h-14 rounded-full bg-os-surface border border-os-border overflow-hidden flex items-center justify-center shadow-inner">
+                    {editAvatarUrl ? (
+                      <img src={editAvatarUrl} alt="User Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={24} className="text-os-text-muted" />
+                    )}
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={() => adminAvatarInputRef.current?.click()}
+                    className="absolute inset-0 bg-black/70 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    title="Adjust User Avatar"
+                  >
+                    <Camera size={16} className="text-white" />
+                  </button>
+                  <input 
+                    type="file" 
+                    ref={adminAvatarInputRef} 
+                    onChange={handleAdminAvatarUpload} 
+                    accept="image/*" 
+                    className="hidden" 
+                  />
+                </div>
+                <div>
+                  <h4 className="text-xs font-semibold text-os-text-primary">Profile Avatar</h4>
+                  <p className="text-[11px] text-os-text-muted">Click image to crop/adjust user avatar.</p>
+                  {editAvatarUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setEditAvatarUrl(null)}
+                      className="text-[10px] text-red-400 hover:text-red-300 transition-colors mt-0.5 cursor-pointer block"
+                    >
+                      Remove Photo
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-semibold uppercase tracking-wider text-os-text-secondary">Full Name *</label>
@@ -1097,6 +1161,19 @@ export const AdminUsers = () => {
           </div>
         </div>
       )}
+
+      {/* Avatar Editor Modal for Admin User Management */}
+      <AvatarEditorModal
+        isOpen={Boolean(adminSelectedImage)}
+        imageSrc={adminSelectedImage}
+        onClose={() => setAdminSelectedImage(null)}
+        onApply={(croppedImage) => {
+          setEditAvatarUrl(croppedImage);
+          setAdminSelectedImage(null);
+        }}
+        title="Adjust User Avatar"
+        applyButtonText="Save Avatar"
+      />
     </div>
   );
 };
