@@ -680,8 +680,10 @@ The image must work as a desktop wallpaper and must not look like a website hero
 
       return res.json({
         candidates: candidateResults.map(c => ({
+          candidateId: c.id,
           id: c.id,
           name: c.name,
+          assetUrl: c.imageUrl,
           imageUrl: c.imageUrl,
           thumbnailUrl: c.thumbnailUrl,
           mimeType: c.mimeType

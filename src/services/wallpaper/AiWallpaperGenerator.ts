@@ -169,7 +169,7 @@ export class AiWallpaperGenerator {
    * Validates and normalizes candidate assets into 16:9 / 2560x1440 presentation format.
    */
   private async processAndValidateCandidates(
-    rawCandidates: Array<{ id?: string; name?: string; imageUrl: string; thumbnailUrl?: string }>,
+    rawCandidates: Array<{ id?: string; candidateId?: string; name?: string; imageUrl?: string; assetUrl?: string; thumbnailUrl?: string }>,
     params: AiGenerationParams
   ): Promise<WallpaperCandidate[]> {
     const width = params.width || 2560;
@@ -188,10 +188,15 @@ export class AiWallpaperGenerator {
 
     for (let i = 0; i < rawCandidates.length; i++) {
       const raw = rawCandidates[i];
-      const candidateId = raw.id || `ai_wp_${timestamp}_${String.fromCharCode(65 + i)}`;
+      const candidateId = raw.candidateId || raw.id || `ai_wp_${timestamp}_${String.fromCharCode(65 + i)}`;
+      const imgUrl = raw.assetUrl || raw.imageUrl || '';
+
+      if (!imgUrl) {
+        throw new Error(`AI generated image candidate ${i + 1} has empty image URL.`);
+      }
       
       // Validate image decoding before returning candidate
-      const isValid = await this.validateImageDecode(raw.imageUrl);
+      const isValid = await this.validateImageDecode(imgUrl);
       if (!isValid) {
         throw new Error(`AI generated image candidate ${i + 1} failed image decoding validation.`);
       }
@@ -199,8 +204,8 @@ export class AiWallpaperGenerator {
       validated.push({
         candidateId,
         name: raw.name || `${style} Vision ${String.fromCharCode(65 + i)}`,
-        assetUrl: raw.imageUrl,
-        thumbnailUrl: raw.thumbnailUrl || raw.imageUrl,
+        assetUrl: imgUrl,
+        thumbnailUrl: raw.thumbnailUrl || imgUrl,
         width,
         height,
         prompt,
