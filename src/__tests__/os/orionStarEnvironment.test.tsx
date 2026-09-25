@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { OrionLiveLoginBackground, DEFAULT_LIVE_BACKGROUND_CONFIG } from '../../components/brand/OrionLiveLoginBackground';
 import { Login } from '../../components/auth/Login';
 
@@ -49,8 +49,7 @@ describe('Orion Live Login Star Environment', () => {
     const loginCode = Login.toString();
     expect(loginCode).toContain('username');
     expect(loginCode).toContain('password');
-    expect(loginCode).toContain('Enter Orion');
-    expect(loginCode).toContain('Remember me');
+    expect(loginCode).toContain('rememberMe');
   });
 
   // 8. Reduced-motion disables animation
@@ -95,18 +94,17 @@ describe('Orion Live Login Star Environment', () => {
     expect(loginCode).toContain('Shut Down');
   });
 
-  // 15. Existing language selector unchanged
-  it('15. Login includes English language selector control', () => {
+  // 15. Functional language selector dropdown
+  it('15. Login includes functional language selector dropdown', () => {
     const loginCode = Login.toString();
-    expect(loginCode).toContain('English');
-    expect(loginCode).toContain('Select language');
+    expect(loginCode).toContain('SUPPORTED_LANGUAGES');
+    expect(loginCode).toContain('selectLanguage');
   });
 
-  // 16. Privacy / Terms / Help remain functional
-  it('16. Login includes Privacy, Terms, and Help links', () => {
+  // 16. Privacy / Terms / Help removed from login footer per OS spec
+  it('16. Privacy, Terms, and Help links are absent from login footer', () => {
     const loginCode = Login.toString();
-    expect(loginCode).toContain('Privacy');
-    expect(loginCode).toContain('Terms');
-    expect(loginCode).toContain('Help');
+    expect(loginCode).not.toContain('href="#"');
+    expect(loginCode).not.toContain('Privacy | Terms');
   });
 });
