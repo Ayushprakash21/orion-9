@@ -11,6 +11,7 @@ import {
   User,
   Lock,
   Globe,
+  ChevronDown,
   Power
 } from "lucide-react";
 
@@ -67,64 +68,79 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="w-screen h-[100dvh] max-h-[100dvh] flex flex-col overflow-hidden font-sans relative selection:bg-blue-500/30">
+    <div className="w-screen h-[100dvh] max-h-[100dvh] flex flex-col justify-between overflow-hidden font-sans relative selection:bg-blue-500/30 bg-[#02050a] text-white">
       
-      {/* Live Ambient Background */}
+      {/* Subtle Live Orion Star Environment Background */}
       <OrionLiveLoginBackground 
         authState={authState}
         isInputFocused={isInputFocused} 
         isTyping={isTyping}
       />
 
-      {/* Top Bar */}
-      <header className="relative z-10 w-full flex items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-3">
-          <img src="/orion-9-brand-logo.png" alt="Orion-9 Logo" className="h-9 w-auto drop-shadow-md" />
+      {/* Header — Top Bar */}
+      <header className="relative z-10 w-full flex items-center justify-between px-8 py-6 select-none">
+        {/* Top Left Branding */}
+        <div className="flex items-center gap-3.5">
+          <img 
+            src="/orion-9-brand-logo.png" 
+            alt="Orion-9 Logo" 
+            className="h-8 w-auto drop-shadow-[0_0_12px_rgba(59,130,246,0.5)] orion-brand-image" 
+          />
           <div className="flex flex-col">
-            <span className="text-white font-bold text-lg leading-tight tracking-wide drop-shadow-sm">ORION-9</span>
-            <span className="text-white/80 text-[10px] uppercase tracking-widest font-medium drop-shadow-sm">Supply Chain Operating System</span>
+            <span className="text-white font-bold text-base tracking-wider leading-none drop-shadow-sm">
+              ORION-9
+            </span>
+            <span className="text-white/60 text-[9.5px] uppercase tracking-[0.25em] font-medium mt-1">
+              SUPPLY CHAIN OPERATING SYSTEM
+            </span>
           </div>
         </div>
         
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 backdrop-blur-md transition-colors cursor-pointer text-white text-xs font-medium">
-          <Globe className="w-4 h-4" />
-          <span>English ⌄</span>
+        {/* Top Right Language Selector */}
+        <div 
+          role="button"
+          tabIndex={0}
+          className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 backdrop-blur-md transition-all duration-200 cursor-pointer text-white/90 hover:text-white text-xs font-medium group shadow-lg"
+          aria-label="Select language"
+        >
+          <Globe className="w-3.5 h-3.5 text-white/70 group-hover:text-white transition-colors" />
+          <span>English</span>
+          <ChevronDown className="w-3 h-3 text-white/50 group-hover:text-white transition-colors ml-0.5" />
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 w-full">
+      {/* Main Content — Floating Center Authentication Card */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 w-full my-auto">
         
-        {/* Center Hero */}
-        <div className="text-center mb-10">
-          <h1 className="text-5xl md:text-7xl font-light text-white drop-shadow-lg mb-4 tracking-tight">Orion-9</h1>
-          <p className="tracking-[0.3em] text-white/80 text-xs sm:text-sm font-medium uppercase drop-shadow-md">
-            A   S M A R T E R   S U P P L Y   C H A I N   W O R L D
-          </p>
-        </div>
-
-        {/* Center Card */}
-        <div className="backdrop-blur-xl bg-white/20 dark:bg-black/30 border border-white/30 dark:border-white/15 shadow-2xl rounded-2xl p-8 max-w-md w-full mx-4">
+        <div className="backdrop-blur-2xl bg-[#090d16]/70 border border-white/15 shadow-[0_0_50px_rgba(0,0,0,0.85)] rounded-2xl p-8 max-w-[400px] w-full mx-4 relative overflow-hidden transition-all duration-300">
           
-          {/* Avatar */}
-          <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 rounded-full bg-white/10 border border-white/20 flex items-center justify-center shadow-lg backdrop-blur-md">
-              <User className="w-8 h-8 text-white/90" />
-            </div>
+          {/* Card Top Brand & Greeting */}
+          <div className="flex flex-col items-center justify-center mb-7 select-none">
+            <img 
+              src="/orion-9-brand-logo.png" 
+              alt="Orion-9" 
+              className="h-10 w-auto mb-2.5 drop-shadow-[0_0_15px_rgba(59,130,246,0.6)]" 
+            />
+            <span className="text-white font-extrabold tracking-[0.25em] text-lg leading-tight">
+              ORION - 9
+            </span>
+            <span className="text-white/60 text-xs font-normal mt-1 tracking-wide">
+              Welcome back
+            </span>
           </div>
 
-          <form className="space-y-5" onSubmit={handleSubmit} noValidate>
+          <form className="space-y-4" onSubmit={handleSubmit} noValidate>
             {errorMsg && (
-              <div className="p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-white text-xs flex items-start gap-2 font-medium backdrop-blur-md">
-                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              <div className="p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-white text-xs flex items-start gap-2 font-medium backdrop-blur-md animate-fadeIn">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
                 <span>{errorMsg}</span>
               </div>
             )}
             
-            {/* Username */}
+            {/* Username Input */}
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/60">
-                <User className="w-5 h-5" />
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/40">
+                <User className="w-4 h-4" />
               </div>
               <input
                 id="username"
@@ -140,15 +156,15 @@ export const Login: React.FC = () => {
                 }}
                 onFocus={() => setIsInputFocused(true)}
                 onBlur={() => setIsInputFocused(false)}
-                className="w-full pl-11 pr-4 py-3.5 bg-white/40 dark:bg-white/10 border border-white/20 rounded-xl text-sm text-white placeholder:text-white/60 focus:outline-none focus:bg-white/50 focus:border-white/50 transition-all shadow-sm"
-                placeholder="Username or email"
+                className="w-full pl-10 pr-4 py-3 bg-[#111622]/80 border border-white/15 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/40 transition-all shadow-inner"
+                placeholder="user"
               />
             </div>
             
-            {/* Password */}
+            {/* Password Input */}
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/60">
-                <Lock className="w-5 h-5" />
+              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/40">
+                <Lock className="w-4 h-4" />
               </div>
               <input
                 id="password"
@@ -164,16 +180,16 @@ export const Login: React.FC = () => {
                 }}
                 onFocus={() => setIsInputFocused(true)}
                 onBlur={() => setIsInputFocused(false)}
-                className="w-full pl-11 pr-11 py-3.5 bg-white/40 dark:bg-white/10 border border-white/20 rounded-xl text-sm text-white placeholder:text-white/60 focus:outline-none focus:bg-white/50 focus:border-white/50 transition-all shadow-sm"
-                placeholder="Password"
+                className="w-full pl-10 pr-10 py-3 bg-[#111622]/80 border border-white/15 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-blue-500/60 focus:ring-1 focus:ring-blue-500/40 transition-all shadow-inner"
+                placeholder="••••••••"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-white/60 hover:text-white transition-colors cursor-pointer"
+                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-white/40 hover:text-white transition-colors cursor-pointer"
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
             </div>
             
@@ -181,7 +197,7 @@ export const Login: React.FC = () => {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-11 flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-medium text-sm transition-all duration-200 rounded-xl shadow-lg disabled:opacity-50 cursor-pointer border border-blue-400/50"
+              className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 active:from-blue-700 active:to-blue-600 text-white font-medium text-sm transition-all duration-200 rounded-xl shadow-[0_0_25px_rgba(37,99,235,0.45)] disabled:opacity-50 cursor-pointer border border-blue-400/40 flex items-center justify-center gap-2 mt-2"
             >
               {isSubmitting ? (
                 <>
@@ -190,28 +206,25 @@ export const Login: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <span>Sign In</span>
+                  <span>Enter Orion</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </button>
 
-            {/* Bottom Form Row */}
-            <div className="flex items-center justify-between pt-1">
-              <label className="flex items-center gap-2 cursor-pointer group">
-                <div className="relative flex items-center justify-center w-4 h-4 rounded border border-white/40 bg-white/10 group-hover:bg-white/20 transition-colors">
-                  <input 
-                    type="checkbox" 
-                    className="absolute opacity-0 cursor-pointer"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                  />
-                  {rememberMe && <div className="w-2 h-2 bg-white rounded-sm" />}
-                </div>
-                <span className="text-white text-xs font-medium">Remember me</span>
+            {/* Bottom Form Links */}
+            <div className="flex items-center justify-between pt-1.5 select-none">
+              <label className="flex items-center gap-2 cursor-pointer group text-white/70 hover:text-white transition-colors">
+                <input 
+                  type="checkbox" 
+                  className="rounded border-white/20 bg-white/10 text-blue-500 focus:ring-0 w-3.5 h-3.5 cursor-pointer accent-blue-600"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <span className="text-xs font-normal">Remember me</span>
               </label>
               
-              <a href="#" className="text-white/80 hover:text-white text-xs font-medium transition-colors">
+              <a href="#" className="text-white/60 hover:text-white text-xs font-normal transition-colors">
                 Forgot password?
               </a>
             </div>
@@ -220,30 +233,27 @@ export const Login: React.FC = () => {
         </div>
       </main>
 
-      {/* Bottom Bar */}
-      <footer className="relative z-10 w-full px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+      {/* Footer — Bottom Bar */}
+      <footer className="relative z-10 w-full px-8 py-6 flex items-center justify-between select-none">
         
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={triggerShutdown}
-            title="Shut Down"
-            className="group flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-red-500/80 border border-white/20 transition-all duration-200 backdrop-blur-md shadow-md cursor-pointer text-white/80 hover:text-white"
-          >
-            <Power className="w-4 h-4" />
-          </button>
-          <div className="flex items-center gap-3 text-white/70 text-[11px] uppercase tracking-wider font-medium">
-            <span>Built for a More Resilient Tomorrow</span>
-            <div className="w-12 h-px bg-white/20 hidden sm:block" />
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-4 text-white/70 text-xs font-medium">
-          <a href="#" className="hover:text-white transition-colors">Privacy</a>
+        {/* Bottom Left Power Control Button with Hover Red Glow */}
+        <button
+          type="button"
+          onClick={triggerShutdown}
+          title="Shut Down"
+          aria-label="Shut Down"
+          className="group flex items-center justify-center w-9 h-9 rounded-full bg-white/5 hover:bg-red-950/80 border border-white/15 hover:border-red-500/60 transition-all duration-300 backdrop-blur-md shadow-md cursor-pointer text-white/70 hover:text-red-400 hover:shadow-[0_0_20px_rgba(239,68,68,0.55)]"
+        >
+          <Power className="w-4 h-4 group-hover:drop-shadow-[0_0_8px_rgba(239,68,68,0.9)]" />
+        </button>
+
+        {/* Bottom Right Legal Links */}
+        <div className="flex items-center gap-3 text-white/50 text-xs font-normal">
+          <a href="#" className="hover:text-white/90 transition-colors">Privacy</a>
           <span className="text-white/30">|</span>
-          <a href="#" className="hover:text-white transition-colors">Terms</a>
+          <a href="#" className="hover:text-white/90 transition-colors">Terms</a>
           <span className="text-white/30">|</span>
-          <a href="#" className="hover:text-white transition-colors">Help</a>
+          <a href="#" className="hover:text-white/90 transition-colors">Help</a>
         </div>
       </footer>
     </div>
