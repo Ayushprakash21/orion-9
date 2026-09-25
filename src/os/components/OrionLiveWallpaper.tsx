@@ -248,6 +248,13 @@ export function OrionLiveWallpaper({
       <img
         src={activeWallpaper.assetUrl || SYSTEM_DEFAULT_WALLPAPERS[0].assetUrl}
         alt={activeWallpaper.name || 'Orion Desktop Wallpaper'}
+        onError={(e) => {
+          // If image fails to load or decode, gracefully fall back to primary system default
+          const target = e.currentTarget;
+          if (target.src !== SYSTEM_DEFAULT_WALLPAPERS[0].assetUrl) {
+            target.src = SYSTEM_DEFAULT_WALLPAPERS[0].assetUrl;
+          }
+        }}
         className={cn(
           "orion-live-wallpaper-reference absolute inset-0 w-full h-full object-cover object-center",
           "transition-all duration-700 ease-out",

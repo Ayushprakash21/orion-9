@@ -1,6 +1,6 @@
 /**
  * ORION-9 AUTHORITATIVE WALLPAPER REPOSITORY
- * Firestore-backed storage manager for wallpaper records, user selections, system defaults,
+ * Authoritative storage manager for wallpaper records, user selections, system defaults,
  * and wallpaper policy controls with strict tenant isolation.
  */
 
@@ -112,7 +112,7 @@ export class WallpaperRepository {
     for (const sysWp of SYSTEM_DEFAULT_WALLPAPERS) {
       this.memoryWallpapers.set(sysWp.wallpaperId, sysWp);
     }
-    this.restoreLocalCache();
+    this.restoreCache();
   }
 
   public static getInstance(): WallpaperRepository {
@@ -122,14 +122,14 @@ export class WallpaperRepository {
     return WallpaperRepository.instance;
   }
 
-  private restoreLocalCache(): void {
-    if (typeof window !== 'undefined' && window.localStorage) {
+  private restoreCache(): void {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
       try {
-        const savedActive = localStorage.getItem('orion_active_wallpaper_id');
+        const savedActive = sessionStorage.getItem('orion_active_wallpaper_id');
         if (savedActive) {
-          this.memoryActiveSelections.set('current_user', savedActive);
+          this.memoryActiveSelections.set('default', savedActive);
         }
-        const savedCustoms = localStorage.getItem('orion_custom_wallpapers');
+        const savedCustoms = sessionStorage.getItem('orion_custom_wallpapers');
         if (savedCustoms) {
           const list: WallpaperRecord[] = JSON.parse(savedCustoms);
           for (const wp of list) {
@@ -140,14 +140,14 @@ export class WallpaperRepository {
     }
   }
 
-  private persistLocalCache(): void {
-    if (typeof window !== 'undefined' && window.localStorage) {
+  private persistCache(userId?: string): void {
+    if (typeof window !== 'undefined' && window.sessionStorage) {
       try {
-        const active = this.memoryActiveSelections.get('current_user');
-        if (active) localStorage.setItem('orion_active_wallpaper_id', active);
+        const active = this.memoryActiveSelections.get(userId || 'default') || this.memoryActiveSelections.get('default');
+        if (active) sessionStorage.setItem('orion_active_wallpaper_id', active);
         
         const customs = Array.from(this.memoryWallpapers.values()).filter(w => w.ownerType !== 'SYSTEM');
-        localStorage.setItem('orion_custom_wallpapers', JSON.stringify(customs));
+        sessionStorage.setItem('orion_custom_wallpapers', JSON.stringify(customs));
       } catch (e) {}
     }
   }
@@ -157,7 +157,6 @@ export class WallpaperRepository {
    */
   public async getAvailableWallpapers(tenantId: string = 'global', userId?: string): Promise<WallpaperRecord[]> {
     const results: WallpaperRecord[] = [];
-    const env = dbManager.getEnvironment();
 
     for (const wp of this.memoryWallpapers.values()) {
       if (wp.status !== 'APPROVED') continue;
@@ -170,13 +169,13 @@ export class WallpaperRepository {
 
       // Tenant isolation & User ownership checks
       if (wp.tenantId === tenantId || wp.tenantId === 'global') {
-        if (wp.ownerType === 'ADMIN' || wp.ownerId === userId) {
+        if (wp.ownerType === 'ADMIN' || !userId || wp.ownerId === userId) {
           results.push(wp);
         }
       }
     }
 
-    return results;
+    return results.length > 0 ? results : SYSTEM_DEFAULT_WALLPAPERS;
   }
 
   /**
@@ -187,7 +186,7 @@ export class WallpaperRepository {
   }
 
   /**
-   * Saves or updates wallpaper record in authoritative Firestore + memory cache.
+   * Saves or updates wallpaper record in authoritative repository.
    */
   public async saveWallpaper(record: WallpaperRecord): Promise<WallpaperRecord> {
     const env = dbManager.getEnvironment();
@@ -198,7 +197,7 @@ export class WallpaperRepository {
     };
 
     this.memoryWallpapers.set(updated.wallpaperId, updated);
-    this.persistLocalCache();
+    this.persistCache(updated.ownerId);
 
     // Persist event notification to window for instant live update
     if (typeof window !== 'undefined') {
@@ -210,12 +209,14 @@ export class WallpaperRepository {
 
   /**
    * Gets active wallpaper for current user/tenant.
+   * Guaranteed to return a valid WallpaperRecord with non-empty assetUrl.
    */
-  public async getActiveWallpaper(userId: string = 'current_user', tenantId: string = 'global'): Promise<WallpaperRecord> {
-    const activeId = this.memoryActiveSelections.get(userId) || this.memoryPolicy.defaultWallpaperId;
+  public async getActiveWallpaper(userId?: string, tenantId: string = 'global'): Promise<WallpaperRecord> {
+    const targetUser = userId || 'default';
+    const activeId = this.memoryActiveSelections.get(targetUser) || this.memoryActiveSelections.get('default') || this.memoryPolicy.defaultWallpaperId;
     const found = this.memoryWallpapers.get(activeId);
 
-    if (found && found.status === 'APPROVED') {
+    if (found && found.status === 'APPROVED' && found.assetUrl && found.assetUrl.trim() !== '') {
       return found;
     }
 
@@ -226,14 +227,16 @@ export class WallpaperRepository {
   /**
    * Sets active wallpaper for user/tenant.
    */
-  public async setActiveWallpaper(wallpaperId: string, userId: string = 'current_user'): Promise<WallpaperRecord> {
+  public async setActiveWallpaper(wallpaperId: string, userId?: string): Promise<WallpaperRecord> {
     const wp = this.memoryWallpapers.get(wallpaperId);
     if (!wp) {
       throw new Error(`Wallpaper ID ${wallpaperId} not found.`);
     }
 
-    this.memoryActiveSelections.set(userId, wallpaperId);
-    this.persistLocalCache();
+    const targetUser = userId || 'default';
+    this.memoryActiveSelections.set(targetUser, wallpaperId);
+    this.memoryActiveSelections.set('default', wallpaperId);
+    this.persistCache(targetUser);
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('orion-active-wallpaper-changed', { detail: { wallpaper: wp } }));
@@ -275,7 +278,7 @@ export class WallpaperRepository {
   /**
    * Resets user active wallpaper to system default.
    */
-  public async resetToSystemDefault(userId: string = 'current_user'): Promise<WallpaperRecord> {
+  public async resetToSystemDefault(userId?: string): Promise<WallpaperRecord> {
     const defaultId = this.memoryPolicy.defaultWallpaperId || SYSTEM_DEFAULT_WALLPAPERS[0].wallpaperId;
     return this.setActiveWallpaper(defaultId, userId);
   }

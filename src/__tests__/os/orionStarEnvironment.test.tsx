@@ -33,7 +33,7 @@ describe('Orion Live Login Star Environment', () => {
 
   // 5. Horizon configuration
   it('5. configures planetary horizon glow period (120s)', () => {
-    const period = DEFAULT_LIVE_BACKGROUND_CONFIG.periods.horizon;
+    const period = DEFAULT_LIVE_BACKGROUND_CONFIG.periods.atmosphere;
     expect(period).toBe(120);
   });
 

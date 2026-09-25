@@ -250,6 +250,7 @@ export const Login: React.FC = () => {
     setIsLangMenuOpen(false);
     if (typeof window !== 'undefined') {
       localStorage.setItem('orion_language', langCode);
+      window.dispatchEvent(new CustomEvent('orion-language-changed', { detail: { language: langCode } }));
     }
   };
 
@@ -572,7 +573,7 @@ export const Login: React.FC = () => {
               {/* Resolved User Photo & Name Display */}
               <div className="flex flex-col items-center justify-center mb-5 select-none text-center">
                 {/* Avatar Photo */}
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-cyan-500/30 shadow-xl bg-[#111622] flex items-center justify-center overflow-hidden mb-2.5 backdrop-blur-md">
+                <div className="w-20 h-20 rounded-full border-2 border-cyan-500/30 shadow-xl bg-[#111622] flex items-center justify-center overflow-hidden mb-2.5 backdrop-blur-md">
                   {resolvedUser?.avatarUrl || (resolvedUser as any)?.photoURL ? (
                     <img 
                       src={resolvedUser?.avatarUrl || (resolvedUser as any)?.photoURL} 
@@ -670,9 +671,9 @@ export const Login: React.FC = () => {
                     <span>{t.rememberMe}</span>
                   </label>
                   
-                  <a href="#" className="text-white/60 hover:text-white transition-colors">
+                  <button type="button" className="text-white/60 hover:text-white transition-colors cursor-pointer">
                     {t.forgotPassword}
-                  </a>
+                  </button>
                 </div>
 
                 {/* Other User Button */}
@@ -767,7 +768,7 @@ export const Login: React.FC = () => {
           <div className="hidden md:flex flex-col text-[10.5px] font-mono text-white/50 space-y-0.5 select-none">
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-white/80 font-semibold tracking-wider">CONTROL PLANE</span>
+              <span className="text-white/80 font-semibold tracking-wider">CONTROL PLANE ({dbEnv} MODE)</span>
               <span className="text-white/30">•</span>
               <span className="text-emerald-400 font-semibold">{systemHealth.runtimeStatus}</span>
               <span className="text-white/30">•</span>

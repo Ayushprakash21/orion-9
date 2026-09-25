@@ -12,6 +12,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
+import { MemoryRouter } from 'react-router-dom';
 import { AICopilot } from '../../components/AICopilot';
 import { OrionDock } from '../../os/components/OrionDock';
 import { OrionWindow } from '../../os/components/OrionWindow';
@@ -54,7 +55,20 @@ vi.mock('../../store/SupplyChainContext', () => ({
   }),
 }));
 
-// Mock Window Manager Context
+// Mock Toast Context
+vi.mock('../../store/ToastContext', () => ({
+  useToast: () => ({
+    showToast: vi.fn(),
+  }),
+}));
+
+// Mock Entity Drawer Context
+vi.mock('../../store/EntityDrawerContext', () => ({
+  useEntityDrawer: () => ({
+    openEntityDrawer: vi.fn(),
+    closeEntityDrawer: vi.fn(),
+  }),
+}));
 vi.mock('../../os/WindowManagerContext', () => ({
   useWindowManager: () => ({
     windows: {
@@ -169,7 +183,11 @@ describe('Laptop Responsive UI & Copilot Layout Repair Suite', () => {
         openedAt: 100,
       };
 
-      const html = renderToString(<OrionWindow window={win} isActive={true} />);
+      const html = renderToString(
+        <MemoryRouter>
+          <OrionWindow window={win} isActive={true} />
+        </MemoryRouter>
+      );
 
       expect(html).toContain('data-window-id="orion-ai"');
       expect(html).toContain('var(--orion-dock-safe-height, 76px)');
@@ -178,7 +196,7 @@ describe('Laptop Responsive UI & Copilot Layout Repair Suite', () => {
     it('renders window titlebar and window controls (minimize, maximize, close)', () => {
       const win = {
         id: 'command-center',
-        state: 'maximized' as const,
+        state: 'normal' as const,
         zIndex: 44,
         position: { x: 0, y: 0 },
         size: { width: 1366, height: 720 },
@@ -187,7 +205,11 @@ describe('Laptop Responsive UI & Copilot Layout Repair Suite', () => {
         openedAt: 90,
       };
 
-      const html = renderToString(<OrionWindow window={win} isActive={false} />);
+      const html = renderToString(
+        <MemoryRouter>
+          <OrionWindow window={win} isActive={false} />
+        </MemoryRouter>
+      );
 
       expect(html).toContain('data-window-titlebar="true"');
       expect(html).toContain('data-window-controls="true"');

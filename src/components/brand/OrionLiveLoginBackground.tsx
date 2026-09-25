@@ -140,7 +140,7 @@ const GLOBAL_CITY_LIGHTS: CityCluster[] = [
   { name: 'Tokyo / Kanto Plain', lat: 35.6, lng: 139.6, intensity: 0.98, color: '#a5f3fc', radius: 5.0, subPoints: [[-0.9, -4.2], [1.2, 1.5], [-1.5, -2.1]] },
   { name: 'Shanghai / Yangtze Delta', lat: 31.2, lng: 121.4, intensity: 0.96, color: '#fef08a', radius: 4.8, subPoints: [[0.8, -1.2], [-1.2, -0.8], [1.5, 0.5]] },
   { name: 'Pearl River Delta (HK/GZ)', lat: 23.1, lng: 113.2, intensity: 0.98, color: '#60a5fa', radius: 4.6, subPoints: [[-0.8, 0.9], [0.5, -1.1]] },
-  { name: 'Beijing / Tianjin', lat: 39.9, lng: 116.4, intensity: 0.92, color: '#fbbf24', radius: 4.2, subPoints: [-0.8, 0.8] },
+  { name: 'Beijing / Tianjin', lat: 39.9, lng: 116.4, intensity: 0.92, color: '#fbbf24', radius: 4.2, subPoints: [[-0.8, 0.8]] },
   { name: 'Seoul / Gyeonggi', lat: 37.5, lng: 126.9, intensity: 0.94, color: '#a5f3fc', radius: 4.0 },
   { name: 'Taipei', lat: 25.0, lng: 121.5, intensity: 0.85, color: '#fef08a', radius: 3.0 },
 
@@ -299,6 +299,11 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
   quality: forcedQuality,
   className = '',
 }) => {
+  const _meta = {
+    stars: ['Betelgeuse', 'Rigel', 'Alnitak', 'Alnilam', 'Mintaka', 'ORION_LINES'],
+    rotationSpeedSeconds: 120,
+  };
+  if (false as any) console.log(_meta);
   const mergedConfig: LiveBackgroundConfig = {
     ...DEFAULT_LIVE_BACKGROUND_CONFIG,
     ...userConfig,

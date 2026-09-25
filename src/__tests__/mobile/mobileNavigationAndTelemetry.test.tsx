@@ -62,6 +62,8 @@ vi.mock('../../store/ToastContext', () => ({
   }),
 }));
 
+import { MemoryRouter } from 'react-router-dom';
+
 describe('Orion-9 Mobile Navigation, Workflows & Telemetry Integration', () => {
   beforeEach(async () => {
     await dbManager.switchEnvironment({
@@ -75,9 +77,11 @@ describe('Orion-9 Mobile Navigation, Workflows & Telemetry Integration', () => {
 
   it('renders Governed AI Copilot with live telemetry integration', () => {
     const html = renderToString(
-      <MobileNavigationProvider>
-        <OrionMobileAICopilot />
-      </MobileNavigationProvider>
+      <MemoryRouter>
+        <MobileNavigationProvider>
+          <OrionMobileAICopilot />
+        </MobileNavigationProvider>
+      </MemoryRouter>
     );
 
     expect(html).toContain('ORION AI');
@@ -92,9 +96,11 @@ describe('Orion-9 Mobile Navigation, Workflows & Telemetry Integration', () => {
 
   it('renders Mobile Alerts stream with severity chips and impact calculations', () => {
     const html = renderToString(
-      <MobileNavigationProvider>
-        <OrionMobileAlerts />
-      </MobileNavigationProvider>
+      <MemoryRouter>
+        <MobileNavigationProvider>
+          <OrionMobileAlerts />
+        </MobileNavigationProvider>
+      </MemoryRouter>
     );
 
     expect(html).toContain('Operational Alerts &amp; Risks');
@@ -105,9 +111,11 @@ describe('Orion-9 Mobile Navigation, Workflows & Telemetry Integration', () => {
 
   it('preserves multi-tenant and DEMO/LIVE environment isolation', async () => {
     const htmlDemo = renderToString(
-      <MobileNavigationProvider>
-        <OrionMobileAICopilot />
-      </MobileNavigationProvider>
+      <MemoryRouter>
+        <MobileNavigationProvider>
+          <OrionMobileAICopilot />
+        </MobileNavigationProvider>
+      </MemoryRouter>
     );
     expect(htmlDemo).toContain('DEMO');
 
@@ -120,9 +128,11 @@ describe('Orion-9 Mobile Navigation, Workflows & Telemetry Integration', () => {
     });
 
     const htmlLive = renderToString(
-      <MobileNavigationProvider>
-        <OrionMobileAICopilot />
-      </MobileNavigationProvider>
+      <MemoryRouter>
+        <MobileNavigationProvider>
+          <OrionMobileAICopilot />
+        </MobileNavigationProvider>
+      </MemoryRouter>
     );
     expect(htmlLive).toContain('LIVE');
   });

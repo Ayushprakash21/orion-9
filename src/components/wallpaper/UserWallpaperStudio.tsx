@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Sparkles, Upload, Image as ImageIcon, Sliders, Check, 
-  RotateCcw, RefreshCw, Eye, Shield, Play, Pause, Activity
+  RotateCcw, RefreshCw, AlertCircle, Play, Pause, Activity
 } from 'lucide-react';
 import { 
   WallpaperRecord, 
@@ -16,19 +16,32 @@ import { aiWallpaperGenerator } from '../../services/wallpaper/AiWallpaperGenera
 import { sceneAnalyzer } from '../../services/wallpaper/SceneAnalyzer';
 import { OrionLiveWallpaper } from '../../os/components/OrionLiveWallpaper';
 import { useToast } from '../../store/ToastContext';
+import { useAuth } from '../../store/AuthContext';
+import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { cn } from '../../lib/utils';
+
+export type StudioLifecycleState = 'LOADING' | 'READY' | 'GENERATING' | 'GENERATED' | 'ERROR';
 
 export const UserWallpaperStudio: React.FC = () => {
   const { showToast } = useToast();
+  const { currentUser, organization } = useAuth();
+  const tenantId = organization?.id || 'global';
+  const userId = currentUser?.id || 'default_user';
+
+  // Studio Lifecycle State
+  const [studioState, setStudioState] = useState<StudioLifecycleState>('LOADING');
+  const [errorMessage, setErrorMessage] = useState<string>('');
 
   // Mode Selection
   const [activeTab, setActiveTab] = useState<'GALLERY' | 'UPLOAD' | 'AI'>('GALLERY');
   
-  // Available Gallery Wallpapers
-  const [galleryWallpapers, setGalleryWallpapers] = useState<WallpaperRecord[]>([]);
-  const [activeWallpaper, setActiveWallpaperState] = useState<WallpaperRecord | null>(null);
+  // Available Gallery Wallpapers & Active Wallpaper
+  const [galleryWallpapers, setGalleryWallpapers] = useState<WallpaperRecord[]>(SYSTEM_DEFAULT_WALLPAPERS);
+  const [activeWallpaper, setActiveWallpaperState] = useState<WallpaperRecord>(SYSTEM_DEFAULT_WALLPAPERS[0]);
 
-  // AI Generator Form State
+  // AI Generator Form & Provider State
+  const [aiProviderConfigured, setAiProviderConfigured] = useState<boolean>(false);
+  const [aiProviderName, setAiProviderName] = useState<string>('Google Gemini / Nano Banana');
   const [prompt, setPrompt] = useState('Futuristic deep-space environment with subtle blue and graphite atmosphere');
   const [style, setStyle] = useState<WallpaperStyle>('Space');
   const [atmosphereIntensity, setAtmosphereIntensity] = useState(0.8);
@@ -37,9 +50,9 @@ export const UserWallpaperStudio: React.FC = () => {
   const [candidates, setCandidates] = useState<WallpaperCandidate[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<WallpaperCandidate | null>(null);
 
-  // Live Setup & Preview Parameters
-  const [selectedAssetUrl, setSelectedAssetUrl] = useState<string>('');
-  const [selectedName, setSelectedName] = useState<string>('Custom Wallpaper');
+  // Live Setup & Preview Parameters (Guaranteed non-blank initialization)
+  const [selectedAssetUrl, setSelectedAssetUrl] = useState<string>(SYSTEM_DEFAULT_WALLPAPERS[0].assetUrl);
+  const [selectedName, setSelectedName] = useState<string>(SYSTEM_DEFAULT_WALLPAPERS[0].name);
   const [motionPreviewOn, setMotionPreviewOn] = useState(true);
   const [motionProfile, setMotionProfile] = useState<MotionProfile>({ ...DEFAULT_MOTION_PROFILE });
   const [runtimeReactive, setRuntimeReactive] = useState(true);
@@ -48,32 +61,50 @@ export const UserWallpaperStudio: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load active wallpaper & gallery on mount
+  // Load active wallpaper & gallery on mount with guaranteed non-blank recovery
   useEffect(() => {
     let mounted = true;
     const loadData = async () => {
+      setStudioState('LOADING');
       try {
-        const available = await wallpaperRepository.getAvailableWallpapers();
-        const active = await wallpaperRepository.getActiveWallpaper();
+        const available = await wallpaperRepository.getAvailableWallpapers(tenantId, userId);
+        const active = await wallpaperRepository.getActiveWallpaper(userId, tenantId);
+        const aiStatus = await aiWallpaperGenerator.checkProviderStatus();
         
         if (mounted) {
-          setGalleryWallpapers(available);
-          setActiveWallpaperState(active);
-          setSelectedAssetUrl(active.assetUrl);
-          setSelectedName(active.name);
-          setMotionProfile(active.motionProfile || { ...DEFAULT_MOTION_PROFILE });
-          setRuntimeReactive(active.runtimeReactive);
+          setAiProviderConfigured(aiStatus.configured);
+          setAiProviderName(aiStatus.providerName);
+          
+          const validGallery = available && available.length > 0 ? available : SYSTEM_DEFAULT_WALLPAPERS;
+          setGalleryWallpapers(validGallery);
+          
+          const validActive = (active && active.assetUrl && active.assetUrl.trim() !== '') ? active : SYSTEM_DEFAULT_WALLPAPERS[0];
+          setActiveWallpaperState(validActive);
+          setSelectedAssetUrl(validActive.assetUrl);
+          setSelectedName(validActive.name);
+          setMotionProfile(validActive.motionProfile || { ...DEFAULT_MOTION_PROFILE });
+          setRuntimeReactive(validActive.runtimeReactive);
+          setStudioState('READY');
+          setErrorMessage('');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.warn('Failed to load wallpaper studio data:', err);
+        if (mounted) {
+          // Guaranteed recovery to system default preview
+          setSelectedAssetUrl(SYSTEM_DEFAULT_WALLPAPERS[0].assetUrl);
+          setSelectedName(SYSTEM_DEFAULT_WALLPAPERS[0].name);
+          setMotionProfile(SYSTEM_DEFAULT_WALLPAPERS[0].motionProfile);
+          setStudioState('READY');
+          setErrorMessage('Database connection warning: Using system default desktop environment preview.');
+        }
       }
     };
 
     loadData();
     return () => { mounted = false; };
-  }, []);
+  }, [tenantId, userId]);
 
-  // AI Generation Handler (Produces exactly 3 candidate wallpapers)
+  // AI Generation Handler (Generates 3 candidates when AI provider is configured)
   const handleGenerateAiCandidates = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!prompt || !prompt.trim()) {
@@ -82,6 +113,7 @@ export const UserWallpaperStudio: React.FC = () => {
     }
 
     setIsGenerating(true);
+    setStudioState('GENERATING');
     try {
       const generated = await aiWallpaperGenerator.generateCandidates({
         prompt,
@@ -96,9 +128,12 @@ export const UserWallpaperStudio: React.FC = () => {
       if (generated.length > 0) {
         handleSelectCandidate(generated[0]);
       }
+      setStudioState('GENERATED');
       showToast('3 AI Wallpaper candidates generated!', 'success');
     } catch (err: any) {
-      showToast('AI generation failed: ' + (err.message || 'Unknown error'), 'error');
+      setStudioState('ERROR');
+      setErrorMessage(err.message || 'AI wallpaper generation failed');
+      showToast(err.message || 'AI generation failed', 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -151,14 +186,16 @@ export const UserWallpaperStudio: React.FC = () => {
 
   // Apply Wallpaper Action
   const handleApplyWallpaper = async () => {
+    if (!selectedAssetUrl) return;
     setIsApplying(true);
     try {
       const timestamp = Date.now();
+      const currentEnv = dbManager.getEnvironment();
       const wpRecord: WallpaperRecord = {
         wallpaperId: selectedCandidate ? selectedCandidate.candidateId : `wp_${timestamp}`,
-        tenantId: 'global',
+        tenantId,
         ownerType: 'USER',
-        ownerId: 'current_user',
+        ownerId: userId,
         name: selectedName || 'Custom Live Wallpaper',
         assetUrl: selectedAssetUrl,
         thumbnailUrl: selectedAssetUrl,
@@ -171,14 +208,14 @@ export const UserWallpaperStudio: React.FC = () => {
         aspectRatio: '16:9',
         motionProfile,
         runtimeReactive,
-        environment: 'DEMO',
+        environment: currentEnv,
         status: 'APPROVED',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
 
       await wallpaperRepository.saveWallpaper(wpRecord);
-      await wallpaperRepository.setActiveWallpaper(wpRecord.wallpaperId);
+      await wallpaperRepository.setActiveWallpaper(wpRecord.wallpaperId, userId);
       setActiveWallpaperState(wpRecord);
       showToast('Live Wallpaper applied to Orion Desktop!', 'success');
     } catch (err: any) {
@@ -188,24 +225,47 @@ export const UserWallpaperStudio: React.FC = () => {
     }
   };
 
-  // Reset to System Default Action
+  // Reset to System Default Action (Recovery Action)
   const handleResetDefault = async () => {
     try {
-      const sysDefault = await wallpaperRepository.resetToSystemDefault();
+      const sysDefault = await wallpaperRepository.resetToSystemDefault(userId);
       setActiveWallpaperState(sysDefault);
       setSelectedAssetUrl(sysDefault.assetUrl);
       setSelectedName(sysDefault.name);
       setMotionProfile(sysDefault.motionProfile);
       setRuntimeReactive(sysDefault.runtimeReactive);
+      setStudioState('READY');
+      setErrorMessage('');
       showToast('Wallpaper reset to system default.', 'info');
     } catch (err: any) {
-      showToast('Failed to reset wallpaper: ' + err.message, 'error');
+      // Direct hard fallback if repository fails
+      setSelectedAssetUrl(SYSTEM_DEFAULT_WALLPAPERS[0].assetUrl);
+      setSelectedName(SYSTEM_DEFAULT_WALLPAPERS[0].name);
+      setMotionProfile(SYSTEM_DEFAULT_WALLPAPERS[0].motionProfile);
+      showToast('Wallpaper reset to primary system default.', 'info');
     }
   };
 
   return (
     <div className="space-y-6 animate-fadeIn" data-testid="user-wallpaper-studio">
       
+      {/* Truthful Error Banner if any issues arise */}
+      {errorMessage && (
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
+            <span>{errorMessage}</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleResetDefault}
+            className="px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-xs font-semibold transition-colors cursor-pointer shrink-0"
+          >
+            Use System Default
+          </button>
+        </div>
+      )}
+
       {/* Studio Header Banner */}
       <div className="p-5 rounded-2xl bg-[#12151a] border border-white/[0.08] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -330,9 +390,22 @@ export const UserWallpaperStudio: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 2: CREATE WITH AI (Generates exactly 3 Candidates) */}
+      {/* TAB 2: CREATE WITH AI */}
       {activeTab === 'AI' && (
         <div className="space-y-6">
+          {/* Truthful AI Provider Status Banner */}
+          {!aiProviderConfigured && (
+            <div className="p-4 rounded-xl bg-sky-500/10 border border-sky-500/20 text-xs text-slate-300 space-y-1">
+              <div className="flex items-center gap-2 font-semibold text-sky-400">
+                <Sparkles className="w-4 h-4" />
+                <span>AI Provider Status: {aiProviderName}</span>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                AI Image Generation requires a configured Gemini / Nano Banana API provider. Procedural SVG placeholding is disabled per product specification.
+              </p>
+            </div>
+          )}
+
           <form onSubmit={handleGenerateAiCandidates} className="p-5 rounded-2xl bg-[#12151a] border border-white/[0.08] space-y-4">
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1.5">Wallpaper Prompt</label>
@@ -528,9 +601,9 @@ export const UserWallpaperStudio: React.FC = () => {
               showLogo={false}
               overrideWallpaper={{
                 wallpaperId: 'preview-wp',
-                tenantId: 'global',
+                tenantId,
                 ownerType: 'USER',
-                ownerId: 'current_user',
+                ownerId: userId,
                 name: selectedName,
                 assetUrl: selectedAssetUrl,
                 source: selectedCandidate ? 'AI' : 'UPLOAD',
@@ -540,7 +613,7 @@ export const UserWallpaperStudio: React.FC = () => {
                 aspectRatio: '16:9',
                 motionProfile: motionPreviewOn ? motionProfile : { backgroundDrift: 0, parallax: 0, atmosphere: 0, particles: 0, lightMovement: 0, objectMotion: 0 },
                 runtimeReactive,
-                environment: 'DEMO',
+                environment: dbManager.getEnvironment(),
                 status: 'APPROVED',
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),

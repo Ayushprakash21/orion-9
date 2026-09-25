@@ -76,6 +76,13 @@ vi.mock('../../store/SupplyChainContext', () => ({
   }),
 }));
 
+// Mock Toast Context
+vi.mock('../../store/ToastContext', () => ({
+  useToast: () => ({
+    showToast: vi.fn(),
+  }),
+}));
+
 describe('Mobile Home & Information Architecture Navigation Suite', () => {
   beforeEach(async () => {
     await dbManager.switchEnvironment({
@@ -97,7 +104,8 @@ describe('Mobile Home & Information Architecture Navigation Suite', () => {
         </MemoryRouter>
       );
 
-      expect(html).toContain('ORION-9 OS');
+      const plainText = html.replace(/<[^>]+>/g, '');
+      expect(plainText).toContain('ORION-9 OS');
       expect(html).toContain('MOBILE HOME');
       expect(html).toContain('Operations Manager');
       expect(html).toContain('System Operational');

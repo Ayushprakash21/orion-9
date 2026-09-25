@@ -142,7 +142,7 @@ export const OrionMobileAppLauncher: React.FC = () => {
             </div>
           </div>
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-os-surface-secondary border border-os-border text-cyan-400/90 font-semibold shrink-0">
-            {totalAppCount} APPS
+            {`${totalAppCount} APPS`}
           </span>
         </div>
 

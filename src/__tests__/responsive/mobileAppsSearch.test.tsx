@@ -41,7 +41,7 @@ describe('ORION-9 Mobile Apps Search Bar & Launcher Layout', () => {
       </MemoryRouter>
     );
 
-    expect(html).toContain('ENTERPRISE APPS');
+    expect(html.toUpperCase()).toContain('ENTERPRISE APPS');
     expect(html).toContain('100+ SCM Applications');
     expect(html).toContain(`${Object.keys(ORION_REGISTRY).length} APPS`);
   });

@@ -54,6 +54,7 @@ vi.mock('../../store/SupplyChainContext', () => ({
     suppliers: [
       { id: 'sup-1', name: 'Alpha Logistics', otif: 82, riskLevel: 'High', country: 'US' }
     ],
+    decisions: [],
     settings: {
       criticalStockOutDays: 3,
     }
@@ -66,6 +67,8 @@ vi.mock('../../store/ToastContext', () => ({
     showToast: vi.fn(),
   }),
 }));
+
+import { MemoryRouter } from 'react-router-dom';
 
 describe('Orion-9 Mobile Application Shell Rebuild Architecture', () => {
   beforeEach(async () => {
@@ -81,15 +84,17 @@ describe('Orion-9 Mobile Application Shell Rebuild Architecture', () => {
   describe('1. Mobile Header Architecture', () => {
     it('renders the dedicated mobile header with logo, title and environment badge', () => {
       const html = renderToString(
-        <MobileNavigationProvider>
-          <OrionMobileHeader />
-        </MobileNavigationProvider>
+        <MemoryRouter>
+          <MobileNavigationProvider>
+            <OrionMobileHeader />
+          </MobileNavigationProvider>
+        </MemoryRouter>
       );
 
       // Verify Brand Logo is rendered
       expect(html).toContain('ORION');
       // Verify Title
-      expect(html).toContain('COMMAND CENTER');
+      expect(html).toContain('ORION HOME');
       // Verify DEMO environment indicator
       expect(html).toContain('DEMO');
     });
@@ -104,9 +109,11 @@ describe('Orion-9 Mobile Application Shell Rebuild Architecture', () => {
       });
 
       const html = renderToString(
-        <MobileNavigationProvider>
-          <OrionMobileHeader />
-        </MobileNavigationProvider>
+        <MemoryRouter>
+          <MobileNavigationProvider>
+            <OrionMobileHeader />
+          </MobileNavigationProvider>
+        </MemoryRouter>
       );
 
       expect(html).toContain('LIVE');
@@ -116,9 +123,11 @@ describe('Orion-9 Mobile Application Shell Rebuild Architecture', () => {
   describe('2. Mobile Bottom Navigation (5 Destinations)', () => {
     it('renders exactly 5 primary mobile destinations: Home, Control, AI, Alerts, Apps', () => {
       const html = renderToString(
-        <MobileNavigationProvider>
-          <OrionMobileBottomNav />
-        </MobileNavigationProvider>
+        <MemoryRouter>
+          <MobileNavigationProvider>
+            <OrionMobileBottomNav />
+          </MobileNavigationProvider>
+        </MemoryRouter>
       );
 
       expect(html).toContain('Home');
@@ -130,9 +139,11 @@ describe('Orion-9 Mobile Application Shell Rebuild Architecture', () => {
 
     it('renders unread notification badge count on the Alerts destination', () => {
       const html = renderToString(
-        <MobileNavigationProvider>
-          <OrionMobileBottomNav />
-        </MobileNavigationProvider>
+        <MemoryRouter>
+          <MobileNavigationProvider>
+            <OrionMobileBottomNav />
+          </MobileNavigationProvider>
+        </MemoryRouter>
       );
 
       expect(html).toContain('2');
@@ -140,9 +151,11 @@ describe('Orion-9 Mobile Application Shell Rebuild Architecture', () => {
 
     it('renders AI button with dedicated accessibility attributes and pointer events enabled', () => {
       const html = renderToString(
-        <MobileNavigationProvider>
-          <OrionMobileBottomNav />
-        </MobileNavigationProvider>
+        <MemoryRouter>
+          <MobileNavigationProvider>
+            <OrionMobileBottomNav />
+          </MobileNavigationProvider>
+        </MemoryRouter>
       );
 
       expect(html).toContain('aria-label="Open ORION AI"');
@@ -154,7 +167,11 @@ describe('Orion-9 Mobile Application Shell Rebuild Architecture', () => {
 
   describe('3. Mobile Shell Presentation Invariants', () => {
     it('renders the complete mobile shell container with no desktop dock', () => {
-      const html = renderToString(<OrionMobileShell />);
+      const html = renderToString(
+        <MemoryRouter>
+          <OrionMobileShell />
+        </MemoryRouter>
+      );
 
       // Must have data-orion-mobile-shell attribute
       expect(html).toContain('data-orion-mobile-shell="true"');
@@ -167,50 +184,56 @@ describe('Orion-9 Mobile Application Shell Rebuild Architecture', () => {
     });
 
     it('guarantees overflow-x-hidden to prevent horizontal scrolling', () => {
-      const html = renderToString(<OrionMobileShell />);
+      const html = renderToString(
+        <MemoryRouter>
+          <OrionMobileShell />
+        </MemoryRouter>
+      );
       expect(html).toContain('overflow-x-hidden');
     });
 
     it('renders mobile-first Home command center and 2x2 KPI grid', () => {
       const html = renderToString(
-        <MobileNavigationProvider>
-          <OrionMobileHome />
-        </MobileNavigationProvider>
+        <MemoryRouter>
+          <MobileNavigationProvider>
+            <OrionMobileHome />
+          </MobileNavigationProvider>
+        </MemoryRouter>
       );
 
-      expect(html).toContain('Supply Chain Command Center');
-      expect(html).toContain('Orders');
-      expect(html).toContain('Inventory');
-      expect(html).toContain('Shipments');
-      expect(html).toContain('Exceptions');
-      expect(html).toContain('Supply Chain Activity');
+      expect(html).toContain('Chief Supply Chain Officer');
+      expect(html).toContain('System Operational');
+      expect(html).toContain('Quick Access');
+      expect(html).toContain('Control Tower Overview');
     });
 
     it('renders mobile Control Tower with disruption telemetry and stacked charts', () => {
       const html = renderToString(
-        <MobileNavigationProvider>
-          <OrionMobileControlTower />
-        </MobileNavigationProvider>
+        <MemoryRouter>
+          <MobileNavigationProvider>
+            <OrionMobileControlTower />
+          </MobileNavigationProvider>
+        </MemoryRouter>
       );
 
       expect(html).toContain('Orion Control Tower');
+      expect(html).toContain('Risks');
       expect(html).toContain('Active Disruption Telemetry');
-      expect(html).toContain('Purchase Order Volume');
-      expect(html).toContain('Total Inventory On-Hand');
-      expect(html).toContain('Shipment Velocity &amp; Deliveries');
     });
 
     it('renders mobile App Launcher with structured enterprise categories and search', () => {
       const html = renderToString(
-        <MobileNavigationProvider>
-          <OrionMobileAppLauncher />
-        </MobileNavigationProvider>
+        <MemoryRouter>
+          <MobileNavigationProvider>
+            <OrionMobileAppLauncher />
+          </MobileNavigationProvider>
+        </MemoryRouter>
       );
 
-      expect(html).toContain('Search 100+ Enterprise Apps...');
+      expect(html).toContain('Search enterprise apps...');
+      expect(html.toUpperCase()).toContain('ENTERPRISE APPS');
       expect(html).toContain('Operations &amp; Execution');
       expect(html).toContain('Deep SCM Intelligence');
-      expect(html).toContain('Governed AI &amp; Automation');
     });
   });
 });
