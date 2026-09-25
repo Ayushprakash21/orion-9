@@ -14,3 +14,7 @@ coverage/
 !.dev.vars.example
 
 test-results/
+
+# Reference repos
+.reference/
+

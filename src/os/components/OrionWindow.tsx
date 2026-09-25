@@ -505,14 +505,14 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
         {/* Right: Window Controls */}
         <div 
           data-window-controls="true"
-          className="flex items-center gap-1 group/controls ml-auto z-[120] pointer-events-auto h-full shrink-0"
+          className="flex items-center gap-1.5 group/controls ml-auto z-[120] pointer-events-auto h-full shrink-0"
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           onContextMenu={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
           onDoubleClick={(e) => e.stopPropagation()}
         >
-          {/* 1. Minimize Button (Leftmost) */}
+          {/* 1. Minimize Button (Amber) */}
           <button
             type="button"
             aria-label={`Minimize ${app.name}`}
@@ -529,7 +529,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
             </span>
           </button>
 
-          {/* 2. Maximize / Restore Button (Middle) */}
+          {/* 2. Maximize / Restore Button (Green) */}
           {!isMobile && (
             <button
               type="button"
@@ -550,7 +550,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
             </button>
           )}
 
-          {/* 3. Close Button (Rightmost) */}
+          {/* 3. Close Button (Red) */}
           <button
             type="button"
             aria-label={`Close ${app.name}`}

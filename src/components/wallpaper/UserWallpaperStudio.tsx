@@ -19,6 +19,7 @@ import { useToast } from '../../store/ToastContext';
 import { useAuth } from '../../store/AuthContext';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { cn } from '../../lib/utils';
+import { OrionSettingsSplitLayout } from '../settings/OrionSettingsSplitLayout';
 
 export type StudioLifecycleState = 'LOADING' | 'READY' | 'GENERATING' | 'GENERATED' | 'ERROR';
 
@@ -90,7 +91,6 @@ export const UserWallpaperStudio: React.FC = () => {
       } catch (err: any) {
         console.warn('Failed to load wallpaper studio data:', err);
         if (mounted) {
-          // Guaranteed recovery to system default preview
           setSelectedAssetUrl(SYSTEM_DEFAULT_WALLPAPERS[0].assetUrl);
           setSelectedName(SYSTEM_DEFAULT_WALLPAPERS[0].name);
           setMotionProfile(SYSTEM_DEFAULT_WALLPAPERS[0].motionProfile);
@@ -104,7 +104,7 @@ export const UserWallpaperStudio: React.FC = () => {
     return () => { mounted = false; };
   }, [tenantId, userId]);
 
-  // AI Generation Handler (Generates 3 candidates when AI provider is configured)
+  // AI Generation Handler
   const handleGenerateAiCandidates = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!prompt || !prompt.trim()) {
@@ -145,43 +145,35 @@ export const UserWallpaperStudio: React.FC = () => {
     setSelectedAssetUrl(candidate.assetUrl);
     setSelectedName(candidate.name);
 
-    // AI Scene Analysis for Motion Profile
     const analysis = sceneAnalyzer.analyzeScene({
       style: candidate.style,
       prompt: candidate.prompt,
       atmosphereIntensity,
     });
-
     setMotionProfile(analysis.recommendedProfile);
   };
 
-  // Image Upload Handler
+  // Image File Upload Handler
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (file) {
+      if (file.size > 15 * 1024 * 1024) {
+        showToast('Image file size must be 15 MB or smaller.', 'error');
+        e.target.value = '';
+        return;
+      }
 
-    if (file.size > 10 * 1024 * 1024) {
-      showToast('Wallpaper image must be 10MB or smaller.', 'error');
-      e.target.value = '';
-      return;
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const dataUrl = reader.result as string;
+        setSelectedAssetUrl(dataUrl);
+        setSelectedName(file.name.replace(/\.[^/.]+$/, ""));
+        setSelectedCandidate(null);
+        showToast('Custom image loaded into live wallpaper studio.', 'info');
+      };
+      reader.readAsDataURL(file);
     }
-
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const resultUrl = reader.result as string;
-      setSelectedAssetUrl(resultUrl);
-      setSelectedName(file.name.replace(/\.[^/.]+$/, ''));
-      setSelectedCandidate(null);
-
-      // Analyze uploaded image scene
-      const analysis = sceneAnalyzer.analyzeScene({
-        style: 'Custom',
-        prompt: file.name,
-      });
-      setMotionProfile(analysis.recommendedProfile);
-      showToast('Image uploaded and analyzed successfully.', 'success');
-    };
-    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   // Apply Wallpaper Action
@@ -189,14 +181,13 @@ export const UserWallpaperStudio: React.FC = () => {
     if (!selectedAssetUrl) return;
     setIsApplying(true);
     try {
-      const timestamp = Date.now();
       const currentEnv = dbManager.getEnvironment();
       const wpRecord: WallpaperRecord = {
-        wallpaperId: selectedCandidate ? selectedCandidate.candidateId : `wp_${timestamp}`,
+        wallpaperId: selectedCandidate?.candidateId || `wp_${Date.now()}`,
         tenantId,
         ownerType: 'USER',
         ownerId: userId,
-        name: selectedName || 'Custom Live Wallpaper',
+        name: selectedName || 'Custom Wallpaper',
         assetUrl: selectedAssetUrl,
         thumbnailUrl: selectedAssetUrl,
         source: selectedCandidate ? 'AI' : activeTab === 'UPLOAD' ? 'UPLOAD' : 'SYSTEM',
@@ -225,7 +216,7 @@ export const UserWallpaperStudio: React.FC = () => {
     }
   };
 
-  // Reset to System Default Action (Recovery Action)
+  // Reset to System Default Action
   const handleResetDefault = async () => {
     try {
       const sysDefault = await wallpaperRepository.resetToSystemDefault(userId);
@@ -238,7 +229,6 @@ export const UserWallpaperStudio: React.FC = () => {
       setErrorMessage('');
       showToast('Wallpaper reset to system default.', 'info');
     } catch (err: any) {
-      // Direct hard fallback if repository fails
       setSelectedAssetUrl(SYSTEM_DEFAULT_WALLPAPERS[0].assetUrl);
       setSelectedName(SYSTEM_DEFAULT_WALLPAPERS[0].name);
       setMotionProfile(SYSTEM_DEFAULT_WALLPAPERS[0].motionProfile);
@@ -246,12 +236,12 @@ export const UserWallpaperStudio: React.FC = () => {
     }
   };
 
-  return (
-    <div className="space-y-6 animate-fadeIn" data-testid="user-wallpaper-studio">
-      
-      {/* Truthful Error Banner if any issues arise */}
+  // Primary Control Pane Content
+  const primaryPane = (
+    <div className="space-y-5" data-testid="user-wallpaper-studio">
+      {/* Error Banner */}
       {errorMessage && (
-        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-3">
+        <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
             <span>{errorMessage}</span>
@@ -259,46 +249,12 @@ export const UserWallpaperStudio: React.FC = () => {
           <button
             type="button"
             onClick={handleResetDefault}
-            className="px-3 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-xs font-semibold transition-colors cursor-pointer shrink-0"
+            className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-xs font-semibold transition-colors cursor-pointer shrink-0"
           >
-            Use System Default
+            Reset
           </button>
         </div>
       )}
-
-      {/* Studio Header Banner */}
-      <div className="p-5 rounded-2xl bg-[#12151a] border border-white/[0.08] flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500/20 to-blue-600/20 border border-sky-500/30 flex items-center justify-center">
-            <Sparkles className="w-6 h-6 text-sky-400 animate-pulse" />
-          </div>
-          <div>
-            <h2 className="text-base font-semibold text-white">Orion Wallpaper Studio</h2>
-            <p className="text-xs text-slate-400 mt-0.5">AI-generated & user-configurable 16:9 Live Desktop Environment.</p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleResetDefault}
-            className="px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-xs font-medium text-slate-300 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Reset Default</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleApplyWallpaper}
-            disabled={isApplying || !selectedAssetUrl}
-            className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-black font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-sky-500/20 disabled:opacity-50"
-          >
-            <Check className="w-4 h-4" />
-            <span>{isApplying ? 'Applying...' : 'Apply Wallpaper'}</span>
-          </button>
-        </div>
-      </div>
 
       {/* Main Studio Navigation Tabs */}
       <div className="flex border-b border-white/[0.08] text-xs font-medium text-slate-400 gap-6">
@@ -341,7 +297,7 @@ export const UserWallpaperStudio: React.FC = () => {
 
       {/* TAB 1: SYSTEM GALLERY */}
       {activeTab === 'GALLERY' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           {galleryWallpapers.map((wp) => {
             const isSelected = selectedAssetUrl === wp.assetUrl;
             return (
@@ -355,7 +311,7 @@ export const UserWallpaperStudio: React.FC = () => {
                   setSelectedCandidate(null);
                 }}
                 className={cn(
-                  "group relative rounded-2xl border overflow-hidden cursor-pointer transition-all bg-[#12151a]",
+                  "group relative rounded-xl border overflow-hidden cursor-pointer transition-all bg-[#12151a]",
                   isSelected 
                     ? "border-sky-400 ring-2 ring-sky-400/30 shadow-xl" 
                     : "border-white/[0.08] hover:border-white/20"
@@ -368,18 +324,18 @@ export const UserWallpaperStudio: React.FC = () => {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                   />
                   {isSelected && (
-                    <div className="absolute top-3 right-3 bg-sky-500 text-black p-1 rounded-full shadow-lg">
+                    <div className="absolute top-2.5 right-2.5 bg-sky-500 text-black p-1 rounded-full shadow-lg">
                       <Check className="w-3.5 h-3.5 font-bold" />
                     </div>
                   )}
                 </div>
-                <div className="p-3.5 flex items-center justify-between">
+                <div className="p-3 flex items-center justify-between">
                   <div>
                     <h4 className="text-xs font-semibold text-white group-hover:text-sky-300 transition-colors">{wp.name}</h4>
-                    <span className="text-[10px] text-slate-400 font-mono">{wp.source} • 2560x1440</span>
+                    <span className="text-[10px] text-slate-400 font-mono">{wp.source} • 2560×1440</span>
                   </div>
                   {wp.isSystemDefault && (
-                    <span className="px-2 py-0.5 rounded text-[9.5px] font-mono font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                    <span className="px-2 py-0.5 rounded text-[9px] font-mono font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20">
                       DEFAULT
                     </span>
                   )}
@@ -392,21 +348,20 @@ export const UserWallpaperStudio: React.FC = () => {
 
       {/* TAB 2: CREATE WITH AI */}
       {activeTab === 'AI' && (
-        <div className="space-y-6">
-          {/* Truthful AI Provider Status Banner */}
+        <div className="space-y-4">
           {!aiProviderConfigured && (
-            <div className="p-4 rounded-xl bg-sky-500/10 border border-sky-500/20 text-xs text-slate-300 space-y-1">
+            <div className="p-3.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-xs text-slate-300 space-y-1">
               <div className="flex items-center gap-2 font-semibold text-sky-400">
                 <Sparkles className="w-4 h-4" />
-                <span>AI Provider Status: {aiProviderName}</span>
+                <span>AI Provider: {aiProviderName}</span>
               </div>
               <p className="text-[11px] text-slate-400">
-                AI Image Generation requires a configured Gemini / Nano Banana API provider. Procedural SVG placeholding is disabled per product specification.
+                AI Image Generation uses Google Gemini / Nano Banana API provider.
               </p>
             </div>
           )}
 
-          <form onSubmit={handleGenerateAiCandidates} className="p-5 rounded-2xl bg-[#12151a] border border-white/[0.08] space-y-4">
+          <form onSubmit={handleGenerateAiCandidates} className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3.5">
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1.5">Wallpaper Prompt</label>
               <input
@@ -414,11 +369,10 @@ export const UserWallpaperStudio: React.FC = () => {
                 value={prompt}
                 onChange={e => setPrompt(e.target.value)}
                 placeholder="e.g. Futuristic deep-space environment with subtle blue nebulae..."
-                className="w-full bg-white/[0.04] border border-white/[0.1] rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500/60 font-medium"
+                className="w-full bg-white/[0.04] border border-white/[0.1] rounded-xl px-3.5 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500/60 font-medium"
               />
             </div>
 
-            {/* Style Pills */}
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-2">Style Preset</label>
               <div className="flex flex-wrap gap-2">
@@ -428,7 +382,7 @@ export const UserWallpaperStudio: React.FC = () => {
                     type="button"
                     onClick={() => setStyle(st)}
                     className={cn(
-                      "px-3.5 py-1.5 rounded-xl border text-xs font-medium transition-all cursor-pointer",
+                      "px-3 py-1 rounded-xl border text-xs font-medium transition-all cursor-pointer",
                       style === st 
                         ? "bg-sky-500/15 border-sky-500/40 text-sky-400 font-semibold" 
                         : "bg-white/[0.03] border-white/[0.08] text-slate-400 hover:text-white"
@@ -440,48 +394,10 @@ export const UserWallpaperStudio: React.FC = () => {
               </div>
             </div>
 
-            {/* Atmosphere Slider & Motion Preference */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-medium text-slate-300">Atmosphere Density</span>
-                  <span className="text-xs font-mono text-sky-400">{Math.round(atmosphereIntensity * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0.2"
-                  max="1.0"
-                  step="0.05"
-                  value={atmosphereIntensity}
-                  onChange={e => setAtmosphereIntensity(parseFloat(e.target.value))}
-                  className="w-full h-1.5 bg-white/[0.1] rounded-lg appearance-none cursor-pointer accent-sky-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1.5">Motion Preference</label>
-                <div className="flex bg-white/[0.04] border border-white/[0.08] rounded-xl p-1 gap-1">
-                  {(['Subtle', 'Atmospheric', 'Dynamic'] as const).map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => setMotionPref(m)}
-                      className={cn(
-                        "flex-1 py-1 text-[11px] font-medium rounded transition-colors cursor-pointer text-center",
-                        motionPref === m ? "bg-sky-500/20 text-sky-400 font-semibold" : "text-slate-400 hover:text-white"
-                      )}
-                    >
-                      {m}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
             <button
               type="submit"
               disabled={isGenerating || !prompt.trim()}
-              className="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-black font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 cursor-pointer disabled:opacity-50 mt-2"
+              className="w-full py-2 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-black font-semibold text-xs transition-all flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 cursor-pointer disabled:opacity-50"
             >
               {isGenerating ? (
                 <>
@@ -497,11 +413,10 @@ export const UserWallpaperStudio: React.FC = () => {
             </button>
           </form>
 
-          {/* 3 AI Candidate Cards Presentation */}
           {candidates.length > 0 && (
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Select AI Candidate Wallpaper</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-2.5">
                 {candidates.map((cand, idx) => {
                   const isSelected = selectedCandidate?.candidateId === cand.candidateId;
                   return (
@@ -509,7 +424,7 @@ export const UserWallpaperStudio: React.FC = () => {
                       key={cand.candidateId}
                       onClick={() => handleSelectCandidate(cand)}
                       className={cn(
-                        "group relative rounded-2xl border overflow-hidden cursor-pointer transition-all bg-[#12151a]",
+                        "group relative rounded-xl border overflow-hidden cursor-pointer transition-all bg-[#12151a]",
                         isSelected 
                           ? "border-sky-400 ring-2 ring-sky-400/30 shadow-xl" 
                           : "border-white/[0.08] hover:border-white/20"
@@ -521,18 +436,14 @@ export const UserWallpaperStudio: React.FC = () => {
                           alt={cand.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                         />
-                        <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-black/60 backdrop-blur-md text-white border border-white/10">
-                          IMAGE {String.fromCharCode(65 + idx)}
-                        </div>
                         {isSelected && (
-                          <div className="absolute top-2.5 right-2.5 bg-sky-500 text-black p-1 rounded-full shadow-lg">
-                            <Check className="w-3.5 h-3.5 font-bold" />
+                          <div className="absolute top-2 right-2 bg-sky-500 text-black p-1 rounded-full shadow-lg">
+                            <Check className="w-3 h-3 font-bold" />
                           </div>
                         )}
                       </div>
-                      <div className="p-3">
-                        <h4 className="text-xs font-semibold text-white group-hover:text-sky-300 transition-colors">{cand.name}</h4>
-                        <span className="text-[10px] text-slate-400 font-mono">2560×1440 • {cand.style}</span>
+                      <div className="p-2">
+                        <h4 className="text-[11px] font-semibold text-white truncate">{cand.name}</h4>
                       </div>
                     </div>
                   );
@@ -545,13 +456,13 @@ export const UserWallpaperStudio: React.FC = () => {
 
       {/* TAB 3: UPLOAD IMAGE */}
       {activeTab === 'UPLOAD' && (
-        <div className="p-8 rounded-2xl bg-[#12151a] border border-white/[0.08] border-dashed text-center flex flex-col items-center justify-center space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-sky-400">
-            <Upload className="w-7 h-7" />
+        <div className="p-6 rounded-xl bg-[#12151a] border border-white/[0.08] border-dashed text-center flex flex-col items-center justify-center space-y-3">
+          <div className="w-12 h-12 rounded-xl bg-white/[0.04] border border-white/10 flex items-center justify-center text-sky-400">
+            <Upload className="w-6 h-6" />
           </div>
           <div>
             <h3 className="text-sm font-semibold text-white">Upload Custom Wallpaper Image</h3>
-            <p className="text-xs text-slate-400 mt-1 max-w-sm">Supports PNG, JPG, or WebP. Optimal 16:9 desktop aspect ratio (2560×1440 or 1920×1080).</p>
+            <p className="text-xs text-slate-400 mt-1 max-w-xs">PNG, JPG, or WebP. Optimal 16:9 ratio (2560×1440).</p>
           </div>
           <input
             ref={fileInputRef}
@@ -563,161 +474,225 @@ export const UserWallpaperStudio: React.FC = () => {
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-semibold text-xs transition-all cursor-pointer shadow-lg shadow-sky-500/20"
+            className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-semibold text-xs transition-all cursor-pointer shadow-lg shadow-sky-500/20"
           >
             Browse Image File
           </button>
         </div>
       )}
 
-      {/* LIVE WALLPAPER SETUP & MOTION PREVIEW PANEL */}
-      {selectedAssetUrl && (
-        <div className="p-5 rounded-2xl bg-[#12151a] border border-white/[0.08] space-y-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Sliders className="w-4 h-4 text-sky-400" />
-              <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Live Wallpaper Engine Setup</h3>
-            </div>
-            
-            <button
-              type="button"
-              onClick={() => setMotionPreviewOn(!motionPreviewOn)}
-              className={cn(
-                "px-3 py-1 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer border",
-                motionPreviewOn 
-                  ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" 
-                  : "bg-white/[0.05] text-slate-400 border-white/10"
-              )}
-            >
-              {motionPreviewOn ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
-              <span>Motion Preview: {motionPreviewOn ? 'ON' : 'OFF'}</span>
-            </button>
+      {/* Action Buttons & Motion Profile Sliders */}
+      <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sliders className="w-4 h-4 text-sky-400" />
+            <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Motion Controls</span>
           </div>
+          <button
+            type="button"
+            onClick={() => setRuntimeReactive(!runtimeReactive)}
+            className={cn(
+              "px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1.5",
+              runtimeReactive 
+                ? "bg-sky-500/15 border-sky-500/40 text-sky-400" 
+                : "bg-white/[0.03] border-white/[0.08] text-slate-400"
+            )}
+          >
+            <Activity className="w-3 h-3" />
+            <span>Reactive: {runtimeReactive ? 'ON' : 'OFF'}</span>
+          </button>
+        </div>
 
-          {/* Interactive Live Wallpaper Preview Canvas Frame */}
-          <div className="relative aspect-[16/9] w-full rounded-xl overflow-hidden border border-white/10 bg-slate-950 shadow-2xl">
-            <OrionLiveWallpaper
-              hasOpenWindows={false}
-              showLogo={false}
-              overrideWallpaper={{
-                wallpaperId: 'preview-wp',
-                tenantId,
-                ownerType: 'USER',
-                ownerId: userId,
-                name: selectedName,
-                assetUrl: selectedAssetUrl,
-                source: selectedCandidate ? 'AI' : 'UPLOAD',
-                aiGenerated: !!selectedCandidate,
-                width: 2560,
-                height: 1440,
-                aspectRatio: '16:9',
-                motionProfile: motionPreviewOn ? motionProfile : { backgroundDrift: 0, parallax: 0, atmosphere: 0, particles: 0, lightMovement: 0, objectMotion: 0 },
-                runtimeReactive,
-                environment: dbManager.getEnvironment(),
-                status: 'APPROVED',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              }}
-              overrideMotionProfile={motionPreviewOn ? motionProfile : { backgroundDrift: 0, parallax: 0, atmosphere: 0, particles: 0, lightMovement: 0, objectMotion: 0 }}
-              overrideRuntimeReactive={runtimeReactive}
-              quality={quality}
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] text-slate-300">Parallax</span>
+              <span className="text-[11px] font-mono text-sky-400">{Math.round(motionProfile.parallax * 100)}%</span>
+            </div>
+            <input
+              type="range"
+              min="0.0"
+              max="0.30"
+              step="0.01"
+              value={motionProfile.parallax}
+              onChange={e => setMotionProfile(prev => ({ ...prev, parallax: parseFloat(e.target.value) }))}
+              className="w-full h-1.5 bg-white/[0.1] rounded-lg appearance-none cursor-pointer accent-sky-400"
             />
           </div>
 
-          {/* Motion Profile Sliders & Config Controls */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 pt-2">
-            {/* Depth / Parallax Slider */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-medium text-slate-300">Depth / Parallax</span>
-                <span className="text-xs font-mono text-sky-400">{Math.round(motionProfile.parallax * 100)}%</span>
-              </div>
-              <input
-                type="range"
-                min="0.0"
-                max="0.30"
-                step="0.01"
-                value={motionProfile.parallax}
-                onChange={e => setMotionProfile(prev => ({ ...prev, parallax: parseFloat(e.target.value) }))}
-                className="w-full h-1.5 bg-white/[0.1] rounded-lg appearance-none cursor-pointer accent-sky-400"
-              />
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] text-slate-300">Glow</span>
+              <span className="text-[11px] font-mono text-sky-400">{Math.round(motionProfile.atmosphere * 100)}%</span>
             </div>
-
-            {/* Atmosphere Slider */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-medium text-slate-300">Atmosphere Glow</span>
-                <span className="text-xs font-mono text-sky-400">{Math.round(motionProfile.atmosphere * 100)}%</span>
-              </div>
-              <input
-                type="range"
-                min="0.0"
-                max="0.25"
-                step="0.01"
-                value={motionProfile.atmosphere}
-                onChange={e => setMotionProfile(prev => ({ ...prev, atmosphere: parseFloat(e.target.value) }))}
-                className="w-full h-1.5 bg-white/[0.1] rounded-lg appearance-none cursor-pointer accent-sky-400"
-              />
-            </div>
-
-            {/* Particles Slider */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-medium text-slate-300">Particles Shimmer</span>
-                <span className="text-xs font-mono text-sky-400">{Math.round(motionProfile.particles * 100)}%</span>
-              </div>
-              <input
-                type="range"
-                min="0.0"
-                max="0.25"
-                step="0.01"
-                value={motionProfile.particles}
-                onChange={e => setMotionProfile(prev => ({ ...prev, particles: parseFloat(e.target.value) }))}
-                className="w-full h-1.5 bg-white/[0.1] rounded-lg appearance-none cursor-pointer accent-sky-400"
-              />
-            </div>
+            <input
+              type="range"
+              min="0.0"
+              max="0.25"
+              step="0.01"
+              value={motionProfile.atmosphere}
+              onChange={e => setMotionProfile(prev => ({ ...prev, atmosphere: parseFloat(e.target.value) }))}
+              className="w-full h-1.5 bg-white/[0.1] rounded-lg appearance-none cursor-pointer accent-sky-400"
+            />
           </div>
 
-          {/* Runtime Reactive & Quality Tier Controls */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3 border-t border-white/[0.06]">
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setRuntimeReactive(!runtimeReactive)}
-                className={cn(
-                  "px-3.5 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer flex items-center gap-2",
-                  runtimeReactive 
-                    ? "bg-sky-500/15 border-sky-500/40 text-sky-400 shadow-sm" 
-                    : "bg-white/[0.03] border-white/[0.08] text-slate-400"
-                )}
-              >
-                <Activity className="w-3.5 h-3.5" />
-                <span>Runtime Reactive: {runtimeReactive ? 'ON' : 'OFF'}</span>
-              </button>
-              <span className="text-[11px] text-slate-400">Responds to real Orion runtime events</span>
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[11px] text-slate-300">Particles</span>
+              <span className="text-[11px] font-mono text-sky-400">{Math.round(motionProfile.particles * 100)}%</span>
             </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-medium text-slate-400">Quality:</span>
-              {(['LOW', 'MEDIUM', 'HIGH'] as QualityTier[]).map((q) => (
-                <button
-                  key={q}
-                  type="button"
-                  onClick={() => setQuality(q)}
-                  className={cn(
-                    "px-2.5 py-1 rounded-lg border text-[11px] font-mono transition-all cursor-pointer",
-                    quality === q 
-                      ? "bg-white/10 border-white/20 text-white font-bold" 
-                      : "bg-transparent border-transparent text-slate-500 hover:text-slate-300"
-                  )}
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
+            <input
+              type="range"
+              min="0.0"
+              max="0.25"
+              step="0.01"
+              value={motionProfile.particles}
+              onChange={e => setMotionProfile(prev => ({ ...prev, particles: parseFloat(e.target.value) }))}
+              className="w-full h-1.5 bg-white/[0.1] rounded-lg appearance-none cursor-pointer accent-sky-400"
+            />
           </div>
         </div>
-      )}
+
+        <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
+          <button
+            type="button"
+            onClick={handleResetDefault}
+            className="px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-xs font-medium text-slate-300 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Reset Default</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleApplyWallpaper}
+            disabled={isApplying || !selectedAssetUrl}
+            className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-black font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-sky-500/20 disabled:opacity-50"
+          >
+            <Check className="w-4 h-4" />
+            <span>{isApplying ? 'Applying...' : 'Apply Wallpaper'}</span>
+          </button>
+        </div>
+      </div>
     </div>
+  );
+
+  // Secondary Preview & Status Pane Content (DOMINANT LIVE PREVIEW)
+  const secondaryPane = (
+    <div className="space-y-4 h-full flex flex-col">
+      <div className="flex items-center justify-between shrink-0">
+        <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider font-mono">
+          LIVE WALLPAPER PREVIEW
+        </span>
+        <button
+          type="button"
+          onClick={() => setMotionPreviewOn(!motionPreviewOn)}
+          className={cn(
+            "px-2.5 py-1 rounded-full text-[11px] font-medium transition-all flex items-center gap-1.5 cursor-pointer border",
+            motionPreviewOn 
+              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" 
+              : "bg-white/[0.05] text-slate-400 border-white/10"
+          )}
+        >
+          {motionPreviewOn ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+          <span>Motion: {motionPreviewOn ? 'ACTIVE' : 'PAUSED'}</span>
+        </button>
+      </div>
+
+      {/* Dominant Live Wallpaper Renderer Box */}
+      <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border border-white/15 bg-slate-950 shadow-2xl shrink-0">
+        <OrionLiveWallpaper
+          hasOpenWindows={false}
+          showLogo={false}
+          overrideWallpaper={{
+            wallpaperId: 'preview-wp',
+            tenantId,
+            ownerType: 'USER',
+            ownerId: userId,
+            name: selectedName,
+            assetUrl: selectedAssetUrl,
+            source: selectedCandidate ? 'AI' : 'UPLOAD',
+            aiGenerated: !!selectedCandidate,
+            width: 2560,
+            height: 1440,
+            aspectRatio: '16:9',
+            motionProfile: motionPreviewOn ? motionProfile : { backgroundDrift: 0, parallax: 0, atmosphere: 0, particles: 0, lightMovement: 0, objectMotion: 0 },
+            runtimeReactive,
+            environment: dbManager.getEnvironment(),
+            status: 'APPROVED',
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          }}
+          overrideMotionProfile={motionPreviewOn ? motionProfile : { backgroundDrift: 0, parallax: 0, atmosphere: 0, particles: 0, lightMovement: 0, objectMotion: 0 }}
+          overrideRuntimeReactive={runtimeReactive}
+          quality={quality}
+        />
+
+        <div className="absolute top-3 left-3 px-2.5 py-1 rounded-md bg-black/60 backdrop-blur-md border border-white/10 text-[10px] font-mono text-white flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>{selectedName}</span>
+        </div>
+      </div>
+
+      {/* Live Runtime & Environment Telemetry Panel */}
+      <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3 font-mono text-xs">
+        <div className="flex justify-between items-center text-slate-400 border-b border-white/[0.06] pb-2">
+          <span className="text-[10px] uppercase tracking-wider">Live Engine Status</span>
+          <span className="text-emerald-400 font-semibold">{motionPreviewOn ? 'RENDERING 60 FPS' : 'PAUSED'}</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3 text-[11px]">
+          <div>
+            <span className="text-slate-500 block text-[9px] uppercase">Environment</span>
+            <span className="text-white font-medium">{dbManager.getEnvironment()}</span>
+          </div>
+          <div>
+            <span className="text-slate-500 block text-[9px] uppercase">Runtime Reactive</span>
+            <span className={runtimeReactive ? "text-sky-400 font-semibold" : "text-slate-400"}>
+              {runtimeReactive ? "ENABLED" : "DISABLED"}
+            </span>
+          </div>
+          <div>
+            <span className="text-slate-500 block text-[9px] uppercase">Resolution</span>
+            <span className="text-slate-300">2560 × 1440 (16:9)</span>
+          </div>
+          <div>
+            <span className="text-slate-500 block text-[9px] uppercase">Quality Tier</span>
+            <span className="text-slate-300">{quality}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-2 border-t border-white/[0.06]">
+          <span className="text-slate-400 text-[10px]">Render Quality Preset</span>
+          <div className="flex items-center gap-1.5">
+            {(['LOW', 'MEDIUM', 'HIGH'] as QualityTier[]).map((q) => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => setQuality(q)}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg border text-[10px] font-mono transition-all cursor-pointer",
+                  quality === q 
+                    ? "bg-white/10 border-white/20 text-white font-bold" 
+                    : "bg-transparent border-transparent text-slate-500 hover:text-slate-300"
+                )}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <OrionSettingsSplitLayout
+      title="Wallpaper Studio"
+      subtitle="AI-generated & user-configurable 16:9 Live Desktop Environment"
+      badge="LIVE ENGINE"
+      primary={primaryPane}
+      secondary={secondaryPane}
+    />
   );
 };
