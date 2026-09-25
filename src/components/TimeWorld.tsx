@@ -342,18 +342,18 @@ export const TimeWorldPanel: React.FC = () => {
   }, []);
 
   return (
-    <div className="time-world-panel h-full w-full min-h-0 bg-[#02070d] text-os-text-primary flex flex-col overflow-hidden">
-      <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3"><Globe2 className="w-5 h-5 text-cyan-300" /><div><h1 className="text-lg font-medium">Time & World</h1><p className="text-[11px] text-os-text-muted">Global time zones and local time</p></div></div>
+    <div className="time-world-panel h-full w-full min-h-0 bg-[#02070d] text-os-text-primary flex flex-col overflow-y-auto lg:overflow-hidden">
+      <div className="px-4 py-3 sm:px-6 sm:py-5 border-b border-white/10 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3"><Globe2 className="w-5 h-5 text-cyan-300" /><div><h1 className="text-base sm:text-lg font-medium">Time & World</h1><p className="text-[11px] text-os-text-muted">Global time zones and local time</p></div></div>
         <div className="flex items-center gap-2 text-[10px] font-mono text-os-text-muted"><Clock3 size={14} /> LIVE</div>
       </div>
-      <div className="time-world-layout flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_clamp(300px,24vw,420px)] 2xl:grid-cols-[minmax(0,1fr)_clamp(340px,22vw,460px)]">
-        <div className="relative min-h-0 h-full border-r border-white/10 overflow-hidden">
+      <div className="time-world-layout flex-1 min-h-0 flex flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_clamp(300px,24vw,420px)] 2xl:grid-cols-[minmax(0,1fr)_clamp(340px,22vw,460px)]">
+        <div className="relative h-[260px] sm:h-[320px] lg:h-full shrink-0 min-h-0 border-b lg:border-b-0 lg:border-r border-white/10 overflow-hidden">
           <div ref={mountRef} className="absolute inset-0" />
-          <div className="absolute left-[clamp(16px,1.5vw,28px)] top-[clamp(14px,1.4vw,24px)] pointer-events-none z-10"><div className="text-[10px] uppercase tracking-[0.28em] text-cyan-300/70">World time field</div><div className="text-xs text-os-text-muted mt-1">Live Earth · drag to rotate · wheel to zoom</div></div>
-          <div className="absolute left-1/2 bottom-[clamp(14px,1.5vw,26px)] -translate-x-1/2 text-center pointer-events-none z-10"><div className="font-mono text-2xl tracking-wider">{selectedInfo.time}</div><div className="text-xs text-os-text-secondary mt-1">{selectedInfo.name}</div><div className="text-[10px] font-mono text-cyan-300 mt-1">{selectedInfo.offset}</div></div>
+          <div className="absolute left-[clamp(12px,1.5vw,28px)] top-[clamp(10px,1.4vw,24px)] pointer-events-none z-10"><div className="text-[10px] uppercase tracking-[0.28em] text-cyan-300/70">World time field</div><div className="text-xs text-os-text-muted mt-1">Live Earth · drag to rotate · wheel to zoom</div></div>
+          <div className="absolute left-1/2 bottom-[clamp(10px,1.5vw,26px)] -translate-x-1/2 text-center pointer-events-none z-10"><div className="font-mono text-xl sm:text-2xl tracking-wider">{selectedInfo.time}</div><div className="text-xs text-os-text-secondary mt-0.5 sm:mt-1">{selectedInfo.name}</div><div className="text-[10px] font-mono text-cyan-300 mt-0.5">{selectedInfo.offset}</div></div>
         </div>
-        <aside className="min-h-0 flex flex-col bg-black/20">
+        <aside className="flex-1 min-h-0 flex flex-col bg-black/20 overflow-y-auto pb-28 sm:pb-12 lg:pb-0">
           <div className="p-[clamp(12px,1vw,20px)] border-b border-white/10">
             <div className="text-[10px] uppercase tracking-widest text-os-text-muted mb-2">Selected time zone</div>
             <div className="text-sm font-medium">{selectedInfo.city}</div><div className="text-[11px] text-os-text-muted mt-1">{selected}</div>

@@ -198,43 +198,43 @@ export const About: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#06080d] text-os-text-muted font-sans w-full overflow-hidden flex flex-col antialiased selection:bg-blue-500/30">
+    <div className="min-h-full bg-[#06080d] text-os-text-muted font-sans w-full max-w-full overflow-x-hidden flex flex-col antialiased selection:bg-blue-500/30">
       
-      {/* 1. TOP HEADER — CREATOR IDENTITY & OS BRANDING (ALWAYS VISIBLE WITHOUT SCROLLING) */}
-      <header className="bg-slate-950/90 backdrop-blur-md border-b border-slate-900 px-6 py-5 shrink-0 select-none z-20">
-        <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      {/* 1. TOP HEADER — CREATOR IDENTITY & OS BRANDING (RESPONSIVE CHROME HEADER) */}
+      <header className="bg-slate-950/90 backdrop-blur-md border-b border-slate-900 px-3 py-2.5 sm:px-6 sm:py-4 shrink-0 select-none z-20">
+        <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           
           {/* Left: Branding & Creator Attribution */}
-          <div className="flex items-center gap-5">
-            <div className="relative group">
+          <div className="flex items-center gap-3 sm:gap-5 min-w-0">
+            <div className="relative group shrink-0">
               <img 
                 src="/orion-9-brand-logo.png" 
                 alt="Orion-9 Logo" 
-                className="h-12 w-auto drop-shadow-[0_0_20px_rgba(59,130,246,0.6)] transition-transform duration-300 group-hover:scale-105" 
+                className="h-8 sm:h-10 md:h-12 w-auto drop-shadow-[0_0_20px_rgba(59,130,246,0.6)] transition-transform duration-300 group-hover:scale-105" 
               />
             </div>
 
-            <div className="flex flex-col">
-              <div className="flex items-center gap-3">
-                <h1 className="text-white font-extrabold text-xl tracking-wider uppercase font-sans">
+            <div className="flex flex-col min-w-0">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <h1 className="text-white font-extrabold text-base sm:text-xl tracking-wider uppercase font-sans truncate">
                   {appName}
                 </h1>
-                <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 font-mono text-[11px] font-semibold">
+                <span className="px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 font-mono text-[10px] sm:text-[11px] font-semibold shrink-0">
                   v{version}
                 </span>
-                <span className="hidden lg:inline-block px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-[10px] uppercase font-medium">
+                <span className="hidden sm:inline-block px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-[10px] uppercase font-medium shrink-0">
                   {dataMode === 'real' ? 'LIVE' : 'DEMO'}
                 </span>
               </div>
 
               {/* Prominent Creator Identity Line */}
-              <div className="flex flex-wrap items-center gap-2 mt-1">
-                <span className="text-blue-400/90 text-xs font-semibold tracking-wide flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-blue-400" />
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-0.5 sm:mt-1 text-[11px] sm:text-xs">
+                <span className="text-blue-400/90 font-semibold tracking-wide flex items-center gap-1 shrink-0">
+                  <User className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-blue-400" />
                   <span>Created by {creatorName}</span>
                 </span>
-                <span className="text-slate-600 font-mono text-xs">•</span>
-                <span className="text-slate-400 text-xs font-mono italic">
+                <span className="hidden sm:inline text-slate-600 font-mono text-xs">•</span>
+                <span className="hidden md:inline text-slate-400 font-mono italic truncate max-w-xs">
                   "{creatorQuote}"
                 </span>
               </div>
@@ -242,24 +242,24 @@ export const About: React.FC = () => {
           </div>
 
           {/* Right: Quick Metadata Pills */}
-          <div className="flex items-center gap-3 font-mono text-xs">
-            <div className="hidden sm:flex px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 flex-col text-right">
+          <div className="hidden sm:flex items-center gap-3 font-mono text-xs shrink-0 ml-auto">
+            <div className="hidden lg:flex px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 flex-col text-right">
               <span className="text-slate-500 text-[9px] uppercase">Commit SHA</span>
               <span className="text-blue-400 font-semibold">{gitSha.substring(0, 7)}</span>
             </div>
 
-            <div className="hidden md:flex px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 flex-col text-right">
+            <div className="hidden xl:flex px-3 py-1.5 rounded-lg bg-slate-900/80 border border-slate-800 flex-col text-right">
               <span className="text-slate-500 text-[9px] uppercase">Database Authority</span>
               <span className="text-emerald-400 font-semibold">Cloud Firestore</span>
             </div>
 
             {/* Creator Photo Thumbnail */}
             {creatorPhotoUrl ? (
-              <div className="w-9 h-9 rounded-full border border-blue-500/40 overflow-hidden shrink-0 shadow-lg" title={`Created by ${creatorName}`}>
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-blue-500/40 overflow-hidden shrink-0 shadow-lg" title={`Created by ${creatorName}`}>
                 <img src={creatorPhotoUrl} alt={creatorName} className="w-full h-full object-cover" />
               </div>
             ) : (
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-indigo-800 border border-blue-400/30 flex items-center justify-center font-bold text-white text-xs shrink-0 shadow-lg" title={`Created by ${creatorName}`}>
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-blue-600 to-indigo-800 border border-blue-400/30 flex items-center justify-center font-bold text-white text-xs shrink-0 shadow-lg" title={`Created by ${creatorName}`}>
                 {creatorName.substring(0, 2).toUpperCase()}
               </div>
             )}
@@ -267,11 +267,46 @@ export const About: React.FC = () => {
         </div>
       </header>
 
-      {/* 2. MAIN 2-COLUMN NATIVE OS CONTAINER */}
-      <div className="flex-1 flex overflow-hidden max-w-[1600px] w-full mx-auto">
+      {/* 2. MAIN NATIVE OS CONTAINER */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-y-auto md:overflow-hidden max-w-[1600px] w-full min-w-0 mx-auto">
         
-        {/* LEFT SIDEBAR NAVIGATION */}
-        <aside className="w-64 bg-slate-950/60 border-r border-slate-900/80 flex flex-col shrink-0 select-none overflow-y-auto">
+        {/* MOBILE SECTION NAVIGATION BAR (VISIBLE ON MOBILE ONLY) */}
+        <div className="block md:hidden bg-slate-950 border-b border-slate-900/90 p-2 sticky top-0 z-30 shrink-0 select-none w-full">
+          <div className="flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1 text-xs">
+            {activeSection !== 'overview' && (
+              <button
+                type="button"
+                onClick={() => setActiveSection('overview')}
+                className="flex items-center gap-1 text-blue-400 font-bold px-2.5 py-1.5 bg-blue-500/10 rounded-lg border border-blue-500/30 text-xs shrink-0"
+              >
+                ← Overview
+              </button>
+            )}
+
+            {sidebarNavItems.map(item => {
+              const Icon = item.icon;
+              const isActive = activeSection === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setActiveSection(item.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium shrink-0 whitespace-nowrap transition-colors ${
+                    isActive
+                      ? 'bg-blue-600 text-white font-semibold shadow-sm'
+                      : 'bg-slate-900/80 text-slate-400 border border-slate-800 hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* LEFT SIDEBAR NAVIGATION (VISIBLE ON DESKTOP ONLY) */}
+        <aside className="hidden md:flex w-64 bg-slate-950/60 border-r border-slate-900/80 flex-col shrink-0 select-none overflow-y-auto">
           <div className="p-4 border-b border-slate-900/60 flex items-center justify-between">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400">
               ABOUT ORION-9 OS
@@ -316,11 +351,11 @@ export const About: React.FC = () => {
         </aside>
 
         {/* RIGHT MAIN CONTENT AREA */}
-        <main ref={contentScrollRef} className="flex-1 overflow-y-auto bg-[#07090e] p-6 lg:p-10 space-y-10">
+        <main ref={contentScrollRef} className="flex-1 w-full min-w-0 overflow-y-auto bg-[#07090e] p-3 sm:p-6 lg:p-10 pb-28 sm:pb-12 space-y-6 sm:space-y-10">
           
           {/* SECTION 1: OVERVIEW */}
           {activeSection === 'overview' && (
-            <div className="space-y-10 animate-fadeIn">
+            <div className="space-y-6 sm:space-y-10 animate-fadeIn">
               <OrionCoreHero appName={appName} appTagline={appTagline} />
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 font-mono">

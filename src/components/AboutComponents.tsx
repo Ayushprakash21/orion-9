@@ -207,7 +207,7 @@ export const OrionCoreHero: React.FC<{ appName: string; appTagline: string }> = 
   const currentSector = sectors[activeSector];
 
   return (
-    <div className="relative w-full flex flex-col items-center justify-center min-h-[640px] border-b border-slate-800 pb-16 pt-8 z-10 select-none">
+    <div className="relative w-full flex flex-col items-center justify-center min-h-0 sm:min-h-[500px] md:min-h-[640px] border-b border-slate-800 pb-10 sm:pb-16 pt-4 sm:pt-8 z-10 select-none">
       <TechnicalBackgroundCanvas />
 
       {/* Dynamic Telemetry HUD Left */}
@@ -231,7 +231,7 @@ export const OrionCoreHero: React.FC<{ appName: string; appTagline: string }> = 
       </div>
 
       {/* Animated Core SVG Visualization */}
-      <div className="relative w-72 h-72 sm:w-80 sm:h-80 flex items-center justify-center mb-8">
+      <div className="relative w-56 h-56 sm:w-72 sm:h-72 md:w-80 md:h-80 flex items-center justify-center mb-6 sm:mb-8">
         {/* Animated concentric SVG circles */}
         <svg className="absolute w-full h-full inset-0 pointer-events-none" viewBox="0 0 200 200">
           <defs>
@@ -396,11 +396,11 @@ export const CircularOperatingLoop: React.FC<{ steps: LoopStep[] }> = ({ steps }
         Continuous, automated optimization requires a system that cycles from observation to execution and self-calibration. Click any node in the operating loop to inspect its input/output boundaries and real-time processing performance.
       </p>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center bg-slate-950/40 border border-slate-900 rounded-2xl p-6 sm:p-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-center bg-slate-950/40 border border-slate-900 rounded-2xl p-3 sm:p-6 lg:p-8">
         
         {/* Left Side: SVG Circular Node Layout */}
-        <div className="lg:col-span-7 flex justify-center items-center py-6">
-          <div className="relative w-72 h-72 sm:w-80 sm:h-80 md:w-96 md:h-96">
+        <div className="lg:col-span-7 flex justify-center items-center py-4 sm:py-6">
+          <div className="relative w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 mx-auto">
             <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
               {/* Outer Circular Path */}
               <circle cx="50" cy="50" r="38" fill="none" stroke="rgba(0, 242, 254, 0.08)" strokeWidth="1" />

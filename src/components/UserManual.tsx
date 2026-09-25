@@ -26,7 +26,7 @@ const navigationMap = [
 
 export const UserManual: React.FC = () => {
   const { openApplication } = useWindowManager();
-  return <div className="w-full h-full overflow-y-auto p-4 sm:p-6 lg:p-8"><div className="max-w-5xl mx-auto text-os-text-primary">
+  return <div className="w-full h-full overflow-y-auto p-3 sm:p-6 lg:p-8 pb-28 sm:pb-12"><div className="max-w-5xl mx-auto text-os-text-primary">
     <header className="border-b border-os-border pb-6"><div className="flex items-center gap-2 text-os-accent text-[10px] uppercase tracking-[0.2em] font-mono"><BookOpen size={14}/> User Manual</div><h1 className="mt-2 text-2xl sm:text-3xl font-light">ORION-9 User Operating Guide</h1><p className="mt-2 text-sm text-os-text-secondary">How to operate ORION-9 as an intelligent, governed supply-chain command environment.</p></header>
     <section className="mt-6 rounded-2xl border border-os-accent/15 bg-os-accent/[0.025] p-4">
       <div className="flex items-center gap-2 text-[10px] uppercase tracking-[0.2em] font-mono text-os-accent"><Navigation size={14}/> User Navigation Map</div>
