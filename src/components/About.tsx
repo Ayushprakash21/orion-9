@@ -14,28 +14,32 @@ import {
 } from './AboutComponents';
 import { NavLink } from 'react-router-dom';
 import { 
-  BrainCircuit, 
-  Network, 
-  Eye, 
-  GitBranch, 
-  Send,
-  Database,
-  Cpu,
-  Layers,
-  CheckCircle2,
-  AlertTriangle,
-  Activity,
-  History,
+  Info,
+  FileText,
   Shield,
-  Zap,
-  Box,
-  Server
+  HelpCircle,
+  Activity,
+  ChevronRight,
+  ExternalLink,
+  CheckCircle2,
+  Lock,
+  Database,
+  Globe,
+  Server,
+  Layers,
+  Sparkles,
+  BookOpen,
+  Scale
 } from 'lucide-react';
 
 export const About: React.FC = () => {
   const { dataMode } = useSupplyChain();
   const [branding, setBranding] = useState<BrandingConfig>(() => brandingRepository.getBrandingSync());
+  const [activeTab, setActiveTab] = useState<'overview' | 'system_info' | 'documentation' | 'legal' | 'support'>('overview');
   
+  // Legal & documentation modal popups
+  const [activeLegalModal, setActiveLegalModal] = useState<'privacy' | 'terms' | 'licenses' | 'release_notes' | null>(null);
+
   useEffect(() => {
     const handleBrandingUpdate = () => {
       setBranding(brandingRepository.getBrandingSync());
@@ -50,8 +54,6 @@ export const About: React.FC = () => {
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Requirement 11: Set internal scroll container to the top ONCE on mount.
-  // Do not repeatedly reset scrollTop. User scroll position remains stable thereafter.
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = 0;
@@ -59,12 +61,12 @@ export const About: React.FC = () => {
         containerRef.current.parentElement.scrollTop = 0;
       }
     }
-  }, []);
+  }, [activeTab]);
 
   const appName = branding.appName || branding.productName || branding.applicationName || 'ORION 9 SCM OS';
   const appTagline = branding.description || branding.tagline || 'AI-NATIVE SUPPLY CHAIN OPERATING SYSTEM';
+  const gitSha = import.meta.env.VITE_GIT_SHA || 'bcb145f';
 
-  // Core structured data from the original code
   const operatingLoop = [
     { label: 'SENSE', desc: 'Collect and observe operational signals.' },
     { label: 'UNDERSTAND', desc: 'Connect events, entities and relationships.' },
@@ -121,495 +123,497 @@ export const About: React.FC = () => {
   ];
 
   return (
-    <div ref={containerRef} className="relative min-h-screen bg-[#07090e] text-os-text-muted font-sans w-full overflow-x-hidden antialiased flex flex-col">
+    <div ref={containerRef} className="relative min-h-screen bg-[#07090e] text-os-text-muted font-sans w-full overflow-x-hidden antialiased flex flex-col selection:bg-blue-500/30">
       
-      {/* 1. HERO HEADER (ENTERING THE ORION CORE) */}
-      <OrionCoreHero appName={appName} appTagline={appTagline} />
-
-      {/* Main Core View Area */}
-      <div className="px-4 sm:px-6 lg:px-8 xl:px-12 py-16 w-full max-w-7xl mx-auto space-y-24 z-10">
-        
-        {/* 2. SYSTEM IDENTITY */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start border-b border-slate-900 pb-16">
-          <div className="lg:col-span-4">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">SYSTEM IDENTITY</h3>
-            <span className="text-[10px] font-mono text-slate-500 block mt-2 uppercase tracking-widest">COGNITIVE SCM ARCHITECTURE</span>
-          </div>
-          <div className="lg:col-span-8 space-y-6">
-            <p className="font-mono text-sm leading-relaxed text-os-text-secondary select-text">
-              {appName} is engineered as an AI-native Supply Chain Operating System. It connects distributed operational data, continuous intelligence, decision engines, system workflows, and direct enterprise execution into a single, closed-loop environment.
-            </p>
-            
-            {/* Visual Operational Tracks */}
-            <div className="space-y-3 pt-2">
-              <div className="p-3 border border-slate-900 bg-slate-950/40 rounded-xl flex flex-col gap-1.5 font-mono text-[10px]">
-                <span className="text-slate-500 uppercase tracking-widest text-[9px]">Sensing Pathway:</span>
-                <div className="flex flex-wrap items-center gap-2 text-[#30D158] font-bold">
-                  <span>Sense</span> <span className="text-slate-600">→</span>
-                  <span>Understand</span> <span className="text-slate-600">→</span>
-                  <span>Predict</span> <span className="text-slate-600">→</span>
-                  <span>Decide</span> <span className="text-slate-600">→</span>
-                  <span>Act</span> <span className="text-slate-600">→</span>
-                  <span>Verify</span> <span className="text-slate-600">→</span>
-                  <span>Learn</span>
-                </div>
+      {/* CANONICAL ABOUT OS HEADER */}
+      <header className="bg-slate-950 border-b border-slate-900 px-6 py-8 select-none">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-5">
+            <img 
+              src="/orion-9-brand-logo.png" 
+              alt="Orion-9 Logo" 
+              className="h-16 w-auto drop-shadow-[0_0_20px_rgba(59,130,246,0.6)]" 
+            />
+            <div className="flex flex-col">
+              <div className="flex items-center gap-3">
+                <h1 className="text-white font-extrabold text-2xl tracking-wider">ORION-9</h1>
+                <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 font-mono text-[11px] font-semibold">
+                  v9.0.0
+                </span>
               </div>
-
-              <div className="p-3 border border-slate-900 bg-slate-950/40 rounded-xl flex flex-col gap-1.5 font-mono text-[10px]">
-                <span className="text-slate-500 uppercase tracking-widest text-[9px]">Information Hierarchy:</span>
-                <div className="flex flex-wrap items-center gap-2 text-[#00F2FE] font-bold">
-                  <span>Data</span> <span className="text-slate-600">↓</span>
-                  <span>Intelligence</span> <span className="text-slate-600">↓</span>
-                  <span>Decision</span> <span className="text-slate-600">↓</span>
-                  <span>Action</span> <span className="text-slate-600">↓</span>
-                  <span>Outcome</span> <span className="text-slate-600">↓</span>
-                  <span>Memory</span> <span className="text-slate-600">↓</span>
-                  <span>Learning</span>
-                </div>
-              </div>
+              <p className="text-white/60 text-xs font-medium uppercase tracking-[0.2em] mt-1">
+                Supply Chain Operating System
+              </p>
             </div>
           </div>
-        </div>
 
-        {/* 3. SYSTEM PURPOSE & MISSION */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start border-b border-slate-900 pb-16">
-          <div className="lg:col-span-4">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">SYSTEM PURPOSE & MISSION</h3>
-            <span className="text-[10px] font-mono text-slate-500 block mt-2 uppercase tracking-widest">ENTERPRISE RESOLUTION GOAL</span>
-          </div>
-          <div className="lg:col-span-8">
-            <p className="font-mono text-sm leading-relaxed text-os-text-secondary select-text">
-              To transform fragmented and silent supply chain transaction records into a unified, living operational intelligence network. Orion identifies exactly what is happening across global networks, explains why disruptions occur, anticipates forward risks, evaluates alternative scenarios, assists human decisions, automates execution pathways, and perpetually records results to learn from operational outcomes.
-            </p>
-          </div>
-        </div>
-
-        {/* 4. CORE VISION */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start border-b border-slate-900 pb-16">
-          <div className="lg:col-span-4">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">CORE VISION</h3>
-            <span className="text-[10px] font-mono text-slate-500 block mt-2 uppercase tracking-widest">THE STRUCTURAL COUPLING</span>
-          </div>
-          <div className="lg:col-span-8 space-y-6">
-            <p className="font-mono text-sm leading-relaxed text-os-text-secondary select-text">
-              {appName} is built on the philosophy that a supply chain is not a series of passive ledgers, but a highly coupled, dynamic network. Orion maps the complex relationships between Supply, Demand, Inventory, Procurement, Logistics, Warehouses, Risk, Costs, Actions, and Outcomes to drive optimal enterprise performance.
-            </p>
-            
-            {/* Visual Blueprint Flowchart */}
-            <div className="flex flex-col md:flex-row items-center justify-center gap-3 p-6 bg-slate-950 border border-slate-900 rounded-2xl max-w-xl font-mono text-[10px] text-os-text-secondary uppercase tracking-widest">
-              <div className="text-slate-500">Signals</div>
-              <div className="text-slate-600">→</div>
-              <div className="text-[#00F2FE] font-bold">ORION Twin</div>
-              <div className="text-slate-600">→</div>
-              <div className="text-[#FF9F0A] font-bold">Simulations</div>
-              <div className="text-slate-600">→</div>
-              <div className="text-[#30D158] font-bold">Autopilot</div>
-              <div className="text-slate-600">→</div>
-              <div className="text-purple-400 font-bold">Learning</div>
-            </div>
-          </div>
-        </div>
-
-        {/* 5. WHAT IS ORION 9? */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start border-b border-slate-900 pb-16">
-          <div className="lg:col-span-4">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">WHAT IS {appName}?</h3>
-            <span className="text-[10px] font-mono text-slate-500 block mt-2 uppercase tracking-widest">THE INTEGRATED OPERATING SYSTEM</span>
-          </div>
-          <div className="lg:col-span-8">
-            <p className="font-mono text-sm leading-relaxed text-os-text-secondary select-text">
-              {appName} is a comprehensive, enterprise-level digital twin and execution environment. Instead of forcing supply chain coordinators to operate isolated point solutions (WMS, TMS, ERP, Risk Platforms), Orion unifies inventory rebalancing, procurement validation, supplier communication, and automated logistics routing within a single cohesive dashboard, protecting margins and ensuring total system resilience.
-            </p>
-          </div>
-        </div>
-
-        {/* 6. ORION OPERATING LOOP */}
-        <CircularOperatingLoop steps={operatingLoop} />
-
-        {/* 7. ORION ARCHITECTURE NETWORK */}
-        <ArchitectureNetworkDiagram appName={appName} />
-
-        {/* 8. PLATFORM INTELLIGENCE MATRIX */}
-        <PlatformIntelligenceConstellation matrix={intelligenceMatrix} />
-
-        {/* 9. SCM COMMUNICATION TERMINAL ("Supply Chain Talks to Orion") */}
-        <SCMCommunicationTerminal />
-
-        {/* 10. CORE ORION ENGINES */}
-        <div className="space-y-8 border-b border-slate-900 pb-16">
-          <div className="space-y-2">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">
-              CORE ORION ENGINES <span className="text-slate-500 font-normal">("SYSTEM BLUEPRINT COMPONENTS")</span>
-            </h3>
-            <p className="font-mono text-sm leading-relaxed text-os-text-muted max-w-4xl">
-              Each core intelligence service in Orion 9 executes standard logical tasks to synchronize, simulate, and verify decisions across global supply chains.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {coreEngines.map((engine, idx) => (
-              <div key={idx} className="bg-slate-950 border border-slate-900 p-4 rounded-xl flex flex-col justify-between space-y-4 hover:border-slate-800 transition-colors">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center font-mono">
-                    <span className="font-bold text-[11px] uppercase tracking-wider text-os-text-primary">{engine.name}</span>
-                    <span className={`text-[8px] uppercase px-2 py-0.5 rounded border font-mono font-bold
-                      ${engine.status === 'IMPLEMENTED' ? 'bg-[#30D158]/10 text-[#30D158] border-[#30D158]/25' : 
-                        engine.status === 'PARTIALLY IMPLEMENTED' ? 'bg-amber-500/10 text-amber-500 border-amber-500/25' : 
-                        engine.status === 'PLANNED' ? 'bg-slate-900 text-slate-500 border-slate-800' : 
-                        'bg-[#00F2FE]/10 text-[#00F2FE] border-[#00F2FE]/25'}`}>
-                      {engine.status}
-                    </span>
-                  </div>
-                  <p className="text-[11px] font-mono leading-relaxed text-os-text-muted select-text">{engine.purpose}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 11. ORION INTELLIGENCE LAYERS */}
-        <div className="space-y-8 border-b border-slate-900 pb-16">
-          <div className="space-y-2">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">
-              ORION INTELLIGENCE LAYERS <span className="text-slate-500 font-normal">("THE FUNCTIONAL HIERARCHY")</span>
-            </h3>
-            <p className="font-mono text-sm leading-relaxed text-os-text-muted max-w-3xl">
-              Signals progress sequentially from raw observation to unified cognitive layers, enabling deeper reasoning and automated enterprise execution.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 font-mono text-center">
-            {['OBSERVE', 'UNDERSTAND', 'PREDICT', 'REASON', 'SIMULATE', 'DECIDE', 'EXECUTE', 'LEARN'].map((layer, idx) => (
-              <div key={idx} className="p-4 border border-slate-900 rounded-xl bg-slate-950 hover:border-slate-800 transition-colors">
-                <div className="text-[11px] font-bold uppercase tracking-widest text-os-text-primary mb-1">{layer}</div>
-                <div className="text-[9px] text-slate-500 uppercase tracking-widest">LAYER {idx + 1}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* 12. BEYOND TRADITIONAL SCM (TAG CLOUD) */}
-        <div className="space-y-6 border-b border-slate-900 pb-16">
-          <div className="space-y-2 text-center">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-os-text-primary">
-              BEYOND TRADITIONAL SCM <span className="text-slate-500 font-normal">("THE COGNITIVE TAXONOMY")</span>
-            </h3>
-            <p className="font-mono text-xs text-slate-500 uppercase tracking-wider max-w-xl mx-auto">
-              Advanced operating capabilities and structural constraints engineered within the Orion Core.
-            </p>
-          </div>
-
-          <FloatingConstellationTags />
-        </div>
-
-        {/* 13. WHY ORION IS DIFFERENT (TRADITIONAL VS ORION CARD) */}
-        <div className="space-y-8 border-b border-slate-900 pb-16">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">
-            WHY ORION? <span className="text-slate-500 font-normal">("THE GENERATIONAL LEAP")</span>
-          </h3>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 font-mono">
-            
-            {/* Traditional Card */}
-            <div className="bg-slate-950 p-6 rounded-2xl border border-slate-900 space-y-4 flex flex-col justify-between">
-              <div className="space-y-4">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 block">TRADITIONAL SCM PLATFORMS</span>
-                <div className="text-sm text-os-text-muted space-y-2 font-bold">
-                  <div>● RECORD TRANSACTION LOGS</div>
-                  <div>● RETROSPECTIVE reporting</div>
-                  <div>● STATIC THRESHOLD ALERTS</div>
-                </div>
-              </div>
-              <div className="pt-4 border-t border-slate-900 text-[10px] text-slate-600 italic">
-                Focuses primarily on answering "What happened?" after disruptions have already incurred costs.
-              </div>
+          {/* Quick System Metadata Pills */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-xs">
+            <div className="px-3.5 py-2 rounded-xl bg-slate-900/80 border border-white/10 flex flex-col">
+              <span className="text-slate-500 text-[9px] uppercase">Version</span>
+              <span className="text-white font-semibold">9.0.0</span>
             </div>
 
-            {/* Orion Card */}
-            <div className="bg-slate-950 p-6 rounded-2xl border border-[#00F2FE]/25 space-y-4 shadow-[0_0_15px_rgba(0,242,254,0.03)] flex flex-col justify-between">
-              <div className="space-y-4">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[#00F2FE] block">ORION 9 OS COGNITIVE STACK</span>
-                <div className="grid grid-cols-2 gap-2 text-sm text-os-text-primary font-bold">
-                  <div>● SENSE REAL-TIME</div>
-                  <div>● CONNECT TWIN</div>
-                  <div>● UNDERSTAND WHY</div>
-                  <div>● PREDICT VELOCITY</div>
-                  <div>● SIMULATE PATHS</div>
-                  <div><div>● DECIDE MARGINS</div></div>
-                  <div>● ACT AUTOMATED</div>
-                  <div>● LEARN CALIBRATED</div>
-                </div>
-              </div>
-              <div className="pt-4 border-t border-slate-900 text-[10px] text-[#00F2FE] font-bold space-y-1">
-                <div>"Why is this delay happening?"</div>
-                <div>"What is the exact downstream financial blast radius?"</div>
-                <div>"How will alternative supplier routing affect long-term cost of goods?"</div>
-              </div>
+            <div className="px-3.5 py-2 rounded-xl bg-slate-900/80 border border-white/10 flex flex-col">
+              <span className="text-slate-500 text-[9px] uppercase">Build</span>
+              <span className="text-blue-400 font-semibold">{gitSha.substring(0, 7)}</span>
             </div>
 
-          </div>
-        </div>
-
-        {/* 14. SUPPLY CHAIN AS A LIVING SYSTEM */}
-        <div className="space-y-8 border-b border-slate-900 pb-16">
-          <div className="space-y-2">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">
-              THE SUPPLY CHAIN AS A LIVING SYSTEM
-            </h3>
-            <p className="font-mono text-sm leading-relaxed text-os-text-muted max-w-3xl">
-              Orion handles physical operational lanes as a single, structurally coupled organic model, continuously evaluating signals and logging memory events.
-            </p>
-          </div>
-
-          <div className="bg-slate-950 border border-slate-900 p-8 rounded-2xl overflow-x-auto shadow-inner select-none">
-            <div className="flex items-center justify-between whitespace-nowrap font-mono text-[9px] uppercase font-bold text-os-text-muted min-w-[900px] gap-2">
-              {[ 'Suppliers', 'Materials', 'Procurement', 'Inbound', 'Inventory', 'Warehouse', 'Fulfillment', 'Logistics', 'Customers' ].map((node, idx, arr) => (
-                <React.Fragment key={idx}>
-                  <div className="relative group cursor-default p-3 border border-slate-900 bg-slate-950 hover:border-[#00F2FE] rounded-xl transition-all">
-                    <div>{node}</div>
-                    <div className="absolute -top-6 left-1/2 -translate-x-1/2 text-[8px] text-[#00F2FE] opacity-0 group-hover:opacity-100 transition-opacity tracking-widest uppercase font-bold">SIGNALS</div>
-                    <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 text-purple-400 opacity-0 group-hover:opacity-100 transition-opacity tracking-widest uppercase font-bold">MEMORY</div>
-                  </div>
-                  {idx < arr.length - 1 && <div className="text-slate-700 font-normal">→</div>}
-                </React.Fragment>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* 15. ORION WORLD MODEL */}
-        <div className="space-y-8 border-b border-slate-900 pb-16">
-          <div className="space-y-2">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">
-              ORION WORLD MODEL <span className="text-slate-500 font-normal">("THE CHRONOLOGICAL CONTINUUM")</span>
-            </h3>
-            <p className="font-mono text-sm leading-relaxed text-os-text-muted max-w-3xl">
-              Maintains an active, structurally complete state machine charting historical anomalies, current live presence, predicted paths, and simulated alternatives.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-4 font-mono text-[10px] uppercase tracking-widest font-bold">
-            <div className="px-4 py-3 bg-slate-950 border border-slate-900 text-os-text-muted rounded-xl">History (Past Memory)</div>
-            <div className="text-slate-700 flex items-center">→</div>
-            <div className="px-4 py-3 bg-slate-950 border border-[#00F2FE]/30 text-[#00F2FE] rounded-xl shadow-[0_0_10px_rgba(0,242,254,0.03)]">Current Live State (Presence)</div>
-            <div className="text-slate-700 flex items-center">→</div>
-            <div className="px-4 py-3 bg-slate-950 border border-[#30D158]/30 text-[#30D158] rounded-xl">Predicted Future State (Inference)</div>
-            <div className="text-slate-700 flex items-center">→</div>
-            <div className="px-4 py-3 bg-slate-950 border border-purple-400/30 text-purple-400 rounded-xl">Scenario Simulation State (Evaluation)</div>
-          </div>
-        </div>
-
-        {/* 16. HUMAN + AI RELATIONSHIP */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start border-b border-slate-900 pb-16">
-          <div className="lg:col-span-4">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">HUMAN + ORION</h3>
-            <span className="text-[10px] font-mono text-slate-500 block mt-2 uppercase tracking-widest">COGNITIVE SYNERGY POLICY</span>
-          </div>
-          <div className="lg:col-span-8">
-            <p className="font-mono text-sm leading-relaxed text-os-text-secondary select-text">
-              Orion is not built to eliminate human agency or replace operational expertise. Rather, it is engineered to surface clean evidence, isolate critical alerts, evaluate complex downstream combinations, simulate consequences, and propose optimal actions. Humans retain ultimate validation and governance rights over all critical corporate transactions, conforming to explicit financial and risk policies.
-            </p>
-          </div>
-        </div>
-
-        {/* 17. ORION AUTONOMY MODEL */}
-        <div className="space-y-8 border-b border-slate-900 pb-16">
-          <div className="space-y-2">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">
-              ORION AUTONOMY MODEL <span className="text-slate-500 font-normal">("THE PILOT INSTRUMENTATION TIER")</span>
-            </h3>
-            <p className="font-mono text-sm leading-relaxed text-os-text-muted max-w-3xl">
-              Autopilot maturity levels defining exactly how decisions are prepared and dispatched based on risk and policy rules.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 font-mono">
-            {autonomyLevels.map((lvl, idx) => (
-              <div key={idx} className="bg-slate-950 border border-slate-900 p-5 rounded-2xl flex flex-col justify-between space-y-4 hover:border-slate-800 transition-colors">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center text-[10px]">
-                    <span className="font-bold text-slate-500 tracking-wider uppercase">{lvl.level}</span>
-                    <span className="font-bold text-os-text-primary uppercase tracking-widest">{lvl.name}</span>
-                  </div>
-                  <p className="text-[11px] leading-relaxed text-os-text-muted select-text">{lvl.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <p className="font-mono text-[10px] text-slate-500 italic uppercase tracking-wider text-center max-w-2xl mx-auto">
-            * Autonomous execution is tightly constrained by configurable Policies, User permissions, Financial limits, Risk boundaries, and absolute auditing.
-          </p>
-        </div>
-
-        {/* 18. DATA & AI TRUST GAUGES */}
-        <div className="space-y-8 border-b border-slate-900 pb-16">
-          <div className="space-y-2">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">
-              TRUST BY DESIGN <span className="text-slate-500 font-normal">("COGNITIVE FIDELITY MEASURES")</span>
-            </h3>
-            <p className="font-mono text-sm leading-relaxed text-os-text-muted max-w-3xl">
-              Orion distinguishes clearly between raw measurements, calculated structures, inferred possibilities, and system recommendations to enforce absolute data trust.
-            </p>
-          </div>
-
-          <TrustGauges />
-        </div>
-
-        {/* 19. ORION AI (GEMINI ENGINE) */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start border-b border-slate-900 pb-16">
-          <div className="lg:col-span-4">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">ORION AI</h3>
-            <span className="text-[10px] font-mono text-slate-500 block mt-2 uppercase tracking-widest">GEMINI INTEL LAYER</span>
-          </div>
-          <div className="lg:col-span-8">
-            <p className="font-mono text-sm leading-relaxed text-os-text-secondary select-text">
-              The Gemini LLM API provides the primary linguistic and semantic cognitive interface. Gemini decomposes unstructured shipping incidents, drafts clear contextual emails to suppliers, interprets complex multi-scenario graphs, and generates logical risk summaries for human executives, transforming raw databases into logical explanations.
-            </p>
-          </div>
-        </div>
-
-        {/* 20. ORION MEMORY ENGINE */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start border-b border-slate-900 pb-16">
-          <div className="lg:col-span-4">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">ORION MEMORY</h3>
-            <span className="text-[10px] font-mono text-slate-500 block mt-2 uppercase tracking-widest">THE RETROSPECTIVE LEDGER</span>
-          </div>
-          <div className="lg:col-span-8">
-            <p className="font-mono text-sm leading-relaxed text-os-text-secondary select-text">
-              Orion incorporates a dedicated memory retention layer. Every shipping delay, supplier dispute, counterfactual option, human action override, and eventual financial outcome is indexed as a vector memory state. This allows the system to refer to past resolutions, recommending proven decisions when similar conditions repeat in subsequent operational cycles.
-            </p>
-          </div>
-        </div>
-
-        {/* 21. ENTERPRISE GOVERNANCE */}
-        <div className="space-y-8 border-b border-slate-900 pb-16">
-          <div className="space-y-2">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">
-              ENTERPRISE GOVERNANCE <span className="text-slate-500 font-normal">("THE SAFETY SYSTEM ENERGETICS")</span>
-            </h3>
-            <p className="font-mono text-sm leading-relaxed text-os-text-muted max-w-3xl">
-              System access, operational thresholds, and decision paths are controlled strictly through layered administrative gates.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2.5 font-mono text-[10px] uppercase tracking-wider">
-            {['Permissions', 'Roles', 'Policies', 'Approvals', 'Audit Logs', 'Data Trust', 'AI Governance', 'Autonomy Control'].map((item, idx) => (
-              <span key={idx} className="px-3.5 py-2 border border-slate-900 bg-slate-950 text-os-text-primary rounded-lg">
-                {item}
+            <div className="px-3.5 py-2 rounded-xl bg-slate-900/80 border border-white/10 flex flex-col">
+              <span className="text-slate-500 text-[9px] uppercase">Environment</span>
+              <span className={`font-semibold ${dataMode === 'real' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {dataMode === 'real' ? 'LIVE' : 'DEMO'}
               </span>
-            ))}
-          </div>
-        </div>
+            </div>
 
-        {/* 22. & 23. FOUNDER & ORIGIN PANEL (ARCHITECT LOG) */}
-        <ArchitectLog appName={appName} />
-
-        {/* 24. ORION EVOLUTION TRACK */}
-        <div className="space-y-8 border-b border-slate-900 pb-16">
-          <div className="space-y-2">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">
-              ORION 9 EVOLUTION <span className="text-slate-500 font-normal">("SYSTEM CAPABILITY ROADMAP")</span>
-            </h3>
-            <p className="font-mono text-sm leading-relaxed text-os-text-muted max-w-3xl">
-              Tracing the progress of Orion 9 capabilities from initial visibility modules to progressive autonomous governance.
-            </p>
-          </div>
-
-          <div className="relative font-mono text-[10px] uppercase tracking-wider py-2">
-            {/* Horizontal timeline bar for desktop */}
-            <div className="absolute top-1/2 left-0 w-full h-px bg-slate-900/60 -translate-y-1/2 hidden md:block" />
-            
-            <div className="grid grid-cols-1 md:grid-cols-9 gap-6 relative">
-              {[
-                { name: 'ORIGIN', status: 'Implemented' },
-                { name: 'SCM VISIBILITY', status: 'Implemented' },
-                { name: 'SCM INTELLIGENCE', status: 'Implemented' },
-                { name: 'CONNECTED DECISIONS', status: 'Implemented' },
-                { name: 'AUTOMATION', status: 'Implemented' },
-                { name: 'DIGITAL TWIN', status: 'Implemented' },
-                { name: 'MEMORY', status: 'Implemented' },
-                { name: 'LEARNING', status: 'In development' },
-                { name: 'PROGRESSIVE AUTONOMY', status: 'Future direction' }
-              ].map((item, idx, arr) => {
-                const color = 
-                  item.status === 'Implemented' ? 'text-[#30D158]' :
-                  item.status === 'In development' ? 'text-[#FF9F0A]' :
-                  'text-slate-500';
-
-                return (
-                  <div key={idx} className="bg-slate-950 border border-slate-900/80 p-3 rounded-xl flex flex-col justify-between text-center space-y-2 z-10 hover:border-slate-800 transition-colors">
-                    <span className="font-bold text-os-text-primary block truncate">{item.name}</span>
-                    <span className={`text-[8px] font-bold uppercase tracking-widest ${color}`}>{item.status}</span>
-                  </div>
-                );
-              })}
+            <div className="px-3.5 py-2 rounded-xl bg-slate-900/80 border border-white/10 flex flex-col">
+              <span className="text-slate-500 text-[9px] uppercase">Organization</span>
+              <span className="text-purple-300 font-semibold">ORION_PLATFORM</span>
             </div>
           </div>
         </div>
 
-        {/* 25. SYSTEM PRINCIPLES */}
-        <div className="space-y-8 border-b border-slate-900 pb-16">
-          <div className="space-y-2">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">
-              ORION PRINCIPLES <span className="text-slate-500 font-normal">("THE COGNITIVE CODES")</span>
-            </h3>
-            <p className="font-mono text-sm leading-relaxed text-os-text-muted max-w-3xl">
-              Ten fundamental operating parameters governing Orion system intelligence, data, and human interactions.
-            </p>
-          </div>
+        {/* Tab Navigation */}
+        <div className="max-w-7xl mx-auto mt-8 flex items-center gap-2 border-t border-slate-900/80 pt-4 overflow-x-auto">
+          {[
+            { id: 'overview', label: 'Overview & Blueprint', icon: Info },
+            { id: 'system_info', label: 'System Information', icon: Server },
+            { id: 'documentation', label: 'Documentation & Release Notes', icon: BookOpen },
+            { id: 'legal', label: 'Legal & Licenses', icon: Scale },
+            { id: 'support', label: 'Support & Diagnostics', icon: HelpCircle },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-mono text-xs font-medium transition-all duration-200 shrink-0 cursor-pointer ${
+                  isActive
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20 font-bold'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                }`}
+              >
+                <Icon className="w-4 h-4" />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </header>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-[10px]">
-            {[
-              'Data before assumption',
-              'Evidence before conclusion',
-              'Explain before execution',
-              'Human governance for consequential decisions',
-              'No fabricated operational facts',
-              'Continuous learning from outcomes',
-              'Connected rather than isolated intelligence',
-              'Progressive automation',
-              'Auditability',
-              'Operational usefulness over decorative AI'
-            ].map((principle, idx) => (
-              <div key={idx} className="flex items-center gap-4 bg-slate-950 border border-slate-900 p-4 rounded-xl hover:border-slate-800 transition-colors">
-                <span className="text-[#00F2FE] font-bold text-xs">{String(idx + 1).padStart(2, '0')}.</span>
-                <span className="text-os-text-secondary select-text font-bold uppercase tracking-wider">{principle}</span>
+      {/* TAB CONTENT 1: OVERVIEW & BLUEPRINT */}
+      {activeTab === 'overview' && (
+        <div className="animate-fadeIn">
+          <OrionCoreHero appName={appName} appTagline={appTagline} />
+
+          <div className="px-4 sm:px-6 lg:px-8 xl:px-12 py-16 w-full max-w-7xl mx-auto space-y-24 z-10">
+            {/* System Identity */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start border-b border-slate-900 pb-16">
+              <div className="lg:col-span-4">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">SYSTEM IDENTITY</h3>
+                <span className="text-[10px] font-mono text-slate-500 block mt-2 uppercase tracking-widest">COGNITIVE SCM ARCHITECTURE</span>
               </div>
-            ))}
+              <div className="lg:col-span-8 space-y-6">
+                <p className="font-mono text-sm leading-relaxed text-os-text-secondary select-text">
+                  {appName} is engineered as an AI-native Supply Chain Operating System. It connects distributed operational data, continuous intelligence, decision engines, system workflows, and direct enterprise execution into a single, closed-loop environment.
+                </p>
+                
+                <div className="space-y-3 pt-2">
+                  <div className="p-3 border border-slate-900 bg-slate-950/40 rounded-xl flex flex-col gap-1.5 font-mono text-[10px]">
+                    <span className="text-slate-500 uppercase tracking-widest text-[9px]">Sensing Pathway:</span>
+                    <div className="flex flex-wrap items-center gap-2 text-[#30D158] font-bold">
+                      <span>Sense</span> <span className="text-slate-600">→</span>
+                      <span>Understand</span> <span className="text-slate-600">→</span>
+                      <span>Predict</span> <span className="text-slate-600">→</span>
+                      <span>Decide</span> <span className="text-slate-600">→</span>
+                      <span>Act</span> <span className="text-slate-600">→</span>
+                      <span>Verify</span> <span className="text-slate-600">→</span>
+                      <span>Learn</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <CircularOperatingLoop steps={operatingLoop} />
+            <ArchitectureNetworkDiagram appName={appName} />
+            <PlatformIntelligenceConstellation matrix={intelligenceMatrix} />
+            <SCMCommunicationTerminal />
+
+            {/* Core Engines Grid */}
+            <div className="space-y-8 border-b border-slate-900 pb-16">
+              <div className="space-y-2">
+                <h3 className="text-sm font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">
+                  CORE ORION ENGINES
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {coreEngines.map((engine, idx) => (
+                  <div key={idx} className="bg-slate-950 border border-slate-900 p-4 rounded-xl flex flex-col justify-between space-y-4">
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center font-mono">
+                        <span className="font-bold text-[11px] uppercase tracking-wider text-os-text-primary">{engine.name}</span>
+                        <span className="text-[8px] uppercase px-2 py-0.5 rounded border font-mono font-bold bg-[#30D158]/10 text-[#30D158] border-[#30D158]/25">
+                          {engine.status}
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-mono leading-relaxed text-os-text-muted select-text">{engine.purpose}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <ArchitectLog appName={appName} />
           </div>
         </div>
+      )}
 
-        {/* 26. PLATFORM CAPABILITY MAP */}
-        <div className="space-y-8 border-b border-slate-900 pb-16">
-          <div className="space-y-2">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-os-text-primary border-l-2 border-[#00F2FE] pl-4">
-              PLATFORM CAPABILITY MAP <span className="text-slate-500 font-normal">("ROUTING DECK")</span>
-            </h3>
-            <p className="font-mono text-sm leading-relaxed text-os-text-muted max-w-3xl">
-              Navigate between the operational controls, intelligence diagnostics, decision buffers, and memory vaults.
+      {/* TAB CONTENT 2: SYSTEM INFORMATION */}
+      {activeTab === 'system_info' && (
+        <div className="px-4 sm:px-6 lg:px-8 xl:px-12 py-12 w-full max-w-7xl mx-auto space-y-8 animate-fadeIn">
+          <div className="border-b border-slate-900 pb-6">
+            <h2 className="text-white font-bold text-lg tracking-wide flex items-center gap-2">
+              <Server className="w-5 h-5 text-blue-400" />
+              <span>System Information & Operating Specification</span>
+            </h2>
+            <p className="text-slate-400 text-xs font-mono mt-1">
+              Authoritative runtime parameters, database authority, and enterprise environment configuration.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3 font-mono text-[10px] uppercase font-bold select-none">
-            <NavLink to="/dashboard" className="px-4 py-3 border border-slate-900 bg-slate-950 text-os-text-secondary rounded-xl hover:border-[#00F2FE] hover:text-[#00F2FE] transition-colors tracking-widest">OPERATIONS</NavLink>
-            <NavLink to="/intelligence-center" className="px-4 py-3 border border-slate-900 bg-slate-950 text-os-text-secondary rounded-xl hover:border-[#00F2FE] hover:text-[#00F2FE] transition-colors tracking-widest">INTELLIGENCE</NavLink>
-            <NavLink to="/decisions" className="px-4 py-3 border border-slate-900 bg-slate-950 text-os-text-secondary rounded-xl hover:border-[#00F2FE] hover:text-[#00F2FE] transition-colors tracking-widest">DECISION</NavLink>
-            <NavLink to="/autopilot" className="px-4 py-3 border border-slate-900 bg-slate-950 text-os-text-secondary rounded-xl hover:border-[#00F2FE] hover:text-[#00F2FE] transition-colors tracking-widest">AUTOMATION</NavLink>
-            <NavLink to="/settings" className="px-4 py-3 border border-slate-900 bg-slate-950 text-os-text-secondary rounded-xl hover:border-[#00F2FE] hover:text-[#00F2FE] transition-colors tracking-widest">GOVERNANCE</NavLink>
-            <NavLink to="/orion-memory" className="px-4 py-3 border border-slate-900 bg-slate-950 text-os-text-secondary rounded-xl hover:border-[#00F2FE] hover:text-[#00F2FE] transition-colors tracking-widest">MEMORY</NavLink>
-            <span className="px-4 py-3 border border-slate-900 bg-slate-900/50 text-slate-600 rounded-xl cursor-not-allowed tracking-widest">LEARNING</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-mono text-xs">
+            {/* Box 1: OS Runtime */}
+            <div className="bg-slate-950 border border-slate-900 rounded-2xl p-6 space-y-4">
+              <h3 className="text-blue-400 font-bold text-xs uppercase tracking-wider flex items-center gap-2">
+                <Layers className="w-4 h-4" />
+                <span>Operating System Runtime</span>
+              </h3>
+              <div className="space-y-2.5">
+                <div className="flex justify-between py-1.5 border-b border-slate-900">
+                  <span className="text-slate-500">OS Distribution</span>
+                  <span className="text-white font-bold">Orion-9 Aurora Enterprise OS</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-900">
+                  <span className="text-slate-500">OS Version</span>
+                  <span className="text-white">v9.0.0</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-900">
+                  <span className="text-slate-500">Build Commit Git SHA</span>
+                  <span className="text-blue-400 font-mono">{gitSha}</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-900">
+                  <span className="text-slate-500">Deployment Target</span>
+                  <span className="text-emerald-400">Cloudflare Workers Worker (orion-9)</span>
+                </div>
+                <div className="flex justify-between py-1.5">
+                  <span className="text-slate-500">Execution Engine</span>
+                  <span className="text-white">Vite 6 + React 18 + Node V8 Runtime</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Box 2: Database & Security Authority */}
+            <div className="bg-slate-950 border border-slate-900 rounded-2xl p-6 space-y-4">
+              <h3 className="text-emerald-400 font-bold text-xs uppercase tracking-wider flex items-center gap-2">
+                <Database className="w-4 h-4" />
+                <span>Database & Security Authority</span>
+              </h3>
+              <div className="space-y-2.5">
+                <div className="flex justify-between py-1.5 border-b border-slate-900">
+                  <span className="text-slate-500">Authentication Authority</span>
+                  <span className="text-emerald-400 font-bold">Firebase Authentication</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-900">
+                  <span className="text-slate-500">Database Authority</span>
+                  <span className="text-emerald-400 font-bold">Cloud Firestore</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-900">
+                  <span className="text-slate-500">Supabase Runtime Status</span>
+                  <span className="text-slate-400">0 Runtime Dependencies (Purged)</span>
+                </div>
+                <div className="flex justify-between py-1.5 border-b border-slate-900">
+                  <span className="text-slate-500">Region & Residency</span>
+                  <span className="text-white">asia-south1 (Mumbai) / Multi-Region</span>
+                </div>
+                <div className="flex justify-between py-1.5">
+                  <span className="text-slate-500">Tenant Isolation</span>
+                  <span className="text-purple-300">ORION_PLATFORM (RBAC Governed)</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+      )}
 
-      </div>
+      {/* TAB CONTENT 3: DOCUMENTATION & RELEASE NOTES */}
+      {activeTab === 'documentation' && (
+        <div className="px-4 sm:px-6 lg:px-8 xl:px-12 py-12 w-full max-w-7xl mx-auto space-y-8 animate-fadeIn">
+          <div className="border-b border-slate-900 pb-6">
+            <h2 className="text-white font-bold text-lg tracking-wide flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-blue-400" />
+              <span>Documentation & Release Notes</span>
+            </h2>
+            <p className="text-slate-400 text-xs font-mono mt-1">
+              Access user manuals, operating guides, and platform release history.
+            </p>
+          </div>
 
-      {/* 27. FOOTER SYSTEM INFORMATION */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-mono text-xs">
+            {/* Help & Documentation Card */}
+            <div className="bg-slate-950 border border-slate-900 rounded-2xl p-6 space-y-4 hover:border-blue-500/40 transition-colors group">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <HelpCircle className="w-6 h-6 text-blue-400" />
+                  <div>
+                    <h3 className="text-white font-bold text-sm">Help & System Manual</h3>
+                    <span className="text-slate-500 text-[10px]">Complete operational documentation</span>
+                  </div>
+                </div>
+                <NavLink to="/user-manual" className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold flex items-center gap-1.5 text-xs transition-colors">
+                  <span>Open Manual</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </NavLink>
+              </div>
+              <p className="text-slate-400 text-xs leading-relaxed">
+                Learn how to operate the Orion-9 Digital Twin, demand forecasting engines, AI Copilot, workflow orchestration, and risk radar diagnostics.
+              </p>
+            </div>
+
+            {/* Release Notes Card */}
+            <div className="bg-slate-950 border border-slate-900 rounded-2xl p-6 space-y-4 hover:border-purple-500/40 transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="w-6 h-6 text-purple-400" />
+                  <div>
+                    <h3 className="text-white font-bold text-sm">Release Notes v9.0.0</h3>
+                    <span className="text-slate-500 text-[10px]">Current version highlights</span>
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  onClick={() => setActiveLegalModal('release_notes')}
+                  className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-xl font-bold flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
+                >
+                  <span>View Notes</span>
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <p className="text-slate-400 text-xs leading-relaxed">
+                Highlights include native 2-column OS Settings application, two-stage OS authentication experience, live Orion Star background environment, and Cloudflare Worker deployment.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB CONTENT 4: LEGAL & LICENSES */}
+      {activeTab === 'legal' && (
+        <div className="px-4 sm:px-6 lg:px-8 xl:px-12 py-12 w-full max-w-7xl mx-auto space-y-8 animate-fadeIn">
+          <div className="border-b border-slate-900 pb-6">
+            <h2 className="text-white font-bold text-lg tracking-wide flex items-center gap-2">
+              <Scale className="w-5 h-5 text-blue-400" />
+              <span>Legal, Compliance & Open Source Licenses</span>
+            </h2>
+            <p className="text-slate-400 text-xs font-mono mt-1">
+              Authoritative OS-level destination for Privacy Policy, Terms of Service, and open source disclosures.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 font-mono text-xs">
+            {/* Privacy Policy */}
+            <div className="bg-slate-950 border border-slate-900 rounded-2xl p-6 space-y-4 flex flex-col justify-between hover:border-emerald-500/40 transition-colors">
+              <div className="space-y-3">
+                <Shield className="w-6 h-6 text-emerald-400" />
+                <h3 className="text-white font-bold text-sm">Privacy Policy</h3>
+                <p className="text-slate-400 text-xs leading-relaxed">
+                  Details enterprise data encryption at rest, tenant isolation, zero third-party telemetry, and governance policies.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveLegalModal('privacy')}
+                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold flex items-center justify-center gap-2 border border-white/10 transition-colors cursor-pointer"
+              >
+                <span>Read Privacy Policy</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Terms of Service */}
+            <div className="bg-slate-950 border border-slate-900 rounded-2xl p-6 space-y-4 flex flex-col justify-between hover:border-blue-500/40 transition-colors">
+              <div className="space-y-3">
+                <FileText className="w-6 h-6 text-blue-400" />
+                <h3 className="text-white font-bold text-sm">Terms of Service</h3>
+                <p className="text-slate-400 text-xs leading-relaxed">
+                  Establishes enterprise software license terms, operational SLAs, user responsibilities, and system usage boundaries.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveLegalModal('terms')}
+                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold flex items-center justify-center gap-2 border border-white/10 transition-colors cursor-pointer"
+              >
+                <span>Read Terms of Service</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Open Source Licenses */}
+            <div className="bg-slate-950 border border-slate-900 rounded-2xl p-6 space-y-4 flex flex-col justify-between hover:border-purple-500/40 transition-colors">
+              <div className="space-y-3">
+                <BookOpen className="w-6 h-6 text-purple-400" />
+                <h3 className="text-white font-bold text-sm">Open Source Licenses</h3>
+                <p className="text-slate-400 text-xs leading-relaxed">
+                  Acknowledgements and licensing terms for underlying open-source libraries (React, Lucide, Tailwind, Firebase, Vitest).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveLegalModal('licenses')}
+                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold flex items-center justify-center gap-2 border border-white/10 transition-colors cursor-pointer"
+              >
+                <span>View Licenses</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TAB CONTENT 5: SUPPORT & DIAGNOSTICS */}
+      {activeTab === 'support' && (
+        <div className="px-4 sm:px-6 lg:px-8 xl:px-12 py-12 w-full max-w-7xl mx-auto space-y-8 animate-fadeIn">
+          <div className="border-b border-slate-900 pb-6">
+            <h2 className="text-white font-bold text-lg tracking-wide flex items-center gap-2">
+              <HelpCircle className="w-5 h-5 text-blue-400" />
+              <span>Support & System Diagnostics</span>
+            </h2>
+            <p className="text-slate-400 text-xs font-mono mt-1">
+              Operational support channels and system diagnostic tooling.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 font-mono text-xs">
+            <div className="bg-slate-950 border border-slate-900 rounded-2xl p-6 space-y-4">
+              <h3 className="text-blue-400 font-bold text-sm flex items-center gap-2">
+                <Activity className="w-4 h-4" />
+                <span>System Diagnostics & Health</span>
+              </h3>
+              <p className="text-slate-400 text-xs leading-relaxed">
+                Run real-time diagnostics on Cloud Firestore connection status, AI Copilot API readiness, and circuit breakers.
+              </p>
+              <NavLink to="/system-status" className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors">
+                <span>Run Diagnostics</span>
+                <ChevronRight className="w-4 h-4" />
+              </NavLink>
+            </div>
+
+            <div className="bg-slate-950 border border-slate-900 rounded-2xl p-6 space-y-4">
+              <h3 className="text-emerald-400 font-bold text-sm flex items-center gap-2">
+                <Globe className="w-4 h-4" />
+                <span>Enterprise Contact & Support</span>
+              </h3>
+              <div className="space-y-2 text-slate-300">
+                <div><span className="text-slate-500">Support Email:</span> support@orion.network</div>
+                <div><span className="text-slate-500">Security Channel:</span> security@orion.network</div>
+                <div><span className="text-slate-500">SLA Guarantee:</span> 99.99% Enterprise Uptime</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LEGAL MODAL POPUPS */}
+      {activeLegalModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 selection:bg-blue-500/30">
+          <div className="bg-[#090d16] border border-white/20 rounded-2xl max-w-2xl w-full max-h-[80vh] flex flex-col shadow-2xl animate-fadeIn text-slate-300 font-sans">
+            
+            {/* Modal Header */}
+            <div className="px-6 py-5 border-b border-white/10 flex items-center justify-between select-none">
+              <h3 className="text-white font-bold text-base flex items-center gap-2">
+                <Shield className="w-5 h-5 text-blue-400" />
+                <span>
+                  {activeLegalModal === 'privacy' && 'Orion-9 Privacy Policy'}
+                  {activeLegalModal === 'terms' && 'Orion-9 Terms of Service'}
+                  {activeLegalModal === 'licenses' && 'Open Source Licenses & Acknowledgements'}
+                  {activeLegalModal === 'release_notes' && 'Orion-9 Release Notes v9.0.0'}
+                </span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setActiveLegalModal(null)}
+                className="text-white/60 hover:text-white px-2 py-1 rounded-lg hover:bg-white/10 transition-colors font-mono text-sm cursor-pointer"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto font-mono text-xs leading-relaxed space-y-4 select-text">
+              {activeLegalModal === 'privacy' && (
+                <>
+                  <p className="font-bold text-white">ORION-9 ENTERPRISE PRIVACY POLICY</p>
+                  <p>Orion-9 is committed to stringent data privacy and security governance. All operational data, supply chain metrics, user credentials, and telemetry are isolated within tenant boundaries.</p>
+                  <p className="font-semibold text-blue-300">1. Data Encryption & Isolation</p>
+                  <p>All data stored in Cloud Firestore is encrypted in transit using TLS 1.3 and at rest using AES-256 encryption. Role-Based Access Control (RBAC) rules enforce multi-tenant isolation.</p>
+                  <p className="font-semibold text-blue-300">2. Zero Unsanctioned Telemetry</p>
+                  <p>Orion-9 does not transmit operational data to third-party advertising or tracking networks. System telemetry is restricted to security audit ledgers within the platform.</p>
+                </>
+              )}
+
+              {activeLegalModal === 'terms' && (
+                <>
+                  <p className="font-bold text-white">ORION-9 ENTERPRISE TERMS OF SERVICE</p>
+                  <p>By accessing or using the Orion-9 Supply Chain Operating System, enterprise users agree to adhere to platform security policies and administrative guidelines.</p>
+                  <p className="font-semibold text-blue-300">1. Authorized Platform Access</p>
+                  <p>Access is restricted to authorized enterprise personnel. Step-up authentication is mandatory for administrative policy modifications and database environment transitions.</p>
+                  <p className="font-semibold text-blue-300">2. Service Level Agreement</p>
+                  <p>Orion-9 targets 99.99% operational availability for production supply chain execution modules.</p>
+                </>
+              )}
+
+              {activeLegalModal === 'licenses' && (
+                <>
+                  <p className="font-bold text-white">OPEN SOURCE ACKNOWLEDGEMENTS</p>
+                  <p>Orion-9 is built with gratitude to the open-source software ecosystem:</p>
+                  <ul className="list-disc pl-5 space-y-1 text-slate-400">
+                    <li>React 18 — MIT License</li>
+                    <li>Vite 6 — MIT License</li>
+                    <li>Lucide Icons — ISC License</li>
+                    <li>Tailwind CSS — MIT License</li>
+                    <li>Firebase Web SDK — Apache 2.0 License</li>
+                    <li>Vitest — MIT License</li>
+                  </ul>
+                </>
+              )}
+
+              {activeLegalModal === 'release_notes' && (
+                <>
+                  <p className="font-bold text-white">ORION-9 RELEASE NOTES — VERSION 9.0.0</p>
+                  <p className="text-blue-400">Release Date: September 25, 2026</p>
+                  <ul className="list-disc pl-5 space-y-1.5 text-slate-300">
+                    <li><strong>Two-Stage Native OS Login</strong>: Implemented User ID lookup stage followed by user avatar and password entry.</li>
+                    <li><strong>Subtle Live Orion Star Wallpaper</strong>: Multi-depth 7-layer canvas background with Orion constellation, nebula drift, and planetary horizon limb.</li>
+                    <li><strong>Native OS Settings Application</strong>: Transformed Account & Settings into a 2-column control panel with 11 native sections.</li>
+                    <li><strong>Copilot Runtime Repair</strong>: Fixed top-bar AI Copilot window launcher mapping and governance status badges.</li>
+                    <li><strong>Cloudflare Worker Deployment</strong>: Deployed live to <code className="text-emerald-400">orion-9.ayushprakash0021.workers.dev</code>.</li>
+                  </ul>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FOOTER SYSTEM INFORMATION */}
       <div className="mt-auto border-t border-slate-900 bg-slate-950/80 py-8 text-center font-mono text-[9px] text-slate-600 space-y-2 uppercase tracking-widest select-none">
         <div className="font-bold text-os-text-muted">{appName} CONTROL PANEL</div>
         <div className="flex justify-center gap-4 flex-wrap">
           <span>System Version: 9.0.0</span>
-          <span>Git SHA: {import.meta.env.VITE_GIT_SHA || '0337510'}</span>
+          <span>Git SHA: {gitSha}</span>
           <span>AI Core: Gemini LLM</span>
           <span>Environment: {dataMode === 'real' ? 'Connected' : 'Demo/Local'}</span>
         </div>
@@ -618,3 +622,5 @@ export const About: React.FC = () => {
     </div>
   );
 };
+
+export default About;
