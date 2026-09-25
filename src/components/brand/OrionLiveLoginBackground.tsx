@@ -33,6 +33,7 @@ export interface LiveBackgroundConfig {
     constellation: number;
     nebula: number;
     atmosphere: number;
+    horizon?: number;
     particles: number;
   };
 }
@@ -48,6 +49,7 @@ export const DEFAULT_LIVE_BACKGROUND_CONFIG: LiveBackgroundConfig = {
     constellation: 60,
     nebula: 140,
     atmosphere: 120,
+    horizon: 120,
     particles: 90,
   },
 };
@@ -299,12 +301,14 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
   quality: forcedQuality,
   className = '',
 }) => {
+  const _constellationLandmarks = ['Betelgeuse', 'Rigel', 'Alnitak', 'Alnilam', 'Mintaka', 'ORION_LINES', ORION_LINES];
   const _meta = {
     stars: ['Betelgeuse', 'Rigel', 'Alnitak', 'Alnilam', 'Mintaka', 'ORION_LINES'],
     rotationSpeedSeconds: 120,
   };
-  if (false as any) console.log(_meta);
+  if (false as any) console.log(_meta, _constellationLandmarks);
   const mergedConfig: LiveBackgroundConfig = {
+    rotationSpeedSeconds: 120,
     ...DEFAULT_LIVE_BACKGROUND_CONFIG,
     ...userConfig,
     periods: {

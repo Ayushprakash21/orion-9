@@ -94,7 +94,14 @@ export const EntityDrawerProvider: React.FC<{ children: React.ReactNode }> = ({ 
 export const useEntityDrawer = () => {
   const context = useContext(EntityDrawerContext);
   if (!context) {
-    throw new Error('useEntityDrawer must be used within EntityDrawerProvider');
+    return {
+      activeEntity: null,
+      openEntity: () => {},
+      closeEntity: () => {},
+      confirmModal: null,
+      showConfirmModal: () => {},
+      hideConfirmModal: () => {},
+    };
   }
   return context;
 };

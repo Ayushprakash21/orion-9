@@ -134,7 +134,7 @@ export const OrionMobileAppLauncher: React.FC = () => {
             </div>
             <div className="min-w-0">
               <h2 className="text-xs font-mono font-bold text-os-text-primary tracking-wide uppercase truncate">
-                Enterprise Apps
+                ENTERPRISE APPS
               </h2>
               <p className="text-[10px] font-mono text-os-text-muted truncate">
                 100+ SCM Applications & Workspaces

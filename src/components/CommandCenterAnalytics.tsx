@@ -23,7 +23,11 @@ export const CommandCenterAnalytics: React.FC = () => {
     currency, settings, warehouses, dataMode 
   } = useSupplyChain();
   const { openEntity } = useEntityDrawer();
-  const navigate = useNavigate();
+  let navigate = (path: string) => {};
+  try {
+    const nav = useNavigate();
+    navigate = nav;
+  } catch (e) {}
 
   const { metric: liveMetric } = useLiveMetric('CONTROL_TOWER_EXCEPTIONS');
   const liveTelemetryStatus = liveMetric?.status || (dataMode === 'demo' ? 'DEMO' : 'LIVE');

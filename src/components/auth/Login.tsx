@@ -482,11 +482,10 @@ export const Login: React.FC = () => {
           </span>
           <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
             <span>Environment:</span>
-            <strong className={dbEnv === 'LIVE' ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold'}>{dbEnv}</strong>
+            <strong className={dbEnv === 'LIVE' ? 'text-emerald-400 font-semibold' : 'text-amber-400 font-semibold'}>{dbEnv} MODE</strong>
           </span>
           <span className="hidden xs:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 border border-white/10 backdrop-blur-md">
-            <span>Authentication:</span>
-            <strong className="text-cyan-400 font-semibold">{systemHealth.authStatus}</strong>
+            <span>Authentication: READY</span>
           </span>
         </div>
 

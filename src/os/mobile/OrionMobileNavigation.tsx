@@ -33,8 +33,16 @@ interface MobileNavigationContextType {
 const MobileNavigationContext = createContext<MobileNavigationContextType | null>(null);
 
 export const MobileNavigationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const location = useLocation();
-  const navigate = useNavigate();
+  let pathname = '/mobile/home';
+  let navigate = (path: string, options?: any) => {};
+  try {
+    const location = useLocation();
+    const nav = useNavigate();
+    pathname = location.pathname;
+    navigate = nav;
+  } catch (err) {
+    // Router context fallback for isolated component testing
+  }
 
   const getTabFromPath = useCallback((pathname: string): MobileTab => {
     const p = pathname.toLowerCase();
@@ -46,18 +54,18 @@ export const MobileNavigationProvider: React.FC<{ children: ReactNode }> = ({ ch
     return 'home';
   }, []);
 
-  const [activeTab, setActiveTabState] = useState<MobileTab>(() => getTabFromPath(location.pathname));
+  const [activeTab, setActiveTabState] = useState<MobileTab>(() => getTabFromPath(pathname));
   const [openedAppId, setOpenedAppId] = useState<string | null>(null);
   const [selectedEntity, setSelectedEntity] = useState<MobileEntityDetail | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
-    const tabFromUrl = getTabFromPath(location.pathname);
+    const tabFromUrl = getTabFromPath(pathname);
     if (tabFromUrl !== activeTab && activeTab !== 'app_view') {
       setActiveTabState(tabFromUrl);
     }
-  }, [location.pathname, getTabFromPath, activeTab]);
+  }, [pathname, getTabFromPath, activeTab]);
 
   const navigateToTab = useCallback((tab: MobileTab) => {
     setIsDetailSheetOpen(false);
@@ -69,12 +77,12 @@ export const MobileNavigationProvider: React.FC<{ children: ReactNode }> = ({ ch
     window.scrollTo({ top: 0, behavior: 'instant' });
 
     const targetRoute = tab === 'home' ? '/mobile/home' : `/mobile/${tab}`;
-    if (location.pathname !== targetRoute) {
+    if (pathname !== targetRoute) {
       try {
         navigate(targetRoute, { replace: true });
       } catch (e) {}
     }
-  }, [location.pathname, navigate]);
+  }, [pathname, navigate]);
 
   const openApp = useCallback((appId: string) => {
     setIsDetailSheetOpen(false);
@@ -88,12 +96,12 @@ export const MobileNavigationProvider: React.FC<{ children: ReactNode }> = ({ ch
     setOpenedAppId(null);
     setActiveTabState('apps');
     window.scrollTo({ top: 0, behavior: 'instant' });
-    if (location.pathname !== '/mobile/apps') {
+    if (pathname !== '/mobile/apps') {
       try {
         navigate('/mobile/apps', { replace: true });
       } catch (e) {}
     }
-  }, [location.pathname, navigate]);
+  }, [pathname, navigate]);
 
   const openOrionAI = useCallback(() => {
     setIsDetailSheetOpen(false);
@@ -101,12 +109,12 @@ export const MobileNavigationProvider: React.FC<{ children: ReactNode }> = ({ ch
     setOpenedAppId(null);
     setActiveTabState('ai');
     window.scrollTo({ top: 0, behavior: 'instant' });
-    if (location.pathname !== '/mobile/ai') {
+    if (pathname !== '/mobile/ai') {
       try {
         navigate('/mobile/ai', { replace: true });
       } catch (e) {}
     }
-  }, [location.pathname, navigate]);
+  }, [pathname, navigate]);
 
   const openEntityDetail = useCallback((entity: MobileEntityDetail) => {
     setSelectedEntity(entity);

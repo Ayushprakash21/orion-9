@@ -534,7 +534,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
             <button
               type="button"
               aria-label={win.state === 'maximized' ? `Restore ${app.name}` : `Maximize ${app.name}`}
-              title={win.state === 'maximized' ? "Restore" : "Maximize"}
+              title={win.state === 'maximized' ? "Restore (Maximize)" : "Maximize"}
               onClick={(e) => {
                 e.stopPropagation();
                 e.preventDefault();

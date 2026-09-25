@@ -38,16 +38,16 @@ export const OrionMobileHome: React.FC = () => {
   const userName = currentUser?.fullName || currentUser?.username || 'Operator';
 
   // Real metric summary derived from SupplyChainContext
-  const activeExceptionsCount = useMemo(() => exceptions.filter(e => e.status !== 'Resolved').length, [exceptions]);
-  const criticalExceptions = useMemo(() => exceptions.filter(e => e.severity === 'Critical' && e.status !== 'Resolved').slice(0, 3), [exceptions]);
-  const delayedShipmentsCount = useMemo(() => shipments.filter(s => s.delayDays > 0 && s.status !== 'Delivered').length, [shipments]);
-  const lowStockCount = useMemo(() => inventory.filter(i => (i.onHand - i.reserved) < i.safetyStock).length, [inventory]);
+  const activeExceptionsCount = useMemo(() => (exceptions || []).filter(e => e.status !== 'Resolved').length, [exceptions]);
+  const criticalExceptions = useMemo(() => (exceptions || []).filter(e => e.severity === 'Critical' && e.status !== 'Resolved').slice(0, 3), [exceptions]);
+  const delayedShipmentsCount = useMemo(() => (shipments || []).filter(s => s.delayDays > 0 && s.status !== 'Delivered').length, [shipments]);
+  const lowStockCount = useMemo(() => (inventory || []).filter(i => (i.onHand - i.reserved) < i.safetyStock).length, [inventory]);
 
   // Recent operational activity items from real runtime state
   const recentActivities = useMemo(() => {
     const items: Array<{ id: string; title: string; subtitle: string; time: string; icon: any; color: string }> = [];
     
-    exceptions.slice(0, 2).forEach(exc => {
+    (exceptions || []).slice(0, 2).forEach(exc => {
       items.push({
         id: `exc-${exc.id}`,
         title: (exc as any).title || exc.type || 'Operational Exception',
@@ -58,7 +58,7 @@ export const OrionMobileHome: React.FC = () => {
       });
     });
 
-    shipments.filter(s => s.delayDays > 0).slice(0, 2).forEach(shp => {
+    (shipments || []).filter(s => s.delayDays > 0).slice(0, 2).forEach(shp => {
       items.push({
         id: `shp-${shp.id}`,
         title: `Shipment Delay: ${shp.trackingNumber || shp.id}`,
@@ -69,7 +69,7 @@ export const OrionMobileHome: React.FC = () => {
       });
     });
 
-    decisions.slice(0, 1).forEach(dec => {
+    (decisions || []).slice(0, 1).forEach(dec => {
       items.push({
         id: `dec-${dec.id}`,
         title: (dec as any).title || 'Autonomous Decision Executed',
@@ -91,7 +91,7 @@ export const OrionMobileHome: React.FC = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono font-bold tracking-wider text-os-text-primary">
-              ORION<span className="text-os-accent">-9</span> OS
+              ORION-9 OS
             </span>
             <span className="text-[10px] text-os-text-muted font-mono">• MOBILE HOME</span>
           </div>
@@ -111,7 +111,7 @@ export const OrionMobileHome: React.FC = () => {
             {greeting}, {userName}
           </h1>
           <p className="text-xs text-os-text-muted mt-0.5">
-            Your supply chain environment at a glance
+            Supply Chain Command Center • Your supply chain environment at a glance
           </p>
         </div>
 
@@ -197,24 +197,29 @@ export const OrionMobileHome: React.FC = () => {
         </div>
 
         {/* Snapshot Metric Counters */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="p-2.5 bg-os-surface-secondary rounded-xl border border-os-border text-center">
-            <div className="text-[9px] font-mono uppercase text-os-text-muted">Exceptions</div>
-            <div className="text-base font-mono font-bold text-red-400 mt-0.5">
+        {/* Snapshot Metric Counters */}
+        <div className="grid grid-cols-4 gap-1.5">
+          <div className="p-2 bg-os-surface-secondary rounded-xl border border-os-border text-center">
+            <div className="text-[9px] font-mono uppercase text-os-text-muted truncate">Exceptions</div>
+            <div className="text-xs sm:text-sm font-mono font-bold text-red-400 mt-0.5">
               {formatNumber(activeExceptionsCount)}
             </div>
           </div>
-          <div className="p-2.5 bg-os-surface-secondary rounded-xl border border-os-border text-center">
-            <div className="text-[9px] font-mono uppercase text-os-text-muted">Cargo Delays</div>
-            <div className="text-base font-mono font-bold text-amber-400 mt-0.5">
+          <div className="p-2 bg-os-surface-secondary rounded-xl border border-os-border text-center">
+            <div className="text-[9px] font-mono uppercase text-os-text-muted truncate">Cargo Delays</div>
+            <div className="text-xs sm:text-sm font-mono font-bold text-amber-400 mt-0.5">
               {formatNumber(delayedShipmentsCount)}
             </div>
           </div>
-          <div className="p-2.5 bg-os-surface-secondary rounded-xl border border-os-border text-center">
-            <div className="text-[9px] font-mono uppercase text-os-text-muted">Stock Risks</div>
-            <div className="text-base font-mono font-bold text-emerald-400 mt-0.5">
+          <div className="p-2 bg-os-surface-secondary rounded-xl border border-os-border text-center">
+            <div className="text-[9px] font-mono uppercase text-os-text-muted truncate">Stock Risks</div>
+            <div className="text-xs sm:text-sm font-mono font-bold text-emerald-400 mt-0.5">
               {formatNumber(lowStockCount)}
             </div>
+          </div>
+          <div className="p-2 bg-os-surface-secondary rounded-xl border border-os-border text-center">
+            <div className="text-[9px] font-mono uppercase text-os-text-muted truncate">Orders</div>
+            <div className="text-xs sm:text-sm font-mono font-bold text-os-text-primary mt-0.5">Active</div>
           </div>
         </div>
       </div>
@@ -306,7 +311,7 @@ export const OrionMobileHome: React.FC = () => {
       <div className="space-y-2">
         <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-os-text-muted px-1 flex items-center gap-1.5">
           <Clock size={12} />
-          Recent Activity
+          Supply Chain Activity
         </div>
 
         <div className="bg-os-surface border border-os-border rounded-2xl p-3 space-y-2.5">

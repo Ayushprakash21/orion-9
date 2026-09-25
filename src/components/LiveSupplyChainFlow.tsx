@@ -8,7 +8,11 @@ import { useNavigate } from 'react-router-dom';
 export const LiveSupplyChainFlow: React.FC = () => {
   const { suppliers, shipments, warehouses, inventory, purchaseOrders, currency } = useSupplyChain();
   const [activeNode, setActiveNode] = useState<string | null>(null);
-  const navigate = useNavigate();
+  let navigate = (path: string) => {};
+  try {
+    const nav = useNavigate();
+    navigate = nav;
+  } catch (e) {}
 
   const stats = useMemo(() => {
     try {

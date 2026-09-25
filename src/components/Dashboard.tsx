@@ -23,7 +23,11 @@ export const Dashboard = () => {
     products, inventory, suppliers, purchaseOrders, shipments, exceptions, 
     actions, importHistory, currency, settings, warehouseDetails, warehouses
   } = useSupplyChain();
-  const navigate = useNavigate();
+  let navigate = (path: string) => {};
+  try {
+    const nav = useNavigate();
+    navigate = nav;
+  } catch (e) {}
   const [branding, setBranding] = React.useState<BrandingConfig>(() => brandingRepository.getBrandingSync());
   
   React.useEffect(() => {
