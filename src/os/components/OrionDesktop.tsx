@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { OrionSystemBar } from './OrionSystemBar';
 import { OrionDock } from './OrionDock';
 import { OrionMobileNavBar } from './OrionMobileNavBar';
@@ -7,6 +7,7 @@ import { OrionApplicationLauncher } from './OrionApplicationLauncher';
 import { OrionCommandPalette } from './OrionCommandPalette';
 import { OrionLiveWallpaper } from './OrionLiveWallpaper';
 import { OrionWindow } from './OrionWindow';
+import { OrionTaskSwitcher } from './OrionTaskSwitcher';
 import { AnimatePresence } from 'motion/react';
 import { OrionContextMenu } from '../contextMenu/OrionContextMenu';
 import { useContextMenuTrigger, ContextMenuItem } from '../contextMenu/OrionContextMenuContext';
@@ -222,6 +223,25 @@ export function OrionDesktop() {
     subtitle: `${currentWorkspace.name} Workspace`,
   });
 
+  const [taskSwitcherOpen, setTaskSwitcherOpen] = useState(false);
+
+  useEffect(() => {
+    const handleCustomOpen = () => setTaskSwitcherOpen(true);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.altKey || e.metaKey) && e.key === 'Tab') {
+        e.preventDefault();
+        setTaskSwitcherOpen(prev => !prev);
+      }
+    };
+
+    window.addEventListener('orion:open-task-switcher', handleCustomOpen);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('orion:open-task-switcher', handleCustomOpen);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   return (
     <div className="orion-desktop-shell bg-transparent text-os-text-primary font-sans select-none">
       
@@ -273,6 +293,7 @@ export function OrionDesktop() {
       {/* OS Layer 4: Floating Transient Overlays */}
       <OrionApplicationLauncher />
       <OrionCommandPalette />
+      <OrionTaskSwitcher isOpen={taskSwitcherOpen} onClose={() => setTaskSwitcherOpen(false)} />
       <EntityDrawer />
       <ConfirmModal />
       <OrionContextMenu />

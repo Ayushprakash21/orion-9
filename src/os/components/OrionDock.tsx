@@ -497,7 +497,68 @@ export function OrionDock() {
         style={{ scrollbarWidth: 'none' }}
         onMouseLeave={() => { setHoveredApp(null); scheduleDockHide(); }}
       >
-        
+        {/* WINDOWS TASKBAR: START / LAUNCHER BUTTON */}
+        <button
+          type="button"
+          aria-label="Start / All Applications"
+          tabIndex={0}
+          onClick={(e) => {
+            e.stopPropagation();
+            setLauncherOpen(true);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setLauncherOpen(true);
+            }
+          }}
+          onContextMenu={handleLauncherContextMenu}
+          onMouseEnter={() => setHoveredApp('launcher')}
+          className="relative group flex flex-col items-center justify-center transition-all duration-300 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 hover:-translate-y-1"
+          style={{ 
+            transform: `scale(${hoveredApp === 'launcher' ? 1.05 : 1})`,
+            width: '48px', height: '48px' 
+          }}
+          title="Start / All Applications"
+        >
+          <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-400 transition-colors shadow-xs">
+            <Grid className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+          </div>
+
+          <div className="absolute -top-11 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#12151a]/95 backdrop-blur-xl text-white text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/[0.08] shadow-xl z-50">
+            Start Menu (Applications)
+          </div>
+        </button>
+
+        {/* WINDOWS TASKBAR: SEARCH BUTTON */}
+        <button
+          type="button"
+          aria-label="Search"
+          tabIndex={0}
+          onClick={(e) => {
+            e.stopPropagation();
+            setCommandPaletteOpen(true);
+          }}
+          onMouseEnter={() => setHoveredApp('search')}
+          className="relative group flex flex-col items-center justify-center transition-all duration-300 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 hover:-translate-y-1"
+          style={{ 
+            transform: `scale(${hoveredApp === 'search' ? 1.05 : 1})`,
+            width: '48px', height: '48px' 
+          }}
+          title="Search (Ctrl+Space / ⌘K)"
+        >
+          <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-os-text-muted hover:text-white transition-colors">
+            <Search className="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-105" />
+          </div>
+
+          <div className="absolute -top-11 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#12151a]/95 backdrop-blur-xl text-white text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/[0.08] shadow-xl z-50">
+            Search (Ctrl+Space)
+          </div>
+        </button>
+
+        <div className="w-px h-7 bg-white/[0.1] mx-0.5 shrink-0" />
+
+        {/* PINNED & RUNNING APPLICATIONS */}
         {dockApps.map((id, index) => {
           const app = ORION_REGISTRY[id];
           if (!app) return null;
@@ -564,7 +625,7 @@ export function OrionDock() {
                   className={cn(
                     "absolute -bottom-1 transition-all duration-200",
                     isActive 
-                      ? "w-2 h-1 rounded-full bg-sky-400 shadow-xs" 
+                      ? "w-2.5 h-1 rounded-full bg-sky-400 shadow-xs" 
                       : isMinimized
                       ? "w-1 h-1 rounded-full bg-white/30"
                       : "w-1.5 h-1.5 rounded-full bg-white/60"
@@ -581,38 +642,31 @@ export function OrionDock() {
           );
         })}
 
-        <div className="w-px h-7 bg-white/[0.1] mx-1 shrink-0" />
+        <div className="w-px h-7 bg-white/[0.1] mx-0.5 shrink-0" />
 
-        {/* All Applications launcher button */}
+        {/* WINDOWS TASKBAR: TASK SWITCHER BUTTON */}
         <button
           type="button"
-          aria-label="All Applications"
+          aria-label="Task Switcher"
           tabIndex={0}
           onClick={(e) => {
             e.stopPropagation();
-            setLauncherOpen(true);
+            window.dispatchEvent(new CustomEvent('orion:open-task-switcher'));
           }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              setLauncherOpen(true);
-            }
-          }}
-          onContextMenu={handleLauncherContextMenu}
-          onMouseEnter={() => setHoveredApp('launcher')}
+          onMouseEnter={() => setHoveredApp('switcher')}
           className="relative group flex flex-col items-center justify-center transition-all duration-300 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 hover:-translate-y-1"
           style={{ 
-            transform: `scale(${hoveredApp === 'launcher' ? 1.05 : 1})`,
+            transform: `scale(${hoveredApp === 'switcher' ? 1.05 : 1})`,
             width: '48px', height: '48px' 
           }}
-          title="All Applications"
+          title="Task Switcher (Alt+Tab)"
         >
-          <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] text-os-text-primary transition-colors">
-            <Grid className="w-5 h-5 transition-transform duration-300 group-hover:scale-105 text-white/80" />
+          <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-os-text-muted hover:text-white transition-colors">
+            <Layers className="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-105" />
           </div>
 
           <div className="absolute -top-11 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#12151a]/95 backdrop-blur-xl text-white text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/[0.08] shadow-xl z-50">
-            All Applications
+            Task Switcher (Alt+Tab)
           </div>
         </button>
 

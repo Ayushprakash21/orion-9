@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useWindowManager } from '../WindowManagerContext';
 import { ORION_REGISTRY} from '../OrionApplicationRegistry';
-import { Search, X, Play, Square, Grid2X2, List } from 'lucide-react';
+import { Search, X, Play, Square, Grid2X2, List, Settings, Power } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useOrionContextMenu } from '../contextMenu/OrionContextMenuContext';
 import { useAuth } from '../../store/AuthContext';
@@ -9,7 +9,7 @@ import OrionAppIcon from '../../components/brand/OrionAppIcon';
 
 export function OrionApplicationLauncher() {
   const { launcherOpen, setLauncherOpen, openApplication, focusApplication, windows, dockPinnedApps, pinToDock, unpinFromDock } = useWindowManager();
-  const { isAdmin } = useAuth();
+  const { isAdmin, currentUser } = useAuth();
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
     try { return (localStorage.getItem('orion.launcher.viewMode') as 'list' | 'grid') || 'list'; } catch { return 'list'; }
@@ -152,6 +152,50 @@ export function OrionApplicationLauncher() {
               })}
             </div>
           )}
+        </div>
+
+        {/* WINDOWS START MENU FOOTER BAR: USER PROFILE, SETTINGS & POWER */}
+        <div className="flex items-center justify-between px-5 py-3.5 border-t border-white/[0.08] bg-white/[0.02] rounded-b-2xl shrink-0">
+          {/* User Profile */}
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-full bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400 font-semibold text-[13px] shrink-0">
+              {currentUser?.fullName?.charAt(0) || 'U'}
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-[12px] font-semibold text-white truncate">
+                {currentUser?.fullName || 'Enterprise User'}
+              </span>
+              <span className="text-[10px] text-slate-400 truncate capitalize">
+                {currentUser?.role?.replace(/_/g, ' ') || 'User'}
+              </span>
+            </div>
+          </div>
+
+          {/* Quick Action Controls: Settings & Power */}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => {
+                handleOpen('settings');
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-slate-300 hover:text-white bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] rounded-xl transition-all cursor-pointer"
+              title="Orion Settings"
+            >
+              <Settings className="w-3.5 h-3.5" />
+              <span>Settings</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setLauncherOpen(false);
+                window.dispatchEvent(new CustomEvent('orion:trigger-power-menu'));
+              }}
+              className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/15 border border-transparent hover:border-red-500/30 rounded-xl transition-all cursor-pointer"
+              title="Power / Sign Out"
+              aria-label="Power / Sign Out"
+            >
+              <Power className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

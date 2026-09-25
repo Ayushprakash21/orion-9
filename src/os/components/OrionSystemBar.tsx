@@ -166,31 +166,18 @@ export function OrionSystemBar() {
         )}
       </div>
 
-      {/* CENTER: WORKSPACE SWITCHER & ACTIVE APP (Tablet / Desktop) */}
-      <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-2.5 max-w-[42vw] min-w-0">
-        <div className="flex items-center bg-white/[0.04] p-0.5 rounded-lg border border-white/[0.06]">
-          {WORKSPACES.map(ws => (
-            <button
-              key={ws.id}
-              onClick={() => setWorkspace(ws.id)}
-              className={cn(
-                "px-3 py-1 text-[11px] font-medium tracking-normal transition-all cursor-pointer rounded-md",
-                activeWorkspaceId === ws.id
-                  ? "bg-white/[0.12] text-white shadow-xs font-semibold"
-                  : "text-os-text-secondary hover:text-os-text-primary hover:bg-white/[0.04]"
-              )}
-            >
-              {ws.name}
-            </button>
-          ))}
-        </div>
-
-        {activeApp && (
-          <div className="hidden lg:flex items-center gap-1.5 pl-2 text-os-text-muted border-l border-white/[0.08]">
-            <span className="w-2 h-2 rounded-full shadow-xs" style={{ backgroundColor: activeApp.color }} />
-            <span className="text-[12px] font-medium text-os-text-primary truncate max-w-[160px]">
+      {/* CENTER: CONTEXTUAL ACTIVE APPLICATION INDICATOR (OS-Level System Bar) */}
+      <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-2 max-w-[40vw] min-w-0 pointer-events-none">
+        {activeApp ? (
+          <div className="flex items-center gap-2 px-3 py-1 bg-white/[0.04] border border-white/[0.08] rounded-xl backdrop-blur-md shadow-xs">
+            <span className="w-2 h-2 rounded-full shadow-xs shrink-0" style={{ backgroundColor: activeApp.color || '#38bdf8' }} />
+            <span className="text-[12px] font-semibold text-os-text-primary truncate max-w-[180px]">
               {activeApp.name}
             </span>
+          </div>
+        ) : (
+          <div className="text-[11px] font-medium text-os-text-muted/60 tracking-wider uppercase">
+            Orion OS Desktop
           </div>
         )}
       </div>
