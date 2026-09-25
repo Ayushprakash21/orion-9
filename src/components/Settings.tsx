@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSupplyChain } from '../store/SupplyChainContext';
 import { useAuth } from '../store/AuthContext';
+import { useToast } from '../store/ToastContext';
 import { 
-  Save, Shield, Globe, CheckCircle2, RotateCcw, Settings as SettingsIcon, 
-  Sliders, Eye, Search, User, Building2, ShieldCheck, Activity, Database, Brush, Key, Lock, Unlock, Users, Clock, BrainCircuit,
-  Target, Package, FileCheck, Truck, TrendingUp, BarChart2, Network, FileText, Brain, Smartphone
+  User, Building2, Eye, Shield, Globe, Clock, Volume2, Monitor, 
+  BrainCircuit, Wifi, HardDrive, Sliders, Lock, Unlock, ShieldCheck, 
+  Save, RotateCcw, CheckCircle2, Search, ExternalLink, Mail, Phone, 
+  Camera, X, Key, Brush, Activity, Database, Users, Sun, Moon, Laptop,
+  FolderOpen, AlertTriangle, Play, FileText, Check
 } from 'lucide-react';
 import { SearchableDropdown } from './ui/SearchableDropdown';
 import { FXRateService } from '../services/FXRateService';
@@ -13,7 +16,10 @@ import { SystemSettings, normalizeSettings, DEFAULT_SYSTEM_SETTINGS } from '../t
 import { SettingsCurrencyConverter } from "./SettingsCurrencyConverter";
 import { DisplayPreferencesControls } from '../os/DisplayPreferences';
 import { cn } from '../lib/utils';
-import { userService } from '../services/userService';
+import { userRepository } from '../repositories/UserRepository';
+import Cropper from 'react-easy-crop';
+import { TimeWorldPanel } from './TimeWorld';
+import { useOptionalWindowManager } from '../os/WindowManagerContext';
 
 // Admin Components
 import { AdminOverview } from './admin/AdminOverview';
@@ -29,55 +35,147 @@ import { AdminDatabaseHealth } from './admin/AdminDatabaseHealth';
 import { privilegedSessionManager } from '../kernel/security/privilegedSession';
 import { authService } from '../services/authService';
 
-type SettingsCategory = 
-  // SYSTEM
-  | 'operational' | 'appearance' | 'localization' | 'sound' | 'privacy'
-  // CORE ADMINISTRATION CONSOLES
-  | 'admin_overview' | 'admin_control_center' | 'admin_users' | 'admin_orgs' | 'admin_roles' | 'admin_branding' | 'admin_audit' | 'admin_demo' | 'admin_security' | 'admin_database'
-  // 17 GOVERNED GOVERNANCE DOMAINS
-  | 'admin_domain_users_rbac'
-  | 'admin_domain_roles_capabilities'
-  | 'admin_domain_orgs_tenants'
-  | 'admin_domain_ai_governance'
-  | 'admin_domain_workflows_approvals'
-  | 'admin_domain_planning_engine'
-  | 'admin_domain_inventory_optimization'
-  | 'admin_domain_fulfillment_engine'
-  | 'admin_domain_logistics_transport'
-  | 'admin_domain_sop_demand'
-  | 'admin_domain_multi_echelon'
-  | 'admin_domain_distributed_ledger'
-  | 'admin_domain_security_controls'
-  | 'admin_domain_audit_compliance'
-  | 'admin_domain_integrations_fabric'
-  | 'admin_domain_simulation_scenarios'
-  | 'admin_domain_mobile_edge';
+export type SettingsSection = 
+  | 'account'
+  | 'organization'
+  | 'appearance'
+  | 'desktop'
+  | 'time_region'
+  | 'notifications'
+  | 'privacy_security'
+  | 'ai_automation'
+  | 'network'
+  | 'storage'
+  // Admin Sections
+  | 'admin'
+  | 'admin_overview'
+  | 'admin_control_center'
+  | 'admin_users'
+  | 'admin_orgs'
+  | 'admin_roles'
+  | 'admin_branding'
+  | 'admin_audit'
+  | 'admin_demo'
+  | 'admin_security'
+  | 'admin_database';
 
-export const Settings = ({ initialCategory }: { initialCategory?: SettingsCategory }) => {
-  const { user, profile, hasRole } = useAuth();
+const getCroppedImg = async (imageSrc: string, pixelCrop: any): Promise<string> => {
+  const image = new Image();
+  image.src = imageSrc;
+  await new Promise((resolve) => (image.onload = resolve));
+
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return '';
+
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
+  );
+
+  return canvas.toDataURL('image/jpeg');
+};
+
+export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initialSection = 'account' }) => {
+  const { user, profile, organization, hasRole, refreshSession } = useAuth();
+  const { showToast } = useToast();
+  const { settings, updateSettings, dataMode } = useSupplyChain();
+  const wm = useOptionalWindowManager();
+
   const isAdmin = hasRole(['platform_admin', 'organization_admin']) || 
                   profile?.role === 'platform_admin' || 
                   profile?.role === 'organization_admin';
-  const { settings, updateSettings } = useSupplyChain();
-  
+
+  const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
   const [localSettings, setLocalSettings] = useState<SystemSettings>(() => normalizeSettings(settings));
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [currencyOptions, setCurrencyOptions] = useState<{value: string, label: string}[]>([]);
-  const [activeCategory, setActiveCategory] = useState<SettingsCategory>(initialCategory || 'operational');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currencyOptions, setCurrencyOptions] = useState<{value: string, label: string}[]>([]);
+  
+  // Current Live Clock for Time & Region
+  const [currentTimeStr, setCurrentTimeStr] = useState<string>('');
 
+  useEffect(() => {
+    const updateTime = () => {
+      const d = new Date();
+      setCurrentTimeStr(d.toLocaleTimeString('en-US', { hour12: false }));
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Listen for custom open events
   useEffect(() => {
     const handleCategoryEvent = (e: any) => {
       if (e.detail?.category) {
-        setActiveCategory(e.detail.category as SettingsCategory);
+        setActiveSection(e.detail.category as SettingsSection);
+      } else if (e.detail?.section) {
+        setActiveSection(e.detail.section as SettingsSection);
       }
     };
     window.addEventListener('orion-open-settings', handleCategoryEvent as EventListener);
     return () => window.removeEventListener('orion-open-settings', handleCategoryEvent as EventListener);
   }, []);
 
-  // Privileged Session State
+  useEffect(() => {
+    setLocalSettings(normalizeSettings(settings));
+  }, [settings]);
+
+  useEffect(() => {
+    let mounted = true;
+    FXRateService.getSupportedCurrencies()
+      .then(res => {
+        if (mounted && Array.isArray(res)) {
+          setCurrencyOptions(res.map(c => ({ 
+            value: c.code, 
+            label: `${c.flag || ''} ${c.code} — ${c.name}`, 
+            subLabel: c.symbol, 
+            searchStr: `${c.code} ${c.name} ${c.symbol}` 
+          })));
+        }
+      })
+      .catch(err => console.warn('Failed to load supported currencies:', err));
+    return () => { mounted = false; };
+  }, []);
+
+  // Profile Edit State
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [fullName, setFullName] = useState(profile?.fullName || '');
+  const [displayName, setDisplayName] = useState(profile?.displayName || '');
+  const [jobTitle, setJobTitle] = useState(profile?.jobTitle || '');
+  const [department, setDepartment] = useState(profile?.department || '');
+  const [phone, setPhone] = useState(profile?.phone || '');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(profile?.avatarUrl || null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.fullName || '');
+      setDisplayName(profile.displayName || '');
+      setJobTitle(profile.jobTitle || '');
+      setDepartment(profile.department || '');
+      setPhone(profile.phone || '');
+      setAvatarUrl(profile.avatarUrl || null);
+    }
+  }, [profile]);
+
+  // Privileged Admin Session State
   const [privilegedUntil, setPrivilegedUntil] = useState<number | null>(() => {
     const s = privilegedSessionManager.getSession();
     return s ? new Date(s.expiresAt).getTime() : null;
@@ -93,23 +191,6 @@ export const Settings = ({ initialCategory }: { initialCategory?: SettingsCatego
     });
   }, []);
 
-  useEffect(() => {
-    let mounted = true;
-    FXRateService.getSupportedCurrencies()
-      .then(res => {
-        if (mounted && Array.isArray(res)) {
-          setCurrencyOptions(res.map(c => ({ value: c.code, label: `${c.flag || ''} ${c.code} — ${c.name}`, subLabel: c.symbol, searchStr: `${c.code} ${c.name} ${c.symbol}` })));
-        }
-      })
-      .catch(err => console.warn('Failed to load supported currencies:', err));
-    return () => { mounted = false; };
-  }, []);
-
-  useEffect(() => {
-    setLocalSettings(normalizeSettings(settings));
-  }, [settings]);
-
-  // Privileged Session Timer
   useEffect(() => {
     let interval: any;
     if (privilegedUntil) {
@@ -129,345 +210,114 @@ export const Settings = ({ initialCategory }: { initialCategory?: SettingsCatego
     return () => clearInterval(interval);
   }, [privilegedUntil]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type} = e.target;
-    setLocalSettings(prev => ({
-      ...prev,
-      [name]: type === 'number' ? (value === '' ? 0 : Number(value)) : value
-    }));
-  };
-
-  const handleSave = async () => {
+  const handleSaveSettings = async () => {
     setIsSaving(true);
     try {
       const normalized = normalizeSettings(localSettings);
       await updateSettings(normalized);
       setIsSaved(true);
+      showToast('System settings updated successfully', 'success');
       setTimeout(() => setIsSaved(false), 2500);
     } catch (error) {
       console.error('Error saving settings:', error);
+      showToast('Failed to save settings', 'error');
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleReset = () => {
+  const handleResetSettings = () => {
     setLocalSettings({ ...DEFAULT_SYSTEM_SETTINGS });
+    showToast('Settings reset to system defaults', 'info');
   };
 
-  const handleUnlock = async (e: React.FormEvent) => {
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('Profile picture must be 5 MB or smaller.', 'error');
+        e.target.value = '';
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setSelectedImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = '';
+  };
+
+  const handleSaveCroppedImage = async () => {
+    if (!selectedImage || !croppedAreaPixels) return;
+    try {
+      const croppedImage = await getCroppedImg(selectedImage, croppedAreaPixels);
+      setAvatarUrl(croppedImage);
+      setSelectedImage(null);
+    } catch (e) {
+      showToast('Failed to crop image', 'error');
+    }
+  };
+
+  const saveProfileData = async () => {
+    if (!profile) return;
+    try {
+      const updates: any = {
+        fullName: fullName.trim(),
+        displayName: displayName.trim(),
+        jobTitle: jobTitle.trim(),
+        department: department.trim(),
+        phone: phone.trim(),
+        avatarUrl
+      };
+      await userRepository.updateProfile(profile.id, updates);
+      await refreshSession();
+      showToast('Profile updated successfully', 'success');
+      setIsEditingProfile(false);
+    } catch (e) {
+      showToast('Failed to update profile', 'error');
+    }
+  };
+
+  const handleUnlockAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsUnlocking(true);
     setUnlockError('');
     try {
       if (!user?.id) throw new Error("No authenticated user identity found.");
-      
       const privSession = await authService.requestAdminStepUp(user.id, unlockPassword);
       if (privSession) {
         setPrivilegedUntil(new Date(privSession.expiresAt).getTime());
         setUnlockPassword('');
       }
     } catch (err: any) {
-      setUnlockError(err.message || 'Authentication failed. Please check your administrator password.');
+      setUnlockError(err.message || 'Authentication failed. Invalid administrator password.');
     } finally {
       setIsUnlocking(false);
     }
   };
 
-  const lockNow = () => {
+  const lockAdminNow = () => {
     privilegedSessionManager.revoke('Manually locked by administrator');
     setPrivilegedUntil(null);
   };
 
-  const isAdminTab = activeCategory.startsWith('admin_');
-
-  const renderAdminTab = () => {
-    if (!privilegedUntil) {
-      return (
-        <div className="flex-1 flex flex-col items-center justify-center h-full max-w-md mx-auto animate-in fade-in zoom-in-95 duration-300">
-          <div className="bg-os-surface border border-os-border rounded-2xl p-8 shadow-2xl w-full flex flex-col items-center text-center">
-            <div className="w-16 h-16 bg-os-accent/10 rounded-full flex items-center justify-center mb-6">
-              <Lock className="text-os-accent w-8 h-8" />
-            </div>
-            <h3 className="text-lg font-medium text-os-text-primary mb-2">Administrator Authentication Required</h3>
-            <p className="text-sm text-os-text-muted mb-8">Enter your administrator password to unlock privileged settings.</p>
-            
-            <form onSubmit={handleUnlock} className="w-full">
-              <div className="mb-4">
-                <input 
-                  type="password" 
-                  autoFocus
-                  placeholder="Password" 
-                  value={unlockPassword}
-                  onChange={e => setUnlockPassword(e.target.value)}
-                  className="w-full bg-os-input-bg border border-os-border rounded-lg px-4 py-3 text-os-text-primary focus:outline-none focus:border-os-accent focus:ring-1 focus:ring-os-accent transition-all"
-                />
-                {unlockError && <p className="text-red-400 text-xs mt-2 text-left">{unlockError}</p>}
-              </div>
-              <button 
-                type="submit" 
-                disabled={isUnlocking || !unlockPassword}
-                className="w-full bg-os-accent text-black font-medium py-3 rounded-lg hover:brightness-110 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
-              >
-                {isUnlocking ? 'Verifying...' : <>Unlock <Unlock size={16} /></>}
-              </button>
-            </form>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="flex flex-col h-full animate-in fade-in slide-in-from-right-4 duration-300">
-        <div className="bg-os-surface/80 border border-os-border rounded-lg p-3 mb-6 flex items-center justify-between shadow-sm backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <ShieldCheck className="text-emerald-400 w-5 h-5" />
-            <div>
-              <div className="text-sm font-medium text-os-text-primary flex items-center gap-2">
-                Privileged Session Active 
-                <span className="text-xs text-os-text-muted font-normal">• Expires in {timeRemaining}</span>
-              </div>
-            </div>
-          </div>
-          <button 
-            onClick={lockNow}
-            className="px-3 py-1.5 text-xs font-medium bg-os-surface-hover hover:bg-os-border border border-os-border rounded-md text-os-text-primary transition-colors flex items-center gap-2"
-          >
-            <Lock size={12} /> Lock Now
-          </button>
-        </div>
-        
-        <div className="flex-1 bg-os-surface border border-os-border rounded-xl overflow-hidden relative">
-          {activeCategory === 'admin_overview' && <AdminOverview />}
-          {activeCategory === 'admin_control_center' && <AdminControlCenter />}
-          {activeCategory === 'admin_users' && <AdminUsers />}
-          {activeCategory === 'admin_orgs' && <AdminOrganizations />}
-          {activeCategory === 'admin_roles' && <AdminRoles />}
-          {activeCategory === 'admin_branding' && <AdminBranding />}
-          {activeCategory === 'admin_audit' && <AdminAuditLogs />}
-          {activeCategory === 'admin_demo' && <AdminDemoData />}
-          {activeCategory === 'admin_security' && <AdminSettings />}
-          {activeCategory === 'admin_database' && <AdminDatabaseHealth />}
-
-          {/* Quick-switch Governed Domains */}
-          {activeCategory === 'admin_domain_users_rbac' && <AdminControlCenter initialDomainId="users-rbac" />}
-          {activeCategory === 'admin_domain_roles_capabilities' && <AdminControlCenter initialDomainId="users-rbac" initialCapabilityId="role-management" />}
-          {activeCategory === 'admin_domain_orgs_tenants' && <AdminControlCenter initialDomainId="master-data" initialCapabilityId="supplier-master" />}
-          {activeCategory === 'admin_domain_ai_governance' && <AdminControlCenter initialDomainId="ai-ml" initialCapabilityId="ai-policy" />}
-          {activeCategory === 'admin_domain_workflows_approvals' && <AdminControlCenter initialDomainId="operations" initialCapabilityId="release-governance" />}
-          {activeCategory === 'admin_domain_planning_engine' && <AdminControlCenter initialDomainId="forecasting" initialCapabilityId="demand-forecasting" />}
-          {activeCategory === 'admin_domain_inventory_optimization' && <AdminControlCenter initialDomainId="inventory" initialCapabilityId="stock-reallocation" />}
-          {activeCategory === 'admin_domain_fulfillment_engine' && <AdminControlCenter initialDomainId="order-management" initialCapabilityId="order-allocation" />}
-          {activeCategory === 'admin_domain_logistics_transport' && <AdminControlCenter initialDomainId="transportation" initialCapabilityId="route-optimization" />}
-          {activeCategory === 'admin_domain_sop_demand' && <AdminControlCenter initialDomainId="forecasting" initialCapabilityId="demand-sensing" />}
-          {activeCategory === 'admin_domain_multi_echelon' && <AdminControlCenter initialDomainId="inventory" initialCapabilityId="replenishment" />}
-          {activeCategory === 'admin_domain_distributed_ledger' && <AdminControlCenter initialDomainId="security" initialCapabilityId="security-policy" />}
-          {activeCategory === 'admin_domain_security_controls' && <AdminControlCenter initialDomainId="security" initialCapabilityId="security-controls" />}
-          {activeCategory === 'admin_domain_audit_compliance' && <AdminControlCenter initialDomainId="compliance" initialCapabilityId="compliance-rules" />}
-          {activeCategory === 'admin_domain_integrations_fabric' && <AdminControlCenter initialDomainId="integrations" initialCapabilityId="integration-health" />}
-          {activeCategory === 'admin_domain_simulation_scenarios' && <AdminControlCenter initialDomainId="analytics" initialCapabilityId="kpi-governance" />}
-          {activeCategory === 'admin_domain_mobile_edge' && <AdminControlCenter initialDomainId="mobile" initialCapabilityId="device-policy" />}
-        </div>
-      </div>
-    );
-  };
-
-  const renderCategoryContent = () => {
-    if (isAdminTab) return renderAdminTab();
-
-    switch (activeCategory) {
-      case 'operational':
-        return (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div>
-              <h3 className="text-sm font-medium text-os-text-primary mb-1">Operational Thresholds</h3>
-              <p className="text-xs text-os-text-muted mb-6">Determine when alerts and statuses are triggered.</p>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div>
-                  <label className="block text-[10px] uppercase tracking-widest font-medium text-os-text-secondary mb-2">Critical Stock-Out (Days)</label>
-                  <input name="criticalStockOutDays" value={localSettings.criticalStockOutDays ?? ''} onChange={handleChange} type="number" min="1" max="90" className="w-full rounded-lg border border-os-border-strong bg-os-input-bg px-3 py-2 text-sm font-mono text-os-text-primary focus:outline-none focus:border-os-text-muted transition-colors" />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase tracking-widest font-medium text-os-text-secondary mb-2">Low Stock (Days)</label>
-                  <input name="lowStockDays" value={localSettings.lowStockDays ?? ''} onChange={handleChange} type="number" min="1" max="180" className="w-full rounded-lg border border-os-border-strong bg-os-input-bg px-3 py-2 text-sm font-mono text-os-text-primary focus:outline-none focus:border-os-text-muted transition-colors" />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase tracking-widest font-medium text-os-text-secondary mb-2">Excess Inventory (Days)</label>
-                  <input name="excessInventoryDays" value={localSettings.excessInventoryDays ?? ''} onChange={handleChange} type="number" min="1" max="10000" className="w-full rounded-lg border border-os-border-strong bg-os-input-bg px-3 py-2 text-sm font-mono text-os-text-primary focus:outline-none focus:border-os-text-muted transition-colors" />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase tracking-widest font-medium text-os-text-secondary mb-2">Shipment Delay Alert (Days)</label>
-                  <input name="shipmentDelayAlertDays" value={localSettings.shipmentDelayAlertDays ?? ''} onChange={handleChange} type="number" min="0" max="720" className="w-full rounded-lg border border-os-border-strong bg-os-input-bg px-3 py-2 text-sm font-mono text-os-text-primary focus:outline-none focus:border-os-text-muted transition-colors" />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase tracking-widest font-medium text-os-text-secondary mb-2">Supplier High Risk Threshold</label>
-                  <input name="supplierHighRiskThreshold" value={localSettings.supplierHighRiskThreshold ?? ''} onChange={handleChange} type="number" min="0" max="100" className="w-full rounded-lg border border-os-border-strong bg-os-input-bg px-3 py-2 text-sm font-mono text-os-text-primary focus:outline-none focus:border-os-text-muted transition-colors" />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase tracking-widest font-medium text-os-text-secondary mb-2">Healthy Shipments (%)</label>
-                  <input name="healthWeightShipments" value={localSettings.healthWeightShipments ?? ''} onChange={handleChange} type="number" min="0" max="100" className="w-full rounded-lg border border-os-border-strong bg-os-input-bg px-3 py-2 text-sm font-mono text-os-text-primary focus:outline-none focus:border-os-text-muted transition-colors" />
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      case 'localization':
-        return (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div>
-              <h3 className="text-sm font-medium text-os-text-primary mb-1">Localization</h3>
-              <p className="text-xs text-os-text-muted mb-6">Configure currency, timezone, and regional settings.</p>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                <div>
-                  <label className="block text-[10px] uppercase tracking-widest font-medium text-os-text-secondary mb-2">Currency</label>
-                  <SearchableDropdown value={localSettings.currency || 'INR'} options={currencyOptions} onChange={(val) => setLocalSettings(prev => ({...prev, currency: val}))} />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase tracking-widest font-medium text-os-text-secondary mb-2">Timezone</label>
-                  <SearchableDropdown value={localSettings.timezone || 'Asia/Kolkata'} options={timezones} onChange={(val) => setLocalSettings(prev => ({...prev, timezone: val}))} />
-                </div>
-                <div>
-                  <label className="block text-[10px] uppercase tracking-widest font-medium text-os-text-secondary mb-2">Language</label>
-                  <SearchableDropdown value={localSettings.locale || 'en-IN'} options={locales} onChange={(val) => setLocalSettings(prev => ({...prev, locale: val}))} />
-                </div>
-              </div>
-
-              <div className="pt-6 border-t border-os-border">
-                <SettingsCurrencyConverter currencyOptions={currencyOptions} defaultCurrency={localSettings.currency} />
-              </div>
-            </div>
-          </div>
-        );
-      case 'appearance':
-        return (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div>
-              <h3 className="text-sm font-medium text-os-text-primary mb-1">Appearance & Display</h3>
-              <p className="text-xs text-os-text-muted mb-6">Configure visual and accessibility preferences.</p>
-              
-              <DisplayPreferencesControls />
-
-              <div className="space-y-6 pt-2 border-t border-os-border">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center p-4 rounded-lg bg-os-input-bg border border-os-border">
-                  <div>
-                    <div className="text-sm font-medium text-os-text-primary">Reduced Motion</div>
-                    <div className="text-xs text-os-text-muted mt-1">Disables heavy animations and transitions for performance or accessibility.</div>
-                  </div>
-                  <div className="flex bg-os-surface border border-os-border rounded-sm p-1 gap-1 mt-3 sm:mt-0 w-full sm:w-48 shrink-0">
-                    <button type="button" onClick={() => { setLocalSettings(prev => ({...prev, reducedMotion: false})); updateSettings({ reducedMotion: false }); }} className={`flex-1 py-1.5 text-xs font-medium uppercase tracking-widest rounded-sm transition-colors ${!localSettings.reducedMotion ? 'bg-os-surface-hover text-os-text-primary shadow-sm' : 'text-os-text-muted hover:text-os-text-primary'}`}>OFF</button>
-                    <button type="button" onClick={() => { setLocalSettings(prev => ({...prev, reducedMotion: true})); updateSettings({ reducedMotion: true }); }} className={`flex-1 py-1.5 text-xs font-medium uppercase tracking-widest rounded-sm transition-colors ${localSettings.reducedMotion ? 'bg-os-surface-hover text-os-text-primary shadow-sm' : 'text-os-text-muted hover:text-os-text-primary'}`}>ON</button>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center p-4 rounded-lg bg-os-input-bg border border-os-border">
-                  <div className="mb-3 sm:mb-0">
-                    <div className="text-sm font-medium text-os-text-primary">Brightness Overlay</div>
-                    <div className="text-xs text-os-text-muted mt-1">Adjust software brightness (does not control hardware display).</div>
-                  </div>
-                  <div className="w-full sm:w-64 shrink-0">
-                    <input
-                      type="range" min="20" max="100" value={localSettings.brightness ?? 100}
-                      onChange={(e) => { const val = parseInt(e.target.value); setLocalSettings(prev => ({...prev, brightness: val})); }}
-                      onMouseUp={(e) => updateSettings({ brightness: parseInt((e.target as HTMLInputElement).value) })}
-                      onTouchEnd={(e) => updateSettings({ brightness: parseInt((e.target as HTMLInputElement).value) })}
-                      className="w-full h-2 bg-os-surface-active rounded-lg appearance-none cursor-pointer accent-os-accent"
-                    />
-                    <div className="flex justify-between mt-1 text-[9px] text-os-text-muted font-mono">
-                      <span>20%</span>
-                      <span>{localSettings.brightness ?? 100}%</span>
-                      <span>100%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      case 'sound':
-        return (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div>
-              <h3 className="text-sm font-medium text-os-text-primary mb-1">Sound Preferences</h3>
-              <p className="text-xs text-os-text-muted mb-6">Manage system audio and volume.</p>
-              
-              <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center p-4 rounded-lg bg-os-input-bg border border-os-border">
-                  <div>
-                    <div className="text-sm font-medium text-os-text-primary">Master UI Sound</div>
-                    <div className="text-xs text-os-text-muted mt-1">Enable or disable all interface sounds.</div>
-                  </div>
-                  <div className="flex bg-os-surface border border-os-border rounded-sm p-1 gap-1 mt-3 sm:mt-0 w-full sm:w-48 shrink-0">
-                    <button type="button" onClick={() => { setLocalSettings(prev => ({...prev, soundEnabled: false})); updateSettings({ soundEnabled: false }); }} className={`flex-1 py-1.5 text-xs font-medium uppercase tracking-widest rounded-sm transition-colors ${!localSettings.soundEnabled ? 'bg-os-surface-hover text-os-text-primary shadow-sm' : 'text-os-text-muted hover:text-os-text-primary'}`}>OFF</button>
-                    <button type="button" onClick={() => { setLocalSettings(prev => ({...prev, soundEnabled: true})); updateSettings({ soundEnabled: true }); }} className={`flex-1 py-1.5 text-xs font-medium uppercase tracking-widest rounded-sm transition-colors ${localSettings.soundEnabled ? 'bg-os-surface-hover text-os-text-primary shadow-sm' : 'text-os-text-muted hover:text-os-text-primary'}`}>ON</button>
-                  </div>
-                </div>
-
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center p-4 rounded-lg bg-os-input-bg border border-os-border">
-                  <div className="mb-3 sm:mb-0">
-                    <div className="text-sm font-medium text-os-text-primary">Volume</div>
-                    <div className="text-xs text-os-text-muted mt-1">Adjust system volume levels.</div>
-                  </div>
-                  <div className="w-full sm:w-64 shrink-0">
-                    <input
-                      type="range" min="0" max="100" value={localSettings.soundVolume ?? 75}
-                      onChange={(e) => { const val = parseInt(e.target.value); setLocalSettings(prev => ({...prev, soundVolume: val})); }}
-                      onMouseUp={(e) => updateSettings({ soundVolume: parseInt((e.target as HTMLInputElement).value) })}
-                      onTouchEnd={(e) => updateSettings({ soundVolume: parseInt((e.target as HTMLInputElement).value) })}
-                      className="w-full h-2 bg-os-surface-active rounded-lg appearance-none cursor-pointer accent-os-accent"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      case 'privacy':
-        return (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-            <div>
-              <h3 className="text-sm font-medium text-os-text-primary mb-1">Privacy & Security</h3>
-              <p className="text-xs text-os-text-muted mb-6">Manage data sharing and telemetry settings.</p>
-              
-              <div className="space-y-6">
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center p-4 rounded-lg bg-os-input-bg border border-os-border opacity-60 pointer-events-none">
-                  <div>
-                    <div className="text-sm font-medium text-os-text-primary">Diagnostic Telemetry</div>
-                    <div className="text-xs text-os-text-muted mt-1">Automatically send diagnostic data to improve ORION OS. (Enforced by Admin)</div>
-                  </div>
-                  <div className="mt-3 sm:mt-0 text-[10px] font-mono tracking-widest text-os-text-secondary uppercase">
-                    Mandatory
-                  </div>
-                </div>
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center p-4 rounded-lg bg-os-input-bg border border-os-border opacity-60 pointer-events-none">
-                  <div>
-                    <div className="text-sm font-medium text-os-text-primary">Supply Chain Analytics</div>
-                    <div className="text-xs text-os-text-muted mt-1">Anonymize supply chain intelligence data for aggregate insights.</div>
-                  </div>
-                  <div className="mt-3 sm:mt-0 text-[10px] font-mono tracking-widest text-os-text-secondary uppercase">
-                    Enabled
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
-  const menuItems = [
-    { id: 'operational', label: 'General', icon: Sliders, group: 'system' },
+  // Main Sidebar Item List Definitions
+  const navigationSections = [
+    { id: 'account', label: 'My Account', icon: User, group: 'user' },
+    { id: 'organization', label: 'Organization', icon: Building2, group: 'user' },
     { id: 'appearance', label: 'Appearance', icon: Eye, group: 'system' },
-    { id: 'localization', label: 'Localization', icon: Globe, group: 'system' },
-    { id: 'sound', label: 'Sound', icon: Activity, group: 'system' },
-    { id: 'privacy', label: 'Privacy & Security', icon: Shield, group: 'system' },
+    { id: 'desktop', label: 'Desktop & Windows', icon: Monitor, group: 'system' },
+    { id: 'time_region', label: 'Time & Region', icon: Clock, group: 'system' },
+    { id: 'notifications', label: 'Notifications', icon: Volume2, group: 'system' },
+    { id: 'privacy_security', label: 'Privacy & Security', icon: Shield, group: 'system' },
+    { id: 'ai_automation', label: 'AI & Automation', icon: BrainCircuit, group: 'system' },
+    { id: 'network', label: 'Network', icon: Wifi, group: 'system' },
+    { id: 'storage', label: 'Storage', icon: HardDrive, group: 'system' },
   ];
 
-  const adminCoreItems = [
-    { id: 'admin_overview', label: 'Overview', icon: SettingsIcon, group: 'admin' },
+  const adminSections = [
+    { id: 'admin', label: 'Administration Overview', icon: Sliders, group: 'admin' },
     { id: 'admin_control_center', label: 'AI + Manual Control Center', icon: BrainCircuit, group: 'admin' },
     { id: 'admin_users', label: 'Users & RBAC', icon: Users, group: 'admin' },
     { id: 'admin_orgs', label: 'Organizations & Tenants', icon: Building2, group: 'admin' },
@@ -479,35 +329,737 @@ export const Settings = ({ initialCategory }: { initialCategory?: SettingsCatego
     { id: 'admin_database', label: 'Database Health & Storage', icon: Activity, group: 'admin' },
   ];
 
-  const adminDomainItems = [
-    { id: 'admin_domain_users_rbac', label: '1. Users & Access', icon: Users, group: 'domains' },
-    { id: 'admin_domain_roles_capabilities', label: '2. Roles & Permissions', icon: Key, group: 'domains' },
-    { id: 'admin_domain_orgs_tenants', label: '3. Organizations & Tenants', icon: Building2, group: 'domains' },
-    { id: 'admin_domain_ai_governance', label: '4. AI Governance', icon: Brain, group: 'domains' },
-    { id: 'admin_domain_workflows_approvals', label: '5. Workflows & Approvals', icon: FileCheck, group: 'domains' },
-    { id: 'admin_domain_planning_engine', label: '6. Planning Engine', icon: Target, group: 'domains' },
-    { id: 'admin_domain_inventory_optimization', label: '7. Inventory Optimization', icon: Package, group: 'domains' },
-    { id: 'admin_domain_fulfillment_engine', label: '8. Fulfillment Engine', icon: TrendingUp, group: 'domains' },
-    { id: 'admin_domain_logistics_transport', label: '9. Logistics & Transport', icon: Truck, group: 'domains' },
-    { id: 'admin_domain_sop_demand', label: '10. S&OP Demand Consensus', icon: BarChart2, group: 'domains' },
-    { id: 'admin_domain_multi_echelon', label: '11. Multi-Echelon Buffer', icon: Package, group: 'domains' },
-    { id: 'admin_domain_distributed_ledger', label: '12. Distributed Ledger', icon: Shield, group: 'domains' },
-    { id: 'admin_domain_security_controls', label: '13. Security & Access Controls', icon: ShieldCheck, group: 'domains' },
-    { id: 'admin_domain_audit_compliance', label: '14. Audit & Compliance', icon: FileText, group: 'domains' },
-    { id: 'admin_domain_integrations_fabric', label: '15. Integrations & API Fabric', icon: Network, group: 'domains' },
-    { id: 'admin_domain_simulation_scenarios', label: '16. Simulation & Scenario Engine', icon: Sliders, group: 'domains' },
-    { id: 'admin_domain_mobile_edge', label: '17. Mobile & Edge Nodes', icon: Smartphone, group: 'domains' },
-  ];
+  const filteredNav = navigationSections.filter(item => 
+    item.label.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const filteredAdminNav = adminSections.filter(item => 
+    item.label.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  const filteredMenuItems = menuItems.filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()));
-  const filteredAdminCoreItems = adminCoreItems.filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()));
-  const filteredAdminDomainItems = adminDomainItems.filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()));
+  const isAdminSection = activeSection.startsWith('admin');
+
+  // Render Admin Consoles with Step-Up Lock Screen Guard
+  const renderAdminConsoles = () => {
+    if (!privilegedUntil) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center h-full max-w-md mx-auto p-6 animate-in fade-in zoom-in-95 duration-200">
+          <div className="bg-[#12151a] border border-white/[0.08] rounded-2xl p-8 shadow-2xl w-full flex flex-col items-center text-center">
+            <div className="w-14 h-14 bg-sky-500/10 rounded-2xl border border-sky-500/20 flex items-center justify-center mb-5">
+              <Lock className="text-sky-400 w-7 h-7" />
+            </div>
+            <h3 className="text-base font-semibold text-white mb-2">Administrator Access Required</h3>
+            <p className="text-xs text-slate-400 mb-6 leading-relaxed">Enter your platform administrator password to unlock privileged settings and system control planes.</p>
+            
+            <form onSubmit={handleUnlockAdmin} className="w-full space-y-4">
+              <div>
+                <input 
+                  type="password" 
+                  autoFocus
+                  placeholder="Administrator Password" 
+                  value={unlockPassword}
+                  onChange={e => setUnlockPassword(e.target.value)}
+                  className="w-full bg-white/[0.04] border border-white/[0.1] rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500/60 focus:ring-1 focus:ring-sky-500/60 transition-all font-mono"
+                />
+                {unlockError && <p className="text-rose-400 text-xs mt-2 text-left">{unlockError}</p>}
+              </div>
+              <button 
+                type="submit" 
+                disabled={isUnlocking || !unlockPassword}
+                className="w-full bg-sky-500 hover:bg-sky-400 text-black font-semibold py-2.5 rounded-xl disabled:opacity-50 transition-all text-xs flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {isUnlocking ? 'Verifying Identity...' : <>Unlock Administration <Unlock size={14} /></>}
+              </button>
+            </form>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col h-full space-y-4">
+        <div className="bg-[#12151a] border border-white/[0.08] rounded-xl p-3 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3">
+            <ShieldCheck className="text-emerald-400 w-4 h-4" />
+            <div className="text-xs font-medium text-white flex items-center gap-2">
+              Privileged Session Active 
+              <span className="text-[11px] text-slate-400 font-mono">• Expires in {timeRemaining}</span>
+            </div>
+          </div>
+          <button 
+            onClick={lockAdminNow}
+            className="px-3 py-1.5 text-xs font-medium bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] rounded-lg text-slate-300 transition-colors flex items-center gap-1.5 cursor-pointer"
+          >
+            <Lock size={12} /> Lock Session
+          </button>
+        </div>
+        
+        <div className="flex-1 bg-[#12151a] border border-white/[0.08] rounded-xl overflow-hidden relative">
+          {(activeSection === 'admin' || activeSection === 'admin_overview') && <AdminOverview />}
+          {activeSection === 'admin_control_center' && <AdminControlCenter />}
+          {activeSection === 'admin_users' && <AdminUsers />}
+          {activeSection === 'admin_orgs' && <AdminOrganizations />}
+          {activeSection === 'admin_roles' && <AdminRoles />}
+          {activeSection === 'admin_branding' && <AdminBranding />}
+          {activeSection === 'admin_audit' && <AdminAuditLogs />}
+          {activeSection === 'admin_demo' && <AdminDemoData />}
+          {activeSection === 'admin_security' && <AdminSettings />}
+          {activeSection === 'admin_database' && <AdminDatabaseHealth />}
+        </div>
+      </div>
+    );
+  };
+
+  // Render Core Section Content
+  const renderSectionContent = () => {
+    if (isAdminSection) return renderAdminConsoles();
+
+    switch (activeSection) {
+      case 'account':
+        return (
+          <div className="space-y-6">
+            {/* Header / Avatar Card */}
+            <div className="p-5 rounded-2xl bg-[#12151a] border border-white/[0.08] flex items-center justify-between gap-6">
+              <div className="flex items-center gap-5">
+                <div className="relative group shrink-0">
+                  <div className="w-16 h-16 rounded-full bg-white/[0.06] border border-white/[0.1] overflow-hidden flex items-center justify-center shadow-inner">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <User size={28} className="text-slate-400" />
+                    )}
+                  </div>
+                  {isEditingProfile && (
+                    <button 
+                      onClick={() => avatarInputRef.current?.click()}
+                      className="absolute inset-0 bg-black/70 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    >
+                      <Camera size={18} className="text-white" />
+                    </button>
+                  )}
+                  <input 
+                    type="file" 
+                    ref={avatarInputRef} 
+                    onChange={handleAvatarUpload} 
+                    accept="image/*" 
+                    className="hidden" 
+                  />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-white flex items-center gap-2">
+                    {profile?.fullName || 'Orion Administrator'}
+                    <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-sky-500/15 text-sky-400 border border-sky-500/30">
+                      {profile?.role?.replace('_', ' ') || 'Platform Admin'}
+                    </span>
+                  </h2>
+                  <p className="text-xs text-slate-400 font-mono mt-0.5">@{profile?.username || 'admin'} · {profile?.email || 'admin@orion.network'}</p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Organization: <span className="text-slate-300 font-medium">{organization?.name || profile?.organizationName || 'ORION_PLATFORM'}</span>
+                  </p>
+                </div>
+              </div>
+              <div>
+                {!isEditingProfile ? (
+                  <button 
+                    onClick={() => setIsEditingProfile(true)}
+                    className="px-4 py-2 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] rounded-xl text-xs font-medium text-white transition-colors cursor-pointer"
+                  >
+                    Edit Profile
+                  </button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => setIsEditingProfile(false)}
+                      className="px-3 py-2 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      onClick={saveProfileData}
+                      className="px-4 py-2 bg-sky-500 hover:bg-sky-400 text-black font-semibold rounded-xl text-xs transition-colors cursor-pointer"
+                    >
+                      Save Profile
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Account Info Rows */}
+            <div className="bg-[#12151a] border border-white/[0.08] rounded-2xl overflow-hidden divide-y divide-white/[0.06]">
+              <div className="px-5 py-3.5 bg-white/[0.02] flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Account Information</span>
+                <span className="text-[10px] text-slate-500 font-mono">Firebase Authentication Authoritative</span>
+              </div>
+
+              <div className="px-5 py-3 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Display Name</span>
+                {isEditingProfile ? (
+                  <input 
+                    type="text" 
+                    value={displayName}
+                    onChange={e => setDisplayName(e.target.value)}
+                    className="bg-white/[0.05] border border-white/[0.1] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500/50 w-64"
+                  />
+                ) : (
+                  <span className="text-xs text-white font-medium">{profile?.displayName || profile?.fullName || '-'}</span>
+                )}
+              </div>
+
+              <div className="px-5 py-3 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Username (Login ID)</span>
+                <span className="text-xs text-slate-300 font-mono">{profile?.username || 'admin'}</span>
+              </div>
+
+              <div className="px-5 py-3 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Email Address</span>
+                <span className="text-xs text-slate-300 font-mono flex items-center gap-2">
+                  <Mail size={13} className="text-slate-500" />
+                  {profile?.email || 'admin@orion.network'}
+                </span>
+              </div>
+
+              <div className="px-5 py-3 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Job Title</span>
+                {isEditingProfile ? (
+                  <input 
+                    type="text" 
+                    value={jobTitle}
+                    onChange={e => setJobTitle(e.target.value)}
+                    className="bg-white/[0.05] border border-white/[0.1] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500/50 w-64"
+                  />
+                ) : (
+                  <span className="text-xs text-white">{profile?.jobTitle || 'Platform Administrator'}</span>
+                )}
+              </div>
+
+              <div className="px-5 py-3 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Department</span>
+                {isEditingProfile ? (
+                  <input 
+                    type="text" 
+                    value={department}
+                    onChange={e => setDepartment(e.target.value)}
+                    className="bg-white/[0.05] border border-white/[0.1] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500/50 w-64"
+                  />
+                ) : (
+                  <span className="text-xs text-white">{profile?.department || 'Executive Operations'}</span>
+                )}
+              </div>
+
+              <div className="px-5 py-3 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Phone Number</span>
+                {isEditingProfile ? (
+                  <input 
+                    type="tel" 
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    className="bg-white/[0.05] border border-white/[0.1] rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-sky-500/50 w-64"
+                  />
+                ) : (
+                  <span className="text-xs text-white font-mono">{profile?.phone || '+1 (555) 019-2831'}</span>
+                )}
+              </div>
+
+              <div className="px-5 py-3 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Role & Security Clearance</span>
+                <span className="text-xs text-sky-400 font-mono capitalize font-semibold">{profile?.role?.replace('_', ' ') || 'Platform Admin'}</span>
+              </div>
+
+              <div className="px-5 py-3 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Assigned Organization</span>
+                <span className="text-xs text-white font-medium">{organization?.name || profile?.organizationName || 'ORION_PLATFORM'}</span>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'organization':
+        return (
+          <div className="space-y-6">
+            <div className="p-5 rounded-2xl bg-[#12151a] border border-white/[0.08] flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-500/20 to-blue-600/20 border border-sky-500/30 flex items-center justify-center">
+                  <Building2 size={24} className="text-sky-400" />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-white">{organization?.name || 'ORION_PLATFORM'}</h2>
+                  <p className="text-xs text-slate-400">{organization?.industry || 'Global Supply Chain & Enterprise Intelligence'}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 inline-flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  Active Enterprise Workspace
+                </span>
+                <p className="text-[10px] text-slate-500 mt-1 font-mono">Managed by Platform Administration</p>
+              </div>
+            </div>
+
+            <div className="bg-[#12151a] border border-white/[0.08] rounded-2xl overflow-hidden divide-y divide-white/[0.06]">
+              <div className="px-5 py-3.5 bg-white/[0.02] flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Organization Details</span>
+                {isAdmin && (
+                  <button 
+                    onClick={() => setActiveSection('admin_orgs')}
+                    className="text-xs text-sky-400 hover:text-sky-300 font-medium flex items-center gap-1 cursor-pointer"
+                  >
+                    Open Administration →
+                  </button>
+                )}
+              </div>
+
+              <div className="px-5 py-3 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Organization ID</span>
+                <span className="text-xs text-slate-300 font-mono">{organization?.id || 'ORION_PLATFORM'}</span>
+              </div>
+
+              <div className="px-5 py-3 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Industry</span>
+                <span className="text-xs text-white">{organization?.industry || 'Supply Chain / Logistics'}</span>
+              </div>
+
+              <div className="px-5 py-3 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Country / Region</span>
+                <span className="text-xs text-white flex items-center gap-1.5">
+                  <Globe size={13} className="text-slate-500" />
+                  {organization?.country || 'Global Enterprise'}
+                </span>
+              </div>
+
+              <div className="px-5 py-3 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Base Currency</span>
+                <span className="text-xs text-sky-400 font-mono font-semibold">{organization?.currency || 'USD ($)'}</span>
+              </div>
+
+              <div className="px-5 py-3 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">System Timezone</span>
+                <span className="text-xs text-slate-300 font-mono">{organization?.timezone || 'Asia/Kolkata (GMT+05:30)'}</span>
+              </div>
+
+              <div className="px-5 py-3 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Workspace Status</span>
+                <span className="text-xs text-emerald-400 font-semibold uppercase tracking-wider">● Operational</span>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'appearance':
+        return (
+          <div className="space-y-6">
+            <div className="bg-[#12151a] border border-white/[0.08] rounded-2xl overflow-hidden divide-y divide-white/[0.06]">
+              <div className="px-5 py-3.5 bg-white/[0.02]">
+                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Interface Theme & Controls</span>
+              </div>
+
+              {/* Theme Selection */}
+              <div className="p-5 flex flex-col gap-3">
+                <span className="text-xs font-medium text-slate-300">Theme Preference</span>
+                <div className="grid grid-cols-3 gap-3">
+                  {['light', 'dark', 'system'].map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => updateSettings({ theme: t as any })}
+                      className={cn(
+                        "p-3 rounded-xl border text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer",
+                        (settings?.theme || 'dark') === t 
+                          ? "bg-sky-500/15 border-sky-500/40 text-sky-400 shadow-sm" 
+                          : "bg-white/[0.03] border-white/[0.08] text-slate-400 hover:text-white hover:bg-white/[0.06]"
+                      )}
+                    >
+                      {t === 'light' && <Sun size={14} />}
+                      {t === 'dark' && <Moon size={14} />}
+                      {t === 'system' && <Laptop size={14} />}
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reduced Motion Toggle */}
+              <div className="px-5 py-4 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium text-white">Reduced Motion</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Disables heavy CSS animations and motion transitions across OS windows.</div>
+                </div>
+                <div className="flex bg-white/[0.05] border border-white/[0.08] rounded-lg p-1 gap-1 w-36 shrink-0">
+                  <button 
+                    type="button" 
+                    onClick={() => updateSettings({ reducedMotion: false })}
+                    className={cn(
+                      "flex-1 py-1 text-[11px] font-semibold rounded transition-colors cursor-pointer",
+                      !settings?.reducedMotion ? "bg-white/10 text-white shadow-sm" : "text-slate-400 hover:text-white"
+                    )}
+                  >
+                    OFF
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => updateSettings({ reducedMotion: true })}
+                    className={cn(
+                      "flex-1 py-1 text-[11px] font-semibold rounded transition-colors cursor-pointer",
+                      settings?.reducedMotion ? "bg-sky-500/20 text-sky-400 shadow-sm" : "text-slate-400 hover:text-white"
+                    )}
+                  >
+                    ON
+                  </button>
+                </div>
+              </div>
+
+              {/* Brightness Slider */}
+              <div className="p-5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-white">Software Brightness Overlay</span>
+                  <span className="text-xs font-mono text-sky-400">{localSettings.brightness ?? 100}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="20"
+                  max="100"
+                  value={localSettings.brightness ?? 100}
+                  onChange={(e) => setLocalSettings(prev => ({...prev, brightness: parseInt(e.target.value)}))}
+                  onMouseUp={(e) => updateSettings({ brightness: parseInt((e.target as HTMLInputElement).value) })}
+                  className="w-full h-1.5 bg-white/[0.1] rounded-lg appearance-none cursor-pointer accent-sky-400"
+                />
+              </div>
+
+              {/* Display Preferences Controls Component */}
+              <div className="p-5">
+                <DisplayPreferencesControls />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'desktop':
+        return (
+          <div className="space-y-6">
+            <div className="bg-[#12151a] border border-white/[0.08] rounded-2xl overflow-hidden divide-y divide-white/[0.06]">
+              <div className="px-5 py-3.5 bg-white/[0.02]">
+                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Desktop & Dock Behavior</span>
+              </div>
+
+              <div className="px-5 py-4 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium text-white">Desktop Grid Snap</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Automatically align desktop shortcuts and VFS items to grid cells.</div>
+                </div>
+                <span className="text-xs text-sky-400 font-mono font-semibold">ON (80px Grid)</span>
+              </div>
+
+              <div className="px-5 py-4 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium text-white">Orion Dock Magnification</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Enlarges dock icons smoothly when hovering over the bottom dock bar.</div>
+                </div>
+                <span className="text-xs text-emerald-400 font-mono font-semibold">ENABLED</span>
+              </div>
+
+              <div className="px-5 py-4 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium text-white">Remember Window Positions</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Persists window geometry, size, and maximized states across sessions.</div>
+                </div>
+                <span className="text-xs text-emerald-400 font-mono font-semibold">ENABLED</span>
+              </div>
+
+              <div className="px-5 py-4 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium text-white">Default Workspace Workspace</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Primary workspace opened upon initial system boot.</div>
+                </div>
+                <span className="text-xs text-slate-300 font-mono">Control Tower (Operations)</span>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'time_region':
+        return (
+          <div className="space-y-6">
+            <div className="p-5 rounded-2xl bg-[#12151a] border border-white/[0.08] flex items-center justify-between">
+              <div>
+                <span className="text-[10px] uppercase font-mono tracking-widest text-slate-500">Live Operating Clock</span>
+                <h2 className="text-2xl font-mono font-bold text-sky-400 tracking-tight mt-1">{currentTimeStr || '12:00:00'}</h2>
+                <p className="text-xs text-slate-400 font-mono mt-0.5">{localSettings.timezone || 'Asia/Kolkata'} · IST (GMT+05:30)</p>
+              </div>
+              <div className="text-right">
+                <span className="text-xs text-slate-300 font-medium">Regional Locale</span>
+                <p className="text-xs text-slate-400 font-mono mt-0.5">{localSettings.locale || 'en-IN'} (India)</p>
+              </div>
+            </div>
+
+            <div className="bg-[#12151a] border border-white/[0.08] rounded-2xl p-5 space-y-4">
+              <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Localization Parameters</h3>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] uppercase font-semibold text-slate-400 mb-1.5">Currency</label>
+                  <SearchableDropdown 
+                    value={localSettings.currency || 'INR'} 
+                    options={currencyOptions} 
+                    onChange={(val) => setLocalSettings(prev => ({...prev, currency: val}))} 
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-semibold text-slate-400 mb-1.5">Timezone</label>
+                  <SearchableDropdown 
+                    value={localSettings.timezone || 'Asia/Kolkata'} 
+                    options={timezones} 
+                    onChange={(val) => setLocalSettings(prev => ({...prev, timezone: val}))} 
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-semibold text-slate-400 mb-1.5">Language & Locale</label>
+                  <SearchableDropdown 
+                    value={localSettings.locale || 'en-IN'} 
+                    options={locales} 
+                    onChange={(val) => setLocalSettings(prev => ({...prev, locale: val}))} 
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] uppercase font-semibold text-slate-400 mb-1.5">Date Format</label>
+                  <div className="p-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs font-mono text-slate-300">
+                    DD/MM/YYYY (25/09/2026)
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-white/[0.06]">
+                <SettingsCurrencyConverter currencyOptions={currencyOptions} defaultCurrency={localSettings.currency} />
+              </div>
+            </div>
+
+            {/* Embedded World Clock Panel */}
+            <div className="bg-[#12151a] border border-white/[0.08] rounded-2xl overflow-hidden p-4">
+              <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3">Global Network Time Matrix</h3>
+              <div className="h-[380px] rounded-xl overflow-hidden border border-white/[0.06]">
+                <TimeWorldPanel />
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'notifications':
+        return (
+          <div className="space-y-6">
+            <div className="bg-[#12151a] border border-white/[0.08] rounded-2xl overflow-hidden divide-y divide-white/[0.06]">
+              <div className="px-5 py-3.5 bg-white/[0.02]">
+                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Audio & System Notifications</span>
+              </div>
+
+              {/* Master UI Sound */}
+              <div className="px-5 py-4 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium text-white">Master Interface Sounds</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Plays subtle acoustic feedback for window actions, alerts, and notifications.</div>
+                </div>
+                <div className="flex bg-white/[0.05] border border-white/[0.08] rounded-lg p-1 gap-1 w-36 shrink-0">
+                  <button 
+                    type="button" 
+                    onClick={() => { setLocalSettings(prev => ({...prev, soundEnabled: false})); updateSettings({ soundEnabled: false }); }}
+                    className={cn(
+                      "flex-1 py-1 text-[11px] font-semibold rounded transition-colors cursor-pointer",
+                      !localSettings.soundEnabled ? "bg-white/10 text-white shadow-sm" : "text-slate-400 hover:text-white"
+                    )}
+                  >
+                    OFF
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={() => { setLocalSettings(prev => ({...prev, soundEnabled: true})); updateSettings({ soundEnabled: true }); }}
+                    className={cn(
+                      "flex-1 py-1 text-[11px] font-semibold rounded transition-colors cursor-pointer",
+                      localSettings.soundEnabled ? "bg-sky-500/20 text-sky-400 shadow-sm" : "text-slate-400 hover:text-white"
+                    )}
+                  >
+                    ON
+                  </button>
+                </div>
+              </div>
+
+              {/* Volume Slider */}
+              <div className="p-5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-white">System Volume Level</span>
+                  <span className="text-xs font-mono text-sky-400">{localSettings.soundVolume ?? 75}%</span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={localSettings.soundVolume ?? 75}
+                  onChange={(e) => setLocalSettings(prev => ({...prev, soundVolume: parseInt(e.target.value)}))}
+                  onMouseUp={(e) => updateSettings({ soundVolume: parseInt((e.target as HTMLInputElement).value) })}
+                  className="w-full h-1.5 bg-white/[0.1] rounded-lg appearance-none cursor-pointer accent-sky-400"
+                />
+              </div>
+
+              <div className="px-5 py-4 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium text-white">Critical Inventory & PO Banners</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">High-priority toasts when stockouts or procurement exceptions trigger.</div>
+                </div>
+                <span className="text-xs text-emerald-400 font-mono font-semibold">ALWAYS ON</span>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'privacy_security':
+        return (
+          <div className="space-y-6">
+            <div className="bg-[#12151a] border border-white/[0.08] rounded-2xl overflow-hidden divide-y divide-white/[0.06]">
+              <div className="px-5 py-3.5 bg-white/[0.02]">
+                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Authentication & Identity Governance</span>
+              </div>
+
+              <div className="px-5 py-3.5 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Authentication Engine</span>
+                <span className="text-xs text-emerald-400 font-semibold font-mono flex items-center gap-1.5">
+                  <CheckCircle2 size={13} /> Firebase Authentication (Authoritative)
+                </span>
+              </div>
+
+              <div className="px-5 py-3.5 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Active Security Role</span>
+                <span className="text-xs text-sky-400 font-mono font-semibold uppercase">{profile?.role || 'Platform Admin'}</span>
+              </div>
+
+              <div className="px-5 py-3.5 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Database Authority</span>
+                <span className="text-xs text-slate-300 font-mono">Cloud Firestore (Tenant Isolated)</span>
+              </div>
+
+              <div className="px-5 py-3.5 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Active Environment</span>
+                <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded border ${dataMode === 'real' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border-amber-500/30'}`}>
+                  {dataMode === 'real' ? 'LIVE PRODUCTION' : 'DEMO SANDBOX'}
+                </span>
+              </div>
+
+              <div className="px-5 py-3.5 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Diagnostic Telemetry</span>
+                <span className="text-xs text-slate-400 font-mono">Mandatory System Audit Active</span>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'ai_automation':
+        return (
+          <div className="space-y-6">
+            <div className="bg-[#12151a] border border-white/[0.08] rounded-2xl overflow-hidden divide-y divide-white/[0.06]">
+              <div className="px-5 py-3.5 bg-white/[0.02] flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">ORION AI & Autopilot Policies</span>
+                <span className="text-[10px] text-purple-400 font-mono">Gemini LLM Active</span>
+              </div>
+
+              <div className="px-5 py-4 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium text-white">AI Operating Mode</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Determines whether AI provides suggestions, prepares drafts, or executes within policy.</div>
+                </div>
+                <span className="text-xs font-mono font-semibold text-purple-400 px-2.5 py-1 rounded bg-purple-500/15 border border-purple-500/30">
+                  Level 2 — Recommend
+                </span>
+              </div>
+
+              <div className="px-5 py-4 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium text-white">Human Approval Threshold</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Consequential actions above this limit require explicit human authorization.</div>
+                </div>
+                <span className="text-xs font-mono text-slate-200 font-semibold">$10,000 USD</span>
+              </div>
+
+              <div className="px-5 py-4 flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium text-white">Vector Memory Retention</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Indexes operational decisions and outcomes into vector memory for continuous learning.</div>
+                </div>
+                <span className="text-xs text-emerald-400 font-mono font-semibold">ACTIVE</span>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'network':
+        return (
+          <div className="space-y-6">
+            <div className="bg-[#12151a] border border-white/[0.08] rounded-2xl overflow-hidden divide-y divide-white/[0.06]">
+              <div className="px-5 py-3.5 bg-white/[0.02]">
+                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Enterprise Network & Edge Connectivity</span>
+              </div>
+
+              <div className="px-5 py-3.5 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Edge Worker Target</span>
+                <span className="text-xs text-sky-400 font-mono font-semibold">orion-9.ayushprakash0021.workers.dev</span>
+              </div>
+
+              <div className="px-5 py-3.5 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Connection Status</span>
+                <span className="text-xs text-emerald-400 font-mono font-semibold flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  CONNECTED (Latency: 14ms)
+                </span>
+              </div>
+
+              <div className="px-5 py-3.5 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Protocol & Transport</span>
+                <span className="text-xs text-slate-300 font-mono">WebSockets LIVE / HTTP 2.0 SPA</span>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'storage':
+        return (
+          <div className="space-y-6">
+            <div className="bg-[#12151a] border border-white/[0.08] rounded-2xl overflow-hidden divide-y divide-white/[0.06]">
+              <div className="px-5 py-3.5 bg-white/[0.02] flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Virtual File System & Cloud Storage</span>
+                <button 
+                  onClick={() => wm?.openApplication('file-manager')}
+                  className="text-xs text-sky-400 hover:text-sky-300 font-medium flex items-center gap-1 cursor-pointer"
+                >
+                  Open File Explorer →
+                </button>
+              </div>
+
+              <div className="px-5 py-3.5 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Storage Provider</span>
+                <span className="text-xs text-slate-300 font-mono">Cloud Firestore VFS + Cloud Storage</span>
+              </div>
+
+              <div className="px-5 py-3.5 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Root Directory</span>
+                <span className="text-xs text-slate-300 font-mono">vfs://orion/workspace</span>
+              </div>
+
+              <div className="px-5 py-3.5 flex items-center justify-between">
+                <span className="text-xs font-medium text-slate-400">Desktop Items Collection</span>
+                <span className="text-xs text-emerald-400 font-mono font-semibold">desktop_items (Persisted)</span>
+              </div>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div className="flex flex-col md:flex-row w-full h-full bg-[#0c0e11] text-os-text-primary overflow-hidden font-sans">
+    <div className="flex flex-col md:flex-row w-full h-full bg-[#0c0e11] text-white overflow-hidden font-sans select-none">
+      {/* ─── LEFT SIDEBAR ─── */}
       <div className="w-full md:w-64 max-h-[35vh] md:max-h-full shrink-0 bg-[#12151a] border-b md:border-b-0 md:border-r border-white/[0.08] flex flex-col">
         {/* Search */}
-        <div className="p-3.5 border-b border-white/[0.08] backdrop-blur-md sticky top-0 z-10">
+        <div className="p-3.5 border-b border-white/[0.08] backdrop-blur-md sticky top-0 z-10 bg-[#12151a]">
           <div className="relative">
             <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
             <input 
@@ -520,85 +1072,63 @@ export const Settings = ({ initialCategory }: { initialCategory?: SettingsCatego
           </div>
         </div>
 
-        {/* User Mini Profile */}
-        <div className="p-3.5 border-b border-white/[0.08] flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full overflow-hidden bg-white/[0.06] flex items-center justify-center shrink-0 border border-white/[0.08]">
-            {profile?.avatarUrl ? (
-              <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+        {/* User Badge */}
+        <div className="p-3.5 border-b border-white/[0.08] flex items-center gap-3 bg-white/[0.02]">
+          <div className="w-9 h-9 rounded-full overflow-hidden bg-white/[0.06] flex items-center justify-center shrink-0 border border-white/[0.1]">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
-              <User size={18} className="text-slate-400" />
+              <User size={16} className="text-slate-400" />
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-medium text-white truncate">{profile?.fullName || profile?.displayName || 'User'}</div>
-            <div className="text-[10px] text-slate-400 truncate uppercase tracking-wider">{profile?.role || 'Operator'}</div>
+            <div className="text-xs font-semibold text-white truncate">{profile?.fullName || 'Administrator'}</div>
+            <div className="text-[10px] text-sky-400 font-mono truncate uppercase tracking-wider">{profile?.role?.replace('_', ' ') || 'Platform Admin'}</div>
           </div>
         </div>
         
-        <div className="flex-1 overflow-y-auto p-3 space-y-5 custom-scrollbar">
-          {/* SYSTEM PREFERENCES */}
-          {filteredMenuItems.length > 0 && (
-            <div>
-              <div className="px-2.5 mb-2 text-[10px] font-semibold tracking-wider uppercase text-slate-400">System Preferences</div>
-              <div className="space-y-1">
-                {filteredMenuItems.map(item => (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveCategory(item.id as SettingsCategory)}
-                    className={cn(
-                      "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all text-left cursor-pointer",
-                      activeCategory === item.id 
-                        ? "bg-sky-500/15 text-sky-400 border border-sky-500/25 font-semibold" 
-                        : "text-slate-400 hover:bg-white/[0.05] hover:text-white border border-transparent"
-                    )}
-                  >
-                    <item.icon size={15} className={activeCategory === item.id ? "text-sky-400" : "text-slate-400"} /> {item.label}
-                  </button>
-                ))}
-              </div>
+        {/* Navigation List */}
+        <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar">
+          {/* USER & SYSTEM SECTIONS */}
+          <div>
+            <div className="px-2.5 mb-1.5 text-[10px] font-semibold tracking-wider uppercase text-slate-400">System Preferences</div>
+            <div className="space-y-0.5">
+              {filteredNav.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveSection(item.id as SettingsSection)}
+                  className={cn(
+                    "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all text-left cursor-pointer",
+                    activeSection === item.id 
+                      ? "bg-sky-500/15 text-sky-400 border border-sky-500/30 font-semibold shadow-sm" 
+                      : "text-slate-400 hover:bg-white/[0.05] hover:text-white border border-transparent"
+                  )}
+                >
+                  <item.icon size={15} className={activeSection === item.id ? "text-sky-400" : "text-slate-400"} /> 
+                  <span>{item.label}</span>
+                </button>
+              ))}
             </div>
-          )}
+          </div>
 
-          {/* ADMINISTRATION */}
-          {isAdmin && filteredAdminCoreItems.length > 0 && (
+          {/* ADMINISTRATION SECTIONS */}
+          {isAdmin && filteredAdminNav.length > 0 && (
             <div>
-              <div className="px-2.5 mb-2 text-[10px] font-semibold tracking-wider uppercase text-slate-400">Administration</div>
-              <div className="space-y-1">
-                {filteredAdminCoreItems.map(item => (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveCategory(item.id as SettingsCategory)}
-                    className={cn(
-                      "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all text-left cursor-pointer",
-                      activeCategory === item.id 
-                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 font-semibold" 
-                        : "text-slate-400 hover:bg-white/[0.05] hover:text-white border border-transparent"
-                    )}
-                  >
-                    <item.icon size={15} className={activeCategory === item.id ? "text-emerald-400" : "text-slate-400"} /> {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* GOVERNED DOMAINS QUICK SWITCH */}
-          {isAdmin && filteredAdminDomainItems.length > 0 && (
-            <div>
-              <div className="px-2.5 mb-2 text-[10px] font-semibold tracking-wider uppercase text-slate-400">Governed Domains (17)</div>
+              <div className="px-2.5 mb-1.5 text-[10px] font-semibold tracking-wider uppercase text-slate-400">Administration</div>
               <div className="space-y-0.5">
-                {filteredAdminDomainItems.map(item => (
+                {filteredAdminNav.map(item => (
                   <button
                     key={item.id}
-                    onClick={() => setActiveCategory(item.id as SettingsCategory)}
+                    onClick={() => setActiveSection(item.id as SettingsSection)}
                     className={cn(
-                      "w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-[11px] font-medium transition-all text-left cursor-pointer",
-                      activeCategory === item.id 
-                        ? "bg-sky-500/15 text-sky-300 font-semibold" 
-                        : "text-slate-400 hover:bg-white/[0.05] hover:text-white"
+                      "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all text-left cursor-pointer",
+                      activeSection === item.id 
+                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold shadow-sm" 
+                        : "text-slate-400 hover:bg-white/[0.05] hover:text-white border border-transparent"
                     )}
                   >
-                    <item.icon size={13} className={activeCategory === item.id ? "text-sky-300" : "text-slate-400"} /> {item.label}
+                    <item.icon size={15} className={activeSection === item.id ? "text-emerald-400" : "text-slate-400"} /> 
+                    <span className="truncate">{item.label}</span>
                   </button>
                 ))}
               </div>
@@ -607,36 +1137,36 @@ export const Settings = ({ initialCategory }: { initialCategory?: SettingsCatego
         </div>
       </div>
 
+      {/* ─── MAIN CONTENT PANEL ─── */}
       <div className="flex-1 flex flex-col overflow-hidden relative bg-[#0c0e11]">
         <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar relative">
-          {isAdminTab ? renderCategoryContent() : (
-            <div className="max-w-3xl mx-auto">
-              {renderCategoryContent()}
-            </div>
-          )}
+          {renderSectionContent()}
         </div>
         
-        {!isAdminTab && (
-          <div className="p-4 md:px-8 border-t border-white/[0.08] bg-[#12151a]/90 backdrop-blur-xl shrink-0">
-            <div className="max-w-3xl mx-auto flex justify-end gap-3 items-center">
+        {/* Footer Action Bar for non-admin sections */}
+        {!isAdminSection && (
+          <div className="p-4 px-6 border-t border-white/[0.08] bg-[#12151a]/90 backdrop-blur-xl shrink-0 flex items-center justify-between">
+            <span className="text-[11px] text-slate-400 font-mono">
+              Environment: <strong className="text-slate-200">{dataMode === 'real' ? 'LIVE' : 'DEMO'}</strong>
+            </span>
+            <div className="flex items-center gap-3">
               {isSaved && (
-                <span className="text-emerald-400 text-xs font-medium flex items-center gap-1.5 animate-in fade-in mr-2">
+                <span className="text-emerald-400 text-xs font-semibold flex items-center gap-1.5 mr-2 animate-in fade-in">
                   <CheckCircle2 size={14} /> Saved
                 </span>
               )}
               <button 
-                onClick={handleReset} 
+                onClick={handleResetSettings}
                 type="button"
                 className="flex items-center gap-1.5 px-4 py-2 text-xs font-medium text-slate-300 border border-white/[0.08] rounded-xl hover:bg-white/[0.06] hover:text-white transition-colors cursor-pointer"
               >
-                <RotateCcw size={13} />
-                Reset
+                <RotateCcw size={13} /> Reset
               </button>
               <button 
-                onClick={handleSave} 
+                onClick={handleSaveSettings}
                 disabled={isSaving}
                 type="button"
-                className="flex items-center gap-2 px-5 py-2 text-xs font-medium text-white bg-sky-600 hover:bg-sky-500 rounded-xl disabled:opacity-50 transition-all cursor-pointer shadow-sm"
+                className="flex items-center gap-2 px-5 py-2 text-xs font-semibold text-black bg-sky-400 hover:bg-sky-300 rounded-xl disabled:opacity-50 transition-all cursor-pointer shadow-sm"
               >
                 <Save size={14} />
                 {isSaving ? 'Saving...' : 'Apply Changes'}
@@ -645,6 +1175,66 @@ export const Settings = ({ initialCategory }: { initialCategory?: SettingsCatego
           </div>
         )}
       </div>
+
+      {/* Image Crop Modal */}
+      {selectedImage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-[#12151a] border border-white/[0.1] rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-white/[0.08] bg-white/[0.02]">
+              <h3 className="font-semibold text-xs text-white">Adjust Profile Avatar</h3>
+              <button 
+                onClick={() => setSelectedImage(null)}
+                className="p-1 rounded-md hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            
+            <div className="relative w-full h-[320px] bg-black">
+              <Cropper
+                image={selectedImage}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={setCrop}
+                onCropComplete={(_area, pixels) => setCroppedAreaPixels(pixels)}
+                onZoomChange={setZoom}
+              />
+            </div>
+            
+            <div className="p-4 bg-white/[0.02] flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-1">
+                <span className="text-xs text-slate-400 font-medium">Zoom</span>
+                <input
+                  type="range"
+                  value={zoom}
+                  min={1}
+                  max={3}
+                  step={0.1}
+                  onChange={(e) => setZoom(Number(e.target.value))}
+                  className="w-full accent-sky-400 h-1 bg-white/[0.1] rounded-lg"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedImage(null)}
+                  className="px-3 py-1.5 text-xs text-slate-400 hover:text-white transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveCroppedImage}
+                  className="px-4 py-1.5 bg-sky-500 hover:bg-sky-400 text-black text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                >
+                  Save Picture
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
