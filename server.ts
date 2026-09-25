@@ -520,24 +520,23 @@ async function startServer() {
     const hasGemini = !!process.env.GEMINI_API_KEY;
     if (hasGemini) {
       res.json({
+        providerConfigured: true,
         configured: true,
         providerName: "Google Gemini",
-        model: "gemini-3.1-flash-image",
-        supportedDimensions: [
-          "16:9",
-          "2K"
-        ]
+        model: "imagen-3.0-generate-002",
+        available: true,
+        error: null,
+        supportedDimensions: ["16:9", "2K"]
       });
     } else {
       res.json({
+        providerConfigured: false,
         configured: false,
         providerName: "Google Gemini",
-        model: "gemini-3.1-flash-image",
-        supportedDimensions: [
-          "16:9",
-          "2K"
-        ],
-        reason: "GEMINI_API_KEY is not configured"
+        model: "imagen-3.0-generate-002",
+        available: false,
+        error: "GEMINI_API_KEY is not configured on server.",
+        supportedDimensions: ["16:9", "2K"]
       });
     }
   });

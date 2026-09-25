@@ -314,37 +314,31 @@ export const Login: React.FC = () => {
 
     try {
       // Look up user profile authoritatively
-      const found = userService.getUserByIdentifier(cleanId);
+      const found = userService.getUserByIdentifier(cleanId) || userService.getUserByEmail(cleanId);
       
-      // Simulate slight realistic OS network delay (150-300ms)
-      await new Promise(res => setTimeout(res, 200));
+      await new Promise(res => setTimeout(res, 150));
 
       if (found) {
         setResolvedUser(found);
         setStage(2);
         setErrorMsg("");
       } else {
-        // Fallback check for standard demo identities if user matches admin/user keywords
-        const lower = cleanId.toLowerCase();
-        if (lower === 'admin' || lower === 'user') {
-          const fallbackUser: UserProfile = {
-            id: lower === 'admin' ? 'local-admin' : 'local-user',
-            username: lower,
-            displayName: lower === 'admin' ? 'Orion-9 Administrator' : 'Orion-9 User',
-            fullName: lower === 'admin' ? 'Orion-9 Administrator' : 'Orion-9 User',
-            email: `${lower}@orion.network`,
-            role: lower === 'admin' ? 'platform_admin' : 'user',
-            status: 'active',
-            organizationId: 'ORION_PLATFORM',
-            organizationName: 'ORION_PLATFORM',
-            onboardingCompleted: true,
-          };
-          setResolvedUser(fallbackUser);
-          setStage(2);
-          setErrorMsg("");
-        } else {
-          setErrorMsg(t.userNotFound);
-        }
+        // Proceed to password step with user identifier for Firebase Auth verification
+        const email = cleanId.includes('@') ? cleanId : `${cleanId}@orion.network`;
+        setResolvedUser({
+          id: cleanId,
+          username: cleanId.split('@')[0],
+          displayName: cleanId.split('@')[0],
+          fullName: cleanId.split('@')[0],
+          email: email,
+          role: 'user',
+          status: 'active',
+          organizationId: 'ORION_PLATFORM',
+          organizationName: 'ORION_PLATFORM',
+          onboardingCompleted: true,
+        });
+        setStage(2);
+        setErrorMsg("");
       }
     } catch (err: any) {
       setErrorMsg(t.userNotFound);

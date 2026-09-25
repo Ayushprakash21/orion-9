@@ -30,6 +30,7 @@ export const DEFAULT_MOTION_PROFILE: MotionProfile = {
 export interface WallpaperRecord {
   wallpaperId: string;
   tenantId: string;
+  organizationId?: string;
   ownerType: WallpaperOwnerType;
   ownerId: string;
   name: string;
@@ -39,6 +40,7 @@ export interface WallpaperRecord {
   aiGenerated: boolean;
   prompt?: string;
   style?: WallpaperStyle;
+  candidateId?: string;
   width: number;
   height: number;
   aspectRatio: string; // '16:9'
@@ -92,7 +94,7 @@ export const DEFAULT_WALLPAPER_POLICY: WallpaperPolicy = {
   allowRuntimeReactive: true,
   maxParticleCount: 50,
   maxParallaxDepth: 0.3,
-  defaultWallpaperId: 'sys-scm-global-network',
+  defaultWallpaperId: 'sys-orion-aurora-space',
   environment: 'DEMO',
   updatedAt: new Date().toISOString(),
 };

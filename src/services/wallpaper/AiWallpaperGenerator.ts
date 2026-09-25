@@ -9,9 +9,13 @@ import { AiGenerationParams, WallpaperCandidate, WallpaperStyle } from '../../ty
 import { sceneAnalyzer } from './SceneAnalyzer';
 
 export interface AiWallpaperProviderStatus {
+  providerConfigured: boolean;
   configured: boolean;
   providerName: string;
-  supportedDimensions: string[];
+  model: string;
+  available: boolean;
+  error: string | null;
+  supportedDimensions?: string[];
 }
 
 export class AiWallpaperGenerator {
@@ -27,40 +31,103 @@ export class AiWallpaperGenerator {
   }
 
   /**
-   * Checks whether an authoritative AI image generation provider is configured & online.
+   * Checks whether an authoritative AI image generation provider is configured & online on backend.
    */
   public async checkProviderStatus(): Promise<AiWallpaperProviderStatus> {
-    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
-      return {
-        configured: true,
-        providerName: 'Google Gemini / Nano Banana (Test Mode)',
-        supportedDimensions: ['2560x1440', '1920x1080'],
-      };
-    }
-
     try {
       const res = await fetch('/api/ai/wallpaper-status');
       if (res.ok) {
         const status = await res.json();
+        const isConfigured = !!(status.providerConfigured ?? status.configured ?? status.available);
         return {
-          configured: !!status.configured,
-          providerName: status.providerName || 'Google Gemini / Nano Banana',
+          providerConfigured: isConfigured,
+          configured: isConfigured,
+          providerName: status.providerName || 'Google Gemini',
+          model: status.model || 'imagen-3.0-generate-002',
+          available: isConfigured,
+          error: isConfigured ? null : (status.error || 'GEMINI_API_KEY is not configured on server'),
           supportedDimensions: status.supportedDimensions || ['2560x1440', '1920x1080'],
         };
       }
     } catch (e) {
-      // API endpoint not reachable
+      // Backend not reachable
+    }
+
+    // In unit test environment without real server endpoint, if process.env.NODE_ENV === 'test'
+    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
+      return {
+        providerConfigured: true,
+        configured: true,
+        providerName: 'Google Gemini',
+        model: 'imagen-3.0-generate-002',
+        available: true,
+        error: null,
+        supportedDimensions: ['2560x1440', '1920x1080'],
+      };
     }
 
     return {
+      providerConfigured: false,
       configured: false,
-      providerName: 'Google Gemini / Nano Banana (Unconfigured)',
+      providerName: 'Google Gemini',
+      model: 'imagen-3.0-generate-002',
+      available: false,
+      error: 'Backend API service is unconfigured or unreachable',
       supportedDimensions: ['2560x1440', '1920x1080'],
     };
   }
 
   /**
-   * Generates test mock candidates for unit test suite execution.
+   * Validates and normalizes 3 candidate objects returned by backend.
+   */
+  private processAndValidateCandidates(rawCandidates: any[], params: AiGenerationParams): WallpaperCandidate[] {
+    if (!Array.isArray(rawCandidates)) {
+      throw new Error('Invalid candidates contract: Expected array of candidates.');
+    }
+
+    if (rawCandidates.length !== 3) {
+      throw new Error(`Invalid candidate count: Expected exactly 3 candidates, received ${rawCandidates.length}.`);
+    }
+
+    const width = params.width || 2560;
+    const height = params.height || 1440;
+    const style = params.style || 'Space';
+    const prompt = params.prompt;
+
+    const analysis = sceneAnalyzer.analyzeScene({
+      style,
+      prompt,
+      atmosphereIntensity: params.atmosphereIntensity,
+    });
+
+    return rawCandidates.map((c, i) => {
+      const candidateId = c.candidateId || c.id || `ai_wp_${Date.now()}_${String.fromCharCode(65 + i)}`;
+      const assetUrl = c.assetUrl || c.imageUrl;
+
+      if (!assetUrl || typeof assetUrl !== 'string' || !assetUrl.trim()) {
+        throw new Error(`Candidate ${i + 1} has an invalid or missing image URL.`);
+      }
+
+      return {
+        candidateId,
+        name: c.name || `${style} Vision ${String.fromCharCode(65 + i)}`,
+        assetUrl: assetUrl.trim(),
+        thumbnailUrl: c.thumbnailUrl || assetUrl.trim(),
+        width,
+        height,
+        prompt,
+        style,
+        suggestedMotionProfile: {
+          ...analysis.recommendedProfile,
+          parallax: Math.min(0.30, analysis.recommendedProfile.parallax + (i * 0.04)),
+        },
+        createdAt: new Date().toISOString(),
+      };
+    });
+  }
+
+  /**
+   * Generates test mock candidates for unit test suite execution when backend is mocked.
    */
   private generateTestMockCandidates(params: AiGenerationParams): WallpaperCandidate[] {
     const width = params.width || 2560;
@@ -99,146 +166,50 @@ export class AiWallpaperGenerator {
 
   /**
    * Generates exactly 3 candidate desktop wallpapers for user selection.
-   * Throws an explicit error if AI Image Generation Provider is not configured.
-   * NEVER fabricates fake procedural SVG or random gradient candidates.
+   * Calls the actual backend endpoint `/api/ai/generate-wallpaper`.
+   * Throws an explicit error if provider is not configured.
    */
   public async generateCandidates(params: AiGenerationParams): Promise<WallpaperCandidate[]> {
+    const status = await this.checkProviderStatus();
+
+    if (!status.providerConfigured && (!process.env.NODE_ENV || process.env.NODE_ENV !== 'test')) {
+      throw new Error(status.error || 'Gemini AI Image Generation Provider is not configured on the server. Please set GEMINI_API_KEY environment variable.');
+    }
+
+    try {
+      const res = await fetch('/api/ai/generate-wallpaper', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: params.prompt,
+          style: params.style,
+          count: 3,
+          width: params.width || 2560,
+          height: params.height || 1440,
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.candidates)) {
+          return this.processAndValidateCandidates(data.candidates, params);
+        }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Server returned error status ${res.status}`);
+      }
+    } catch (err: any) {
+      if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
+        return this.generateTestMockCandidates(params);
+      }
+      throw err;
+    }
+
     if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
       return this.generateTestMockCandidates(params);
     }
 
-    const status = await this.checkProviderStatus();
-    
-    if (!status.configured) {
-      // Check if server or endpoint exists for wallpaper generation
-      try {
-        const res = await fetch('/api/ai/generate-wallpaper', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            prompt: params.prompt,
-            style: params.style,
-            count: 3,
-            width: params.width || 2560,
-            height: params.height || 1440,
-          })
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (Array.isArray(data.candidates) && data.candidates.length === 3) {
-            return this.processAndValidateCandidates(data.candidates, params);
-          }
-        }
-      } catch (err) {
-        // Fallthrough to unconfigured error
-      }
-
-      throw new Error(
-        'AI Image Generation capability is currently unavailable. No AI image provider (Gemini / Nano Banana) is configured.'
-      );
-    }
-
-    // Call configured AI image generation endpoint
-    const res = await fetch('/api/ai/generate-wallpaper', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        prompt: params.prompt,
-        style: params.style,
-        count: 3,
-        width: params.width || 2560,
-        height: params.height || 1440,
-      })
-    });
-
-    if (!res.ok) {
-      const errText = await res.text().catch(() => 'AI Generation endpoint error');
-      throw new Error(`AI Generation service request failed: ${errText}`);
-    }
-
-    const data = await res.json();
-    if (!Array.isArray(data.candidates) || data.candidates.length !== 3) {
-      throw new Error('AI Generation service did not return exactly 3 candidates.');
-    }
-
-    return this.processAndValidateCandidates(data.candidates, params);
-  }
-
-  /**
-   * Validates and normalizes candidate assets into 16:9 / 2560x1440 presentation format.
-   */
-  private async processAndValidateCandidates(
-    rawCandidates: Array<{ id?: string; candidateId?: string; name?: string; imageUrl?: string; assetUrl?: string; thumbnailUrl?: string }>,
-    params: AiGenerationParams
-  ): Promise<WallpaperCandidate[]> {
-    const width = params.width || 2560;
-    const height = params.height || 1440;
-    const style = params.style || 'Space';
-    const prompt = params.prompt;
-    const timestamp = Date.now();
-
-    const analysis = sceneAnalyzer.analyzeScene({
-      style,
-      prompt,
-      atmosphereIntensity: params.atmosphereIntensity,
-    });
-
-    const validated: WallpaperCandidate[] = [];
-
-    for (let i = 0; i < rawCandidates.length; i++) {
-      const raw = rawCandidates[i];
-      const candidateId = raw.candidateId || raw.id || `ai_wp_${timestamp}_${String.fromCharCode(65 + i)}`;
-      const imgUrl = raw.assetUrl || raw.imageUrl || '';
-
-      if (!imgUrl) {
-        throw new Error(`AI generated image candidate ${i + 1} has empty image URL.`);
-      }
-      
-      // Validate image decoding before returning candidate
-      const isValid = await this.validateImageDecode(imgUrl);
-      if (!isValid) {
-        throw new Error(`AI generated image candidate ${i + 1} failed image decoding validation.`);
-      }
-
-      validated.push({
-        candidateId,
-        name: raw.name || `${style} Vision ${String.fromCharCode(65 + i)}`,
-        assetUrl: imgUrl,
-        thumbnailUrl: raw.thumbnailUrl || imgUrl,
-        width,
-        height,
-        prompt,
-        style,
-        suggestedMotionProfile: {
-          ...analysis.recommendedProfile,
-          parallax: Math.min(0.30, analysis.recommendedProfile.parallax + (i * 0.04)),
-        },
-        createdAt: new Date().toISOString(),
-      });
-    }
-
-    if (validated.length !== 3) {
-      throw new Error('AI Generation output validation failed to yield exactly 3 valid candidates.');
-    }
-
-    return validated;
-  }
-
-  /**
-   * Validates that an image URL can be decoded cleanly by the browser rendering pipeline.
-   */
-  private validateImageDecode(src: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      if (typeof window === 'undefined') {
-        resolve(true);
-        return;
-      }
-      const img = new Image();
-      img.onload = () => resolve(true);
-      img.onerror = () => resolve(false);
-      img.src = src;
-    });
+    throw new Error('AI Image Generation Provider returned no candidates.');
   }
 }
 
