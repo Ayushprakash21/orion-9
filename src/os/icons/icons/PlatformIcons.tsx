@@ -272,3 +272,51 @@ export const IconRecycleBin: React.FC<{ size?: number; className?: string; activ
   </OrionSquircleBase>
 );
 
+// 108. Orion Documents
+export const IconOrionDocuments: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
+  <OrionSquircleBase gradientId="icon-orion-docs" from="#0284C7" to="#0369A1" {...props}>
+    <rect x="34" y="24" width="60" height="80" rx="6" fill="#F0F9FF" stroke="#38BDF8" strokeWidth="2" />
+    <path d="M 68 24 L 94 50 L 68 50 Z" fill="#BAE6FD" />
+    <line x1="44" y1="44" x2="64" y2="44" stroke="#0284C7" strokeWidth="3" strokeLinecap="round" />
+    <line x1="44" y1="58" x2="84" y2="58" stroke="#0369A1" strokeWidth="2.5" strokeLinecap="round" />
+    <line x1="44" y1="70" x2="84" y2="70" stroke="#0369A1" strokeWidth="2.5" strokeLinecap="round" />
+    <line x1="44" y1="82" x2="70" y2="82" stroke="#38BDF8" strokeWidth="2" strokeLinecap="round" />
+  </OrionSquircleBase>
+);
+
+// 109. Orion Sheets
+export const IconOrionSheets: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
+  <OrionSquircleBase gradientId="icon-orion-sheets" from="#059669" to="#064E3B" {...props}>
+    <rect x="30" y="26" width="68" height="76" rx="6" fill="#ECFDF5" stroke="#34D399" strokeWidth="2" />
+    <line x1="30" y1="46" x2="98" y2="46" stroke="#10B981" strokeWidth="2" />
+    <line x1="30" y1="64" x2="98" y2="64" stroke="#10B981" strokeWidth="1.5" />
+    <line x1="30" y1="82" x2="98" y2="82" stroke="#10B981" strokeWidth="1.5" />
+    <line x1="52" y1="26" x2="52" y2="102" stroke="#10B981" strokeWidth="2" />
+    <line x1="74" y1="26" x2="74" y2="102" stroke="#10B981" strokeWidth="1.5" />
+  </OrionSquircleBase>
+);
+
+// 110. Orion Slides
+export const IconOrionSlides: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
+  <OrionSquircleBase gradientId="icon-orion-slides" from="#D97706" to="#78350F" {...props}>
+    <rect x="26" y="30" width="76" height="54" rx="6" fill="#FFFBEB" stroke="#FBBF24" strokeWidth="2" />
+    <line x1="64" y1="84" x2="64" y2="98" stroke="#F59E0B" strokeWidth="3" />
+    <line x1="46" y1="98" x2="82" y2="98" stroke="#F59E0B" strokeWidth="3" strokeLinecap="round" />
+    <rect x="36" y="42" width="24" height="30" rx="3" fill="#F59E0B" />
+    <circle cx="76" cy="56" r="10" fill="#FBBF24" stroke="#D97706" strokeWidth="2" />
+  </OrionSquircleBase>
+);
+
+// 111. Orion PDF
+export const IconOrionPdf: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
+  <OrionSquircleBase gradientId="icon-orion-pdf" from="#DC2626" to="#7F1D1D" {...props}>
+    <rect x="32" y="24" width="64" height="80" rx="6" fill="#FEF2F2" stroke="#F87171" strokeWidth="2" />
+    <path d="M 42 42 L 86 42 L 86 54 L 42 54 Z" fill="#EF4444" />
+    <text x="64" y="51" textAnchor="middle" fill="#FFFFFF" fontSize="10" fontWeight="bold" fontFamily="sans-serif">PDF</text>
+    <line x1="44" y1="66" x2="84" y2="66" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" />
+    <line x1="44" y1="76" x2="84" y2="76" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" />
+    <line x1="44" y1="86" x2="68" y2="86" stroke="#F87171" strokeWidth="2" strokeLinecap="round" />
+  </OrionSquircleBase>
+);
+
+

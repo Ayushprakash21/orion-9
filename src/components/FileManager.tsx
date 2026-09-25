@@ -173,8 +173,18 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
 
   // Open File
   const handleOpenFile = (file: OrionFile) => {
-    // Dispatch open event to Notepad or open Notepad window
-    openApplication('notepad');
+    const ext = file.extension.toLowerCase();
+    let targetApp = 'notepad';
+    if (ext === 'pdf') {
+      targetApp = 'orion-pdf';
+    } else if (['xlsx', 'xls', 'csv', 'scm'].includes(ext)) {
+      targetApp = 'orion-sheets';
+    } else if (['pptx', 'ppt'].includes(ext)) {
+      targetApp = 'orion-slides';
+    } else if (['docx', 'doc', 'md', 'rtf'].includes(ext)) {
+      targetApp = 'orion-documents';
+    }
+    openApplication(targetApp);
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent('orion:open-file', { detail: { fileId: file.id } }));
     }, 150);

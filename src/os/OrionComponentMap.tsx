@@ -106,6 +106,7 @@ import { WarrantyServiceCenter } from '../components/WarrantyServiceCenter';
 import { SupplierCollaborationCenter } from '../components/SupplierCollaborationCenter';
 import { NetworkDesignCenter } from '../components/NetworkDesignCenter';
 import { SustainabilityCenter } from '../components/SustainabilityCenter';
+import { OrionDocuments, OrionSheets, OrionSlides, OrionPdf } from '../components/office';
 
 
 const ProfileUserView: React.FC = () => <Profile initialTab="profile" />;
@@ -219,6 +220,10 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'notepad': Notepad,
   'orion-computer': OrionComputer,
   'recycle-bin': () => <FileManager initialFolderKey="recycle_bin" />,
+  'orion-documents': OrionDocuments,
+  'orion-sheets': OrionSheets,
+  'orion-slides': OrionSlides,
+  'orion-pdf': OrionPdf,
 };
 
 export function getAppComponent(appId: string): React.ComponentType<any> | null {

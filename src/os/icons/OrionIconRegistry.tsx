@@ -115,7 +115,11 @@ import {
   IconFileManager,
   IconNotepad,
   IconOrionComputer,
-  IconRecycleBin
+  IconRecycleBin,
+  IconOrionDocuments,
+  IconOrionSheets,
+  IconOrionSlides,
+  IconOrionPdf
 } from './icons/PlatformIcons';
 
 export interface OrionIconDefinition {
@@ -1220,6 +1224,42 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     description: 'Deleted system items, recoverable documents, and permanent purge canister.',
     palette: { from: '#E11D48', to: '#4C0519', accent: '#FB7185', surface: '#FB718515' },
     component: IconRecycleBin
+  },
+  'orion-documents': {
+    appId: 'orion-documents',
+    iconId: 'icon-orion-docs',
+    name: 'Orion Documents',
+    category: 'Platform',
+    description: 'Enterprise word processor and supply chain document editor.',
+    palette: { from: '#0284C7', to: '#0369A1', accent: '#38BDF8', surface: '#38BDF815' },
+    component: IconOrionDocuments
+  },
+  'orion-sheets': {
+    appId: 'orion-sheets',
+    iconId: 'icon-orion-sheets',
+    name: 'Orion Sheets',
+    category: 'Platform',
+    description: 'Enterprise spreadsheet editor and financial matrix workspace.',
+    palette: { from: '#059669', to: '#064E3B', accent: '#34D399', surface: '#34D39915' },
+    component: IconOrionSheets
+  },
+  'orion-slides': {
+    appId: 'orion-slides',
+    iconId: 'icon-orion-slides',
+    name: 'Orion Slides',
+    category: 'Platform',
+    description: 'Executive presentation deck authoring and briefing workspace.',
+    palette: { from: '#D97706', to: '#78350F', accent: '#FBBF24', surface: '#FBBF2415' },
+    component: IconOrionSlides
+  },
+  'orion-pdf': {
+    appId: 'orion-pdf',
+    iconId: 'icon-orion-pdf',
+    name: 'Orion PDF',
+    category: 'Platform',
+    description: 'Cryptographic document reader, annotation engine, and PDF viewer.',
+    palette: { from: '#DC2626', to: '#7F1D1D', accent: '#F87171', surface: '#F8717115' },
+    component: IconOrionPdf
   }
 };
 
