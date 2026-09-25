@@ -571,7 +571,7 @@ export function OrionDock() {
           // Smooth magnification
           const hoveredIndex = hoveredApp ? dockApps.indexOf(hoveredApp) : -1;
           const distance = hoveredIndex !== -1 ? Math.abs(hoveredIndex - index) : 100;
-          const scale = distance === 0 ? 1.08 : distance === 1 ? 1.03 : 1;
+          const scale = distance === 0 ? 1.15 : distance === 1 ? 1.08 : distance === 2 ? 1.03 : 1;
 
           return (
             <button
@@ -599,11 +599,17 @@ export function OrionDock() {
               onContextMenu={(e) => handleDockItemContextMenu(e, id)}
               onMouseEnter={() => setHoveredApp(id)}
               className={cn(
-                "relative group flex flex-col items-center justify-center transition-all duration-300 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 hover:-translate-y-1.5",
+                "relative group flex flex-col items-center justify-center transition-all duration-150 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500",
                 draggedApp === id && "opacity-50",
                 dragOverApp === id && "scale-110 mx-4"
               )}
-              style={{ transform: dragOverApp !== id && hoveredApp ? `scale(${scale})` : undefined, width: '48px', height: '48px' }}
+              style={{
+                transform: dragOverApp !== id && hoveredApp ? `scale(${scale})` : undefined,
+                marginBottom: dragOverApp !== id && hoveredIndex !== -1 ? `${(scale - 1) * 14}px` : "0px",
+                transformOrigin: "bottom center",
+                width: '48px',
+                height: '48px'
+              }}
               title={app.name}
             >
               <div className={cn(
