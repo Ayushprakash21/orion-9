@@ -111,53 +111,53 @@ interface CityCluster {
 
 export const GLOBAL_CITY_LIGHTS: CityCluster[] = [
   // NORTH AMERICA
-  { name: 'NYC / BosWash', lat: 40.7, lng: -74.0, intensity: 0.95, color: '#fef08a', radius: 4.5, subPoints: [[0.5, 1.2], [-0.8, -0.9], [1.2, 0.8], [-1.2, -1.5], [0.8, -2.1]] },
-  { name: 'Chicago / Great Lakes', lat: 41.8, lng: -87.6, intensity: 0.88, color: '#fbbf24', radius: 3.8, subPoints: [[0.4, 0.8], [-0.5, -1.2], [1.0, 1.5]] },
-  { name: 'Los Angeles / SoCal', lat: 34.0, lng: -118.2, intensity: 0.90, color: '#fef08a', radius: 4.0, subPoints: [[0.6, -0.5], [-0.4, 0.8], [-1.0, -0.6]] },
-  { name: 'San Francisco / Bay Area', lat: 37.7, lng: -122.4, intensity: 0.85, color: '#60a5fa', radius: 3.2, subPoints: [[-0.3, 0.4], [0.5, -0.3]] },
-  { name: 'Seattle / Pacific NW', lat: 47.6, lng: -122.3, intensity: 0.75, color: '#bfdbfe', radius: 2.8 },
-  { name: 'Texas Triangle', lat: 29.7, lng: -95.3, intensity: 0.82, color: '#fbbf24', radius: 3.5, subPoints: [[3.1, -1.5], [3.0, 1.8], [0.3, 1.5]] },
-  { name: 'Florida Metro', lat: 25.7, lng: -80.2, intensity: 0.80, color: '#fbbf24', radius: 3.2, subPoints: [[2.8, -1.2], [1.5, -0.5]] },
+  { name: 'NYC / BosWash', lat: 40.7, lng: -74.0, intensity: 0.98, color: '#fef08a', radius: 5.2, subPoints: [[0.5, 1.2], [-0.8, -0.9], [1.2, 0.8], [-1.2, -1.5], [0.8, -2.1], [-2.1, -3.2], [1.8, 2.5]] },
+  { name: 'Chicago / Great Lakes', lat: 41.8, lng: -87.6, intensity: 0.92, color: '#fbbf24', radius: 4.2, subPoints: [[0.4, 0.8], [-0.5, -1.2], [1.0, 1.5], [2.1, 4.2], [0.5, -5.2]] },
+  { name: 'Los Angeles / SoCal', lat: 34.0, lng: -118.2, intensity: 0.95, color: '#fef08a', radius: 4.8, subPoints: [[0.6, -0.5], [-0.4, 0.8], [-1.0, -0.6], [-1.2, 1.2]] },
+  { name: 'San Francisco / Bay Area', lat: 37.7, lng: -122.4, intensity: 0.88, color: '#60a5fa', radius: 3.8, subPoints: [[-0.3, 0.4], [0.5, -0.3], [1.1, 0.8]] },
+  { name: 'Seattle / Pacific NW', lat: 47.6, lng: -122.3, intensity: 0.82, color: '#bfdbfe', radius: 3.2, subPoints: [[1.6, 0.8], [-2.1, 0.2]] },
+  { name: 'Texas Triangle', lat: 29.7, lng: -95.3, intensity: 0.88, color: '#fbbf24', radius: 4.0, subPoints: [[3.1, -1.5], [3.0, 1.8], [0.3, 1.5], [1.5, 2.8]] },
+  { name: 'Florida Metro', lat: 25.7, lng: -80.2, intensity: 0.86, color: '#fbbf24', radius: 3.6, subPoints: [[2.8, -1.2], [1.5, -0.5], [4.5, -1.5]] },
 
   // SOUTH AMERICA
-  { name: 'Sao Paulo / Rio', lat: -23.5, lng: -46.6, intensity: 0.88, color: '#fbbf24', radius: 4.0, subPoints: [[0.6, 3.4], [-1.2, -0.8]] },
-  { name: 'Buenos Aires', lat: -34.6, lng: -58.3, intensity: 0.80, color: '#fef08a', radius: 3.2 },
-  { name: 'Bogota / Andes', lat: 4.7, lng: -74.0, intensity: 0.65, color: '#fbbf24', radius: 2.5 },
+  { name: 'Sao Paulo / Rio', lat: -23.5, lng: -46.6, intensity: 0.92, color: '#fbbf24', radius: 4.5, subPoints: [[0.6, 3.4], [-1.2, -0.8], [-1.8, 1.2]] },
+  { name: 'Buenos Aires', lat: -34.6, lng: -58.3, intensity: 0.85, color: '#fef08a', radius: 3.6, subPoints: [[-1.2, 2.1]] },
+  { name: 'Bogota / Andes', lat: 4.7, lng: -74.0, intensity: 0.72, color: '#fbbf24', radius: 3.0 },
 
   // EUROPE
-  { name: 'London / UK Megalopolis', lat: 51.5, lng: -0.1, intensity: 0.95, color: '#fef08a', radius: 4.2, subPoints: [[1.0, -1.5], [-0.8, -1.8], [2.0, -1.2]] },
-  { name: 'Paris / N. France', lat: 48.8, lng: 2.3, intensity: 0.92, color: '#fef08a', radius: 3.8, subPoints: [[1.2, 1.5], [-1.0, 2.0]] },
-  { name: 'Benelux / Rhine-Ruhr', lat: 51.2, lng: 6.7, intensity: 0.96, color: '#60a5fa', radius: 4.5, subPoints: [[1.1, -2.2], [-0.8, 0.5], [1.5, 1.8]] },
-  { name: 'Milan / Po Valley', lat: 45.4, lng: 9.1, intensity: 0.85, color: '#fbbf24', radius: 3.5, subPoints: [[0.4, 3.2], [-0.3, -2.5]] },
-  { name: 'Madrid / Iberia', lat: 40.4, lng: -3.7, intensity: 0.80, color: '#fbbf24', radius: 3.0, subPoints: [[1.0, -5.5]] },
-  { name: 'Moscow Metro', lat: 55.7, lng: 37.6, intensity: 0.88, color: '#fef08a', radius: 3.8 },
+  { name: 'London / UK Megalopolis', lat: 51.5, lng: -0.1, intensity: 0.98, color: '#fef08a', radius: 4.8, subPoints: [[1.0, -1.5], [-0.8, -1.8], [2.0, -1.2], [1.8, 1.2], [-1.2, 1.8]] },
+  { name: 'Paris / N. France', lat: 48.8, lng: 2.3, intensity: 0.95, color: '#fef08a', radius: 4.2, subPoints: [[1.2, 1.5], [-1.0, 2.0], [-2.1, -1.2]] },
+  { name: 'Benelux / Rhine-Ruhr', lat: 51.2, lng: 6.7, intensity: 0.98, color: '#60a5fa', radius: 5.0, subPoints: [[1.1, -2.2], [-0.8, 0.5], [1.5, 1.8], [-1.2, -2.5], [2.5, 0.8]] },
+  { name: 'Milan / Po Valley', lat: 45.4, lng: 9.1, intensity: 0.88, color: '#fbbf24', radius: 3.8, subPoints: [[0.4, 3.2], [-0.3, -2.5], [0.2, 1.8]] },
+  { name: 'Madrid / Iberia', lat: 40.4, lng: -3.7, intensity: 0.85, color: '#fbbf24', radius: 3.5, subPoints: [[1.0, -5.5], [1.1, 5.8]] },
+  { name: 'Moscow Metro', lat: 55.7, lng: 37.6, intensity: 0.90, color: '#fef08a', radius: 4.2, subPoints: [[0.8, 1.2], [-1.2, -1.0]] },
 
   // INDIA & SOUTH ASIA
-  { name: 'Delhi / NCR', lat: 28.6, lng: 77.2, intensity: 0.96, color: '#fef08a', radius: 4.5, subPoints: [[0.8, 1.2], [-0.6, -1.0], [1.5, -0.8], [-1.2, 1.5]] },
-  { name: 'Mumbai / West Coast India', lat: 19.0, lng: 72.8, intensity: 0.95, color: '#fbbf24', radius: 4.2, subPoints: [[-0.5, 0.9], [2.8, -0.8], [-3.0, 0.4]] },
-  { name: 'Bengaluru / Tech Corridor', lat: 12.9, lng: 77.5, intensity: 0.90, color: '#60a5fa', radius: 3.8, subPoints: [[0.1, 2.7], [3.1, -2.8]] },
-  { name: 'Kolkata / East India', lat: 22.5, lng: 88.3, intensity: 0.85, color: '#fbbf24', radius: 3.5, subPoints: [[1.2, 2.1]] },
-  { name: 'Indus Valley / Punjab', lat: 31.5, lng: 74.3, intensity: 0.82, color: '#fbbf24', radius: 3.6, subPoints: [[-6.7, -7.0]] },
+  { name: 'Delhi / NCR', lat: 28.6, lng: 77.2, intensity: 0.98, color: '#fef08a', radius: 5.0, subPoints: [[0.8, 1.2], [-0.6, -1.0], [1.5, -0.8], [-1.2, 1.5], [2.5, -4.5]] },
+  { name: 'Mumbai / West Coast India', lat: 19.0, lng: 72.8, intensity: 0.97, color: '#fbbf24', radius: 4.6, subPoints: [[-0.5, 0.9], [2.8, -0.8], [-3.0, 0.4], [1.2, 1.1]] },
+  { name: 'Bengaluru / Tech Corridor', lat: 12.9, lng: 77.5, intensity: 0.92, color: '#60a5fa', radius: 4.0, subPoints: [[0.1, 2.7], [3.1, -2.8], [-0.8, 0.8]] },
+  { name: 'Kolkata / East India', lat: 22.5, lng: 88.3, intensity: 0.88, color: '#fbbf24', radius: 3.8, subPoints: [[1.2, 2.1], [-1.5, -1.8]] },
+  { name: 'Indus Valley / Punjab', lat: 31.5, lng: 74.3, intensity: 0.86, color: '#fbbf24', radius: 3.8, subPoints: [[-6.7, -7.0], [2.1, 1.5]] },
 
   // EAST ASIA & JAPAN
-  { name: 'Tokyo / Kanto Plain', lat: 35.6, lng: 139.6, intensity: 0.98, color: '#a5f3fc', radius: 5.0, subPoints: [[-0.9, -4.2], [1.2, 1.5], [-1.5, -2.1]] },
-  { name: 'Shanghai / Yangtze Delta', lat: 31.2, lng: 121.4, intensity: 0.96, color: '#fef08a', radius: 4.8, subPoints: [[0.8, -1.2], [-1.2, -0.8], [1.5, 0.5]] },
-  { name: 'Pearl River Delta (HK/GZ)', lat: 23.1, lng: 113.2, intensity: 0.98, color: '#60a5fa', radius: 4.6, subPoints: [[-0.8, 0.9], [0.5, -1.1]] },
-  { name: 'Beijing / Tianjin', lat: 39.9, lng: 116.4, intensity: 0.92, color: '#fbbf24', radius: 4.2, subPoints: [[-0.8, 0.8]] },
-  { name: 'Seoul / Gyeonggi', lat: 37.5, lng: 126.9, intensity: 0.94, color: '#a5f3fc', radius: 4.0 },
-  { name: 'Taipei', lat: 25.0, lng: 121.5, intensity: 0.85, color: '#fef08a', radius: 3.0 },
+  { name: 'Tokyo / Kanto Plain', lat: 35.6, lng: 139.6, intensity: 1.0, color: '#a5f3fc', radius: 5.5, subPoints: [[-0.9, -4.2], [1.2, 1.5], [-1.5, -2.1], [-1.2, -7.2], [-0.5, -9.5]] },
+  { name: 'Shanghai / Yangtze Delta', lat: 31.2, lng: 121.4, intensity: 0.98, color: '#fef08a', radius: 5.2, subPoints: [[0.8, -1.2], [-1.2, -0.8], [1.5, 0.5], [-0.5, -3.2], [0.8, -5.5]] },
+  { name: 'Pearl River Delta (HK/GZ)', lat: 23.1, lng: 113.2, intensity: 0.99, color: '#60a5fa', radius: 5.0, subPoints: [[-0.8, 0.9], [0.5, -1.1], [0.2, 1.5]] },
+  { name: 'Beijing / Tianjin', lat: 39.9, lng: 116.4, intensity: 0.95, color: '#fbbf24', radius: 4.5, subPoints: [[-0.8, 0.8], [1.2, 1.2]] },
+  { name: 'Seoul / Gyeonggi', lat: 37.5, lng: 126.9, intensity: 0.96, color: '#a5f3fc', radius: 4.5, subPoints: [[-1.2, 2.1], [1.5, -0.8]] },
+  { name: 'Taipei', lat: 25.0, lng: 121.5, intensity: 0.88, color: '#fef08a', radius: 3.5 },
 
   // SOUTHEAST ASIA
-  { name: 'Singapore / Johor', lat: 1.3, lng: 103.8, intensity: 0.96, color: '#60a5fa', radius: 3.5 },
-  { name: 'Bangkok Metro', lat: 13.7, lng: 100.5, intensity: 0.88, color: '#fbbf24', radius: 3.6 },
-  { name: 'Jakarta / Java Coast', lat: -6.2, lng: 106.8, intensity: 0.90, color: '#fef08a', radius: 3.8, subPoints: [[0.8, 6.2]] },
-  { name: 'Manila', lat: 14.5, lng: 120.9, intensity: 0.86, color: '#fbbf24', radius: 3.2 },
+  { name: 'Singapore / Johor', lat: 1.3, lng: 103.8, intensity: 0.98, color: '#60a5fa', radius: 4.0 },
+  { name: 'Bangkok Metro', lat: 13.7, lng: 100.5, intensity: 0.90, color: '#fbbf24', radius: 4.0, subPoints: [[-1.2, -0.8], [1.5, 1.2]] },
+  { name: 'Jakarta / Java Coast', lat: -6.2, lng: 106.8, intensity: 0.92, color: '#fef08a', radius: 4.2, subPoints: [[0.8, 6.2], [-0.5, 11.5]] },
+  { name: 'Manila', lat: 14.5, lng: 120.9, intensity: 0.88, color: '#fbbf24', radius: 3.6 },
 
   // MIDDLE EAST & AFRICA
-  { name: 'Dubai / UAE Coast', lat: 25.2, lng: 55.2, intensity: 0.96, color: '#a5f3fc', radius: 3.8, subPoints: [[-0.8, -0.9]] },
-  { name: 'Nile Delta / Cairo', lat: 30.0, lng: 31.2, intensity: 0.92, color: '#fef08a', radius: 4.0, subPoints: [[1.2, -0.3], [2.1, 0.8]] },
-  { name: 'Riyadh / Gulf', lat: 24.7, lng: 46.6, intensity: 0.82, color: '#fbbf24', radius: 3.2 },
-  { name: 'Johannesburg / Reef', lat: -26.2, lng: 28.0, intensity: 0.78, color: '#fbbf24', radius: 3.0 },
+  { name: 'Dubai / UAE Coast', lat: 25.2, lng: 55.2, intensity: 0.98, color: '#a5f3fc', radius: 4.2, subPoints: [[-0.8, -0.9], [1.2, 1.8]] },
+  { name: 'Nile Delta / Cairo', lat: 30.0, lng: 31.2, intensity: 0.96, color: '#fef08a', radius: 4.5, subPoints: [[1.2, -0.3], [2.1, 0.8], [-2.5, -0.5], [-4.8, 1.2], [-7.2, 1.5]] },
+  { name: 'Riyadh / Gulf', lat: 24.7, lng: 46.6, intensity: 0.85, color: '#fbbf24', radius: 3.6 },
+  { name: 'Johannesburg / Reef', lat: -26.2, lng: 28.0, intensity: 0.80, color: '#fbbf24', radius: 3.2 },
 ];
 
 // Spherical Outlines for Continents (lat, lng pairs in degrees)
@@ -395,6 +395,7 @@ function createPhotorealisticEarthNightMap(): HTMLCanvasElement {
   const ctx = canvas.getContext('2d');
   if (!ctx) return canvas;
 
+  // Deep pitch-black space night background
   ctx.fillStyle = '#000000';
   ctx.fillRect(0, 0, 2048, 1024);
 
@@ -404,38 +405,57 @@ function createPhotorealisticEarthNightMap(): HTMLCanvasElement {
     return [x, y];
   };
 
-  // Render City Light Hubs & Connective Corridors
+  // Render City Light Metropolitan Hubs & Connective Corridors (NASA Black Marble Satellite View)
   for (const city of GLOBAL_CITY_LIGHTS) {
     const [cx, cy] = mapCoords(city.lat, city.lng);
 
-    // City Light Radial Halo
-    const halo = ctx.createRadialGradient(cx, cy, 0, cx, cy, city.radius * 7);
-    halo.addColorStop(0, city.color);
-    halo.addColorStop(0.3, 'rgba(251, 191, 36, 0.45)');
-    halo.addColorStop(1, 'transparent');
+    // Multi-tier Soft Radial City Glow Halo (Simulates NASA Night Satellite View)
+    const outerHalo = ctx.createRadialGradient(cx, cy, 0, cx, cy, city.radius * 9);
+    outerHalo.addColorStop(0, 'rgba(245, 158, 11, 0.85)');
+    outerHalo.addColorStop(0.25, 'rgba(251, 191, 36, 0.50)');
+    outerHalo.addColorStop(0.6, 'rgba(56, 189, 248, 0.20)');
+    outerHalo.addColorStop(1, 'transparent');
 
-    ctx.fillStyle = halo;
+    ctx.fillStyle = outerHalo;
     ctx.beginPath();
-    ctx.arc(cx, cy, city.radius * 7, 0, Math.PI * 2);
+    ctx.arc(cx, cy, city.radius * 9, 0, Math.PI * 2);
     ctx.fill();
 
-    // Dense Center Core Node
-    ctx.fillStyle = '#ffffff';
+    // Intense Core City Light Node
+    const coreGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, city.radius * 2.2);
+    coreGrad.addColorStop(0, '#ffffff');
+    coreGrad.addColorStop(0.5, '#fef08a');
+    coreGrad.addColorStop(1, city.color);
+
+    ctx.fillStyle = coreGrad;
     ctx.beginPath();
-    ctx.arc(cx, cy, city.radius * 1.5, 0, Math.PI * 2);
+    ctx.arc(cx, cy, city.radius * 2.2, 0, Math.PI * 2);
     ctx.fill();
 
     if (city.subPoints) {
       for (const [dLat, dLng] of city.subPoints) {
         const [subX, subY] = mapCoords(city.lat + dLat, city.lng + dLng);
-        ctx.fillStyle = city.color;
+
+        // Suburban halo
+        const subHalo = ctx.createRadialGradient(subX, subY, 0, subX, subY, city.radius * 5);
+        subHalo.addColorStop(0, 'rgba(251, 191, 36, 0.75)');
+        subHalo.addColorStop(0.5, 'rgba(245, 158, 11, 0.35)');
+        subHalo.addColorStop(1, 'transparent');
+
+        ctx.fillStyle = subHalo;
         ctx.beginPath();
-        ctx.arc(subX, subY, city.radius * 0.9, 0, Math.PI * 2);
+        ctx.arc(subX, subY, city.radius * 5, 0, Math.PI * 2);
         ctx.fill();
 
-        // Connective Light Ribbon Corridor
-        ctx.strokeStyle = 'rgba(254, 240, 138, 0.35)';
-        ctx.lineWidth = 1.2;
+        // Subpoint core
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(subX, subY, city.radius * 1.1, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Connective Light Ribbon Highway Corridor
+        ctx.strokeStyle = 'rgba(254, 240, 138, 0.55)';
+        ctx.lineWidth = 1.8;
         ctx.beginPath();
         ctx.moveTo(cx, cy);
         ctx.lineTo(subX, subY);
@@ -716,15 +736,60 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
     const nightTexture = new THREE.CanvasTexture(nightMapCanvas);
     const cloudTexture = new THREE.CanvasTexture(cloudMapCanvas);
 
-    // 4. Earth Sphere Surface
+    // 4. Earth Sphere Surface with Photorealistic Day/Night Sun Terminator & Glowing Night City Lights
     const earthGeo = new THREE.SphereGeometry(2.8, 64, 64);
-    const earthMat = new THREE.MeshStandardMaterial({
-      map: dayTexture,
-      emissiveMap: nightTexture,
-      emissive: new THREE.Color(0xffe0aa),
-      emissiveIntensity: 1.5,
-      roughness: 0.65,
-      metalness: 0.1,
+    const sunDirVector = new THREE.Vector3(-0.8, 0.35, 0.5).normalize();
+
+    const earthMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uDayMap: { value: dayTexture },
+        uNightMap: { value: nightTexture },
+        uSunDirection: { value: sunDirVector },
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        varying vec3 vWorldPosition;
+        void main() {
+          vUv = uv;
+          vNormal = normalize(normalMatrix * normal);
+          vec4 worldPos = modelMatrix * vec4(position, 1.0);
+          vWorldPosition = worldPos.xyz;
+          gl_Position = projectionMatrix * viewMatrix * worldPos;
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D uDayMap;
+        uniform sampler2D uNightMap;
+        uniform vec3 uSunDirection;
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        varying vec3 vWorldPosition;
+
+        void main() {
+          vec3 normal = normalize(vNormal);
+          vec3 sunDir = normalize(uSunDirection);
+          float sunDot = dot(normal, sunDir);
+
+          // Day/Night terminator transition factor
+          float dayFactor = smoothstep(-0.25, 0.25, sunDot);
+          float nightFactor = 1.0 - dayFactor;
+
+          vec4 dayColor = texture2D(uDayMap, vUv);
+          vec4 nightColor = texture2D(uNightMap, vUv);
+
+          // Intense glowing city lights emission on night side (warm golden/amber emission with bloom)
+          vec3 nightEmissive = nightColor.rgb * vec3(1.4, 1.25, 0.95) * 3.6 * nightFactor;
+
+          // Sunlit day side surface diffuse
+          vec3 dayIllumination = dayColor.rgb * max(0.04, sunDot * 1.15 + 0.05);
+
+          // Blend day illumination and night glowing lights
+          vec3 finalColor = mix(dayIllumination + nightEmissive, dayColor.rgb * (sunDot * 1.0 + 0.1), dayFactor);
+
+          gl_FragColor = vec4(finalColor, 1.0);
+        }
+      `,
     });
     const earthMesh = new THREE.Mesh(earthGeo, earthMat);
     earthGroup.add(earthMesh);
@@ -983,13 +1048,15 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
         const rotationPeriod = mergedConfig.rotationSpeedSeconds || 120;
         const rotAngle = isStatic ? 0.35 : (elapsed / rotationPeriod) * Math.PI * 2;
 
+        const sunDir = { x: -0.7, y: 0.35, z: 0.6 };
+
         const oceanGrad = ctx.createRadialGradient(
-          earthCenterX - earthRadius * 0.3, earthCenterY - earthRadius * 0.3, 0,
+          earthCenterX - earthRadius * 0.35, earthCenterY - earthRadius * 0.35, 0,
           earthCenterX, earthCenterY, earthRadius
         );
-        oceanGrad.addColorStop(0, '#06132a');
-        oceanGrad.addColorStop(0.65, '#030a18');
-        oceanGrad.addColorStop(1, '#01040a');
+        oceanGrad.addColorStop(0, '#0d254c');
+        oceanGrad.addColorStop(0.5, '#051226');
+        oceanGrad.addColorStop(1, '#01050e');
 
         ctx.save();
         ctx.beginPath();
@@ -999,7 +1066,7 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
 
         ctx.clip();
 
-        ctx.fillStyle = 'rgba(7, 24, 46, 0.85)';
+        // Render Continents with Photorealistic Sun Vector Night Shading
         for (const continent of CONTINENT_OUTLINES) {
           ctx.beginPath();
           let firstPoint = true;
@@ -1027,10 +1094,23 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
 
           if (!firstPoint) {
             ctx.closePath();
+            const landGrad = ctx.createLinearGradient(
+              earthCenterX - earthRadius * 0.5, earthCenterY - earthRadius * 0.5,
+              earthCenterX + earthRadius * 0.5, earthCenterY + earthRadius * 0.5
+            );
+            landGrad.addColorStop(0, '#1d472c');
+            landGrad.addColorStop(0.6, '#0f2918');
+            landGrad.addColorStop(1, '#050f09');
+            ctx.fillStyle = landGrad;
             ctx.fill();
+
+            ctx.lineWidth = 1.2;
+            ctx.strokeStyle = '#153822';
+            ctx.stroke();
           }
         }
 
+        // Render Night City Lights with Intense Multi-Layer Radial Glow
         const renderCityPoint = (latDeg: number, lngDeg: number, intensity: number, color: string, rad: number) => {
           const phi = (latDeg * Math.PI) / 180;
           const lambda = (lngDeg * Math.PI) / 180;
@@ -1042,24 +1122,32 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
           if (z3d > 0.05) {
             const px = earthCenterX + x3d * earthRadius;
             const py = earthCenterY - y3d * earthRadius;
+
+            const sunDot = x3d * sunDir.x + y3d * sunDir.y + z3d * sunDir.z;
+            const nightFactor = Math.min(1.0, Math.max(0.3, (0.35 - sunDot) * 1.8));
+
             const limbFade = Math.min(1.0, z3d * 2.8);
-            const finalAlpha = intensity * limbFade * (0.75 + Math.sin(elapsed * 1.5 + latDeg) * 0.15);
+            const finalAlpha = intensity * limbFade * nightFactor * (0.85 + Math.sin(elapsed * 2.0 + latDeg) * 0.15);
 
-            if (rad > 3.0 && (qualityTier === 'HIGH' || qualityTier === 'MEDIUM')) {
-              const cityGlow = ctx.createRadialGradient(px, py, 0, px, py, rad * 2.5);
-              cityGlow.addColorStop(0, color);
-              cityGlow.addColorStop(1, 'transparent');
-              ctx.fillStyle = cityGlow;
-              ctx.globalAlpha = finalAlpha * 0.4;
-              ctx.beginPath();
-              ctx.arc(px, py, rad * 2.5, 0, Math.PI * 2);
-              ctx.fill();
-            }
+            // Outer Soft Radial Ambient Glow Halo (Golden / Amber Emission)
+            const glowRadius = rad * 4.2;
+            const cityGlow = ctx.createRadialGradient(px, py, 0, px, py, glowRadius);
+            cityGlow.addColorStop(0, color);
+            cityGlow.addColorStop(0.35, 'rgba(251, 191, 36, 0.65)');
+            cityGlow.addColorStop(0.7, 'rgba(245, 158, 11, 0.25)');
+            cityGlow.addColorStop(1, 'transparent');
 
-            ctx.fillStyle = color;
+            ctx.fillStyle = cityGlow;
             ctx.globalAlpha = finalAlpha;
             ctx.beginPath();
-            ctx.arc(px, py, rad * 0.8, 0, Math.PI * 2);
+            ctx.arc(px, py, glowRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Intense Bright White Core City Node
+            ctx.fillStyle = '#ffffff';
+            ctx.globalAlpha = Math.min(1.0, finalAlpha * 1.3);
+            ctx.beginPath();
+            ctx.arc(px, py, rad * 1.0, 0, Math.PI * 2);
             ctx.fill();
           }
         };
@@ -1068,7 +1156,7 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
           renderCityPoint(city.lat, city.lng, city.intensity, city.color, city.radius);
           if (city.subPoints && (qualityTier === 'HIGH' || qualityTier === 'MEDIUM')) {
             for (const [dLat, dLng] of city.subPoints) {
-              renderCityPoint(city.lat + dLat, city.lng + dLng, city.intensity * 0.7, city.color, city.radius * 0.65);
+              renderCityPoint(city.lat + dLat, city.lng + dLng, city.intensity * 0.8, city.color, city.radius * 0.7);
             }
           }
         }
