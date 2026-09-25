@@ -515,6 +515,187 @@ async function startServer() {
     }
   });
 
+  // AI Wallpaper Status Route
+  app.get("/api/ai/wallpaper-status", (_req, res) => {
+    const hasGemini = !!process.env.GEMINI_API_KEY;
+    if (hasGemini) {
+      res.json({
+        configured: true,
+        providerName: "Google Gemini",
+        model: "gemini-3.1-flash-image",
+        supportedDimensions: [
+          "16:9",
+          "2K"
+        ]
+      });
+    } else {
+      res.json({
+        configured: false,
+        providerName: "Google Gemini",
+        model: "gemini-3.1-flash-image",
+        supportedDimensions: [
+          "16:9",
+          "2K"
+        ],
+        reason: "GEMINI_API_KEY is not configured"
+      });
+    }
+  });
+
+  // Real Gemini AI Wallpaper Generation Route (3 Real Candidates)
+  app.post("/api/ai/generate-wallpaper", async (req, res) => {
+    const gemini = getGemini();
+
+    if (!gemini || !process.env.GEMINI_API_KEY) {
+      return res.status(503).json({ error: "Gemini image provider is not configured." });
+    }
+
+    const { prompt, style, count, width, height } = req.body || {};
+
+    // Validation
+    if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
+      return res.status(400).json({ error: "Prompt is required and must be a non-empty string." });
+    }
+
+    if (prompt.trim().length > 1000) {
+      return res.status(400).json({ error: "Prompt length must not exceed 1000 characters." });
+    }
+
+    const reqCount = typeof count === "number" ? count : 3;
+    if (reqCount !== 3) {
+      return res.status(400).json({ error: "Candidate count must be exactly 3." });
+    }
+
+    const resolvedStyle = (typeof style === "string" && style.trim()) ? style.trim() : "Space";
+
+    console.log(`[ORION-AI-WALLPAPER] provider=google model=gemini-3.1-flash-image request=started style="${resolvedStyle}"`);
+
+    // Prompt building
+    const buildCandidatePrompt = (userPrompt: string, styleName: string, candidateIndex: number) => {
+      const baseSystemInstruction = `You are generating a premium desktop operating-system wallpaper for Orion-9, an enterprise Supply Chain Operating System.
+
+Create a cinematic, realistic 16:9 desktop environment.
+
+No text.
+No logos.
+No UI.
+No buttons.
+No cards.
+No dashboards.
+No watermark.
+
+Visual direction:
+deep space,
+recognizable Orion constellation,
+subtle astronomical atmosphere,
+premium cinematic lighting,
+restrained blue/cyan palette,
+deep blacks,
+subtle depth,
+large negative space for OS UI,
+high-quality photographic/cinematic rendering.
+
+The image must work as a desktop wallpaper and must not look like a website hero image.`;
+
+      const candidateVariations = [
+        "cinematic deep-space composition, Orion constellation emphasized",
+        "deep-space composition with subtle Earth atmosphere and Orion constellation",
+        "deep-space enterprise network environment with restrained astronomical topology and Orion constellation"
+      ];
+
+      const variation = candidateVariations[candidateIndex % 3];
+      return `${baseSystemInstruction}\n\nUser Request: ${userPrompt} (Style: ${styleName}).\nCandidate Variant Direction: ${variation}.`;
+    };
+
+    const modelsToTry = ["gemini-3.1-flash-image", "gemini-2.5-flash-image", "gemini-3-pro-image-preview"];
+
+    const generateSingleCandidate = async (idx: number) => {
+      const candidatePrompt = buildCandidatePrompt(prompt, resolvedStyle, idx);
+      let lastError: any = null;
+
+      for (const modelName of modelsToTry) {
+        try {
+          console.log(`[ORION-AI-WALLPAPER] Candidate ${idx + 1}: requesting model ${modelName}`);
+          const response = await gemini.models.generateContent({
+            model: modelName,
+            contents: candidatePrompt,
+            config: {
+              responseModalities: ["IMAGE"],
+              imageConfig: {
+                aspectRatio: "16:9",
+                imageSize: "2K"
+              }
+            }
+          });
+
+          const candidates = response.candidates || [];
+          if (candidates.length > 0 && candidates[0].content?.parts) {
+            for (const part of candidates[0].content.parts) {
+              if (part.inlineData && part.inlineData.data) {
+                const mimeType = part.inlineData.mimeType || "image/png";
+                const dataUrl = `data:${mimeType};base64,${part.inlineData.data}`;
+                console.log(`[ORION-AI-WALLPAPER] candidate=${idx + 1} image_received=true model=${modelName}`);
+                return {
+                  id: `ai_wp_${Date.now()}_${String.fromCharCode(65 + idx)}`,
+                  name: `${resolvedStyle} Vision ${String.fromCharCode(65 + idx)}`,
+                  imageUrl: dataUrl,
+                  thumbnailUrl: dataUrl,
+                  mimeType,
+                  modelUsed: modelName
+                };
+              }
+            }
+          }
+        } catch (err: any) {
+          console.warn(`[ORION-AI-WALLPAPER] Candidate ${idx + 1} failed with ${modelName}:`, err?.message || err);
+          lastError = err;
+          if (err?.status === 429 || err?.message?.includes("quota") || err?.message?.includes("rate limit")) {
+            const error: any = new Error("Gemini image generation rate limit reached.");
+            error.statusCode = 429;
+            throw error;
+          }
+          if (err?.status === 401 || err?.status === 403 || err?.message?.includes("API key")) {
+            const error: any = new Error("Gemini authentication failed.");
+            error.statusCode = 502;
+            throw error;
+          }
+        }
+      }
+
+      const error: any = new Error(`Gemini returned no image candidate for candidate ${idx + 1}.`);
+      error.statusCode = lastError?.statusCode || 502;
+      throw error;
+    };
+
+    try {
+      const candidateResults = [];
+      for (let i = 0; i < 3; i++) {
+        const candidate = await generateSingleCandidate(i);
+        candidateResults.push(candidate);
+      }
+
+      const finalModel = candidateResults[0]?.modelUsed || "gemini-3.1-flash-image";
+
+      console.log(`[ORION-AI-WALLPAPER] All 3 candidates generated successfully using ${finalModel}`);
+
+      return res.json({
+        candidates: candidateResults.map(c => ({
+          id: c.id,
+          name: c.name,
+          imageUrl: c.imageUrl,
+          thumbnailUrl: c.thumbnailUrl,
+          mimeType: c.mimeType
+        })),
+        provider: "google",
+        model: finalModel
+      });
+    } catch (err: any) {
+      console.error("[ORION-AI-WALLPAPER] Error generating wallpaper candidates:", err?.message || err);
+      const statusCode = err?.statusCode || 502;
+      return res.status(statusCode).json({ error: err?.message || "Gemini image generation failed." });
+    }
+  });
+
   // AI Tool Selection Route
   app.post("/api/ai/choose-tools", async (req, res) => {
     const allowlist = [
