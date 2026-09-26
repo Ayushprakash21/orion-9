@@ -4,7 +4,7 @@ import { Login } from '../../components/auth/Login';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { HealthService } from '../../operations/HealthService';
 
-describe('ORION-9 Login Live Runtime & Shared Engine', () => {
+describe('ORION-9 Login Runtime & Authentication', () => {
   it('1. verifies OrionLiveWallpaper is a valid component function', () => {
     expect(OrionLiveWallpaper).toBeDefined();
     expect(typeof OrionLiveWallpaper).toBe('function');

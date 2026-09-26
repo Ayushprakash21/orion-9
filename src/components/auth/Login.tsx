@@ -4,7 +4,6 @@ import { useLanguage, SupportedLanguage } from '../../store/LanguageContext';
 import { userService } from '../../services/userService';
 import { useLocation } from "react-router-dom";
 import { BrandLogo } from '../brand/BrandLogo';
-import { OrionLiveWallpaper } from "../../os/components/OrionLiveWallpaper";
 import { UserProfile } from "../../types/auth";
 import { dbManager } from "../../core/database/DatabaseConnectionManager";
 import { HealthService } from "../../operations/HealthService";
@@ -390,11 +389,6 @@ export const Login: React.FC = () => {
       }}
     >
       
-      {/* Live Orion Space Engine Background (Target: Login) */}
-      <OrionLiveWallpaper 
-        target="login"
-        showLogo={false}
-      />
 
       {/* Header — Top Bar */}
       <header className="relative z-10 w-full flex items-center justify-between px-4 sm:px-8 py-3.5 sm:py-6 pt-[calc(14px+env(safe-area-inset-top,0px))] select-none">

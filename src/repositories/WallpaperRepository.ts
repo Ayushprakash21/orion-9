@@ -141,22 +141,23 @@ export class WallpaperRepository {
   }
 
   private restoreCache(): void {
-    if (typeof window !== 'undefined' && window.sessionStorage) {
+    if (typeof window !== 'undefined') {
       try {
-        const savedLogin = sessionStorage.getItem('orion_active_wallpaper_id_login');
+        const storage = window.localStorage || window.sessionStorage;
+        const savedLogin = storage?.getItem('orion_active_wallpaper_id_login') || sessionStorage?.getItem('orion_active_wallpaper_id_login');
         if (savedLogin) {
           this.memoryActiveSelections.set('global_login', savedLogin);
         }
-        const savedDesktopGlobal = sessionStorage.getItem('orion_active_wallpaper_id_desktop_global');
+        const savedDesktopGlobal = storage?.getItem('orion_active_wallpaper_id_desktop_global') || sessionStorage?.getItem('orion_active_wallpaper_id_desktop_global');
         if (savedDesktopGlobal) {
           this.memoryActiveSelections.set('global_desktop', savedDesktopGlobal);
         }
-        const savedActiveLegacy = sessionStorage.getItem('orion_active_wallpaper_id');
+        const savedActiveLegacy = storage?.getItem('orion_active_wallpaper_id') || sessionStorage?.getItem('orion_active_wallpaper_id');
         const savedDesktop = this.memoryActiveSelections.get('global_desktop');
         if (savedActiveLegacy && !savedDesktop) {
           this.memoryActiveSelections.set('default_desktop', savedActiveLegacy);
         }
-        const savedCustoms = sessionStorage.getItem('orion_custom_wallpapers');
+        const savedCustoms = storage?.getItem('orion_custom_wallpapers') || sessionStorage?.getItem('orion_custom_wallpapers');
         if (savedCustoms) {
           const list: WallpaperRecord[] = JSON.parse(savedCustoms);
           for (const wp of list) {
@@ -168,22 +169,23 @@ export class WallpaperRepository {
   }
 
   private persistCache(userId?: string, target?: WallpaperTarget): void {
-    if (typeof window !== 'undefined' && window.sessionStorage) {
+    if (typeof window !== 'undefined') {
       try {
-        if (!target || target === 'login') {
-          const loginActive = this.memoryActiveSelections.get('global_login');
-          if (loginActive) sessionStorage.setItem('orion_active_wallpaper_id_login', loginActive);
+        const loginActive = this.memoryActiveSelections.get('global_login');
+        if (loginActive) {
+          localStorage?.setItem('orion_active_wallpaper_id_login', loginActive);
+          sessionStorage?.setItem('orion_active_wallpaper_id_login', loginActive);
         }
-        if (!target || target === 'desktop') {
-          const userKey = userId || 'global';
-          const desktopActive = this.memoryActiveSelections.get(`${userKey}_desktop`) || this.memoryActiveSelections.get('global_desktop');
-          if (desktopActive) {
-            sessionStorage.setItem(`orion_active_wallpaper_id_desktop_${userKey}`, desktopActive);
-          }
+        const userKey = userId || 'global';
+        const desktopActive = this.memoryActiveSelections.get(`${userKey}_desktop`) || this.memoryActiveSelections.get('global_desktop');
+        if (desktopActive) {
+          localStorage?.setItem(`orion_active_wallpaper_id_desktop_${userKey}`, desktopActive);
+          sessionStorage?.setItem(`orion_active_wallpaper_id_desktop_${userKey}`, desktopActive);
         }
         
         const customs = Array.from(this.memoryWallpapers.values()).filter(w => w.ownerType !== 'SYSTEM');
-        sessionStorage.setItem('orion_custom_wallpapers', JSON.stringify(customs));
+        localStorage?.setItem('orion_custom_wallpapers', JSON.stringify(customs));
+        sessionStorage?.setItem('orion_custom_wallpapers', JSON.stringify(customs));
       } catch (e) {}
     }
   }

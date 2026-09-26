@@ -16,14 +16,14 @@ import { SYSTEM_DEFAULT_WALLPAPERS } from '../../repositories/WallpaperRepositor
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { HealthService } from '../../operations/HealthService';
 
-describe('ORION-9 Live Space Wallpaper & Shared Engine', () => {
+describe('ORION-9 Live Space Wallpaper Engine', () => {
   it('1. verifies canonical default asset is registered in repository', () => {
     const defaultWp = SYSTEM_DEFAULT_WALLPAPERS[0];
     expect(defaultWp.assetUrl).toBe('/wallpaper/orion9-earth-horizon-default.png');
   });
 
-  it('2. renders OrionLiveWallpaper for target="login" without crashing', () => {
-    const html = renderToString(<OrionLiveWallpaper target="login" showLogo={false} />);
+  it('2. renders OrionLiveWallpaper for target="desktop" without crashing', () => {
+    const html = renderToString(<OrionLiveWallpaper target="desktop" showLogo={false} />);
     expect(html).toContain('data-testid="orion-live-wallpaper-container"');
     expect(html).toContain('/wallpaper/orion9-earth-horizon-default.png');
   });

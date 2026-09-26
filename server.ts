@@ -517,10 +517,10 @@ async function startServer() {
     }
   });
 
-  // AI Wallpaper Status Route - Cloudflare Workers AI + FLUX.2 Klein 9B Primary
+  // AI Wallpaper Status Route - Google Gemini Nano Banana 2 Primary
   app.get("/api/ai/wallpaper-status", async (_req, res) => {
     const apiKey = process.env.GEMINI_API_KEY;
-    const result = await checkFluxWallpaperStatus(null, apiKey);
+    const result = await checkGeminiWallpaperStatus(apiKey);
     return res.json(result);
   });
 

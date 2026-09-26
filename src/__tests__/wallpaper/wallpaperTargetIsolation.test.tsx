@@ -126,15 +126,6 @@ describe('ORION-9 Wallpaper Target Isolation & Pipeline Test Suite', () => {
     expect(html).toContain('data-testid="orion-live-wallpaper-container"');
   });
 
-  it('TEST 8: Login renderer accepts target="login" without requiring an authenticated user', () => {
-    const html = renderToString(
-      <OrionLiveWallpaper 
-        target="login" 
-        showLogo={false} 
-      />
-    );
-    expect(html).toContain('data-testid="orion-live-wallpaper-container"');
-  });
 
   it('TEST 9: A login wallpaper event does not alter desktop target active state', async () => {
     let desktopEventReceived = false;

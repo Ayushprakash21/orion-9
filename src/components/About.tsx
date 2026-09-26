@@ -773,10 +773,10 @@ export const About: React.FC = () => {
                 <div className="p-6 rounded-2xl bg-slate-950 border border-slate-900 space-y-3">
                   <div className="flex items-center gap-2 text-blue-400 font-bold text-sm">
                     <CheckCircle className="w-4 h-4" />
-                    <span>Layered Subtle Live Star Environment</span>
+                    <span>Subtle Live Star Environment</span>
                   </div>
                   <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                    Recreated login background into a slow, atmospheric live constellation environment with gentle twinkling stars and orbital motion.
+                    Atmospheric live constellation environment with gentle twinkling stars and orbital space motion.
                   </p>
                 </div>
 
