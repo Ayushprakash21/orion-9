@@ -446,9 +446,6 @@ export const Login: React.FC = () => {
             <div className="animate-fadeIn">
               <div className="flex flex-col items-center justify-center mb-6 select-none text-center">
                 <BrandLogo variant="mark" sizePreset="lg" className="mx-auto mb-4" />
-                <span className="text-cyan-400 font-mono font-bold tracking-wider text-xs uppercase mb-1">
-                  ORION-9
-                </span>
                 <h1 className="text-white font-bold tracking-normal text-lg sm:text-xl">
                   {t.signInTitle}
                 </h1>
