@@ -65,6 +65,7 @@ export interface Organization {
   logoUrl?: string | null;
   logo?: string | null;
   status: 'active' | 'inactive';
+  defaultLanguage?: string;
   createdAt: string;
   updatedAt: string;
 }

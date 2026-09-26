@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from '../../store/AuthContext';
-import { useLanguage, SupportedLanguage } from '../../store/LanguageContext';
+import { useLanguage, useI18n, SupportedLanguage } from '../../store/LanguageContext';
 import { userService } from '../../services/userService';
 import { useLocation } from "react-router-dom";
 import { BrandLogo } from '../brand/BrandLogo';
@@ -232,28 +232,44 @@ export const Login: React.FC = () => {
     };
   }, []);
 
-  // Language & Power Menu dropdown state
-  const { language: currentLang, setLanguage: handleSelectLanguage } = useLanguage();
+  // Language & Power menu state
+  const { locale: currentLang, setLocale: handleSelectLanguage, t: translate } = useI18n();
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [isPowerMenuOpen, setIsPowerMenuOpen] = useState(false);
 
   const langMenuRef = useRef<HTMLDivElement>(null);
-  const powerMenuRef = useRef<HTMLDivElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
   const usernameInputRef = useRef<HTMLInputElement>(null);
 
-  const t = AUTH_TRANSLATIONS[currentLang] || AUTH_TRANSLATIONS.en;
+  const t = {
+    signInTitle: translate('auth.signInTitle'),
+    userIdLabel: translate('auth.userIdLabel'),
+    userIdPlaceholder: translate('auth.userIdPlaceholder'),
+    continueBtn: translate('auth.continueBtn'),
+    identifying: translate('auth.identifying'),
+    userNotFound: translate('auth.userNotFound'),
+    enterPassword: translate('auth.enterPassword'),
+    enterOrionBtn: translate('auth.enterOrionBtn'),
+    otherUser: translate('auth.otherUser'),
+    rememberMe: translate('auth.rememberMe'),
+    forgotPassword: translate('auth.forgotPassword'),
+    invalidCredentials: translate('auth.invalidCredentials'),
+    switchUser: translate('auth.switchUser'),
+    lock: translate('auth.lock'),
+    signOut: translate('auth.signOut'),
+    restart: translate('auth.restart'),
+    shutDown: translate('auth.shutDown'),
+    selectLanguage: translate('auth.selectLanguage'),
+    subtitle: translate('auth.subtitle'),
+  };
 
 
 
-  // Close menus on click outside
+  // Close language menu on click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (langMenuRef.current && !langMenuRef.current.contains(e.target as Node)) {
         setIsLangMenuOpen(false);
-      }
-      if (powerMenuRef.current && !powerMenuRef.current.contains(e.target as Node)) {
-        setIsPowerMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -371,9 +387,8 @@ export const Login: React.FC = () => {
     setResolvedUser(null);
   };
 
-  // Power Menu — Switch User Action
+  // Bottom Bar — Switch User Action
   const handleSwitchUser = () => {
-    setIsPowerMenuOpen(false);
     signOut();
     handleBackToStage1();
     setUsername("");
@@ -402,10 +417,13 @@ export const Login: React.FC = () => {
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 setIsLangMenuOpen(!isLangMenuOpen);
+              } else if (e.key === 'Escape') {
+                setIsLangMenuOpen(false);
               }
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 backdrop-blur-md transition-all duration-200 cursor-pointer text-white/90 hover:text-white text-xs font-medium group shadow-lg"
             aria-label={t.selectLanguage}
+            aria-haspopup="listbox"
             aria-expanded={isLangMenuOpen}
           >
             <Globe className="w-3.5 h-3.5 text-white/70 group-hover:text-white transition-colors" />
@@ -415,11 +433,17 @@ export const Login: React.FC = () => {
 
           {/* Language Menu Dropdown */}
           {isLangMenuOpen && (
-            <div className="absolute right-0 mt-2 w-40 bg-[#090d16]/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-xl py-1.5 z-50 text-xs animate-fadeIn">
+            <div 
+              role="listbox"
+              aria-label={t.selectLanguage}
+              className="absolute right-0 mt-2 w-40 bg-[#090d16]/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-xl py-1.5 z-50 text-xs animate-fadeIn"
+            >
               {SUPPORTED_LANGUAGES.map((lang) => (
                 <button
                   key={lang.code}
                   type="button"
+                  role="option"
+                  aria-selected={currentLang === lang.code}
                   onClick={() => { handleSelectLanguage(lang.code); setIsLangMenuOpen(false); }}
                   className={`w-full text-left px-3.5 py-2 flex items-center justify-between hover:bg-white/10 transition-colors ${
                     currentLang === lang.code ? 'text-blue-400 font-semibold bg-white/5' : 'text-white/80'
@@ -439,7 +463,7 @@ export const Login: React.FC = () => {
         
 
 
-        <div className="backdrop-blur-2xl bg-[#070e1c]/75 border border-cyan-500/20 shadow-[0_0_50px_rgba(0,0,0,0.85)] rounded-[22px] p-8 sm:p-10 w-full max-w-[500px] mx-auto relative overflow-hidden transition-all duration-300">
+        <div className="backdrop-blur-2xl bg-[#070e1c]/75 border border-cyan-500/20 shadow-[0_0_50px_rgba(0,0,0,0.85)] rounded-[22px] p-8 sm:p-10 w-full max-w-[465px] min-h-[560px] sm:h-[640px] sm:min-h-[640px] flex flex-col justify-center mx-auto relative overflow-hidden transition-all duration-300">
           
           {/* STAGE 1: USER ID STAGE */}
           {stage === 1 && (
@@ -644,34 +668,23 @@ export const Login: React.FC = () => {
       {/* Footer — Bottom Bar */}
       <footer className="relative z-10 w-full px-4 sm:px-8 py-3.5 sm:py-6 pb-[calc(14px+env(safe-area-inset-bottom,0px))] flex items-center justify-between select-none">
         
-        {/* Bottom Left Power Button & OS Session Power Menu */}
-        <div className="flex items-center gap-4">
-          <div className="relative" ref={powerMenuRef}>
-            <button
-              type="button"
-              onClick={() => setIsPowerMenuOpen(!isPowerMenuOpen)}
-              title={t.shutDown}
-              aria-label={t.shutDown}
-              aria-expanded={isPowerMenuOpen}
-              className="group flex items-center justify-center w-9 h-9 rounded-full bg-white/5 hover:bg-red-950/80 border border-white/15 hover:border-red-500/60 transition-all duration-300 backdrop-blur-md shadow-md cursor-pointer text-white/70 hover:text-red-400 hover:shadow-[0_0_20px_rgba(239,68,68,0.55)]"
-            >
-              <Power className="w-4 h-4 group-hover:drop-shadow-[0_0_8px_rgba(239,68,68,0.9)]" />
-            </button>
-
-            {/* OS Power / Session Menu Popup */}
-            {isPowerMenuOpen && (
-              <div className="absolute bottom-12 left-0 w-48 bg-[#090d16]/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-xl py-1.5 z-50 text-xs animate-fadeIn">
-                <button
-                  type="button"
-                  onClick={() => { setIsPowerMenuOpen(false); triggerShutdown(); }}
-                  className="w-full text-left px-3.5 py-2 flex items-center gap-2.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors font-medium"
-                >
-                  <Power className="w-4 h-4 text-red-400" />
-                  <span>{t.shutDown}</span>
-                </button>
-              </div>
-            )}
-          </div>
+        {/* Bottom Left Power Button & OS Shutdown Control */}
+        <div className="flex items-center">
+          <button
+            type="button"
+            onClick={() => {
+              setIsPowerMenuOpen(prev => !prev);
+              triggerShutdown();
+            }}
+            title={t.shutDown}
+            aria-label={t.shutDown}
+            className="group flex items-center h-9 px-2.5 rounded-full bg-white/5 hover:bg-red-950/80 border border-white/15 hover:border-red-500/60 transition-all duration-300 backdrop-blur-md shadow-md cursor-pointer text-white/70 hover:text-red-400 hover:shadow-[0_0_20px_rgba(239,68,68,0.55)] overflow-hidden"
+          >
+            <Power className="w-4 h-4 shrink-0 text-white/70 group-hover:text-red-400 group-hover:drop-shadow-[0_0_8px_rgba(239,68,68,0.9)] transition-colors duration-300" />
+            <span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 group-hover:max-w-[120px] group-hover:opacity-100 group-hover:ml-2 transition-all duration-300 ease-out text-xs font-medium text-red-400 select-none">
+              {t.shutDown}
+            </span>
+          </button>
         </div>
 
         {/* Bottom Right User Switch Button */}
@@ -681,9 +694,12 @@ export const Login: React.FC = () => {
             onClick={handleSwitchUser}
             title={t.switchUser}
             aria-label={t.switchUser}
-            className="group flex items-center justify-center w-9 h-9 rounded-full bg-white/5 hover:bg-blue-950/80 border border-white/15 hover:border-blue-500/60 transition-all duration-300 backdrop-blur-md shadow-md cursor-pointer text-white/70 hover:text-blue-400 hover:shadow-[0_0_20px_rgba(59,130,246,0.55)]"
+            className="group flex items-center h-9 px-2.5 rounded-full bg-white/5 hover:bg-blue-950/80 border border-white/15 hover:border-blue-500/60 transition-all duration-300 backdrop-blur-md shadow-md cursor-pointer text-white/70 hover:text-blue-400 hover:shadow-[0_0_20px_rgba(59,130,246,0.55)] overflow-hidden"
           >
-            <User className="w-4 h-4 group-hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.9)]" />
+            <User className="w-4 h-4 shrink-0 text-white/70 group-hover:text-blue-400 group-hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.9)] transition-colors duration-300" />
+            <span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 group-hover:max-w-[120px] group-hover:opacity-100 group-hover:ml-2 transition-all duration-300 ease-out text-xs font-medium text-blue-400 select-none">
+              {t.switchUser}
+            </span>
           </button>
         </div>
       </footer>

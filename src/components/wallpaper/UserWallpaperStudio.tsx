@@ -11,24 +11,37 @@ import {
   QualityTier,
   WallpaperMode
 } from '../../types/wallpaper';
-import { wallpaperRepository, SYSTEM_DEFAULT_WALLPAPERS, WallpaperTarget } from '../../repositories/WallpaperRepository';
+import { 
+  wallpaperRepository, 
+  SYSTEM_DEFAULT_WALLPAPERS, 
+  DEFAULT_DESKTOP_WALLPAPER,
+  DEFAULT_LOGIN_WALLPAPER,
+  WallpaperTarget 
+} from '../../repositories/WallpaperRepository';
 import { aiWallpaperGenerator } from '../../services/wallpaper/AiWallpaperGenerator';
 import { useToast } from '../../store/ToastContext';
 import { useAuth } from '../../store/AuthContext';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { cn } from '../../lib/utils';
 import { OrionSettingsSplitLayout } from '../settings/OrionSettingsSplitLayout';
+import { useI18n } from '../../store/LanguageContext';
 
 export type StudioLifecycleState = 'LOADING' | 'READY' | 'GENERATING' | 'GENERATED' | 'ERROR';
+
+export const TARGETS = {
+  LOGIN: 'login' as WallpaperTarget,
+  DESKTOP: 'desktop' as WallpaperTarget,
+} as const;
 
 export const UserWallpaperStudio: React.FC = () => {
   const { showToast } = useToast();
   const { currentUser, organization } = useAuth();
+  const { t } = useI18n();
   const tenantId = organization?.id || 'global';
   const userId = currentUser?.id || 'default_user';
 
   // Target Selection State ('login' vs 'desktop') - Strict Isolation
-  const [selectedTarget, setSelectedTarget] = useState<WallpaperTarget>('login');
+  const [selectedTarget, setSelectedTarget] = useState<WallpaperTarget>(TARGETS.LOGIN);
 
   // Studio Lifecycle State
   const [studioState, setStudioState] = useState<StudioLifecycleState>('LOADING');
@@ -39,7 +52,7 @@ export const UserWallpaperStudio: React.FC = () => {
   
   // Available Gallery Wallpapers & Active Wallpaper
   const [galleryWallpapers, setGalleryWallpapers] = useState<WallpaperRecord[]>(SYSTEM_DEFAULT_WALLPAPERS);
-  const [activeWallpaper, setActiveWallpaperState] = useState<WallpaperRecord>(SYSTEM_DEFAULT_WALLPAPERS[0]);
+  const [activeWallpaper, setActiveWallpaperState] = useState<WallpaperRecord>(DEFAULT_LOGIN_WALLPAPER);
 
   // AI Generator Form & Provider State
   const [aiProviderConfigured, setAiProviderConfigured] = useState<boolean>(false);
@@ -53,8 +66,9 @@ export const UserWallpaperStudio: React.FC = () => {
   const [selectedCandidate, setSelectedCandidate] = useState<WallpaperCandidate | null>(null);
 
   // Preview & Selection State (Static Image Only)
-  const [selectedAssetUrl, setSelectedAssetUrl] = useState<string>(SYSTEM_DEFAULT_WALLPAPERS[0].assetUrl);
-  const [selectedName, setSelectedName] = useState<string>(SYSTEM_DEFAULT_WALLPAPERS[0].name);
+  const [selectedAssetUrl, setSelectedAssetUrl] = useState<string>(DEFAULT_LOGIN_WALLPAPER.assetUrl);
+  const [selectedName, setSelectedName] = useState<string>(DEFAULT_LOGIN_WALLPAPER.name);
+  const [selectedWallpaperId, setSelectedWallpaperId] = useState<string>(DEFAULT_LOGIN_WALLPAPER.wallpaperId);
   const [isApplying, setIsApplying] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,19 +85,25 @@ export const UserWallpaperStudio: React.FC = () => {
         
         if (mounted) {
           setAiProviderConfigured(aiStatus.configured);
-          setAiProviderStatusCode(aiStatus.status || aiStatus.error || 'READY');
+          let statusCode = aiStatus.status || aiStatus.error || 'READY';
+          if (typeof statusCode === 'string' && statusCode.toUpperCase().includes('CLOUDFLARE')) {
+            statusCode = aiStatus.configured ? 'GEMINI_CONFIGURED' : 'GEMINI_SECRET_MISSING';
+          }
+          setAiProviderStatusCode(statusCode);
           setAiProviderName(aiStatus.providerName || 'Google Gemini');
           setAiModelName(aiStatus.model || 'gemini-3.1-flash-image');
           
           const validGallery = available && available.length > 0 ? available : SYSTEM_DEFAULT_WALLPAPERS;
           setGalleryWallpapers(validGallery);
           
+          const fallback = selectedTarget === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
           const validActive = (active && active.assetUrl && active.assetUrl.trim() !== '') 
             ? active 
-            : (selectedTarget === 'login' ? SYSTEM_DEFAULT_WALLPAPERS[1] : SYSTEM_DEFAULT_WALLPAPERS[0]);
+            : fallback;
           setActiveWallpaperState(validActive);
           setSelectedAssetUrl(validActive.assetUrl);
           setSelectedName(validActive.name);
+          setSelectedWallpaperId(validActive.wallpaperId);
 
           setStudioState('READY');
           setErrorMessage('');
@@ -91,9 +111,10 @@ export const UserWallpaperStudio: React.FC = () => {
       } catch (err: any) {
         console.warn('Failed to load wallpaper studio data:', err);
         if (mounted) {
-          const fallback = selectedTarget === 'login' ? SYSTEM_DEFAULT_WALLPAPERS[1] : SYSTEM_DEFAULT_WALLPAPERS[0];
+          const fallback = selectedTarget === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
           setSelectedAssetUrl(fallback.assetUrl);
           setSelectedName(fallback.name);
+          setSelectedWallpaperId(fallback.wallpaperId);
           setStudioState('READY');
           setErrorMessage('Database connection warning: Using system default environment preview.');
         }
@@ -110,15 +131,17 @@ export const UserWallpaperStudio: React.FC = () => {
     setSelectedTarget(target);
     try {
       const active = await wallpaperRepository.getActiveWallpaper(userId, tenantId, target);
-      const fallback = target === 'login' ? SYSTEM_DEFAULT_WALLPAPERS[1] : SYSTEM_DEFAULT_WALLPAPERS[0];
+      const fallback = target === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
       const validActive = (active && active.assetUrl && active.assetUrl.trim() !== '') ? active : fallback;
       setActiveWallpaperState(validActive);
       setSelectedAssetUrl(validActive.assetUrl);
       setSelectedName(validActive.name);
+      setSelectedWallpaperId(validActive.wallpaperId);
     } catch (e) {
-      const fallback = target === 'login' ? SYSTEM_DEFAULT_WALLPAPERS[1] : SYSTEM_DEFAULT_WALLPAPERS[0];
+      const fallback = target === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
       setSelectedAssetUrl(fallback.assetUrl);
       setSelectedName(fallback.name);
+      setSelectedWallpaperId(fallback.wallpaperId);
     }
   };
 
@@ -148,8 +171,12 @@ export const UserWallpaperStudio: React.FC = () => {
       showToast('3 AI Wallpaper candidates generated!', 'success');
     } catch (err: any) {
       setStudioState('ERROR');
-      setErrorMessage(err.message || 'AI wallpaper generation failed');
-      showToast(err.message || 'AI generation failed', 'error');
+      let msg = err.message || 'AI wallpaper generation failed';
+      if (typeof msg === 'string' && msg.toUpperCase().includes('CLOUDFLARE')) {
+        msg = 'GEMINI_GENERATION_FAILED: AI wallpaper generation failed.';
+      }
+      setErrorMessage(msg);
+      showToast(msg, 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -158,6 +185,7 @@ export const UserWallpaperStudio: React.FC = () => {
   // Candidate Selection Handler
   const handleSelectCandidate = (candidate: WallpaperCandidate) => {
     setSelectedCandidate(candidate);
+    setSelectedWallpaperId(candidate.candidateId);
     setSelectedAssetUrl(candidate.assetUrl);
     setSelectedName(candidate.name);
   };
@@ -177,6 +205,7 @@ export const UserWallpaperStudio: React.FC = () => {
         const dataUrl = reader.result as string;
         setSelectedAssetUrl(dataUrl);
         setSelectedName(file.name.replace(/\.[^/.]+$/, ""));
+        setSelectedWallpaperId(`wp_upload_${Date.now()}`);
         setSelectedCandidate(null);
         showToast('Custom image loaded into wallpaper studio.', 'info');
       };
@@ -193,7 +222,7 @@ export const UserWallpaperStudio: React.FC = () => {
       const currentEnv = dbManager.getEnvironment();
       
       const wpRecord: WallpaperRecord = {
-        wallpaperId: selectedCandidate?.candidateId || `wp_${Date.now()}`,
+        wallpaperId: selectedCandidate?.candidateId || selectedWallpaperId || `wp_${Date.now()}`,
         tenantId,
         ownerType: 'USER',
         ownerId: userId,
@@ -201,6 +230,7 @@ export const UserWallpaperStudio: React.FC = () => {
         assetUrl: selectedAssetUrl,
         thumbnailUrl: selectedAssetUrl,
         source: selectedCandidate ? 'AI' : activeTab === 'UPLOAD' ? 'UPLOAD' : 'SYSTEM',
+        target: selectedTarget,
         aiGenerated: !!selectedCandidate,
         prompt: selectedCandidate?.prompt || prompt,
         style: selectedCandidate?.style || style,
@@ -214,7 +244,7 @@ export const UserWallpaperStudio: React.FC = () => {
         updatedAt: new Date().toISOString(),
       };
 
-      await wallpaperRepository.saveWallpaper(wpRecord);
+      await wallpaperRepository.saveWallpaper(wpRecord, selectedTarget);
       await wallpaperRepository.setActiveWallpaper(wpRecord.wallpaperId, userId, selectedTarget);
       setActiveWallpaperState(wpRecord);
       const targetLabel = selectedTarget === 'login' ? 'Login Wallpaper' : 'Home / Desktop Wallpaper';
@@ -233,14 +263,16 @@ export const UserWallpaperStudio: React.FC = () => {
       setActiveWallpaperState(sysDefault);
       setSelectedAssetUrl(sysDefault.assetUrl);
       setSelectedName(sysDefault.name);
+      setSelectedWallpaperId(sysDefault.wallpaperId);
       setStudioState('READY');
       setErrorMessage('');
       const targetLabel = selectedTarget === 'login' ? 'Login default' : 'Home / Desktop default';
       showToast(`Wallpaper reset to ${targetLabel}.`, 'info');
     } catch (err: any) {
-      const fallback = selectedTarget === 'login' ? SYSTEM_DEFAULT_WALLPAPERS[1] : SYSTEM_DEFAULT_WALLPAPERS[0];
+      const fallback = selectedTarget === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
       setSelectedAssetUrl(fallback.assetUrl);
       setSelectedName(fallback.name);
+      setSelectedWallpaperId(fallback.wallpaperId);
       showToast('Wallpaper reset to system default.', 'info');
     }
   };
@@ -312,7 +344,7 @@ export const UserWallpaperStudio: React.FC = () => {
           )}
         >
           <ImageIcon className="w-4 h-4" />
-          <span>System Gallery</span>
+          <span>{t('wallpaper.systemGallery')}</span>
         </button>
 
         <button
@@ -324,7 +356,7 @@ export const UserWallpaperStudio: React.FC = () => {
           )}
         >
           <Sparkles className="w-4 h-4" />
-          <span>Create with AI</span>
+          <span>{t('wallpaper.createWithAi')}</span>
         </button>
 
         <button
@@ -336,7 +368,7 @@ export const UserWallpaperStudio: React.FC = () => {
           )}
         >
           <Upload className="w-4 h-4" />
-          <span>Upload Image</span>
+          <span>{t('wallpaper.uploadImage')}</span>
         </button>
       </div>
 
@@ -351,6 +383,7 @@ export const UserWallpaperStudio: React.FC = () => {
                 onClick={() => {
                   setSelectedAssetUrl(wp.assetUrl);
                   setSelectedName(wp.name);
+                  setSelectedWallpaperId(wp.wallpaperId);
                   setSelectedCandidate(null);
                 }}
                 className={cn(
@@ -394,7 +427,7 @@ export const UserWallpaperStudio: React.FC = () => {
         <div className="space-y-4">
           <div className={cn(
             "p-3.5 rounded-xl border text-xs space-y-1",
-            aiProviderConfigured || aiProviderStatusCode === 'READY'
+            aiProviderConfigured || aiProviderStatusCode === 'READY' || aiProviderStatusCode === 'GEMINI_CONFIGURED' || aiProviderStatusCode === 'GEMINI_READY'
               ? "bg-sky-500/10 border-sky-500/20 text-slate-300"
               : "bg-slate-500/10 border-slate-500/20 text-slate-300"
           )}>
@@ -406,9 +439,12 @@ export const UserWallpaperStudio: React.FC = () => {
               </span>
             </div>
             <p className="text-[11px] opacity-80">
-              {aiProviderStatusCode === 'READY' && 'Google Gemini (gemini-3.1-flash-image) is ready for primary generation.'}
+              {(aiProviderStatusCode === 'READY' || aiProviderStatusCode === 'GEMINI_READY') && 'Google Gemini (gemini-3.1-flash-image) is ready for primary generation.'}
               {aiProviderStatusCode === 'GEMINI_CONFIGURED' && 'Google Gemini API is configured and ready for generation.'}
               {aiProviderStatusCode === 'GEMINI_SECRET_MISSING' && 'GEMINI_API_KEY environment variable is not configured.'}
+              {aiProviderStatusCode === 'GEMINI_AUTH_ERROR' && 'Gemini API authentication failed. Please verify GEMINI_API_KEY.'}
+              {aiProviderStatusCode === 'GEMINI_RATE_LIMIT' && 'Gemini API rate limit reached. Please retry in a few moments.'}
+              {aiProviderStatusCode === 'GEMINI_API_UNAVAILABLE' && 'Google Gemini service is temporarily unavailable.'}
               {aiProviderStatusCode === 'BACKEND_UNREACHABLE' && 'Unable to reach backend server endpoint.'}
             </p>
           </div>
@@ -551,7 +587,7 @@ export const UserWallpaperStudio: React.FC = () => {
           className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-black font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-sky-500/20 disabled:opacity-50"
         >
           <Check className="w-4 h-4" />
-          <span>{isApplying ? 'Applying...' : 'Apply Wallpaper'}</span>
+          <span>{isApplying ? 'Applying...' : t('wallpaper.applyWallpaper')}</span>
         </button>
       </div>
     </div>
@@ -618,7 +654,7 @@ export const UserWallpaperStudio: React.FC = () => {
 
   return (
     <OrionSettingsSplitLayout
-      title="Wallpaper Studio"
+      title={t('wallpaper.title')}
       subtitle="Static 16:9 desktop and login wallpapers with AI generation and upload"
       badge="STATIC"
       primary={primaryPane}

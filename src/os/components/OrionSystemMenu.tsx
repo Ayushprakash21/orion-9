@@ -6,6 +6,7 @@ import { useToast } from '../../store/ToastContext';
 import { useBranding } from '../../store/BrandingContext';
 import { LogOut, Settings, Monitor, Activity, Lock, RefreshCw, Moon, ChevronRight, XSquare } from 'lucide-react';
 import { ORION_REGISTRY } from '../OrionApplicationRegistry';
+import { useI18n } from '../../store/LanguageContext';
 
 interface OrionSystemMenuProps {
   onClose: () => void;
@@ -14,6 +15,7 @@ interface OrionSystemMenuProps {
 export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
   const { branding } = useBranding();
   const appName = branding.appName || 'ORION-9';
+  const { t } = useI18n();
   
   const { logout, triggerRestart, triggerSleep, triggerLock, currentUser } = useAuth();
   const { setLauncherOpen, windows, openApplication, focusApplication, closeAllWindows } = useWindowManager();
@@ -55,7 +57,7 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
         onClick={() => handleAction(() => openApplication('about'))}
         className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors font-medium cursor-pointer"
       >
-        About {appName}
+        {t('desktop.aboutOrion')}
       </button>
       
       <div className="h-px bg-white/[0.06] my-1.5 mx-2" />
@@ -98,21 +100,21 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
         onClick={() => handleAction(() => openApplication('settings'))}
         className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors cursor-pointer"
       >
-        System Settings...
+        {t('desktop.systemSettings')}...
       </button>
 
       <button 
         onClick={() => handleAction(() => openApplication('observability'))}
         className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors cursor-pointer"
       >
-        Activity Monitor...
+        {t('desktop.activityMonitor')}...
       </button>
 
       {hasOpenWindows && (
         <button 
           onClick={() => handleAction(() => {
             showConfirmModal(
-              'Close All Windows',
+              t('desktop.closeAllWindows'),
               'Are you sure you want to close all open application windows? Any unsaved edits will be discarded.',
               () => {
                 closeAllWindows();
@@ -123,7 +125,7 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
           className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors flex items-center gap-2 cursor-pointer"
         >
           <XSquare className="w-3.5 h-3.5 text-os-text-muted" />
-          <span>Close All Windows</span>
+          <span>{t('desktop.closeAllWindows')}</span>
         </button>
       )}
 
@@ -133,7 +135,7 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
         onClick={() => handleAction(() => triggerLock())}
         className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors flex items-center justify-between cursor-pointer"
       >
-        <span>Lock Workstation</span>
+        <span>{t('desktop.lockWorkstation')}</span>
         <div className="flex gap-1 text-[10px] font-mono text-slate-500">
           <kbd className="bg-os-surface-hover px-1 py-0.5 rounded border border-os-border">⌘</kbd>
           <kbd className="bg-os-surface-hover px-1 py-0.5 rounded border border-os-border">L</kbd>
@@ -144,7 +146,7 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
         onClick={() => handleAction(() => triggerSleep())}
         className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors cursor-pointer"
       >
-        Sleep
+        {t('desktop.sleep')}
       </button>
 
       <button 
@@ -158,7 +160,7 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
         })}
         className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors cursor-pointer"
       >
-        Restart...
+        {t('auth.restart')}...
       </button>
 
       <div className="h-px bg-white/[0.06] my-1.5 mx-2" />
@@ -167,7 +169,7 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
         onClick={() => handleAction(() => logout())}
         className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors cursor-pointer"
       >
-        Log Out {currentUser?.displayName || 'User'}...
+        {t('auth.signOut')} {currentUser?.displayName || 'User'}...
       </button>
 
     </div>

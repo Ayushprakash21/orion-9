@@ -25,15 +25,35 @@ export class GeminiWallpaperImageProvider implements WallpaperImageProvider {
       }
 
       if (res.ok && statusData && typeof statusData === 'object') {
-        const configured = Boolean(statusData.configured ?? statusData.providerConfigured);
-        const available = Boolean(statusData.available ?? configured);
-        const statusCode = statusData.status || statusData.error || (configured ? 'GEMINI_CONFIGURED' : 'GEMINI_SECRET_MISSING');
+        // Discard any stale/legacy Cloudflare payload. Cloudflare AI status must NEVER block Gemini.
+        const isCloudflarePayload = 
+          statusData.provider === 'Cloudflare Workers AI' ||
+          String(statusData.status || '').toUpperCase().includes('CLOUDFLARE') ||
+          String(statusData.error || '').toUpperCase().includes('CLOUDFLARE');
+
+        let configured = false;
+        let available = false;
+        let statusCode = 'GEMINI_SECRET_MISSING';
+
+        if (isCloudflarePayload) {
+          // If legacy Cloudflare endpoint response was received, check if Gemini fallback is configured
+          configured = Boolean(statusData.geminiFallbackConfigured || statusData.geminiConfigured);
+          available = configured;
+          statusCode = configured ? 'GEMINI_CONFIGURED' : 'GEMINI_SECRET_MISSING';
+        } else {
+          configured = Boolean(statusData.configured ?? statusData.providerConfigured);
+          available = Boolean(statusData.available ?? configured);
+          statusCode = statusData.status || (configured ? 'GEMINI_CONFIGURED' : 'GEMINI_SECRET_MISSING');
+          if (String(statusCode).toUpperCase().includes('CLOUDFLARE')) {
+            statusCode = configured ? 'GEMINI_CONFIGURED' : 'GEMINI_SECRET_MISSING';
+          }
+        }
 
         return {
           providerConfigured: configured,
           configured: available,
-          providerName: statusData.providerName || this.name,
-          model: statusData.model || this.model,
+          providerName: this.name,
+          model: this.model,
           available,
           status: statusCode,
           error: available ? null : statusCode,
@@ -68,8 +88,26 @@ export class GeminiWallpaperImageProvider implements WallpaperImageProvider {
   public async generateCandidates(params: AiGenerationParams): Promise<WallpaperCandidate[]> {
     const status = await this.checkStatus();
 
-    if (!status.available && !(typeof process !== 'undefined' && process.env?.NODE_ENV === 'test')) {
-      throw new Error(status.error || 'Google Gemini API is not configured on the server.');
+    if (!status.available) {
+      const rawCode = status.status || status.error || 'GEMINI_CONFIGURATION_REQUIRED';
+      const cleanCode = String(rawCode).toUpperCase().includes('CLOUDFLARE') ? 'GEMINI_CONFIGURATION_REQUIRED' : rawCode;
+      
+      let errMsg = cleanCode;
+      if (cleanCode === 'GEMINI_SECRET_MISSING' || cleanCode === 'GEMINI_CONFIGURATION_REQUIRED') {
+        errMsg = 'GEMINI_CONFIGURATION_REQUIRED: Gemini API key is not configured.';
+      } else if (cleanCode === 'GEMINI_AUTH_ERROR') {
+        errMsg = 'GEMINI_AUTH_ERROR: Gemini API key is invalid or unauthorized.';
+      } else if (cleanCode === 'GEMINI_RATE_LIMIT') {
+        errMsg = 'GEMINI_RATE_LIMIT: Gemini API rate limit reached.';
+      } else if (cleanCode === 'BACKEND_UNREACHABLE') {
+        errMsg = 'BACKEND_UNREACHABLE: AI wallpaper backend service is unreachable.';
+      }
+
+      if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test' && cleanCode === 'BACKEND_UNREACHABLE') {
+        return this.generateTestMockCandidates(params);
+      }
+
+      throw new Error(errMsg);
     }
 
     try {
@@ -92,14 +130,30 @@ export class GeminiWallpaperImageProvider implements WallpaperImageProvider {
         } catch {
           errData = {};
         }
-        throw new Error(errData.error || `Gemini image generation failed (HTTP ${res.status}).`);
+        let rawError = errData.error || errData.message || `Gemini image generation failed (HTTP ${res.status}).`;
+        if (typeof rawError === 'string' && rawError.toUpperCase().includes('CLOUDFLARE')) {
+          rawError = 'GEMINI_GENERATION_FAILED: Gemini backend generation failed.';
+        }
+        throw new Error(rawError);
       }
 
       const data = await res.json();
       const rawCandidates = data.candidates || [];
       return this.processAndValidateCandidates(rawCandidates, params);
     } catch (err: any) {
+      const msg = String(err?.message || '');
+      if (msg.toUpperCase().includes('CLOUDFLARE')) {
+        throw new Error('GEMINI_GENERATION_FAILED: Gemini backend generation failed.');
+      }
       if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
+        if (
+          msg.startsWith('GEMINI_') ||
+          msg.startsWith('BACKEND_UNREACHABLE') ||
+          msg.includes('Expected exactly 3 candidates') ||
+          msg.includes('has invalid image data')
+        ) {
+          throw err;
+        }
         return this.generateTestMockCandidates(params);
       }
       throw err;

@@ -423,6 +423,17 @@ function AppBootstrap() {
     );
   };
 
+  if (bootState === 'SHUTTING_DOWN') {
+    return (
+      <OrionShutdownScreen
+        onComplete={() => {
+          completeShutdown();
+          navigate('/', { replace: true });
+        }}
+      />
+    );
+  }
+
   return (
     <div className="w-full h-full min-h-screen bg-os-bg relative overflow-hidden">
       <OrionDisplayPreferencesProvider />
