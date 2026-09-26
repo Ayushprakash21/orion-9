@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { wallpaperRepository, SYSTEM_DEFAULT_WALLPAPERS } from '../../repositories/WallpaperRepository';
+import { wallpaperRepository, SYSTEM_DEFAULT_WALLPAPERS, DEFAULT_LOGIN_WALLPAPER } from '../../repositories/WallpaperRepository';
 import { WallpaperRecord } from '../../types/wallpaper';
 
 describe('ORION-9 Target Persistence & Candidate Isolation Suite', () => {
@@ -70,7 +70,7 @@ describe('ORION-9 Target Persistence & Candidate Isolation Suite', () => {
     const activeLogin = await wallpaperRepository.getActiveWallpaper(undefined, 'global', 'login');
 
     expect(activeDesktop.wallpaperId).toBe('desktop_custom_wp_88');
-    expect(activeLogin.wallpaperId).toBe(SYSTEM_DEFAULT_WALLPAPERS[0].wallpaperId);
+    expect(activeLogin.wallpaperId).toBe(DEFAULT_LOGIN_WALLPAPER.wallpaperId);
   });
 
   it('3. Generating candidate AI wallpapers does NOT override active login or desktop wallpaper', async () => {
@@ -118,7 +118,7 @@ describe('ORION-9 Target Persistence & Candidate Isolation Suite', () => {
     const resetLogin = await wallpaperRepository.resetToSystemDefault(undefined, 'login');
     const activeDesktop = await wallpaperRepository.getActiveWallpaper(testUserId, testTenantId, 'desktop');
 
-    expect(resetLogin.wallpaperId).toBe(SYSTEM_DEFAULT_WALLPAPERS[0].wallpaperId);
+    expect(resetLogin.wallpaperId).toBe(DEFAULT_LOGIN_WALLPAPER.wallpaperId);
     expect(activeDesktop.wallpaperId).toBe(SYSTEM_DEFAULT_WALLPAPERS[1].wallpaperId);
   });
 });

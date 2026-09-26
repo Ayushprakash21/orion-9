@@ -1,53 +1,80 @@
 /**
  * ORION-9 AUTHORITATIVE WALLPAPER REPOSITORY
- * Authoritative storage manager for wallpaper records, user selections, system defaults,
- * and wallpaper policy controls with Cloud Firestore authoritative persistence & strict tenant isolation.
+ * Authoritative storage manager for static wallpaper records, user selections, system defaults,
+ * and wallpaper policy controls with Cloud Firestore authoritative persistence & strict tenant/target isolation.
+ *
+ * ALL LIVE/3D/ANIMATION/CANVAS SYSTEMS HAVE BEEN COMPLETELY REMOVED.
  */
 
 import { dbManager } from '../core/database/DatabaseConnectionManager';
 import { 
   WallpaperRecord, 
   WallpaperPolicy, 
-  DEFAULT_WALLPAPER_POLICY, 
-  DEFAULT_MOTION_PROFILE 
+  DEFAULT_WALLPAPER_POLICY,
+  WallpaperTarget
 } from '../types/wallpaper';
-import { doc, getDoc, setDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
+import { wallpaperAssetStorage } from '../services/wallpaper/WallpaperAssetStorage';
+
+export { type WallpaperTarget } from '../types/wallpaper';
 
 const WALLPAPERS_COLLECTION = 'wallpapers';
 const POLICIES_COLLECTION = 'wallpaperPolicies';
 const SELECTIONS_COLLECTION = 'wallpaperSelections';
 
-const ORION_AURORA_SVG = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1440" viewBox="0 0 2560 1440"><defs><radialGradient id="sp1" cx="50%" cy="50%" r="70%"><stop offset="0%" stop-color="%23091322"/><stop offset="50%" stop-color="%23050a14"/><stop offset="100%" stop-color="%23010307"/></radialGradient><radialGradient id="sp2" cx="75%" cy="30%" r="50%"><stop offset="0%" stop-color="%230284c7" stop-opacity="0.25"/><stop offset="50%" stop-color="%231e3a8a" stop-opacity="0.10"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs><rect width="2560" height="1440" fill="url(%23sp1)"/><rect width="2560" height="1440" fill="url(%23sp2)"/><g stroke="%2393c5fd" stroke-opacity="0.25" stroke-width="1.5"><line x1="1817" y1="259" x2="2150" y2="273"/><line x1="1817" y1="259" x2="1971" y2="187"/><line x1="2150" y1="273" x2="1971" y2="187"/><line x1="1817" y1="259" x2="1894" y2="475"/><line x1="2150" y1="273" x2="2124" y2="446"/><line x1="1894" y1="475" x2="1996" y2="460"/><line x1="1996" y1="460" x2="2124" y2="446"/><line x1="1894" y1="475" x2="1868" y2="691"/><line x1="2124" y1="446" x2="2201" y2="676"/><line x1="1868" y1="691" x2="2201" y2="676"/></g><circle cx="1817" cy="259" r="6" fill="%23f97316"/><circle cx="2150" cy="273" r="5" fill="%2393c5fd"/><circle cx="1894" cy="475" r="5" fill="%2360a5fa"/><circle cx="1996" cy="460" r="5" fill="%2393c5fd"/><circle cx="2124" cy="446" r="5" fill="%23bfdbfe"/><circle cx="1868" cy="691" r="5" fill="%2393c5fd"/><circle cx="2201" cy="676" r="7" fill="%23a5f3fc"/></svg>`;
+/**
+ * DEFAULT HOME / DESKTOP WALLPAPER:
+ * "Earth's Luminous Cosmic Horizon" (Target: HOME / DESKTOP)
+ */
+export const DEFAULT_DESKTOP_WALLPAPER: WallpaperRecord = {
+  wallpaperId: 'sys-orion-aurora-space',
+  tenantId: 'global',
+  ownerType: 'SYSTEM',
+  ownerId: 'system',
+  name: "Earth's Luminous Cosmic Horizon",
+  assetUrl: '/wallpaper/orion9-earth-horizon-default.png',
+  thumbnailUrl: '/wallpaper/orion9-earth-horizon-default.png',
+  source: 'SYSTEM',
+  aiGenerated: false,
+  width: 2560,
+  height: 1440,
+  aspectRatio: '16:9',
+  mode: 'STILL',
+  environment: 'DEMO',
+  status: 'APPROVED',
+  isSystemDefault: true,
+  createdAt: new Date(1700000000000).toISOString(),
+  updatedAt: new Date(1700000000000).toISOString(),
+};
+
+/**
+ * DEFAULT LOGIN WALLPAPER:
+ * Dark Cinematic Earth Horizon (Target: LOGIN)
+ */
+export const DEFAULT_LOGIN_WALLPAPER: WallpaperRecord = {
+  wallpaperId: 'sys-orion-dark-horizon',
+  tenantId: 'global',
+  ownerType: 'SYSTEM',
+  ownerId: 'system',
+  name: 'Dark Cinematic Earth Horizon',
+  assetUrl: '/wallpaper/orion9-desktop-horizon-moon.png',
+  thumbnailUrl: '/wallpaper/orion9-desktop-horizon-moon.png',
+  source: 'SYSTEM',
+  aiGenerated: false,
+  width: 2560,
+  height: 1440,
+  aspectRatio: '16:9',
+  mode: 'STILL',
+  environment: 'DEMO',
+  status: 'APPROVED',
+  isSystemDefault: true,
+  createdAt: new Date(1700000000000).toISOString(),
+  updatedAt: new Date(1700000000000).toISOString(),
+};
 
 export const SYSTEM_DEFAULT_WALLPAPERS: WallpaperRecord[] = [
-  {
-    wallpaperId: 'sys-orion-aurora-space',
-    tenantId: 'global',
-    ownerType: 'SYSTEM',
-    ownerId: 'system',
-    name: 'Orion Aurora Space Environment',
-    assetUrl: '/wallpaper/orion9-earth-horizon-default.png',
-    thumbnailUrl: '/wallpaper/orion9-earth-horizon-default.png',
-    source: 'SYSTEM',
-    aiGenerated: false,
-    width: 2560,
-    height: 1440,
-    aspectRatio: '16:9',
-    motionProfile: {
-      backgroundDrift: 0.05,
-      parallax: 0.12,
-      atmosphere: 0.10,
-      particles: 0.05,
-      lightMovement: 0.08,
-      objectMotion: 0.03,
-    },
-    runtimeReactive: true,
-    environment: 'DEMO',
-    status: 'APPROVED',
-    isSystemDefault: true,
-    createdAt: new Date(1700000000000).toISOString(),
-    updatedAt: new Date(1700000000000).toISOString(),
-  },
+  DEFAULT_DESKTOP_WALLPAPER,
+  DEFAULT_LOGIN_WALLPAPER,
   {
     wallpaperId: 'sys-deep-orion-nebula',
     tenantId: 'global',
@@ -61,15 +88,7 @@ export const SYSTEM_DEFAULT_WALLPAPERS: WallpaperRecord[] = [
     width: 2560,
     height: 1440,
     aspectRatio: '16:9',
-    motionProfile: {
-      backgroundDrift: 0.06,
-      parallax: 0.15,
-      atmosphere: 0.14,
-      particles: 0.08,
-      lightMovement: 0.10,
-      objectMotion: 0.04,
-    },
-    runtimeReactive: true,
+    mode: 'STILL',
     environment: 'DEMO',
     status: 'APPROVED',
     createdAt: new Date(1700000000000).toISOString(),
@@ -88,25 +107,13 @@ export const SYSTEM_DEFAULT_WALLPAPERS: WallpaperRecord[] = [
     width: 2560,
     height: 1440,
     aspectRatio: '16:9',
-    motionProfile: {
-      backgroundDrift: 0.03,
-      parallax: 0.10,
-      atmosphere: 0.05,
-      particles: 0.03,
-      lightMovement: 0.08,
-      objectMotion: 0.02,
-    },
-    runtimeReactive: true,
+    mode: 'STILL',
     environment: 'DEMO',
     status: 'APPROVED',
     createdAt: new Date(1700000000000).toISOString(),
     updatedAt: new Date(1700000000000).toISOString(),
   },
 ];
-
-import { wallpaperAssetStorage } from '../services/wallpaper/WallpaperAssetStorage';
-
-export type WallpaperTarget = 'login' | 'desktop';
 
 export class WallpaperRepository {
   private static instance: WallpaperRepository;
@@ -171,16 +178,20 @@ export class WallpaperRepository {
   private persistCache(userId?: string, target?: WallpaperTarget): void {
     if (typeof window !== 'undefined') {
       try {
-        const loginActive = this.memoryActiveSelections.get('global_login');
-        if (loginActive) {
-          localStorage?.setItem('orion_active_wallpaper_id_login', loginActive);
-          sessionStorage?.setItem('orion_active_wallpaper_id_login', loginActive);
+        if (!target || target === 'login') {
+          const loginActive = this.memoryActiveSelections.get('global_login');
+          if (loginActive) {
+            localStorage?.setItem('orion_active_wallpaper_id_login', loginActive);
+            sessionStorage?.setItem('orion_active_wallpaper_id_login', loginActive);
+          }
         }
-        const userKey = userId || 'global';
-        const desktopActive = this.memoryActiveSelections.get(`${userKey}_desktop`) || this.memoryActiveSelections.get('global_desktop');
-        if (desktopActive) {
-          localStorage?.setItem(`orion_active_wallpaper_id_desktop_${userKey}`, desktopActive);
-          sessionStorage?.setItem(`orion_active_wallpaper_id_desktop_${userKey}`, desktopActive);
+        if (!target || target === 'desktop') {
+          const userKey = userId || 'global';
+          const desktopActive = this.memoryActiveSelections.get(`${userKey}_desktop`) || this.memoryActiveSelections.get('global_desktop');
+          if (desktopActive) {
+            localStorage?.setItem(`orion_active_wallpaper_id_desktop_${userKey}`, desktopActive);
+            sessionStorage?.setItem(`orion_active_wallpaper_id_desktop_${userKey}`, desktopActive);
+          }
         }
         
         const customs = Array.from(this.memoryWallpapers.values()).filter(w => w.ownerType !== 'SYSTEM');
@@ -253,7 +264,7 @@ export class WallpaperRepository {
   }
 
   /**
-   * Saves or updates wallpaper record in Cloud Firestore authoritative repository.
+   * Saves or updates static wallpaper record in Cloud Firestore authoritative repository.
    * Intercepts large Base64 images to prevent multi-megabyte payloads in Firestore.
    */
   public async saveWallpaper(record: WallpaperRecord): Promise<WallpaperRecord> {
@@ -269,6 +280,7 @@ export class WallpaperRepository {
       ...record,
       assetUrl: safeAssetUrl,
       thumbnailUrl: safeAssetUrl,
+      mode: 'STILL',
       environment: env,
       updatedAt: new Date().toISOString(),
     };
@@ -297,7 +309,8 @@ export class WallpaperRepository {
   }
 
   /**
-   * Gets active wallpaper for current user/tenant and target (desktop or login) from Cloud Firestore.
+   * Gets active wallpaper for target (login or desktop).
+   * Strict isolation: LOGIN and DESKTOP selections are completely independent.
    */
   public async getActiveWallpaper(
     userId?: string, 
@@ -324,21 +337,23 @@ export class WallpaperRepository {
       } catch (e) {}
     }
 
-    const activeId =
-      this.memoryActiveSelections.get(selectionKey) ||
-      this.memoryActiveSelections.get(`default_${target}`) ||
-      this.memoryPolicy.defaultWallpaperId;
-    const found = this.memoryWallpapers.get(activeId);
-
-    if (found && found.status === 'APPROVED' && found.assetUrl && found.assetUrl.trim() !== '') {
-      return found;
+    const savedId = this.memoryActiveSelections.get(selectionKey);
+    if (savedId) {
+      const found = this.memoryWallpapers.get(savedId);
+      if (found && found.status === 'APPROVED' && found.assetUrl && found.assetUrl.trim() !== '') {
+        return found;
+      }
     }
 
-    return SYSTEM_DEFAULT_WALLPAPERS[0];
+    // Default target fallbacks:
+    // LOGIN default: Dark Cinematic Earth Horizon
+    // DESKTOP default: Earth's Luminous Cosmic Horizon
+    return target === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
   }
 
   /**
    * Sets active wallpaper for user/tenant and target (desktop or login) in Cloud Firestore.
+   * Strict isolation: only updates the specified target.
    */
   public async setActiveWallpaper(
     wallpaperId: string, 
@@ -380,7 +395,7 @@ export class WallpaperRepository {
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('orion-active-wallpaper-changed', { 
-        detail: { wallpaper: wp, target } 
+        detail: { wallpaper: wp, target, wallpaperId: wp.wallpaperId } 
       }));
     }
 
@@ -444,10 +459,9 @@ export class WallpaperRepository {
     userId?: string,
     target: WallpaperTarget = 'desktop'
   ): Promise<WallpaperRecord> {
-    const defaultId = this.memoryPolicy.defaultWallpaperId || SYSTEM_DEFAULT_WALLPAPERS[0].wallpaperId;
-    return this.setActiveWallpaper(defaultId, userId, target);
+    const defaultWp = target === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
+    return this.setActiveWallpaper(defaultWp.wallpaperId, userId, target);
   }
 }
 
 export const wallpaperRepository = WallpaperRepository.getInstance();
-

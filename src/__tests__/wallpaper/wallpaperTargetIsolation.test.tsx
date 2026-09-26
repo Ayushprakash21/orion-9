@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
-import { wallpaperRepository, SYSTEM_DEFAULT_WALLPAPERS } from '../../repositories/WallpaperRepository';
+import { wallpaperRepository, SYSTEM_DEFAULT_WALLPAPERS, DEFAULT_LOGIN_WALLPAPER } from '../../repositories/WallpaperRepository';
 import { wallpaperAssetStorage } from '../../services/wallpaper/WallpaperAssetStorage';
 import { OrionLiveWallpaper } from '../../os/components/OrionLiveWallpaper';
 import { WallpaperRecord } from '../../types/wallpaper';
@@ -79,7 +79,7 @@ describe('ORION-9 Wallpaper Target Isolation & Pipeline Test Suite', () => {
 
     expect(activeDesktop.wallpaperId).toBe('ai_desktop_wp_2');
     expect(activeLogin.wallpaperId).not.toBe('ai_desktop_wp_2');
-    expect(activeLogin.wallpaperId).toBe(SYSTEM_DEFAULT_WALLPAPERS[0].wallpaperId);
+    expect(activeLogin.wallpaperId).toBe(DEFAULT_LOGIN_WALLPAPER.wallpaperId);
   });
 
   it('TEST 3: Switching target to LOGIN returns deterministic global_login key', () => {
@@ -99,7 +99,7 @@ describe('ORION-9 Wallpaper Target Isolation & Pipeline Test Suite', () => {
     const resetLogin = await wallpaperRepository.resetToSystemDefault(undefined, 'login');
     const activeDesktop = await wallpaperRepository.getActiveWallpaper(testUserId, testTenantId, 'desktop');
 
-    expect(resetLogin.wallpaperId).toBe(SYSTEM_DEFAULT_WALLPAPERS[0].wallpaperId);
+    expect(resetLogin.wallpaperId).toBe(DEFAULT_LOGIN_WALLPAPER.wallpaperId);
     expect(activeDesktop.wallpaperId).toBe(SYSTEM_DEFAULT_WALLPAPERS[1].wallpaperId);
   });
 

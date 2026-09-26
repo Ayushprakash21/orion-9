@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { checkFluxWallpaperStatus, generateFluxWallpaper } from '../../server/cloudflareFluxBackend';
 import { aiWallpaperGenerator } from '../../services/wallpaper/AiWallpaperGenerator';
-import { liveWallpaperEngine } from '../../services/wallpaper/LiveWallpaperEngine';
 
 describe('ORION-9 Cloudflare Workers AI + FLUX.2 Klein 9B Integration (PART 27)', () => {
   it('1. verifies Cloudflare Workers AI binding existence and detection', async () => {
@@ -81,47 +80,5 @@ describe('ORION-9 Cloudflare Workers AI + FLUX.2 Klein 9B Integration (PART 27)'
   it('11. prevents duplicate generation requests during running state', async () => {
     const status = await aiWallpaperGenerator.checkProviderStatus();
     expect(status.providerName).toBeDefined();
-  });
-
-  it('12. live engine continues running when AI provider fails or is exhausted', () => {
-    const telemetry = liveWallpaperEngine.getTelemetry();
-    expect(telemetry.status).toBe('RUNNING');
-    expect(telemetry.fps).toBe(60);
-  });
-
-  it('13. live animation does NOT call AI generation API every frame', () => {
-    const mockFetch = vi.fn();
-    const originalFetch = global.fetch;
-    global.fetch = mockFetch;
-
-    // Simulate live engine uniform update
-    const uniforms = liveWallpaperEngine.mapMotionProfileToUniforms({
-      backgroundDrift: 0.05,
-      parallax: 0.12,
-      atmosphere: 0.10,
-      particles: 0.05,
-      lightMovement: 0.08,
-      objectMotion: 0.03,
-    });
-
-    expect(uniforms.uEarthMotion).toBeGreaterThan(0);
-    expect(mockFetch).not.toHaveBeenCalled();
-
-    global.fetch = originalFetch;
-  });
-
-  it('14. shader uniforms update correctly from motion profile', () => {
-    const uniforms = liveWallpaperEngine.mapMotionProfileToUniforms({
-      backgroundDrift: 0.08,
-      parallax: 0.15,
-      atmosphere: 0.12,
-      particles: 0.06,
-      lightMovement: 0.10,
-      objectMotion: 0.04,
-    }, 'HIGH', true);
-
-    expect(uniforms.uEarthMotion).toBe(0.08);
-    expect(uniforms.uParallax).toBe(0.15);
-    expect(uniforms.uReactive).toBe(1.0);
   });
 });

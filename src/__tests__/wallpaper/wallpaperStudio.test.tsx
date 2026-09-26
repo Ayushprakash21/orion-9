@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { wallpaperRepository, SYSTEM_DEFAULT_WALLPAPERS } from '../../repositories/WallpaperRepository';
 import { aiWallpaperGenerator } from '../../services/wallpaper/AiWallpaperGenerator';
-import { sceneAnalyzer } from '../../services/wallpaper/SceneAnalyzer';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { DEFAULT_WALLPAPER_POLICY, WallpaperRecord } from '../../types/wallpaper';
 
@@ -80,12 +79,11 @@ describe('ORION-9 Wallpaper Studio & Live Wallpaper Engine', () => {
       });
 
       expect(candidates).toHaveLength(3);
-      candidates.forEach((cand, idx) => {
+      candidates.forEach((cand) => {
         expect(cand.candidateId).toBeDefined();
         expect(cand.width).toBe(2560);
         expect(cand.height).toBe(1440);
         expect(cand.assetUrl).toContain('data:image/svg+xml');
-        expect(cand.suggestedMotionProfile).toBeDefined();
       });
     });
 
@@ -104,24 +102,8 @@ describe('ORION-9 Wallpaper Studio & Live Wallpaper Engine', () => {
     });
   });
 
-  describe('3. AI Scene Analyzer & Motion Profile Bounding', () => {
-    it('3.1 analyzes scene and generates bounded MotionProfile within safety limits', () => {
-      const result = sceneAnalyzer.analyzeScene({
-        style: 'Space',
-        prompt: 'hyper space cosmic nebula stars',
-        atmosphereIntensity: 1.0,
-      });
-
-      expect(result.recommendedProfile).toBeDefined();
-      expect(result.recommendedProfile.parallax).toBeLessThanOrEqual(0.25);
-      expect(result.recommendedProfile.atmosphere).toBeLessThanOrEqual(0.20);
-      expect(result.recommendedProfile.particles).toBeLessThanOrEqual(0.20);
-      expect(result.detectedRegions.skyOrSpace).toBe(true);
-    });
-  });
-
-  describe('4. Policy Governance & Environment Isolation', () => {
-    it('4.1 manages system wallpaper policy controls', async () => {
+  describe('3. Policy Governance & Environment Isolation', () => {
+    it('3.1 manages system wallpaper policy controls', async () => {
       const initialPolicy = await wallpaperRepository.getPolicy();
       expect(initialPolicy.allowUserCustomization).toBe(true);
 
@@ -134,7 +116,7 @@ describe('ORION-9 Wallpaper Studio & Live Wallpaper Engine', () => {
       expect(updatedPolicy.allowAiGeneration).toBe(false);
     });
 
-    it('4.2 preserves DEMO vs LIVE environment tag on wallpaper records', async () => {
+    it('3.2 preserves DEMO vs LIVE environment tag on wallpaper records', async () => {
       const currentEnv = dbManager.getEnvironment();
       const active = await wallpaperRepository.getActiveWallpaper();
       expect(['DEMO', 'LIVE']).toContain(active.environment);
@@ -142,8 +124,8 @@ describe('ORION-9 Wallpaper Studio & Live Wallpaper Engine', () => {
     });
   });
 
-  describe('5. Target Isolation & Independent Target Reset', () => {
-    it('5.1 isolates LOGIN and DESKTOP active wallpaper selections independently', async () => {
+  describe('4. Target Isolation & Independent Target Reset', () => {
+    it('4.1 isolates LOGIN and DESKTOP active wallpaper selections independently', async () => {
       const userId = 'user_isolation_test_01';
       const tenantId = 'tenant_isolation_test_01';
 
@@ -164,24 +146,24 @@ describe('ORION-9 Wallpaper Studio & Live Wallpaper Engine', () => {
       // 5. Reset LOGIN only
       await wallpaperRepository.resetToSystemDefault(userId, 'login');
 
-      // 6. LOGIN becomes sys-orion-aurora-space
+      // 6. LOGIN becomes sys-orion-dark-horizon (Dark Cinematic Horizon)
       const resetLogin = await wallpaperRepository.getActiveWallpaper(userId, tenantId, 'login');
-      expect(resetLogin.wallpaperId).toBe('sys-orion-aurora-space');
+      expect(resetLogin.wallpaperId).toBe('sys-orion-dark-horizon');
 
       // 7. DESKTOP remains sys-deep-orion-nebula
       const preservedDesktop = await wallpaperRepository.getActiveWallpaper(userId, tenantId, 'desktop');
       expect(preservedDesktop.wallpaperId).toBe('sys-deep-orion-nebula');
     });
 
-    it('5.2 ensures targetless legacy or default selection does not cross into LOGIN', async () => {
+    it('4.2 ensures targetless legacy or default selection does not cross into LOGIN', async () => {
       const userId = 'user_legacy_test_02';
 
       // Set desktop legacy selection
       await wallpaperRepository.setActiveWallpaper('sys-deep-orion-nebula', userId, 'desktop');
 
-      // Login target must return policy default (sys-orion-aurora-space), never desktop selection
+      // Login target must return default (sys-orion-dark-horizon), never desktop selection
       const activeLogin = await wallpaperRepository.getActiveWallpaper(userId, 'global', 'login');
-      expect(activeLogin.wallpaperId).toBe('sys-orion-aurora-space');
+      expect(activeLogin.wallpaperId).toBe('sys-orion-dark-horizon');
       expect(activeLogin.wallpaperId).not.toBe('sys-deep-orion-nebula');
     });
   });

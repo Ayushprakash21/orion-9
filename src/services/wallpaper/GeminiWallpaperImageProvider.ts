@@ -5,7 +5,6 @@
 
 import { AiGenerationParams, WallpaperCandidate } from '../../types/wallpaper';
 import { WallpaperImageProvider, WallpaperImageProviderStatus } from './WallpaperImageProvider';
-import { sceneAnalyzer } from './SceneAnalyzer';
 
 export class GeminiWallpaperImageProvider implements WallpaperImageProvider {
   public readonly name = 'Google Gemini';
@@ -120,12 +119,6 @@ export class GeminiWallpaperImageProvider implements WallpaperImageProvider {
     const style = params.style || 'Space';
     const prompt = params.prompt;
 
-    const analysis = sceneAnalyzer.analyzeScene({
-      style,
-      prompt,
-      atmosphereIntensity: params.atmosphereIntensity,
-    });
-
     return rawCandidates.map((c, i) => {
       const candidateId = c.candidateId || c.id || `gemini_wp_${Date.now()}_${String.fromCharCode(65 + i)}`;
       const assetUrl = c.assetUrl || c.imageUrl;
@@ -143,10 +136,6 @@ export class GeminiWallpaperImageProvider implements WallpaperImageProvider {
         height,
         prompt,
         style,
-        suggestedMotionProfile: {
-          ...analysis.recommendedProfile,
-          parallax: Math.min(0.30, analysis.recommendedProfile.parallax + i * 0.04),
-        },
         createdAt: new Date().toISOString(),
       };
     });
@@ -158,12 +147,6 @@ export class GeminiWallpaperImageProvider implements WallpaperImageProvider {
     const style = params.style || 'Space';
     const prompt = params.prompt;
     const timestamp = Date.now();
-
-    const analysis = sceneAnalyzer.analyzeScene({
-      style,
-      prompt,
-      atmosphereIntensity: params.atmosphereIntensity,
-    });
 
     return [0, 1, 2].map((i) => {
       const candidateId = `gemini_wp_${timestamp}_${String.fromCharCode(65 + i)}`;
@@ -183,10 +166,6 @@ export class GeminiWallpaperImageProvider implements WallpaperImageProvider {
         height,
         prompt,
         style,
-        suggestedMotionProfile: {
-          ...analysis.recommendedProfile,
-          parallax: Math.min(0.30, analysis.recommendedProfile.parallax + i * 0.04),
-        },
         createdAt: new Date().toISOString(),
       };
     });

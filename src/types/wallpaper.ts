@@ -1,6 +1,7 @@
 /**
- * ORION-9 WALLPAPER STUDIO & LIVE WALLPAPER ENGINE TYPES
- * Authoritative type definitions for wallpapers, motion profiles, AI candidates, and policy governance.
+ * ORION-9 STATIC WALLPAPER ARCHITECTURE TYPES
+ * Strict static wallpaper type definitions for AI generation, user uploads,
+ * system gallery defaults, and deterministic dual-target policy governance.
  */
 
 export type WallpaperSource = 'SYSTEM' | 'UPLOAD' | 'AI';
@@ -9,91 +10,13 @@ export type WallpaperStatus = 'APPROVED' | 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
 export type WallpaperStyle = 'Aurora' | 'Space' | 'Nature' | 'Abstract' | 'Custom';
 export type QualityTier = 'LOW' | 'MEDIUM' | 'HIGH';
 
-export type WallpaperMode = 'STILL' | 'LIVE';
+/**
+ * WallpaperMode is strictly STILL.
+ * All dynamic, live, 3D, canvas, WebGL, and Three.js rendering is removed.
+ */
+export type WallpaperMode = 'STILL';
 
-export type LiveLayerType =
-  | 'background'
-  | 'starfield'
-  | 'nebula'
-  | 'planet'
-  | 'clouds'
-  | 'atmosphere'
-  | 'water'
-  | 'aurora'
-  | 'light'
-  | 'particle'
-  | 'object'
-  | 'foreground'
-  | 'custom';
-
-export type MotionType =
-  | 'static'
-  | 'rotate'
-  | 'orbit'
-  | 'drift'
-  | 'flow'
-  | 'pulse'
-  | 'shimmer'
-  | 'breathe'
-  | 'parallax'
-  | 'float'
-  | 'wave'
-  | 'custom';
-
-export interface LiveMotionInstruction {
-  type: MotionType;
-  speed: number;        // 0.0 to 1.0 (clamped)
-  intensity: number;    // 0.0 to 1.0 (clamped)
-  direction?: string;
-  axis?: 'x' | 'y' | 'z';
-  phase?: number;
-  loop?: boolean;
-}
-
-export interface LiveSceneLayer {
-  id: string;
-  name: string;
-  type: LiveLayerType;
-  source: 'image' | 'procedural' | 'shader' | 'generated' | 'depth';
-  depth: number;
-  motion: LiveMotionInstruction;
-  opacity: number;
-  enabled: boolean;
-}
-
-export interface LiveSceneDefinition {
-  mode: WallpaperMode;
-  renderer: 'STATIC' | 'WEBGL' | 'VIDEO';
-  width: number;
-  height: number;
-  layers: LiveSceneLayer[];
-  globalMotion: {
-    intensity: number;
-    speed: number;
-  };
-  reactive: boolean;
-  userCommand?: string;
-  aiGenerated: boolean;
-  createdAt: string;
-}
-
-export interface MotionProfile {
-  backgroundDrift: number; // 0.0 to 0.20
-  parallax: number;        // 0.0 to 0.30
-  atmosphere: number;      // 0.0 to 0.25
-  particles: number;       // 0.0 to 0.30
-  lightMovement: number;   // 0.0 to 0.25
-  objectMotion: number;    // 0.0 to 0.20
-}
-
-export const DEFAULT_MOTION_PROFILE: MotionProfile = {
-  backgroundDrift: 0.04,
-  parallax: 0.12,
-  atmosphere: 0.08,
-  particles: 0.04,
-  lightMovement: 0.06,
-  objectMotion: 0.03,
-};
+export type WallpaperTarget = 'login' | 'desktop';
 
 export interface WallpaperRecord {
   wallpaperId: string;
@@ -112,17 +35,19 @@ export interface WallpaperRecord {
   width: number;
   height: number;
   aspectRatio: string; // '16:9'
-  motionProfile: MotionProfile;
   mode?: WallpaperMode;
-  liveScene?: LiveSceneDefinition;
-  motionCommand?: string;
-  motionVersion?: number;
-  runtimeReactive: boolean;
   environment: 'DEMO' | 'LIVE';
   status: WallpaperStatus;
   isSystemDefault?: boolean;
   createdAt: string;
   updatedAt: string;
+
+  // Deprecated backward-compatibility fields for legacy database records (NEVER EXECUTED)
+  motionProfile?: any;
+  liveScene?: any;
+  motionCommand?: string;
+  motionVersion?: number;
+  runtimeReactive?: boolean;
 }
 
 export interface WallpaperCandidate {
@@ -134,38 +59,39 @@ export interface WallpaperCandidate {
   height: number;
   prompt: string;
   style: WallpaperStyle;
-  suggestedMotionProfile: MotionProfile;
   createdAt: string;
+
+  // Deprecated legacy field (optional)
+  suggestedMotionProfile?: any;
 }
 
 export interface AiGenerationParams {
   prompt: string;
   style: WallpaperStyle;
-  atmosphereIntensity: number; // 0.0 to 1.0
-  motionPreference: 'Subtle' | 'Atmospheric' | 'Dynamic';
   width?: number;  // Default 2560
   height?: number; // Default 1440
+  atmosphereIntensity?: number; // Optional legacy parameter
+  motionPreference?: string;    // Optional legacy parameter
 }
 
 export interface WallpaperPolicy {
   allowUserCustomization: boolean;
   allowAiGeneration: boolean;
   allowUserUpload: boolean;
-  allowRuntimeReactive: boolean;
-  maxParticleCount: number;
-  maxParallaxDepth: number;
   defaultWallpaperId: string;
   environment: 'DEMO' | 'LIVE';
   updatedAt: string;
+
+  // Deprecated legacy limits preserved for backward-compatibility only
+  allowRuntimeReactive?: boolean;
+  maxParticleCount?: number;
+  maxParallaxDepth?: number;
 }
 
 export const DEFAULT_WALLPAPER_POLICY: WallpaperPolicy = {
   allowUserCustomization: true,
   allowAiGeneration: true,
   allowUserUpload: true,
-  allowRuntimeReactive: true,
-  maxParticleCount: 50,
-  maxParallaxDepth: 0.3,
   defaultWallpaperId: 'sys-orion-aurora-space',
   environment: 'DEMO',
   updatedAt: new Date().toISOString(),

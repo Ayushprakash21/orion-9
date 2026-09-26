@@ -381,7 +381,7 @@ export const Login: React.FC = () => {
 
   return (
     <div 
-      className="w-screen h-[100dvh] max-h-[100dvh] flex flex-col justify-between overflow-hidden font-sans relative selection:bg-blue-500/30 bg-[#02050a] text-white"
+      className="w-screen h-[100dvh] max-h-[100dvh] flex flex-col justify-between overflow-hidden font-sans relative selection:bg-blue-500/30 bg-transparent text-white"
       onKeyDown={(e) => {
         if (e.key === 'Escape' && stage === 2) {
           handleBackToStage1();

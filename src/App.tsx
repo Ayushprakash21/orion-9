@@ -108,6 +108,7 @@ import { OrionBootSequence } from './os/components/OrionBootSequence';
 import { OrionWorldEntrySequence } from './os/components/OrionWorldEntrySequence';
 
 import { OrionDesktop } from './os/components/OrionDesktop';
+import { OrionLiveWallpaper } from './os/components/OrionLiveWallpaper';
 import { OrionWindowManager } from './os/WindowManagerContext';
 import { OrionSearchProvider } from './os/OrionSearchContext';
 import { OrionContextMenuProvider } from './os/contextMenu/OrionContextMenuContext';
@@ -369,10 +370,13 @@ function AppBootstrap() {
     // 4. CRITICAL GATE: UNAUTHENTICATED USERS CAN NEVER REACH THE DESKTOP
     if (!isAuthenticated || !currentUser || bootState === 'LOGIN_REQUIRED' || bootState === 'AUTHENTICATING') {
       return (
-        <div className="w-full h-full min-h-screen bg-os-bg relative z-20 orion-auth-portal">
-          <ErrorBoundary fallbackTitle="AUTHENTICATION PORTAL EXCEPTION">
-            <UnauthenticatedApplication />
-          </ErrorBoundary>
+        <div className="w-full h-full min-h-screen bg-[#02050a] relative z-20 orion-auth-portal overflow-hidden">
+          <OrionLiveWallpaper target="login" showLogo={false} />
+          <div className="relative z-10 w-full h-full">
+            <ErrorBoundary fallbackTitle="AUTHENTICATION PORTAL EXCEPTION">
+              <UnauthenticatedApplication />
+            </ErrorBoundary>
+          </div>
         </div>
       );
     }
