@@ -38,7 +38,7 @@ export const OrionShutdownScreen: React.FC<OrionShutdownScreenProps> = ({ onComp
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 bg-[#03060E] z-[999999] flex flex-col items-center justify-center font-sans overflow-hidden select-none">
+    <div className="fixed inset-0 w-screen h-screen min-h-screen min-w-full bg-[#03060E] z-[999999] flex flex-col items-center justify-center font-sans overflow-hidden select-none">
       
       <div className="relative z-20 w-[min(90vw,1100px)] h-[min(90vh,800px)] flex flex-col items-center justify-between pointer-events-none">
         
@@ -50,7 +50,7 @@ export const OrionShutdownScreen: React.FC<OrionShutdownScreenProps> = ({ onComp
           <div className="flex flex-col items-center justify-center text-center space-y-3">
             <BrandLogo
               sizePreset="xl"
-              variant="full"
+              variant="mark"
               className="justify-center h-24 sm:h-32 drop-shadow-[0_0_18px_rgba(0,242,254,0.18)]"
             />
             <p className="font-mono text-red-500/60 text-xs sm:text-sm tracking-[0.3em] uppercase max-w-[80vw] leading-tight">

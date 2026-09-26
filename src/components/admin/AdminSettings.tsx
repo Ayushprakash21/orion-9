@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Loader2, Key, User, Database, Sparkles, Monitor } from 'lucide-react';
+import { Save, Loader2, Key, User, Database, Sparkles, Monitor, Globe } from 'lucide-react';
 import { useToast } from '../../store/ToastContext';
 import { useAuth } from '../../store/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -9,13 +9,15 @@ import { DisplayPreferencesControls } from '../../os/DisplayPreferences';
 import { DatabaseControlCenter } from './DatabaseControlCenter';
 import { AdminDemoData } from './AdminDemoData';
 import { cn } from '../../lib/utils';
+import { useI18n } from '../../store/LanguageContext';
 
 export const AdminSettings: React.FC = () => {
   const { hasRole, currentUser, signOut } = useAuth();
   const { showToast } = useToast();
   const { settings, updateSettings } = useSupplyChain();
+  const { locale, setOrganizationDefaultLanguage, languages } = useI18n();
   
-  const [activeTab, setActiveTab] = useState<'credentials' | 'database' | 'synthetic' | 'display'>('credentials');
+  const [activeTab, setActiveTab] = useState<'credentials' | 'database' | 'synthetic' | 'display' | 'localization'>('credentials');
   const [adminId, setAdminId] = useState('');
   const [password, setPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
@@ -78,6 +80,7 @@ export const AdminSettings: React.FC = () => {
 
   const navItems = [
     { id: 'credentials' as const, name: 'Admin Credentials', icon: Key },
+    { id: 'localization' as const, name: 'Organization Localization', icon: Globe },
     { id: 'database' as const, name: 'Database & Environment', icon: Database },
     { id: 'synthetic' as const, name: 'Synthetic Data Engine', icon: Sparkles },
     { id: 'display' as const, name: 'Display & Preferences', icon: Monitor },
@@ -196,6 +199,45 @@ export const AdminSettings: React.FC = () => {
               </div>
               <DisplayPreferencesControls userId={currentUser?.id} compact={false} />
             </section>
+          )}
+
+          {activeTab === 'localization' && (
+            <div className="p-6 rounded-xl border border-os-border bg-os-surface/40 space-y-6">
+              <div>
+                <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-white mb-2">
+                  Organization Default Language
+                </h2>
+                <p className="text-xs text-os-text-secondary mb-4">
+                  New operators and workstations without explicit personal language preferences will default to this language across the entire ORION-9 platform.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
+                  {languages.map(lang => (
+                    <button
+                      key={lang.code}
+                      type="button"
+                      onClick={() => {
+                        setOrganizationDefaultLanguage(lang.code);
+                        showToast(`Default organization language set to ${lang.name} (${lang.nativeName}).`, 'success');
+                      }}
+                      className={cn(
+                        "p-4 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer",
+                        locale === lang.code
+                          ? "bg-cyan-500/10 border-cyan-500/50 text-white"
+                          : "bg-os-surface border-os-border text-os-text-secondary hover:text-white hover:border-white/20"
+                      )}
+                    >
+                      <div>
+                        <div className="font-semibold text-sm text-white">{lang.nativeName}</div>
+                        <div className="text-xs text-os-text-muted mt-0.5">{lang.name}</div>
+                      </div>
+                      <span className="text-xs font-mono uppercase px-2 py-0.5 rounded bg-white/5 border border-white/10 text-cyan-400">
+                        {lang.code}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>

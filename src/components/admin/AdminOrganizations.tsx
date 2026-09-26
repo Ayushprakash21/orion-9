@@ -10,6 +10,7 @@ import { useAuth } from '../../store/AuthContext';
 import { organizationService } from '../../services/organizationService';
 import { userService } from '../../services/userService';
 import { Organization } from '../../types/auth';
+import { useI18n, SupportedLocale } from '../../store/LanguageContext';
 
 export const AdminOrganizations = () => {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -17,7 +18,8 @@ export const AdminOrganizations = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   
   const { showToast } = useToast();
-  const { refreshSession } = useAuth();
+  const { refreshSession, organization: currentOrg } = useAuth();
+  const { setOrganizationDefaultLanguage } = useI18n();
 
   // Modals
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -30,6 +32,7 @@ export const AdminOrganizations = () => {
   const [newCountry, setNewCountry] = useState('India');
   const [newCurrency, setNewCurrency] = useState('INR');
   const [newTimezone, setNewTimezone] = useState('Asia/Kolkata');
+  const [newDefaultLanguage, setNewDefaultLanguage] = useState<SupportedLocale>('en');
   const [newStatus, setNewStatus] = useState<'active' | 'inactive'>('active');
   const [newLogoUrl, setNewLogoUrl] = useState<string>('');
   const [createErrors, setCreateErrors] = useState<Record<string, string>>({});
@@ -41,6 +44,7 @@ export const AdminOrganizations = () => {
   const [editCountry, setEditCountry] = useState('');
   const [editCurrency, setEditCurrency] = useState('INR');
   const [editTimezone, setEditTimezone] = useState('Asia/Kolkata');
+  const [editDefaultLanguage, setEditDefaultLanguage] = useState<SupportedLocale>('en');
   const [editStatus, setEditStatus] = useState<'active' | 'inactive'>('active');
   const [editLogoUrl, setEditLogoUrl] = useState<string>('');
   const [editErrors, setEditErrors] = useState<Record<string, string>>({});
@@ -103,6 +107,7 @@ export const AdminOrganizations = () => {
         country: newCountry.trim(),
         currency: newCurrency,
         timezone: newTimezone,
+        defaultLanguage: newDefaultLanguage,
         logoUrl: newLogoUrl.trim() || null,
         status: newStatus
       });
@@ -116,6 +121,7 @@ export const AdminOrganizations = () => {
       setNewCountry('India');
       setNewCurrency('INR');
       setNewTimezone('Asia/Kolkata');
+      setNewDefaultLanguage('en');
       setNewStatus('active');
       setNewLogoUrl('');
       setCreateErrors({});
@@ -134,6 +140,7 @@ export const AdminOrganizations = () => {
     setEditCountry(org.country || '');
     setEditCurrency(org.currency || 'USD');
     setEditTimezone(org.timezone || 'UTC');
+    setEditDefaultLanguage((org.defaultLanguage as SupportedLocale) || 'en');
     setEditStatus((org.status === 'inactive' ? 'inactive' : 'active') as 'active' | 'inactive');
     setEditLogoUrl(org.logoUrl || org.logo || '');
     setEditErrors({});
@@ -168,10 +175,14 @@ export const AdminOrganizations = () => {
         country: editCountry.trim(),
         currency: editCurrency,
         timezone: editTimezone,
+        defaultLanguage: editDefaultLanguage,
         logoUrl: editLogoUrl.trim() || null,
         logo: editLogoUrl.trim() || null,
         status: editStatus
       });
+
+      // If updating the active organization, update organization default language
+      setOrganizationDefaultLanguage(editDefaultLanguage);
 
       showToast(`Organization '${editName.trim()}' updated successfully.`, 'success');
       setEditingOrg(null);
@@ -537,6 +548,21 @@ export const AdminOrganizations = () => {
                 </select>
               </div>
 
+              {/* Default Organization Language */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-os-text-secondary">Default Organization Language *</label>
+                <select 
+                  value={newDefaultLanguage}
+                  onChange={e => setNewDefaultLanguage(e.target.value as SupportedLocale)}
+                  className="w-full bg-os-surface border border-os-border rounded p-2.5 text-sm text-os-text-primary focus:outline-none focus:border-os-border"
+                >
+                  <option value="en">English (English)</option>
+                  <option value="hi">हिन्दी (Hindi)</option>
+                  <option value="es">Español (Spanish)</option>
+                  <option value="de">Deutsch (German)</option>
+                </select>
+              </div>
+
               {/* Organization Logo Section */}
               <div className="space-y-2 pt-3 border-t border-os-border">
                 <label className="text-[10px] font-semibold uppercase tracking-wider text-os-text-secondary flex items-center justify-between">
@@ -716,6 +742,21 @@ export const AdminOrganizations = () => {
                 >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
+                </select>
+              </div>
+
+              {/* Default Organization Language */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-semibold uppercase tracking-wider text-os-text-secondary">Default Organization Language *</label>
+                <select 
+                  value={editDefaultLanguage}
+                  onChange={e => setEditDefaultLanguage(e.target.value as SupportedLocale)}
+                  className="w-full bg-os-surface border border-os-border rounded p-2.5 text-sm text-os-text-primary focus:outline-none focus:border-os-border"
+                >
+                  <option value="en">English (English)</option>
+                  <option value="hi">हिन्दी (Hindi)</option>
+                  <option value="es">Español (Spanish)</option>
+                  <option value="de">Deutsch (German)</option>
                 </select>
               </div>
 

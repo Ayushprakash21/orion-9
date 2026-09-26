@@ -36,6 +36,7 @@ export interface WallpaperRecord {
   height: number;
   aspectRatio: string; // '16:9'
   mode?: WallpaperMode;
+  target?: WallpaperTarget;
   environment: 'DEMO' | 'LIVE';
   status: WallpaperStatus;
   isSystemDefault?: boolean;

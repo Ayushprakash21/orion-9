@@ -7,7 +7,6 @@ import * as firebaseAdmin from "firebase-admin";
 import dotenv from "dotenv";
 import { demoPersistentSchedulerService } from "./src/services/demo/DemoPersistentSchedulerService";
 import { checkGeminiWallpaperStatus, generateGeminiWallpapers } from "./src/server/geminiBackend";
-import { checkFluxWallpaperStatus } from "./src/server/cloudflareFluxBackend";
 
 dotenv.config({ path: ['.env.local', '.env'] });
 

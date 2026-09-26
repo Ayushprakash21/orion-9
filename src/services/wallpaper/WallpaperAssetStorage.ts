@@ -34,28 +34,40 @@ export class WallpaperAssetStorage {
 
     // Process Base64 Data URL to Blob Object URL
     try {
-      if (typeof window !== 'undefined' && window.URL && window.Blob) {
+      const hasBlob = typeof Blob !== 'undefined' || (typeof window !== 'undefined' && window.Blob);
+      const hasCreateObjectURL = typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function';
+      if (hasBlob && hasCreateObjectURL) {
         const parts = dataUrlOrPath.split(',');
-        const mimeMatch = parts[0].match(/:(.*?);/);
+        const header = parts[0] || '';
+        const mimeMatch = header.match(/:(.*?);/) || header.match(/:(.*?)$/);
         const mime = mimeMatch ? mimeMatch[1] : 'image/png';
-        const bstr = atob(parts[1]);
-        let n = bstr.length;
-        const u8arr = new Uint8Array(n);
-        while (n--) {
-          u8arr[n] = bstr.charCodeAt(n);
+        const rawPayload = parts.slice(1).join(',');
+        
+        let blob: Blob;
+        if (header.includes(';base64')) {
+          const bstr = typeof atob === 'function' ? atob(rawPayload) : Buffer.from(rawPayload, 'base64').toString('binary');
+          let n = bstr.length;
+          const u8arr = new Uint8Array(n);
+          while (n--) {
+            u8arr[n] = bstr.charCodeAt(n);
+          }
+          blob = new Blob([u8arr], { type: mime });
+        } else {
+          const text = decodeURIComponent(rawPayload);
+          blob = new Blob([text], { type: mime });
         }
-        const blob = new Blob([u8arr], { type: mime });
+
         const objectUrl = URL.createObjectURL(blob);
         const assetId = `asset_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
         this.memoryBlobUrls.set(assetId, objectUrl);
 
         return objectUrl;
       }
+      return dataUrlOrPath;
     } catch (err) {
-      console.warn('[WallpaperAssetStorage] Object URL creation failed, using fallback asset:', err);
+      console.warn('[WallpaperAssetStorage] Asset processing fallback:', err);
+      return dataUrlOrPath;
     }
-
-    return '/wallpaper/orion9-earth-horizon-default.png';
   }
 
   /**

@@ -21,6 +21,7 @@ import { AvatarEditorModal } from './ui/AvatarEditorModal';
 import { useOptionalWindowManager } from '../os/WindowManagerContext';
 import { OrionSettingsSplitLayout } from './settings/OrionSettingsSplitLayout';
 import { GlobalNetworkTimeMatrix } from './time/GlobalNetworkTimeMatrix';
+import { useI18n } from '../store/LanguageContext';
 
 // Admin Components
 import { AdminOverview } from './admin/AdminOverview';
@@ -267,19 +268,21 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
     setPrivilegedUntil(null);
   };
 
+  const { locale, setLocale, setUserPreferredLanguage, t, languages } = useI18n();
+
   // Main Sidebar Item List Definitions
   const navigationSections = [
-    { id: 'account', label: 'My Account', icon: User, group: 'user' },
-    { id: 'organization', label: 'Organization', icon: Building2, group: 'user' },
-    { id: 'appearance', label: 'Appearance', icon: Eye, group: 'system' },
-    { id: 'wallpaper_studio', label: 'Wallpaper Studio', icon: SparklesIcon, group: 'system' },
-    { id: 'desktop', label: 'Desktop & Windows', icon: Monitor, group: 'system' },
-    { id: 'time_region', label: 'Time & Region', icon: Clock, group: 'system' },
-    { id: 'notifications', label: 'Notifications', icon: Volume2, group: 'system' },
-    { id: 'privacy_security', label: 'Privacy & Security', icon: Shield, group: 'system' },
-    { id: 'ai_automation', label: 'AI & Automation', icon: BrainCircuit, group: 'system' },
-    { id: 'network', label: 'Network', icon: Wifi, group: 'system' },
-    { id: 'storage', label: 'Storage', icon: HardDrive, group: 'system' },
+    { id: 'account', label: t('navigation.myAccount'), icon: User, group: 'user' },
+    { id: 'organization', label: t('navigation.organization'), icon: Building2, group: 'user' },
+    { id: 'appearance', label: t('navigation.appearance'), icon: Eye, group: 'system' },
+    { id: 'wallpaper_studio', label: t('navigation.wallpaperStudio'), icon: SparklesIcon, group: 'system' },
+    { id: 'desktop', label: t('navigation.desktopWindows'), icon: Monitor, group: 'system' },
+    { id: 'time_region', label: t('navigation.timeRegion'), icon: Clock, group: 'system' },
+    { id: 'notifications', label: t('navigation.notifications'), icon: Volume2, group: 'system' },
+    { id: 'privacy_security', label: t('navigation.privacySecurity'), icon: Shield, group: 'system' },
+    { id: 'ai_automation', label: t('navigation.aiAutomation'), icon: BrainCircuit, group: 'system' },
+    { id: 'network', label: t('navigation.network'), icon: Wifi, group: 'system' },
+    { id: 'storage', label: t('navigation.storage'), icon: HardDrive, group: 'system' },
   ];
 
   const adminSections = [
@@ -448,6 +451,37 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                       </button>
                     </div>
                   )}
+                </div>
+
+                {/* Preferred Language Card */}
+                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-xs font-semibold text-white flex items-center gap-2">
+                      <Globe size={14} className="text-sky-400" />
+                      {t('settings.languageLabel')}
+                    </h4>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {t('settings.languageDescription')}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-white/[0.04] p-1 rounded-xl border border-white/[0.08]">
+                    {languages.map((lang) => (
+                      <button
+                        key={lang.code}
+                        type="button"
+                        onClick={() => setUserPreferredLanguage(lang.code, profile?.id)}
+                        className={cn(
+                          "px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer",
+                          locale === lang.code
+                            ? "bg-sky-500 text-black font-semibold shadow-sm"
+                            : "text-slate-400 hover:text-white hover:bg-white/[0.06]"
+                        )}
+                      >
+                        <span>{lang.nativeName}</span>
+                        <span className="text-[10px] opacity-60 ml-1 uppercase">{lang.code}</span>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Profile Form Fields */}
@@ -777,6 +811,37 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                   <div className="text-right text-xs">
                     <span className="text-slate-300 font-medium">Locale</span>
                     <p className="text-slate-400 font-mono text-[11px] mt-0.5">{localSettings.locale || 'en-IN'}</p>
+                  </div>
+                </div>
+
+                {/* System UI Language Card */}
+                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div>
+                    <h4 className="text-xs font-semibold text-white flex items-center gap-2">
+                      <Globe size={14} className="text-sky-400" />
+                      {t('settings.languageLabel')}
+                    </h4>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      {t('settings.languageDescription')}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-white/[0.04] p-1 rounded-xl border border-white/[0.08]">
+                    {languages.map((lang) => (
+                      <button
+                        key={lang.code}
+                        type="button"
+                        onClick={() => setUserPreferredLanguage(lang.code, profile?.id)}
+                        className={cn(
+                          "px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer",
+                          locale === lang.code
+                            ? "bg-sky-500 text-black font-semibold shadow-sm"
+                            : "text-slate-400 hover:text-white hover:bg-white/[0.06]"
+                        )}
+                      >
+                        <span>{lang.nativeName}</span>
+                        <span className="text-[10px] opacity-60 ml-1 uppercase">{lang.code}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
