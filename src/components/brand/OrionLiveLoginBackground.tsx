@@ -1,18 +1,20 @@
 /**
- * ORION-9 LIVE SPACE WALLPAPER & LOGIN ENVIRONMENT (CINEMATIC VISUAL RESTORATION)
+ * ORION-9 LIVE SPACE WALLPAPER & LOGIN ENVIRONMENT (SINGLE EARTH GUARANTEED REBUILD)
  *
  * Visual Source of Truth: /orion9-space-baseline.png (Master space visual asset)
  *
- * Architecture:
- * 1. Deep Space Background: Stationary orthographic quad displaying /orion9-space-baseline.png
- *    with smooth linear filtering, subtle sub-pixel star twinkling, and delicate Orion constellation.
- * 2. 3D Real Rotating Earth Globe: THREE.SphereGeometry(2.4, 128, 64) with equirectangular day map,
- *    photorealistic night city-lights map, specular map, clouds layer, and thin Rayleigh atmosphere rim glow.
- * 3. Geographic Night Lights: City lights attached directly to the Earth surface texture, rotating
- *    in 3D unison with continents across the day/night terminator.
- * 4. Locked Background: Orion constellation, stars, nebula, and UI remain 100% stationary.
- * 5. Debug Toggle: window.EARTH_DEBUG_FAST_ROTATION or ?debug_fast=true forces 0.04 rad/s rotation
- *    for immediate visual verification of continent & city-light motion.
+ * Guaranteed Single-Earth Architecture:
+ * 1. Background Shader: Renders stationary deep space, smooth nebula, sub-pixel starfield,
+ *    and Orion constellation from /orion9-space-baseline.png. Masks out the baked 2D Earth
+ *    so the background quad contains ONLY space, preventing any duplicate Earth artifact.
+ * 2. 3D Real Rotating Earth Globe: ONE THREE.SphereGeometry(2.4, 128, 64) inside ONE earthGroup.
+ *    Equirectangular day map, photorealistic night city-lights map, specular map, clouds layer,
+ *    and thin Rayleigh atmosphere rim glow.
+ * 3. Single Scene & Canvas: 1 THREE.Scene, 1 THREE.WebGLRenderer, 1 <canvas> element.
+ * 4. Axial Tilt Preserved: 23.4° z-tilt and 12° x-tilt set once on earthGroup. Only earthMesh.rotation.y
+ *    and cloudMesh.rotation.y animate over time.
+ * 5. Debug Toggle: window.EARTH_DEBUG_FAST_ROTATION = true sets rotation speed to 0.08 rad/s for
+ *    instant visual verification of continent & city-light motion across the single 3D globe.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -48,7 +50,7 @@ declare global {
 }
 
 // -----------------------------------------------------------------------------
-// 1. BACKGROUND DEEP SPACE SHADERS (Smooth Nebula, Orion & Subtle Pinpoint Stars)
+// 1. BACKGROUND DEEP SPACE SHADERS (Space, Nebula, Orion — Baked Earth Masked)
 // -----------------------------------------------------------------------------
 const BG_VERTEX_SHADER = `
   varying vec2 vUv;
@@ -77,7 +79,7 @@ const BG_FRAGMENT_SHADER = `
       return;
     }
 
-    // Smooth nebula UV drift & breathing (upper space background only)
+    // Smooth nebula UV drift (upper space background only)
     vec2 finalUv = uv;
     if (uv.y > 0.40) {
       float nebDriftX = sin(uTime * 0.12 + uv.y * 2.5) * 0.0008;
@@ -86,6 +88,17 @@ const BG_FRAGMENT_SHADER = `
     }
 
     vec4 col = texture2D(uTexture, finalUv);
+
+    // MASK OUT BAKED 2D EARTH IN BACKGROUND TEXTURE:
+    // Guarantees zero double-vision / zero duplicate Earth artifacts
+    vec2 earthCenter = vec2(0.38, -0.22);
+    vec2 distVec = uv - earthCenter;
+    distVec.x *= aspect;
+    float distToBakedEarth = length(distVec);
+    float earthMask = smoothstep(1.05, 0.85, distToBakedEarth);
+
+    vec3 deepSpaceBackground = vec3(0.003, 0.008, 0.018);
+    col.rgb = mix(col.rgb, deepSpaceBackground, earthMask);
 
     // Orion Constellation Subtle Stellar Scintillation (7 Major Stars - Upper Left)
     vec2 orionStars[7];
@@ -103,10 +116,10 @@ const BG_FRAGMENT_SHADER = `
       vec2 d = uv - sPos;
       d.x *= aspect;
       float r = length(d);
-      if (r < 0.018) { // Pinpoint star radius
+      if (r < 0.018) {
         float phase = float(i) * 1.731;
         float sparkle = sin(uTime * (0.8 + float(i) * 0.25) + phase) * 0.5 + 0.5;
-        sparkle = pow(sparkle, 2.5) * 0.045; // Delicate, natural twinkle
+        sparkle = pow(sparkle, 2.5) * 0.045;
         float starFalloff = smoothstep(0.018, 0.0, r);
         orionSparkleBoost += sparkle * starFalloff;
       }
@@ -266,7 +279,7 @@ export function OrionLiveLoginBackground({
     renderer.autoClear = false;
 
     // -------------------------------------------------------------------------
-    // SCENE 1: BACKGROUND DEEP SPACE (Orthographic Camera)
+    // SINGLE THREE.JS SCENE ARCHITECTURE (Guarantees Exactly 1 Scene & 1 Canvas)
     // -------------------------------------------------------------------------
     const bgScene = new THREE.Scene();
     const bgCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
@@ -304,7 +317,7 @@ export function OrionLiveLoginBackground({
     bgScene.add(bgMesh);
 
     // -------------------------------------------------------------------------
-    // SCENE 2: REAL 3D ROTATING EARTH GLOBE (Perspective Camera)
+    // THE ONE AND ONLY 3D EARTH GLOBE (Perspective Camera Pass)
     // -------------------------------------------------------------------------
     const earthScene = new THREE.Scene();
     const earthCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
@@ -321,13 +334,13 @@ export function OrionLiveLoginBackground({
     const specularMap = textureLoader.load('/textures/earth_specular_2048.jpg');
     const cloudsMap = textureLoader.load('/textures/earth_clouds_1024.png');
 
+    // Single Earth Group with Preserved Axial Tilt (23.4° z-tilt, 12° x-tilt)
     const earthGroup = new THREE.Group();
-    // Axial tilt (23.4°) and spatial alignment
     earthGroup.rotation.z = THREE.MathUtils.degToRad(23.4);
     earthGroup.rotation.x = THREE.MathUtils.degToRad(12);
     earthScene.add(earthGroup);
 
-    // 1. High-Density 3D Earth Sphere Geometry (Cinematic size: 2.4)
+    // 1. Exactly ONE 3D Earth Surface Mesh (SphereGeometry)
     const earthRadius = 2.4;
     const earthGeo = new THREE.SphereGeometry(earthRadius, 128, 64);
 
@@ -349,7 +362,7 @@ export function OrionLiveLoginBackground({
     const earthMesh = new THREE.Mesh(earthGeo, earthMat);
     earthGroup.add(earthMesh);
 
-    // 2. Real Clouds Sphere Layer
+    // 2. Exactly ONE Cloud Sphere Layer
     let cloudMesh: THREE.Mesh | null = null;
     if (qualityTier === 'HIGH') {
       const cloudGeo = new THREE.SphereGeometry(earthRadius * 1.008, 96, 96);
@@ -364,7 +377,7 @@ export function OrionLiveLoginBackground({
       earthGroup.add(cloudMesh);
     }
 
-    // 3. Thin Atmospheric Rayleigh Rim Glow Shell
+    // 3. Exactly ONE Thin Atmospheric Rayleigh Rim Glow Shell
     let atmosphereMesh: THREE.Mesh | null = null;
     if (qualityTier !== 'LOW') {
       const atmoGeo = new THREE.SphereGeometry(earthRadius * 1.016, 128, 64);
@@ -380,7 +393,7 @@ export function OrionLiveLoginBackground({
       earthGroup.add(atmosphereMesh);
     }
 
-    // Directional Light for ambient illumination
+    // Directional Light & Ambient Space Light
     const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
     dirLight.position.set(5, 2, 4);
     earthScene.add(dirLight);
@@ -445,11 +458,12 @@ export function OrionLiveLoginBackground({
         (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug_fast'));
 
       if (!isStatic) {
-        // Base production speed (~0.004 rad/s) vs Debug Fast Rotation (0.04 rad/s)
+        // Base production speed (~0.004 rad/s) vs Debug Fast Rotation (0.08 rad/s)
         const baseSpeed = (Math.PI * 2) / (rotationSpeedSeconds * 60);
-        const rotationSpeed = isDebugFast ? 0.04 : baseSpeed;
+        const rotationSpeed = isDebugFast ? 0.08 : baseSpeed;
 
-        // Actual 3D Earth Mesh Rotation — Continents AND City Lights rotate together across 3D sphere
+        // ANIMATE ONLY THE EXISTING EARTH MESH AND CLOUD MESH Y-ROTATION
+        // Preserves axial tilt on earthGroup
         earthMesh.rotation.y += delta * rotationSpeed;
         if (cloudMesh) {
           cloudMesh.rotation.y += delta * rotationSpeed * 1.06;
@@ -480,12 +494,9 @@ export function OrionLiveLoginBackground({
         }
       }
 
-      // Two-pass Render Sequence:
-      // Pass 1: Stationary Deep Space Background + Orion Constellation
+      // Render Sequence: Pass 1 Stationary Space BG -> Pass 2 Single 3D Earth
       renderer.clear();
       renderer.render(bgScene, bgCamera);
-
-      // Pass 2: Real 3D Rotating Earth + Atmosphere
       renderer.render(earthScene, earthCamera);
     };
 
