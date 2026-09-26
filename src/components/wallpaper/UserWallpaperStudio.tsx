@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Sparkles, Upload, Image as ImageIcon, Check, 
   RotateCcw, RefreshCw, AlertCircle,
-  Lock, Monitor
+  Lock, Monitor, Trash2
 } from 'lucide-react';
 import { 
   WallpaperRecord, 
@@ -24,6 +24,7 @@ import { useAuth } from '../../store/AuthContext';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { cn } from '../../lib/utils';
 import { OrionSettingsSplitLayout } from '../settings/OrionSettingsSplitLayout';
+import { OrionDialog } from '../ui/OrionDialog';
 import { useI18n } from '../../store/LanguageContext';
 
 export type StudioLifecycleState = 'LOADING' | 'READY' | 'GENERATING' | 'GENERATED' | 'ERROR';
@@ -32,6 +33,36 @@ export const TARGETS = {
   LOGIN: 'login' as WallpaperTarget,
   DESKTOP: 'desktop' as WallpaperTarget,
 } as const;
+
+/**
+ * Resilient image renderer that displays an error fallback
+ * instead of broken placeholders or empty cards.
+ */
+const WallpaperCardImage: React.FC<{ src: string; alt: string }> = ({ src, alt }) => {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [src]);
+
+  if (hasError || !src || src.trim() === '') {
+    return (
+      <div className="w-full h-full flex flex-col items-center justify-center bg-slate-900 text-slate-400 p-3 text-center">
+        <AlertCircle className="w-5 h-5 text-amber-400 mb-1" />
+        <span className="text-[10px] font-mono">Image unavailable</span>
+      </div>
+    );
+  }
+
+  return (
+    <img 
+      src={src} 
+      alt={alt}
+      onError={() => setHasError(true)}
+      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+    />
+  );
+};
 
 export const UserWallpaperStudio: React.FC = () => {
   const { showToast } = useToast();
@@ -53,6 +84,10 @@ export const UserWallpaperStudio: React.FC = () => {
   // Available Gallery Wallpapers & Active Wallpaper
   const [galleryWallpapers, setGalleryWallpapers] = useState<WallpaperRecord[]>(SYSTEM_DEFAULT_WALLPAPERS);
   const [activeWallpaper, setActiveWallpaperState] = useState<WallpaperRecord>(DEFAULT_LOGIN_WALLPAPER);
+
+  // Deletion Modal State
+  const [wallpaperToDelete, setWallpaperToDelete] = useState<WallpaperRecord | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // AI Generator Form & Provider State
   const [aiProviderConfigured, setAiProviderConfigured] = useState<boolean>(false);
@@ -79,7 +114,7 @@ export const UserWallpaperStudio: React.FC = () => {
     const loadData = async () => {
       setStudioState('LOADING');
       try {
-        const available = await wallpaperRepository.getAvailableWallpapers(tenantId, userId);
+        const available = await wallpaperRepository.getAvailableWallpapers(tenantId, userId, selectedTarget);
         const active = await wallpaperRepository.getActiveWallpaper(userId, tenantId, selectedTarget);
         const aiStatus = await aiWallpaperGenerator.checkProviderStatus();
         
@@ -130,6 +165,8 @@ export const UserWallpaperStudio: React.FC = () => {
     if (target === selectedTarget) return;
     setSelectedTarget(target);
     try {
+      const available = await wallpaperRepository.getAvailableWallpapers(tenantId, userId, target);
+      setGalleryWallpapers(available);
       const active = await wallpaperRepository.getActiveWallpaper(userId, tenantId, target);
       const fallback = target === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
       const validActive = (active && active.assetUrl && active.assetUrl.trim() !== '') ? active : fallback;
@@ -219,40 +256,78 @@ export const UserWallpaperStudio: React.FC = () => {
     if (!selectedAssetUrl) return;
     setIsApplying(true);
     try {
-      const currentEnv = dbManager.getEnvironment();
-      
-      const wpRecord: WallpaperRecord = {
-        wallpaperId: selectedCandidate?.candidateId || selectedWallpaperId || `wp_${Date.now()}`,
-        tenantId,
-        ownerType: 'USER',
-        ownerId: userId,
-        name: selectedName || 'Custom Wallpaper',
-        assetUrl: selectedAssetUrl,
-        thumbnailUrl: selectedAssetUrl,
-        source: selectedCandidate ? 'AI' : activeTab === 'UPLOAD' ? 'UPLOAD' : 'SYSTEM',
-        target: selectedTarget,
-        aiGenerated: !!selectedCandidate,
-        prompt: selectedCandidate?.prompt || prompt,
-        style: selectedCandidate?.style || style,
-        width: 2560,
-        height: 1440,
-        aspectRatio: '16:9',
-        mode: 'STILL',
-        environment: currentEnv,
-        status: 'APPROVED',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      if (activeTab === 'GALLERY') {
+        const existing = galleryWallpapers.find(w => w.wallpaperId === selectedWallpaperId || w.assetUrl === selectedAssetUrl);
+        const wpId = existing ? existing.wallpaperId : selectedWallpaperId;
+        await wallpaperRepository.setActiveWallpaper(wpId, userId, selectedTarget);
+        if (existing) {
+          setActiveWallpaperState(existing);
+        }
+      } else {
+        const currentEnv = dbManager.getEnvironment();
+        const wpRecord: WallpaperRecord = {
+          wallpaperId: selectedCandidate?.candidateId || selectedWallpaperId || `wp_${Date.now()}`,
+          tenantId,
+          ownerType: 'USER',
+          ownerId: userId,
+          name: selectedName || 'Custom Wallpaper',
+          assetUrl: selectedAssetUrl,
+          thumbnailUrl: selectedAssetUrl,
+          source: selectedCandidate ? 'AI' : activeTab === 'UPLOAD' ? 'UPLOAD' : 'SYSTEM',
+          target: selectedTarget,
+          aiGenerated: !!selectedCandidate,
+          prompt: selectedCandidate?.prompt || prompt,
+          style: selectedCandidate?.style || style,
+          width: 2560,
+          height: 1440,
+          aspectRatio: '16:9',
+          mode: 'STILL',
+          environment: currentEnv,
+          status: 'APPROVED',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
 
-      await wallpaperRepository.saveWallpaper(wpRecord, selectedTarget);
-      await wallpaperRepository.setActiveWallpaper(wpRecord.wallpaperId, userId, selectedTarget);
-      setActiveWallpaperState(wpRecord);
+        await wallpaperRepository.saveWallpaper(wpRecord, selectedTarget);
+        await wallpaperRepository.setActiveWallpaper(wpRecord.wallpaperId, userId, selectedTarget);
+        setActiveWallpaperState(wpRecord);
+        const updated = await wallpaperRepository.getAvailableWallpapers(tenantId, userId, selectedTarget);
+        setGalleryWallpapers(updated);
+      }
       const targetLabel = selectedTarget === 'login' ? 'Login Wallpaper' : 'Home / Desktop Wallpaper';
       showToast(`Static wallpaper applied to Orion ${targetLabel}!`, 'success');
     } catch (err: any) {
       showToast('Failed to apply wallpaper: ' + err.message, 'error');
     } finally {
       setIsApplying(false);
+    }
+  };
+
+  // Delete Wallpaper Handler
+  const handleConfirmDelete = async () => {
+    if (!wallpaperToDelete) return;
+    setIsDeleting(true);
+    try {
+      const res = await wallpaperRepository.deleteWallpaper(wallpaperToDelete.wallpaperId, userId, selectedTarget);
+      if (res.replacementWallpaper) {
+        setActiveWallpaperState(res.replacementWallpaper);
+        setSelectedAssetUrl(res.replacementWallpaper.assetUrl);
+        setSelectedName(res.replacementWallpaper.name);
+        setSelectedWallpaperId(res.replacementWallpaper.wallpaperId);
+      } else if (selectedWallpaperId === wallpaperToDelete.wallpaperId) {
+        const fallback = selectedTarget === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
+        setSelectedAssetUrl(fallback.assetUrl);
+        setSelectedName(fallback.name);
+        setSelectedWallpaperId(fallback.wallpaperId);
+      }
+      const updated = await wallpaperRepository.getAvailableWallpapers(tenantId, userId, selectedTarget);
+      setGalleryWallpapers(updated);
+      showToast(`Wallpaper "${wallpaperToDelete.name}" deleted.`, 'success');
+      setWallpaperToDelete(null);
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete wallpaper.', 'error');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -377,6 +452,8 @@ export const UserWallpaperStudio: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           {galleryWallpapers.map((wp) => {
             const isSelected = selectedAssetUrl === wp.assetUrl;
+            const isSystem = wp.isSystemDefault || wp.ownerType === 'SYSTEM';
+            const isActive = activeWallpaper?.wallpaperId === wp.wallpaperId || activeWallpaper?.assetUrl === wp.assetUrl;
             return (
               <div
                 key={wp.wallpaperId}
@@ -394,27 +471,48 @@ export const UserWallpaperStudio: React.FC = () => {
                 )}
               >
                 <div className="aspect-[16/9] overflow-hidden bg-slate-900 relative">
-                  <img 
+                  <WallpaperCardImage 
                     src={wp.thumbnailUrl || wp.assetUrl} 
                     alt={wp.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
                   />
                   {isSelected && (
-                    <div className="absolute top-2.5 right-2.5 bg-sky-500 text-black p-1 rounded-full shadow-lg">
+                    <div className="absolute top-2.5 right-2.5 bg-sky-500 text-black p-1 rounded-full shadow-lg z-10">
                       <Check className="w-3.5 h-3.5 font-bold" />
                     </div>
                   )}
+                  {/* Delete button for user-uploaded / AI / non-system wallpapers */}
+                  {!isSystem && (
+                    <button
+                      type="button"
+                      title="Delete wallpaper"
+                      aria-label="Delete wallpaper"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setWallpaperToDelete(wp);
+                      }}
+                      className="absolute top-2.5 left-2.5 p-1.5 rounded-lg bg-black/70 hover:bg-rose-600/90 text-white/80 hover:text-white transition-colors backdrop-blur-sm z-10 opacity-70 group-hover:opacity-100 cursor-pointer shadow-md"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
                 </div>
                 <div className="p-3 flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-semibold text-white group-hover:text-sky-300 transition-colors">{wp.name}</h4>
+                  <div className="min-w-0 pr-2">
+                    <h4 className="text-xs font-semibold text-white group-hover:text-sky-300 transition-colors truncate">{wp.name}</h4>
                     <span className="text-[10px] text-slate-400 font-mono">{wp.source} • 2560×1440</span>
                   </div>
-                  {wp.isSystemDefault && (
-                    <span className="px-2 py-0.5 rounded text-[9px] font-mono font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                      DEFAULT
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {isActive && (
+                      <span className="px-2 py-0.5 rounded text-[9px] font-mono font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                        ACTIVE
+                      </span>
+                    )}
+                    {isSystem && (
+                      <span className="px-2 py-0.5 rounded text-[9px] font-mono font-semibold bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                        DEFAULT
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             );
@@ -653,12 +751,70 @@ export const UserWallpaperStudio: React.FC = () => {
   );
 
   return (
-    <OrionSettingsSplitLayout
-      title={t('wallpaper.title')}
-      subtitle="Static 16:9 desktop and login wallpapers with AI generation and upload"
-      badge="STATIC"
-      primary={primaryPane}
-      secondary={secondaryPane}
-    />
+    <>
+      <OrionSettingsSplitLayout
+        title={t('wallpaper.title')}
+        subtitle="Static 16:9 desktop and login wallpapers with AI generation and upload"
+        badge="STATIC"
+        primary={primaryPane}
+        secondary={secondaryPane}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <OrionDialog
+        isOpen={!!wallpaperToDelete}
+        onClose={() => !isDeleting && setWallpaperToDelete(null)}
+        title="Delete Wallpaper"
+        subtitle="Confirm deletion"
+        icon={<Trash2 className="w-5 h-5 text-rose-400" />}
+        footer={
+          <>
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={() => setWallpaperToDelete(null)}
+              className="px-4 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs font-medium text-slate-300 transition-colors cursor-pointer"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={handleConfirmDelete}
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            >
+              {isDeleting ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Deleting...</span>
+                </>
+              ) : (
+                <>
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Delete Wallpaper</span>
+                </>
+              )}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-slate-300">
+            Are you sure you want to delete <strong className="text-white">"{wallpaperToDelete?.name}"</strong>?
+          </p>
+          {(activeWallpaper?.wallpaperId === wallpaperToDelete?.wallpaperId || activeWallpaper?.assetUrl === wallpaperToDelete?.assetUrl) && (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+              <span>
+                This wallpaper is currently active for <strong>{selectedTarget === 'login' ? 'Login' : 'Desktop'}</strong>. Deleting it will automatically reset your wallpaper to the system default.
+              </span>
+            </div>
+          )}
+          <p className="text-[11px] text-slate-400">
+            This action cannot be undone. System default wallpapers cannot be deleted.
+          </p>
+        </div>
+      </OrionDialog>
+    </>
   );
 };

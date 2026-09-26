@@ -61,7 +61,7 @@ describe('ORION-9 Mobile Login Experience & OS Auth Surface', () => {
         </MemoryRouter>
       );
 
-      expect(html).toContain('max-w-[465px]');
+      expect(html).toContain('max-w-[500px]');
       expect(html).toContain('backdrop-blur-2xl');
       expect(html).toContain('bg-[#070e1c]/75');
     });

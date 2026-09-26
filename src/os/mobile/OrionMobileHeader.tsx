@@ -34,11 +34,11 @@ export const OrionMobileHeader: React.FC = () => {
           {activeTab === 'app_view' ? (
             <button
               onClick={closeApp}
-              className="flex items-center gap-1 py-1.5 px-2 -ml-1 rounded-lg bg-os-surface-secondary text-os-text-primary active:bg-os-surface-hover text-xs font-mono font-medium border border-os-border transition-colors touch-manipulation min-h-[44px] min-w-[44px] justify-center"
+              className="flex items-center gap-1 py-1.5 px-2.5 -ml-1 rounded-lg bg-os-surface-secondary text-os-text-primary active:bg-os-surface-hover text-xs font-mono font-medium border border-os-border transition-colors touch-manipulation min-h-[44px] justify-center"
               aria-label="Back to Applications"
             >
               <ChevronLeft size={16} />
-              <span className="hidden xs:inline">Back</span>
+              <span>Apps</span>
             </button>
           ) : (
             <button 
@@ -58,6 +58,11 @@ export const OrionMobileHeader: React.FC = () => {
           <h1 className="text-xs font-mono font-bold tracking-wider text-os-text-primary truncate uppercase">
             {displayTitle}
           </h1>
+          {activeTab === 'app_view' && activeApp && (
+            <p className="text-[10px] font-mono text-os-text-muted uppercase truncate">
+              {activeApp.category} • MOBILE
+            </p>
+          )}
         </div>
 
         {/* RIGHT: Live/Demo Indicator + Notifications + Profile */}
