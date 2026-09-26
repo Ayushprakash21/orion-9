@@ -38,7 +38,7 @@ import {
 } from 'lucide-react';
 
 export function OrionDesktop() {
-  const { isAuthenticated, currentUser } = useAuth();
+  const { isAuthenticated, currentUser, organization } = useAuth();
 
   const {
     activeAppId,
@@ -269,7 +269,12 @@ export function OrionDesktop() {
       {/* OS Layer 0: Premium Desktop Background & Live Supply Chain Network */}
       <div className="orion-desktop-wallpaper-layer absolute inset-0 z-0 pointer-events-none">
         {/* Live Supply Chain Network Canvas — HOME DESKTOP ONLY */}
-        <OrionLiveWallpaper hasOpenWindows={currentWorkspaceWindows.some(w => w.state !== 'minimized')} />
+        <OrionLiveWallpaper 
+          hasOpenWindows={currentWorkspaceWindows.some(w => w.state !== 'minimized')}
+          target="desktop"
+          userId={currentUser?.id}
+          tenantId={currentUser?.organizationId || organization?.id || 'global'}
+        />
         
       </div>
 

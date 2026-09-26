@@ -141,4 +141,48 @@ describe('ORION-9 Wallpaper Studio & Live Wallpaper Engine', () => {
       expect(['DEMO', 'LIVE']).toContain(currentEnv);
     });
   });
+
+  describe('5. Target Isolation & Independent Target Reset', () => {
+    it('5.1 isolates LOGIN and DESKTOP active wallpaper selections independently', async () => {
+      const userId = 'user_isolation_test_01';
+      const tenantId = 'tenant_isolation_test_01';
+
+      // 1. Set DESKTOP to sys-deep-orion-nebula
+      await wallpaperRepository.setActiveWallpaper('sys-deep-orion-nebula', userId, 'desktop');
+
+      // 2. Set LOGIN to sys-orbital-grid-node
+      await wallpaperRepository.setActiveWallpaper('sys-orbital-grid-node', userId, 'login');
+
+      // 3. getActiveWallpaper for desktop must return sys-deep-orion-nebula
+      const activeDesktop = await wallpaperRepository.getActiveWallpaper(userId, tenantId, 'desktop');
+      expect(activeDesktop.wallpaperId).toBe('sys-deep-orion-nebula');
+
+      // 4. getActiveWallpaper for login must return sys-orbital-grid-node
+      const activeLogin = await wallpaperRepository.getActiveWallpaper(userId, tenantId, 'login');
+      expect(activeLogin.wallpaperId).toBe('sys-orbital-grid-node');
+
+      // 5. Reset LOGIN only
+      await wallpaperRepository.resetToSystemDefault(userId, 'login');
+
+      // 6. LOGIN becomes sys-orion-aurora-space
+      const resetLogin = await wallpaperRepository.getActiveWallpaper(userId, tenantId, 'login');
+      expect(resetLogin.wallpaperId).toBe('sys-orion-aurora-space');
+
+      // 7. DESKTOP remains sys-deep-orion-nebula
+      const preservedDesktop = await wallpaperRepository.getActiveWallpaper(userId, tenantId, 'desktop');
+      expect(preservedDesktop.wallpaperId).toBe('sys-deep-orion-nebula');
+    });
+
+    it('5.2 ensures targetless legacy or default selection does not cross into LOGIN', async () => {
+      const userId = 'user_legacy_test_02';
+
+      // Set desktop legacy selection
+      await wallpaperRepository.setActiveWallpaper('sys-deep-orion-nebula', userId, 'desktop');
+
+      // Login target must return policy default (sys-orion-aurora-space), never desktop selection
+      const activeLogin = await wallpaperRepository.getActiveWallpaper(userId, 'global', 'login');
+      expect(activeLogin.wallpaperId).toBe('sys-orion-aurora-space');
+      expect(activeLogin.wallpaperId).not.toBe('sys-deep-orion-nebula');
+    });
+  });
 });

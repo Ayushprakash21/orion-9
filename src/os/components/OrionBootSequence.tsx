@@ -41,7 +41,7 @@ export function OrionBootSequence({ onComplete }: OrionBootSequenceProps) {
     <div className="ob3-dust">{dust.map((p,i)=><i key={i} style={{left:`${p.x}%`,top:`${p.y}%`,animationDelay:`${p.d}s`}} />)}</div>
     <div className="ob3-rail ob3-rail-a"/><div className="ob3-rail ob3-rail-b"/>
     <section className={`ob3-core ${core?'on':''}`}>
-      <div className="ob3-core-outer"/><div className="ob3-core-mid"/><div className="ob3-core-inner"/>
+      <div className="ob3-core-outer"/><div className="ob3-core-mid"/>
       <div className="ob3-core-mark"><BrandLogo sizePreset="hero" variant="full" className="ob3-center-logo" /></div>
       <span className="ob3-core-tick t1"/><span className="ob3-core-tick t2"/><span className="ob3-core-tick t3"/><span className="ob3-core-tick t4"/>
     </section>

@@ -1,10 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { cn } from '../../lib/utils';
 import { wallpaperRepository, SYSTEM_DEFAULT_WALLPAPERS, WallpaperTarget } from '../../repositories/WallpaperRepository';
-import { WallpaperRecord, MotionProfile, DEFAULT_MOTION_PROFILE, QualityTier } from '../../types/wallpaper';
+import { WallpaperRecord, MotionProfile, DEFAULT_MOTION_PROFILE, QualityTier, WallpaperMode } from '../../types/wallpaper';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { HealthService } from '../../operations/HealthService';
 import { DemoPersistentSchedulerService } from '../../services/demo/DemoPersistentSchedulerService';
+import { liveWallpaperRenderer } from '../../services/wallpaper/LiveWallpaperRenderer';
+import { liveWallpaperEngine } from '../../services/wallpaper/LiveWallpaperEngine';
+import { sceneAnalyzer } from '../../services/wallpaper/SceneAnalyzer';
 
 interface OrionLiveWallpaperProps {
   hasOpenWindows?: boolean;
@@ -14,6 +17,8 @@ interface OrionLiveWallpaperProps {
   overrideRuntimeReactive?: boolean;
   quality?: QualityTier;
   target?: WallpaperTarget;
+  userId?: string;
+  tenantId?: string;
 }
 
 export function OrionLiveWallpaper({ 
@@ -23,7 +28,9 @@ export function OrionLiveWallpaper({
   overrideMotionProfile,
   overrideRuntimeReactive,
   quality = 'MEDIUM',
-  target = 'desktop'
+  target = 'desktop',
+  userId,
+  tenantId
 }: OrionLiveWallpaperProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -33,7 +40,7 @@ export function OrionLiveWallpaper({
   const [dbEnv, setDbEnv] = useState<'DEMO' | 'LIVE'>(() => dbManager.getEnvironment());
   const [runtimeSignalPulse, setRuntimeSignalPulse] = useState(0);
 
-  // Load Active Wallpaper from Repository for specific target
+  // Load Active Wallpaper from Repository for specific target & user identity
   useEffect(() => {
     if (overrideWallpaper) {
       setActiveWallpaper(overrideWallpaper);
@@ -41,9 +48,12 @@ export function OrionLiveWallpaper({
     }
 
     let mounted = true;
+    const activeUserId = userId;
+    const activeTenantId = tenantId || 'global';
+
     const loadActive = async () => {
       try {
-        const wp = await wallpaperRepository.getActiveWallpaper(undefined, 'global', target);
+        const wp = await wallpaperRepository.getActiveWallpaper(activeUserId, activeTenantId, target);
         if (mounted) setActiveWallpaper(wp);
       } catch (err) {
         console.warn(`Failed to load active ${target} wallpaper:`, err);
@@ -53,11 +63,12 @@ export function OrionLiveWallpaper({
     loadActive();
 
     const handleActiveChange = (e: any) => {
-      if (mounted && e.detail?.wallpaper) {
-        // If event specifies a target, check match; if no target specified, match anyway
-        if (!e.detail.target || e.detail.target === target) {
-          setActiveWallpaper(e.detail.wallpaper);
-        }
+      if (
+        mounted &&
+        e.detail?.wallpaper &&
+        e.detail?.target === target
+      ) {
+        setActiveWallpaper(e.detail.wallpaper);
       }
     };
 
@@ -66,16 +77,14 @@ export function OrionLiveWallpaper({
     };
 
     window.addEventListener('orion-active-wallpaper-changed', handleActiveChange as EventListener);
-    window.addEventListener('orion-wallpaper-updated', handleActiveChange as EventListener);
     window.addEventListener('orion-database-environment-changed', handleEnvChange);
 
     return () => {
       mounted = false;
       window.removeEventListener('orion-active-wallpaper-changed', handleActiveChange as EventListener);
-      window.removeEventListener('orion-wallpaper-updated', handleActiveChange as EventListener);
       window.removeEventListener('orion-database-environment-changed', handleEnvChange);
     };
-  }, [overrideWallpaper, target]);
+  }, [overrideWallpaper, target, userId, tenantId]);
 
   // Mouse Move Lerped Parallax Tracking
   useEffect(() => {
@@ -133,112 +142,43 @@ export function OrionLiveWallpaper({
     };
   }, [activeWallpaper.runtimeReactive, overrideRuntimeReactive, dbEnv]);
 
-  // Canvas 2D Motion Engine
+  // Live Engine V2 WebGL Renderer Integration
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
 
-    let width = 1;
-    let height = 1;
-    let dpr = 1;
-    let raf = 0;
-    let running = true;
+    // Resolve LiveSceneDefinition & Mode
+    const activeMode: WallpaperMode = activeWallpaper.mode || 'LIVE';
+    let sceneDef = activeWallpaper.liveScene;
 
-    const motion: MotionProfile = overrideMotionProfile || activeWallpaper.motionProfile || DEFAULT_MOTION_PROFILE;
+    if (!sceneDef) {
+      sceneDef = sceneAnalyzer.analyzeScene({
+        style: activeWallpaper.style,
+        prompt: activeWallpaper.prompt || activeWallpaper.name,
+      }).defaultSceneDefinition;
+      sceneDef.mode = activeMode;
+    }
 
-    // Seed particle array based on particles factor and quality
-    const particleMultiplier = quality === 'HIGH' ? 1.5 : quality === 'LOW' ? 0.5 : 1.0;
-    const particleCount = Math.round(35 * motion.particles * particleMultiplier);
-    
-    const particles = Array.from({ length: particleCount }, (_, i) => ({
-      x: (i * 73 + 17) % 100 / 100,
-      y: (i * 37 + 43) % 100 / 100,
-      radius: 0.8 + ((i * 13) % 15) / 10,
-      alpha: 0.15 + ((i * 19) % 35) / 100,
-      vx: ((((i * 7) % 11) - 5) / 100) * 0.0002,
-      vy: -0.0001 - (((i * 5) % 9) / 100) * 0.0002,
-    }));
-
-    const resize = () => {
-      const rect = canvas.getBoundingClientRect();
-      width = Math.max(1, rect.width);
-      height = Math.max(1, rect.height);
-      dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.round(width * dpr);
-      canvas.height = Math.round(height * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-
-    const draw = (now: number) => {
-      if (!running) return;
-      const time = now * 0.001;
-      const reduced = document.documentElement.classList.contains('reduced-motion');
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, width, height);
-
-      const intensityFactor = hasOpenWindows ? 0.55 : 0.90;
-      const pX = parallaxOffset.x * motion.parallax * 30;
-      const pY = parallaxOffset.y * motion.parallax * 30;
-
-      // 1. Atmospheric Ambient Glow Drift
-      if (!reduced && motion.atmosphere > 0.01) {
-        const sweepX = width * (0.5 + Math.sin(time * 0.02 * motion.backgroundDrift) * 0.35) + pX;
-        const sweepY = height * (0.45 + Math.cos(time * 0.025) * 0.15) + pY;
-        const atmRadius = width * (0.2 + motion.atmosphere * 0.6);
-
-        const atmGrad = ctx.createRadialGradient(sweepX, sweepY, 0, sweepX, sweepY, atmRadius);
-        const pulseAlpha = (0.04 + runtimeSignalPulse * 0.08) * intensityFactor;
-        
-        atmGrad.addColorStop(0, `rgba(56, 189, 248, ${pulseAlpha * motion.atmosphere * 4})`);
-        atmGrad.addColorStop(0.5, `rgba(30, 58, 138, ${pulseAlpha * 0.5})`);
-        atmGrad.addColorStop(1, 'transparent');
-
-        ctx.fillStyle = atmGrad;
-        ctx.fillRect(0, 0, width, height);
-      }
-
-      // 2. Micro-Particles Floating Shimmer
-      if (!reduced && motion.particles > 0.01) {
-        ctx.fillStyle = '#93c5fd';
-        for (const p of particles) {
-          p.x += p.vx;
-          p.y += p.vy;
-
-          if (p.x < 0) p.x += 1;
-          if (p.x > 1) p.x -= 1;
-          if (p.y < 0) p.y += 1;
-          if (p.y > 1) p.y -= 1;
-
-          const px = p.x * width + pX * 1.5;
-          const py = p.y * height + pY * 1.5;
-
-          const shimmer = Math.sin(time * 2 + p.x * 10) * 0.15;
-          const finalAlpha = Math.max(0.05, Math.min(0.65, p.alpha + shimmer + runtimeSignalPulse * 0.15)) * intensityFactor;
-
-          ctx.globalAlpha = finalAlpha;
-          ctx.beginPath();
-          ctx.arc(px, py, p.radius, 0, Math.PI * 2);
-          ctx.fill();
-        }
-        ctx.globalAlpha = 1.0;
-      }
-
-      raf = requestAnimationFrame(draw);
-    };
-
-    resize();
-    window.addEventListener('resize', resize);
-    raf = requestAnimationFrame(draw);
+    // Initialize WebGL Renderer
+    liveWallpaperRenderer.initialize(canvas, sceneDef, quality, (t) => {
+      liveWallpaperEngine.updateTelemetry({
+        fps: t.fps,
+        status: t.status,
+        rendererType: t.rendererType,
+        mode: t.mode,
+        activeLayersCount: t.activeLayersCount,
+      });
+    });
 
     return () => {
-      running = false;
-      cancelAnimationFrame(raf);
-      window.removeEventListener('resize', resize);
+      liveWallpaperRenderer.dispose();
     };
-  }, [hasOpenWindows, activeWallpaper, overrideMotionProfile, quality, parallaxOffset, runtimeSignalPulse]);
+  }, [activeWallpaper, quality]);
+
+  // Update Parallax Offset in Renderer
+  useEffect(() => {
+    liveWallpaperRenderer.setParallax(parallaxOffset.x, parallaxOffset.y);
+  }, [parallaxOffset]);
 
   return (
     <div 

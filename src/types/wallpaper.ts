@@ -9,6 +9,74 @@ export type WallpaperStatus = 'APPROVED' | 'DRAFT' | 'ACTIVE' | 'ARCHIVED';
 export type WallpaperStyle = 'Aurora' | 'Space' | 'Nature' | 'Abstract' | 'Custom';
 export type QualityTier = 'LOW' | 'MEDIUM' | 'HIGH';
 
+export type WallpaperMode = 'STILL' | 'LIVE';
+
+export type LiveLayerType =
+  | 'background'
+  | 'starfield'
+  | 'nebula'
+  | 'planet'
+  | 'clouds'
+  | 'atmosphere'
+  | 'water'
+  | 'aurora'
+  | 'light'
+  | 'particle'
+  | 'object'
+  | 'foreground'
+  | 'custom';
+
+export type MotionType =
+  | 'static'
+  | 'rotate'
+  | 'orbit'
+  | 'drift'
+  | 'flow'
+  | 'pulse'
+  | 'shimmer'
+  | 'breathe'
+  | 'parallax'
+  | 'float'
+  | 'wave'
+  | 'custom';
+
+export interface LiveMotionInstruction {
+  type: MotionType;
+  speed: number;        // 0.0 to 1.0 (clamped)
+  intensity: number;    // 0.0 to 1.0 (clamped)
+  direction?: string;
+  axis?: 'x' | 'y' | 'z';
+  phase?: number;
+  loop?: boolean;
+}
+
+export interface LiveSceneLayer {
+  id: string;
+  name: string;
+  type: LiveLayerType;
+  source: 'image' | 'procedural' | 'shader' | 'generated' | 'depth';
+  depth: number;
+  motion: LiveMotionInstruction;
+  opacity: number;
+  enabled: boolean;
+}
+
+export interface LiveSceneDefinition {
+  mode: WallpaperMode;
+  renderer: 'STATIC' | 'WEBGL' | 'VIDEO';
+  width: number;
+  height: number;
+  layers: LiveSceneLayer[];
+  globalMotion: {
+    intensity: number;
+    speed: number;
+  };
+  reactive: boolean;
+  userCommand?: string;
+  aiGenerated: boolean;
+  createdAt: string;
+}
+
 export interface MotionProfile {
   backgroundDrift: number; // 0.0 to 0.20
   parallax: number;        // 0.0 to 0.30
@@ -45,6 +113,10 @@ export interface WallpaperRecord {
   height: number;
   aspectRatio: string; // '16:9'
   motionProfile: MotionProfile;
+  mode?: WallpaperMode;
+  liveScene?: LiveSceneDefinition;
+  motionCommand?: string;
+  motionVersion?: number;
   runtimeReactive: boolean;
   environment: 'DEMO' | 'LIVE';
   status: WallpaperStatus;

@@ -25,9 +25,10 @@ describe('ORION-9 OS Startup Sequence & Boot Flow UI Specifications', () => {
     expect(html).toContain('role="status"');
     expect(html).toContain('aria-live="polite"');
 
-    // Title and Tagline present
-    expect(html).toContain('data-testid="startup-title"');
-    expect(html).toContain('ORION-9');
+    // Logo and Tagline present, duplicate startup-title removed
+    expect(html).toContain('data-testid="startup-logo"');
+    expect(html).not.toContain('data-testid="startup-title"');
+    expect(html).toContain('data-testid="startup-tagline"');
     expect(html).toContain('AI SUPPLY CHAIN OPERATING SYSTEM');
   });
 

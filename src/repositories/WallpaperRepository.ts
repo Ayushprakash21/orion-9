@@ -104,12 +104,14 @@ export const SYSTEM_DEFAULT_WALLPAPERS: WallpaperRecord[] = [
   },
 ];
 
+import { wallpaperAssetStorage } from '../services/wallpaper/WallpaperAssetStorage';
+
 export type WallpaperTarget = 'login' | 'desktop';
 
 export class WallpaperRepository {
   private static instance: WallpaperRepository;
   private memoryWallpapers: Map<string, WallpaperRecord> = new Map();
-  private memoryActiveSelections: Map<string, string> = new Map(); // `${userId}_${target}` -> wallpaperId
+  private memoryActiveSelections: Map<string, string> = new Map(); // selectionKey -> wallpaperId
   private memoryPolicy: WallpaperPolicy = { ...DEFAULT_WALLPAPER_POLICY };
 
   private constructor() {
@@ -126,21 +128,33 @@ export class WallpaperRepository {
     return WallpaperRepository.instance;
   }
 
+  /**
+   * Deterministic selection key generation:
+   * LOGIN: 'global_login'
+   * DESKTOP: `${userId}_desktop` (or 'global_desktop' if unauthenticated)
+   */
+  public getSelectionKey(userId?: string, target: WallpaperTarget = 'desktop'): string {
+    if (target === 'login') {
+      return 'global_login';
+    }
+    return userId ? `${userId}_desktop` : 'global_desktop';
+  }
+
   private restoreCache(): void {
     if (typeof window !== 'undefined' && window.sessionStorage) {
       try {
-        const savedDesktop = sessionStorage.getItem('orion_active_wallpaper_id_desktop');
-        if (savedDesktop) {
-          this.memoryActiveSelections.set('default_desktop', savedDesktop);
-        }
         const savedLogin = sessionStorage.getItem('orion_active_wallpaper_id_login');
         if (savedLogin) {
-          this.memoryActiveSelections.set('default_login', savedLogin);
+          this.memoryActiveSelections.set('global_login', savedLogin);
+        }
+        const savedDesktopGlobal = sessionStorage.getItem('orion_active_wallpaper_id_desktop_global');
+        if (savedDesktopGlobal) {
+          this.memoryActiveSelections.set('global_desktop', savedDesktopGlobal);
         }
         const savedActiveLegacy = sessionStorage.getItem('orion_active_wallpaper_id');
-        if (savedActiveLegacy) {
-          if (!savedDesktop) this.memoryActiveSelections.set('default_desktop', savedActiveLegacy);
-          if (!savedLogin) this.memoryActiveSelections.set('default_login', savedActiveLegacy);
+        const savedDesktop = this.memoryActiveSelections.get('global_desktop');
+        if (savedActiveLegacy && !savedDesktop) {
+          this.memoryActiveSelections.set('default_desktop', savedActiveLegacy);
         }
         const savedCustoms = sessionStorage.getItem('orion_custom_wallpapers');
         if (savedCustoms) {
@@ -153,18 +167,19 @@ export class WallpaperRepository {
     }
   }
 
-  private persistCache(userId?: string): void {
+  private persistCache(userId?: string, target?: WallpaperTarget): void {
     if (typeof window !== 'undefined' && window.sessionStorage) {
       try {
-        const userKey = userId || 'default';
-        const desktopActive = this.memoryActiveSelections.get(`${userKey}_desktop`) || this.memoryActiveSelections.get('default_desktop');
-        if (desktopActive) {
-          sessionStorage.setItem('orion_active_wallpaper_id_desktop', desktopActive);
-          sessionStorage.setItem('orion_active_wallpaper_id', desktopActive);
+        if (!target || target === 'login') {
+          const loginActive = this.memoryActiveSelections.get('global_login');
+          if (loginActive) sessionStorage.setItem('orion_active_wallpaper_id_login', loginActive);
         }
-        const loginActive = this.memoryActiveSelections.get(`${userKey}_login`) || this.memoryActiveSelections.get('default_login');
-        if (loginActive) {
-          sessionStorage.setItem('orion_active_wallpaper_id_login', loginActive);
+        if (!target || target === 'desktop') {
+          const userKey = userId || 'global';
+          const desktopActive = this.memoryActiveSelections.get(`${userKey}_desktop`) || this.memoryActiveSelections.get('global_desktop');
+          if (desktopActive) {
+            sessionStorage.setItem(`orion_active_wallpaper_id_desktop_${userKey}`, desktopActive);
+          }
         }
         
         const customs = Array.from(this.memoryWallpapers.values()).filter(w => w.ownerType !== 'SYSTEM');
@@ -237,11 +252,21 @@ export class WallpaperRepository {
 
   /**
    * Saves or updates wallpaper record in Cloud Firestore authoritative repository.
+   * Intercepts large Base64 images to prevent multi-megabyte payloads in Firestore.
    */
   public async saveWallpaper(record: WallpaperRecord): Promise<WallpaperRecord> {
     const env = dbManager.getEnvironment();
+    
+    // Process image asset string via storage abstraction
+    let safeAssetUrl = record.assetUrl;
+    if (safeAssetUrl && safeAssetUrl.startsWith('data:')) {
+      safeAssetUrl = await wallpaperAssetStorage.uploadAsset(safeAssetUrl, record.name);
+    }
+
     const updated: WallpaperRecord = {
       ...record,
+      assetUrl: safeAssetUrl,
+      thumbnailUrl: safeAssetUrl,
       environment: env,
       updatedAt: new Date().toISOString(),
     };
@@ -277,11 +302,10 @@ export class WallpaperRepository {
     tenantId: string = 'global',
     target: WallpaperTarget = 'desktop'
   ): Promise<WallpaperRecord> {
-    const userKey = userId || 'default';
-    const selectionKey = `${userKey}_${target}`;
+    const selectionKey = this.getSelectionKey(userId, target);
     const firestore = dbManager.getFirestore();
 
-    if (firestore && userId) {
+    if (firestore) {
       try {
         const selRef = doc(firestore, SELECTIONS_COLLECTION, selectionKey);
         const selSnap = await getDoc(selRef);
@@ -298,9 +322,9 @@ export class WallpaperRepository {
       } catch (e) {}
     }
 
-    const activeId = this.memoryActiveSelections.get(selectionKey) || 
-      this.memoryActiveSelections.get(`default_${target}`) || 
-      this.memoryActiveSelections.get('default') || 
+    const activeId =
+      this.memoryActiveSelections.get(selectionKey) ||
+      this.memoryActiveSelections.get(`default_${target}`) ||
       this.memoryPolicy.defaultWallpaperId;
     const found = this.memoryWallpapers.get(activeId);
 
@@ -324,8 +348,8 @@ export class WallpaperRepository {
       throw new Error(`Wallpaper ID ${wallpaperId} not found.`);
     }
 
-    const userKey = userId || 'default';
-    const selectionKey = `${userKey}_${target}`;
+    const selectionKey = this.getSelectionKey(userId, target);
+    const targetUser = target === 'login' ? 'global' : (userId || 'global');
     const env = dbManager.getEnvironment();
 
     const firestore = dbManager.getFirestore();
@@ -334,7 +358,7 @@ export class WallpaperRepository {
         const selRef = doc(firestore, SELECTIONS_COLLECTION, selectionKey);
         await setDoc(selRef, {
           wallpaperId: wp.wallpaperId,
-          userId: userKey,
+          userId: targetUser,
           target: target,
           tenantId: wp.tenantId || 'global',
           organizationId: wp.organizationId || 'ORION_PLATFORM',
@@ -350,8 +374,7 @@ export class WallpaperRepository {
     }
 
     this.memoryActiveSelections.set(selectionKey, wallpaperId);
-    this.memoryActiveSelections.set(`default_${target}`, wallpaperId);
-    this.persistCache(userKey);
+    this.persistCache(userId, target);
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('orion-active-wallpaper-changed', { 
@@ -413,12 +436,16 @@ export class WallpaperRepository {
   }
 
   /**
-   * Resets user active wallpaper to system default.
+   * Resets active wallpaper for target (login or desktop) to system default.
    */
-  public async resetToSystemDefault(userId?: string): Promise<WallpaperRecord> {
+  public async resetToSystemDefault(
+    userId?: string,
+    target: WallpaperTarget = 'desktop'
+  ): Promise<WallpaperRecord> {
     const defaultId = this.memoryPolicy.defaultWallpaperId || SYSTEM_DEFAULT_WALLPAPERS[0].wallpaperId;
-    return this.setActiveWallpaper(defaultId, userId);
+    return this.setActiveWallpaper(defaultId, userId, target);
   }
 }
 
 export const wallpaperRepository = WallpaperRepository.getInstance();
+

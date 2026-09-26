@@ -149,23 +149,12 @@ export const OrionPowerOnScreen: React.FC<OrionPowerOnScreenProps> = ({
               />
             </div>
 
-            {/* 0.6s: ORION-9 Title */}
-            <h1
-              data-testid="startup-title"
-              className={cn(
-                "font-mono font-bold tracking-[0.25em] text-os-text-primary text-xl sm:text-2xl uppercase transition-opacity duration-500",
-                elapsedMs >= 600 ? "opacity-100" : "opacity-0"
-              )}
-            >
-              {appName}
-            </h1>
-
-            {/* 0.9s: Tagline */}
+            {/* Tagline */}
             <p
               data-testid="startup-tagline"
               className={cn(
                 "font-mono text-os-text-muted text-[10px] sm:text-xs tracking-[0.2em] uppercase mt-1 mb-8 transition-opacity duration-500",
-                elapsedMs >= 900 ? "opacity-100" : "opacity-0"
+                elapsedMs >= 300 ? "opacity-100" : "opacity-0"
               )}
             >
               {appTagline.toUpperCase()}
@@ -253,13 +242,7 @@ export const OrionPowerOnScreen: React.FC<OrionPowerOnScreenProps> = ({
               />
             </div>
 
-            {/* System Title */}
-            <h1
-              data-testid="boot-title"
-              className="font-mono font-bold tracking-[0.25em] text-os-text-primary text-xl sm:text-2xl uppercase leading-none mb-3"
-            >
-              {appName}
-            </h1>
+
 
             {/* Monospaced System Status Badge */}
             <div

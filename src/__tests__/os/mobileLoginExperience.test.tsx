@@ -49,10 +49,9 @@ describe('ORION-9 Mobile Login Experience & OS Auth Surface', () => {
 
       const plainText = html.replace(/<[^>]+>/g, '');
       expect(plainText).toContain('ORION-9');
-      expect(plainText).toContain('SYSTEM READY');
-      expect(plainText).toContain('Environment:');
-      expect(plainText).toContain('Authentication:');
-      expect(plainText).toContain('READY');
+      expect(plainText).not.toContain('Environment:');
+      expect(plainText).not.toContain('Authentication: READY');
+      expect(html).toContain('Sign in to Orion');
     });
 
     it('renders acrylic card container with compact mobile dimensions', () => {

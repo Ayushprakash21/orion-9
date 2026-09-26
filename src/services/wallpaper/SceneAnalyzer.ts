@@ -4,7 +4,7 @@
  * to generate a bounded, subtle, and premium Live Wallpaper Motion Profile.
  */
 
-import { MotionProfile, DEFAULT_MOTION_PROFILE, WallpaperStyle } from '../../types/wallpaper';
+import { MotionProfile, DEFAULT_MOTION_PROFILE, WallpaperStyle, LiveSceneDefinition, LiveSceneLayer } from '../../types/wallpaper';
 
 export interface SceneAnalysisResult {
   detectedRegions: {
@@ -15,6 +15,7 @@ export interface SceneAnalysisResult {
     waterOrFluid: boolean;
   };
   recommendedProfile: MotionProfile;
+  defaultSceneDefinition: LiveSceneDefinition;
 }
 
 export class SceneAnalyzer {
@@ -30,7 +31,7 @@ export class SceneAnalyzer {
   }
 
   /**
-   * Analyzes selected wallpaper image & style parameters to generate an optimal bounded MotionProfile.
+   * Analyzes selected wallpaper image & style parameters to generate an optimal bounded MotionProfile and LiveSceneDefinition.
    */
   public analyzeScene(params: {
     style?: WallpaperStyle;
@@ -43,7 +44,7 @@ export class SceneAnalyzer {
     const intensity = Math.max(0.2, Math.min(1.0, params.atmosphereIntensity ?? 0.8));
     const promptText = (params.prompt || '').toLowerCase();
 
-    const isSpace = style === 'Space' || promptText.includes('space') || promptText.includes('star') || promptText.includes('galaxy');
+    const isSpace = style === 'Space' || promptText.includes('space') || promptText.includes('star') || promptText.includes('galaxy') || promptText.includes('earth');
     const isAurora = style === 'Aurora' || promptText.includes('aurora') || promptText.includes('light');
     const isNature = style === 'Nature' || promptText.includes('mountain') || promptText.includes('ocean') || promptText.includes('sky');
     const isAbstract = style === 'Abstract' || promptText.includes('cyber') || promptText.includes('tech') || promptText.includes('geometry');
@@ -76,7 +77,6 @@ export class SceneAnalyzer {
       objectMotion = 0.06 * intensity;
     }
 
-    // Enforce upper safety bounds (never exceed subtle OS desktop thresholds)
     const recommendedProfile: MotionProfile = {
       backgroundDrift: Number(Math.min(0.12, Math.max(0.01, backgroundDrift)).toFixed(3)),
       parallax: Number(Math.min(0.25, Math.max(0.02, parallax)).toFixed(3)),
@@ -84,6 +84,121 @@ export class SceneAnalyzer {
       particles: Number(Math.min(0.20, Math.max(0.01, particles)).toFixed(3)),
       lightMovement: Number(Math.min(0.20, Math.max(0.02, lightMovement)).toFixed(3)),
       objectMotion: Number(Math.min(0.15, Math.max(0.01, objectMotion)).toFixed(3)),
+    };
+
+    // Construct LiveSceneLayer array
+    const layers: LiveSceneLayer[] = [
+      {
+        id: 'layer_bg_nebula',
+        name: 'Deep Space Nebula Background',
+        type: 'nebula',
+        source: 'shader',
+        depth: 0.1,
+        motion: {
+          type: 'drift',
+          speed: 0.005 * intensity,
+          intensity: 0.15,
+          direction: 'horizontal',
+          loop: true,
+        },
+        opacity: 0.9,
+        enabled: true,
+      },
+      {
+        id: 'layer_starfield',
+        name: 'Background Starfield',
+        type: 'starfield',
+        source: 'procedural',
+        depth: 0.2,
+        motion: {
+          type: 'static',
+          speed: 0.002,
+          intensity: 0.10,
+          loop: true,
+        },
+        opacity: 0.85,
+        enabled: true,
+      },
+      {
+        id: 'layer_earth_planet',
+        name: 'Earth 3D Spherical Surface',
+        type: 'planet',
+        source: 'image',
+        depth: 0.5,
+        motion: {
+          type: 'rotate',
+          speed: 0.015 * intensity,
+          intensity: 0.25,
+          axis: 'y',
+          direction: 'cw',
+          loop: true,
+        },
+        opacity: 1.0,
+        enabled: true,
+      },
+      {
+        id: 'layer_earth_clouds',
+        name: 'Independent Cloud Atmosphere',
+        type: 'clouds',
+        source: 'image',
+        depth: 0.52,
+        motion: {
+          type: 'drift',
+          speed: 0.018 * intensity,
+          intensity: 0.20,
+          axis: 'y',
+          direction: 'cw',
+          loop: true,
+        },
+        opacity: 0.75,
+        enabled: true,
+      },
+      {
+        id: 'layer_earth_atmosphere',
+        name: 'Rayleigh Rim Glow',
+        type: 'atmosphere',
+        source: 'shader',
+        depth: 0.55,
+        motion: {
+          type: 'breathe',
+          speed: 0.008 * intensity,
+          intensity: 0.15,
+          loop: true,
+        },
+        opacity: 0.80,
+        enabled: true,
+      },
+      {
+        id: 'layer_city_lights',
+        name: 'Night City Lights Shimmer',
+        type: 'light',
+        source: 'shader',
+        depth: 0.51,
+        motion: {
+          type: 'shimmer',
+          speed: 0.012 * intensity,
+          intensity: 0.22,
+          loop: true,
+        },
+        opacity: 0.90,
+        enabled: true,
+      }
+    ];
+
+    const defaultSceneDefinition: LiveSceneDefinition = {
+      mode: 'LIVE',
+      renderer: 'WEBGL',
+      width: params.width || 2560,
+      height: params.height || 1440,
+      layers,
+      globalMotion: {
+        intensity: Number(intensity.toFixed(2)),
+        speed: 0.40,
+      },
+      reactive: true,
+      userCommand: 'Default Live Earth Scene',
+      aiGenerated: false,
+      createdAt: new Date(1700000000000).toISOString(),
     };
 
     return {
@@ -95,6 +210,7 @@ export class SceneAnalyzer {
         waterOrFluid: promptText.includes('ocean') || promptText.includes('river'),
       },
       recommendedProfile,
+      defaultSceneDefinition,
     };
   }
 }

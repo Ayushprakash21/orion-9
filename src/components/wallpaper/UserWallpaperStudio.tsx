@@ -10,11 +10,15 @@ import {
   WallpaperStyle, 
   MotionProfile, 
   DEFAULT_MOTION_PROFILE,
-  QualityTier
+  QualityTier,
+  WallpaperMode,
+  LiveSceneDefinition
 } from '../../types/wallpaper';
 import { wallpaperRepository, SYSTEM_DEFAULT_WALLPAPERS, WallpaperTarget } from '../../repositories/WallpaperRepository';
 import { aiWallpaperGenerator } from '../../services/wallpaper/AiWallpaperGenerator';
 import { sceneAnalyzer } from '../../services/wallpaper/SceneAnalyzer';
+import { aiMotionDirector } from '../../services/wallpaper/AiMotionDirector';
+import { liveWallpaperEngine, LiveEngineTelemetry } from '../../services/wallpaper/LiveWallpaperEngine';
 import { OrionLiveWallpaper } from '../../os/components/OrionLiveWallpaper';
 import { useToast } from '../../store/ToastContext';
 import { useAuth } from '../../store/AuthContext';
@@ -57,6 +61,13 @@ export const UserWallpaperStudio: React.FC = () => {
   const [candidates, setCandidates] = useState<WallpaperCandidate[]>([]);
   const [selectedCandidate, setSelectedCandidate] = useState<WallpaperCandidate | null>(null);
 
+  // Live Engine V2 Setup & Parameters
+  const [selectedMode, setSelectedMode] = useState<WallpaperMode>('LIVE');
+  const [motionCommandInput, setMotionCommandInput] = useState<string>('Make Earth rotate slowly from left to right. Keep stars almost stationary. Clouds move independently.');
+  const [previewSceneDef, setPreviewSceneDef] = useState<LiveSceneDefinition | null>(null);
+  const [isGeneratingMotion, setIsGeneratingMotion] = useState(false);
+  const [liveTelemetry, setLiveTelemetry] = useState<LiveEngineTelemetry>(() => liveWallpaperEngine.getTelemetry());
+
   // Live Setup & Preview Parameters (Guaranteed non-blank initialization)
   const [selectedAssetUrl, setSelectedAssetUrl] = useState<string>(SYSTEM_DEFAULT_WALLPAPERS[0].assetUrl);
   const [selectedName, setSelectedName] = useState<string>(SYSTEM_DEFAULT_WALLPAPERS[0].name);
@@ -67,6 +78,14 @@ export const UserWallpaperStudio: React.FC = () => {
   const [isApplying, setIsApplying] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Poll live telemetry for Wallpaper Studio Telemetry Panel
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setLiveTelemetry(liveWallpaperEngine.getTelemetry());
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
 
   // Load active wallpaper & gallery on mount or target switch with guaranteed non-blank recovery
   useEffect(() => {
@@ -93,6 +112,10 @@ export const UserWallpaperStudio: React.FC = () => {
           setSelectedName(validActive.name);
           setMotionProfile(validActive.motionProfile || { ...DEFAULT_MOTION_PROFILE });
           setRuntimeReactive(validActive.runtimeReactive);
+          setSelectedMode(validActive.mode || 'LIVE');
+          if (validActive.motionCommand) setMotionCommandInput(validActive.motionCommand);
+          if (validActive.liveScene) setPreviewSceneDef(validActive.liveScene);
+
           setStudioState('READY');
           setErrorMessage('');
         }
@@ -199,12 +222,43 @@ export const UserWallpaperStudio: React.FC = () => {
     e.target.value = '';
   };
 
-  // Apply Wallpaper Action
+  // AI Motion Director Generator Action (Preview Only — NO persistence until Apply clicked)
+  const handleGenerateMotionPlan = async () => {
+    setIsGeneratingMotion(true);
+    try {
+      const plan = await aiMotionDirector.generateMotionPlan({
+        userCommand: motionCommandInput,
+        style,
+        prompt: prompt || selectedName,
+        mode: selectedMode,
+      });
+      setPreviewSceneDef(plan);
+      showToast('Live Scene motion plan generated! Preview active.', 'success');
+    } catch (err: any) {
+      showToast('Failed to generate motion plan: ' + err.message, 'error');
+    } finally {
+      setIsGeneratingMotion(false);
+    }
+  };
+
+  // Apply Wallpaper & Motion Action (Persists selection & mode to active target environment)
   const handleApplyWallpaper = async () => {
     if (!selectedAssetUrl) return;
     setIsApplying(true);
     try {
       const currentEnv = dbManager.getEnvironment();
+      
+      // Ensure scene definition exists for LIVE mode
+      let activeScene = previewSceneDef;
+      if (selectedMode === 'LIVE' && !activeScene) {
+        activeScene = await aiMotionDirector.generateMotionPlan({
+          userCommand: motionCommandInput,
+          style,
+          prompt: prompt || selectedName,
+          mode: 'LIVE',
+        });
+      }
+
       const wpRecord: WallpaperRecord = {
         wallpaperId: selectedCandidate?.candidateId || `wp_${Date.now()}`,
         tenantId,
@@ -221,6 +275,10 @@ export const UserWallpaperStudio: React.FC = () => {
         height: 1440,
         aspectRatio: '16:9',
         motionProfile,
+        mode: selectedMode,
+        liveScene: selectedMode === 'STILL' ? undefined : (activeScene || undefined),
+        motionCommand: motionCommandInput,
+        motionVersion: 2,
         runtimeReactive,
         environment: currentEnv,
         status: 'APPROVED',
@@ -232,7 +290,8 @@ export const UserWallpaperStudio: React.FC = () => {
       await wallpaperRepository.setActiveWallpaper(wpRecord.wallpaperId, userId, selectedTarget);
       setActiveWallpaperState(wpRecord);
       const targetLabel = selectedTarget === 'login' ? 'Login Wallpaper' : 'Home / Desktop Wallpaper';
-      showToast(`Live Wallpaper applied to Orion ${targetLabel}!`, 'success');
+      const modeLabel = selectedMode === 'STILL' ? 'Still Mode' : 'Live Engine V2';
+      showToast(`${modeLabel} applied to Orion ${targetLabel}!`, 'success');
     } catch (err: any) {
       showToast('Failed to apply wallpaper: ' + err.message, 'error');
     } finally {
@@ -240,10 +299,10 @@ export const UserWallpaperStudio: React.FC = () => {
     }
   };
 
-  // Reset to System Default Action
+  // Reset to System Default Action for selectedTarget
   const handleResetDefault = async () => {
     try {
-      const sysDefault = await wallpaperRepository.resetToSystemDefault(userId);
+      const sysDefault = await wallpaperRepository.resetToSystemDefault(userId, selectedTarget);
       setActiveWallpaperState(sysDefault);
       setSelectedAssetUrl(sysDefault.assetUrl);
       setSelectedName(sysDefault.name);
@@ -439,38 +498,123 @@ export const UserWallpaperStudio: React.FC = () => {
             </p>
           </div>
 
-          {/* Telemetry Status Panel */}
-          <div className="p-3.5 rounded-xl bg-[#0d1017] border border-white/[0.06] text-[11px] font-mono grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-slate-400">
-            <div>
-              <span className="block text-[10px] text-slate-500 uppercase tracking-wider">LIVE ENGINE</span>
-              <span className="text-emerald-400 font-semibold">60 FPS</span>
-            </div>
-            <div>
-              <span className="block text-[10px] text-slate-500 uppercase tracking-wider">AI PROVIDER</span>
-              <span className="text-sky-300 font-medium truncate block">Cloudflare AI</span>
-            </div>
-            <div>
-              <span className="block text-[10px] text-slate-500 uppercase tracking-wider">MODEL</span>
-              <span className="text-sky-300 font-medium truncate block">FLUX.2 Klein 9B</span>
-            </div>
-            <div>
-              <span className="block text-[10px] text-slate-500 uppercase tracking-wider">AI STATUS</span>
-              <span className="text-white font-medium">{aiProviderStatusCode}</span>
-            </div>
-            <div>
-              <span className="block text-[10px] text-slate-500 uppercase tracking-wider">LIVE RENDERER</span>
-              <span className="text-emerald-400 font-semibold">RUNNING</span>
-            </div>
-            <div>
-              <span className="block text-[10px] text-slate-500 uppercase tracking-wider">FREE ALLOCATION</span>
-              <span className={cn(
-                "font-semibold",
-                aiProviderStatusCode === 'CLOUDFLARE_AI_DAILY_LIMIT' ? "text-amber-400" : "text-emerald-400"
-              )}>
-                {aiProviderStatusCode === 'CLOUDFLARE_AI_DAILY_LIMIT' ? 'EXHAUSTED' : 'AVAILABLE'}
-              </span>
+      {/* Mode Selector Toggle: STILL vs LIVE */}
+      <div className="p-1 rounded-xl bg-[#0f1218] border border-white/[0.08] flex items-center gap-1 select-none">
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedMode('STILL');
+            liveWallpaperEngine.setStatus('STILL');
+          }}
+          className={cn(
+            "flex-1 py-2 px-3 rounded-lg text-xs font-bold tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2",
+            selectedMode === 'STILL'
+              ? "bg-slate-700 text-white shadow"
+              : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
+          )}
+        >
+          <Pause className="w-3.5 h-3.5" />
+          <span>STILL MODE (0 WebGL FPS)</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedMode('LIVE');
+            liveWallpaperEngine.setStatus('RUNNING');
+          }}
+          className={cn(
+            "flex-1 py-2 px-3 rounded-lg text-xs font-bold tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2",
+            selectedMode === 'LIVE'
+              ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20"
+              : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
+          )}
+        >
+          <Play className="w-3.5 h-3.5" />
+          <span>LIVE ENGINE V2 (60 FPS)</span>
+        </button>
+      </div>
+
+      {/* AI Motion Director Section */}
+      <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs font-semibold text-slate-200 uppercase tracking-wider">AI Motion Director</span>
+          </div>
+          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">DATA DSL ACTIVE</span>
+        </div>
+
+        <div>
+          <label className="block text-[11px] font-medium text-slate-400 mb-1">Natural Language Motion Command</label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={motionCommandInput}
+              onChange={(e) => setMotionCommandInput(e.target.value)}
+              placeholder="e.g. Make Earth rotate slowly, clouds drift, keep stars stationary..."
+              className="flex-1 bg-white/[0.04] border border-white/[0.1] rounded-xl px-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/60 font-medium"
+            />
+            <button
+              type="button"
+              onClick={handleGenerateMotionPlan}
+              disabled={isGeneratingMotion || !motionCommandInput.trim()}
+              className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-xs transition-all cursor-pointer flex items-center gap-1 shrink-0 disabled:opacity-50"
+            >
+              {isGeneratingMotion ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+              <span>Generate Motion</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Motion Plan Layer Preview */}
+        {previewSceneDef && (
+          <div className="space-y-1.5 pt-2 border-t border-white/[0.06]">
+            <span className="text-[10px] font-mono uppercase text-slate-400 block">Generated Live Scene Motion Plan</span>
+            <div className="grid grid-cols-2 gap-1.5 text-[11px] font-mono">
+              {previewSceneDef.layers.map((layer) => (
+                <div key={layer.id} className="p-1.5 rounded bg-white/[0.03] border border-white/[0.06] flex items-center justify-between">
+                  <span className="text-slate-300 capitalize">{layer.type}</span>
+                  <span className="text-emerald-400 font-semibold uppercase text-[10px]">
+                    {layer.motion.type || 'STATIC'}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
+        )}
+      </div>
+
+      {/* Telemetry Status Panel */}
+      <div className="p-3.5 rounded-xl bg-[#0d1017] border border-white/[0.06] text-[11px] font-mono grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-slate-400">
+        <div>
+          <span className="block text-[10px] text-slate-500 uppercase tracking-wider">LIVE ENGINE</span>
+          <span className={cn("font-semibold", selectedMode === 'STILL' ? "text-slate-400" : "text-emerald-400")}>
+            {selectedMode === 'STILL' ? '0 FPS (STILL)' : `${liveTelemetry.fps || 60} FPS`}
+          </span>
+        </div>
+        <div>
+          <span className="block text-[10px] text-slate-500 uppercase tracking-wider">AI PROVIDER</span>
+          <span className="text-sky-300 font-medium truncate block">{aiProviderName}</span>
+        </div>
+        <div>
+          <span className="block text-[10px] text-slate-500 uppercase tracking-wider">MODE</span>
+          <span className={cn("font-bold uppercase", selectedMode === 'STILL' ? "text-slate-400" : "text-emerald-400")}>
+            {selectedMode}
+          </span>
+        </div>
+        <div>
+          <span className="block text-[10px] text-slate-500 uppercase tracking-wider">AI STATUS</span>
+          <span className="text-white font-medium">{aiProviderStatusCode}</span>
+        </div>
+        <div>
+          <span className="block text-[10px] text-slate-500 uppercase tracking-wider">RENDERER TYPE</span>
+          <span className="text-emerald-400 font-semibold">{liveTelemetry.rendererType}</span>
+        </div>
+        <div>
+          <span className="block text-[10px] text-slate-500 uppercase tracking-wider">ACTIVE LAYERS</span>
+          <span className="text-sky-300 font-semibold">{previewSceneDef?.layers.length || liveTelemetry.activeLayersCount || 6} LAYERS</span>
+        </div>
+      </div>
 
           <form onSubmit={handleGenerateAiCandidates} className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3.5">
             <div>

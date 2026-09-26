@@ -1,12 +1,4 @@
-/**
- * ORION-9 LIVE WALLPAPER RENDER ENGINE SERVICE
- * Architecture: BASE IMAGE -> MASKS/LAYERS -> THREE.JS -> GLSL SHADERS -> GPU
- *
- * Manages real-time GPU uniform parameters, 60 FPS animation loop,
- * and Wallpaper Studio motion profile controls.
- */
-
-import { MotionProfile, QualityTier } from '../../types/wallpaper';
+import { MotionProfile, QualityTier, WallpaperMode } from '../../types/wallpaper';
 
 export interface LiveWallpaperUniforms {
   uEarthMotion: number;
@@ -22,9 +14,11 @@ export interface LiveWallpaperUniforms {
 
 export interface LiveEngineTelemetry {
   fps: number;
-  status: 'RUNNING' | 'PAUSED' | 'FALLBACK';
-  rendererType: 'WebGL2' | 'WebGL' | 'Canvas2D';
+  status: 'RUNNING' | 'PAUSED' | 'STILL' | 'FALLBACK';
+  rendererType: 'WebGL2' | 'WebGL' | 'STATIC';
   gpuMemoryEstimateMb?: number;
+  mode?: WallpaperMode;
+  activeLayersCount?: number;
 }
 
 export class LiveWallpaperEngine {
@@ -32,7 +26,9 @@ export class LiveWallpaperEngine {
   private currentTelemetry: LiveEngineTelemetry = {
     fps: 60,
     status: 'RUNNING',
-    rendererType: 'WebGL',
+    rendererType: 'WebGL2',
+    mode: 'LIVE',
+    activeLayersCount: 6,
   };
 
   private constructor() {}
@@ -68,11 +64,18 @@ export class LiveWallpaperEngine {
     return { ...this.currentTelemetry };
   }
 
+  public updateTelemetry(t: Partial<LiveEngineTelemetry>): void {
+    this.currentTelemetry = {
+      ...this.currentTelemetry,
+      ...t,
+    };
+  }
+
   public updateFps(fps: number): void {
     this.currentTelemetry.fps = Math.round(fps);
   }
 
-  public setStatus(status: 'RUNNING' | 'PAUSED' | 'FALLBACK'): void {
+  public setStatus(status: 'RUNNING' | 'PAUSED' | 'STILL' | 'FALLBACK'): void {
     this.currentTelemetry.status = status;
   }
 }
