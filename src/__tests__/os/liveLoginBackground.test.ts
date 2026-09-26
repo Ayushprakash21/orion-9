@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { OrionLiveLoginBackground } from '../../components/brand/OrionLiveLoginBackground';
+import { OrionLiveWallpaper } from '../../os/components/OrionLiveWallpaper';
 
-describe('OrionLiveLoginBackground', () => {
-  it('exports OrionLiveLoginBackground component function', () => {
-    expect(OrionLiveLoginBackground).toBeDefined();
-    expect(typeof OrionLiveLoginBackground).toBe('function');
+describe('OrionLiveWallpaper (Shared Engine for Login & Desktop)', () => {
+  it('exports OrionLiveWallpaper component function', () => {
+    expect(OrionLiveWallpaper).toBeDefined();
+    expect(typeof OrionLiveWallpaper).toBe('function');
   });
 
   it('is a valid React component function', () => {
-    expect(OrionLiveLoginBackground.name).toBe('OrionLiveLoginBackground');
+    expect(OrionLiveWallpaper.name).toBe('OrionLiveWallpaper');
   });
 });

@@ -4,7 +4,7 @@ import { useLanguage, SupportedLanguage } from '../../store/LanguageContext';
 import { userService } from '../../services/userService';
 import { useLocation } from "react-router-dom";
 import { BrandLogo } from '../brand/BrandLogo';
-import { OrionLiveLoginBackground } from "../brand/OrionLiveLoginBackground";
+import { OrionLiveWallpaper } from "../../os/components/OrionLiveWallpaper";
 import { UserProfile } from "../../types/auth";
 import { dbManager } from "../../core/database/DatabaseConnectionManager";
 import { HealthService } from "../../operations/HealthService";
@@ -390,11 +390,10 @@ export const Login: React.FC = () => {
       }}
     >
       
-      {/* Subtle Live Orion Star Environment Background */}
-      <OrionLiveLoginBackground 
-        authState={authState}
-        isInputFocused={isInputFocused} 
-        isTyping={isTyping}
+      {/* Live Orion Space Engine Background (Target: Login) */}
+      <OrionLiveWallpaper 
+        target="login"
+        showLogo={false}
       />
 
       {/* Header — Top Bar */}

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { cn } from '../../lib/utils';
-import { wallpaperRepository, SYSTEM_DEFAULT_WALLPAPERS } from '../../repositories/WallpaperRepository';
+import { wallpaperRepository, SYSTEM_DEFAULT_WALLPAPERS, WallpaperTarget } from '../../repositories/WallpaperRepository';
 import { WallpaperRecord, MotionProfile, DEFAULT_MOTION_PROFILE, QualityTier } from '../../types/wallpaper';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { HealthService } from '../../operations/HealthService';
@@ -13,6 +13,7 @@ interface OrionLiveWallpaperProps {
   overrideMotionProfile?: MotionProfile;
   overrideRuntimeReactive?: boolean;
   quality?: QualityTier;
+  target?: WallpaperTarget;
 }
 
 export function OrionLiveWallpaper({ 
@@ -21,7 +22,8 @@ export function OrionLiveWallpaper({
   overrideWallpaper,
   overrideMotionProfile,
   overrideRuntimeReactive,
-  quality = 'MEDIUM'
+  quality = 'MEDIUM',
+  target = 'desktop'
 }: OrionLiveWallpaperProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -31,7 +33,7 @@ export function OrionLiveWallpaper({
   const [dbEnv, setDbEnv] = useState<'DEMO' | 'LIVE'>(() => dbManager.getEnvironment());
   const [runtimeSignalPulse, setRuntimeSignalPulse] = useState(0);
 
-  // Load Active Wallpaper from Repository
+  // Load Active Wallpaper from Repository for specific target
   useEffect(() => {
     if (overrideWallpaper) {
       setActiveWallpaper(overrideWallpaper);
@@ -41,10 +43,10 @@ export function OrionLiveWallpaper({
     let mounted = true;
     const loadActive = async () => {
       try {
-        const wp = await wallpaperRepository.getActiveWallpaper();
+        const wp = await wallpaperRepository.getActiveWallpaper(undefined, 'global', target);
         if (mounted) setActiveWallpaper(wp);
       } catch (err) {
-        console.warn('Failed to load active wallpaper:', err);
+        console.warn(`Failed to load active ${target} wallpaper:`, err);
       }
     };
 
@@ -52,7 +54,10 @@ export function OrionLiveWallpaper({
 
     const handleActiveChange = (e: any) => {
       if (mounted && e.detail?.wallpaper) {
-        setActiveWallpaper(e.detail.wallpaper);
+        // If event specifies a target, check match; if no target specified, match anyway
+        if (!e.detail.target || e.detail.target === target) {
+          setActiveWallpaper(e.detail.wallpaper);
+        }
       }
     };
 
@@ -70,7 +75,7 @@ export function OrionLiveWallpaper({
       window.removeEventListener('orion-wallpaper-updated', handleActiveChange as EventListener);
       window.removeEventListener('orion-database-environment-changed', handleEnvChange);
     };
-  }, [overrideWallpaper]);
+  }, [overrideWallpaper, target]);
 
   // Mouse Move Lerped Parallax Tracking
   useEffect(() => {

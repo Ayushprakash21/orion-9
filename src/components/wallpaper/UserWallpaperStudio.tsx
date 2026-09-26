@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Sparkles, Upload, Image as ImageIcon, Sliders, Check, 
-  RotateCcw, RefreshCw, AlertCircle, Play, Pause, Activity
+  RotateCcw, RefreshCw, AlertCircle, Play, Pause, Activity,
+  Lock, Monitor
 } from 'lucide-react';
 import { 
   WallpaperRecord, 
@@ -11,7 +12,7 @@ import {
   DEFAULT_MOTION_PROFILE,
   QualityTier
 } from '../../types/wallpaper';
-import { wallpaperRepository, SYSTEM_DEFAULT_WALLPAPERS } from '../../repositories/WallpaperRepository';
+import { wallpaperRepository, SYSTEM_DEFAULT_WALLPAPERS, WallpaperTarget } from '../../repositories/WallpaperRepository';
 import { aiWallpaperGenerator } from '../../services/wallpaper/AiWallpaperGenerator';
 import { sceneAnalyzer } from '../../services/wallpaper/SceneAnalyzer';
 import { OrionLiveWallpaper } from '../../os/components/OrionLiveWallpaper';
@@ -28,6 +29,9 @@ export const UserWallpaperStudio: React.FC = () => {
   const { currentUser, organization } = useAuth();
   const tenantId = organization?.id || 'global';
   const userId = currentUser?.id || 'default_user';
+
+  // Target Selection State ('login' vs 'desktop')
+  const [selectedTarget, setSelectedTarget] = useState<WallpaperTarget>('login');
 
   // Studio Lifecycle State
   const [studioState, setStudioState] = useState<StudioLifecycleState>('LOADING');
@@ -64,14 +68,14 @@ export const UserWallpaperStudio: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Load active wallpaper & gallery on mount with guaranteed non-blank recovery
+  // Load active wallpaper & gallery on mount or target switch with guaranteed non-blank recovery
   useEffect(() => {
     let mounted = true;
     const loadData = async () => {
       setStudioState('LOADING');
       try {
         const available = await wallpaperRepository.getAvailableWallpapers(tenantId, userId);
-        const active = await wallpaperRepository.getActiveWallpaper(userId, tenantId);
+        const active = await wallpaperRepository.getActiveWallpaper(userId, tenantId, selectedTarget);
         const aiStatus = await aiWallpaperGenerator.checkProviderStatus();
         
         if (mounted) {
@@ -99,14 +103,29 @@ export const UserWallpaperStudio: React.FC = () => {
           setSelectedName(SYSTEM_DEFAULT_WALLPAPERS[0].name);
           setMotionProfile(SYSTEM_DEFAULT_WALLPAPERS[0].motionProfile);
           setStudioState('READY');
-          setErrorMessage('Database connection warning: Using system default desktop environment preview.');
+          setErrorMessage('Database connection warning: Using system default environment preview.');
         }
       }
     };
 
     loadData();
     return () => { mounted = false; };
-  }, [tenantId, userId]);
+  }, [tenantId, userId, selectedTarget]);
+
+  // Handle Switching between LOGIN WALLPAPER and HOME / DESKTOP WALLPAPER targets
+  const handleTargetSwitch = async (target: WallpaperTarget) => {
+    if (target === selectedTarget) return;
+    setSelectedTarget(target);
+    try {
+      const active = await wallpaperRepository.getActiveWallpaper(userId, tenantId, target);
+      const validActive = (active && active.assetUrl && active.assetUrl.trim() !== '') ? active : SYSTEM_DEFAULT_WALLPAPERS[0];
+      setActiveWallpaperState(validActive);
+      setSelectedAssetUrl(validActive.assetUrl);
+      setSelectedName(validActive.name);
+      setMotionProfile(validActive.motionProfile || { ...DEFAULT_MOTION_PROFILE });
+      setRuntimeReactive(validActive.runtimeReactive);
+    } catch (e) {}
+  };
 
   // AI Generation Handler
   const handleGenerateAiCandidates = async (e?: React.FormEvent) => {
@@ -210,9 +229,10 @@ export const UserWallpaperStudio: React.FC = () => {
       };
 
       await wallpaperRepository.saveWallpaper(wpRecord);
-      await wallpaperRepository.setActiveWallpaper(wpRecord.wallpaperId, userId);
+      await wallpaperRepository.setActiveWallpaper(wpRecord.wallpaperId, userId, selectedTarget);
       setActiveWallpaperState(wpRecord);
-      showToast('Live Wallpaper applied to Orion Desktop!', 'success');
+      const targetLabel = selectedTarget === 'login' ? 'Login Wallpaper' : 'Home / Desktop Wallpaper';
+      showToast(`Live Wallpaper applied to Orion ${targetLabel}!`, 'success');
     } catch (err: any) {
       showToast('Failed to apply wallpaper: ' + err.message, 'error');
     } finally {
@@ -243,6 +263,42 @@ export const UserWallpaperStudio: React.FC = () => {
   // Primary Control Pane Content
   const primaryPane = (
     <div className="space-y-5" data-testid="user-wallpaper-studio">
+      {/* Target Selector: LOGIN WALLPAPER vs HOME / DESKTOP */}
+      <div className="p-1 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center gap-1 select-none">
+        <button
+          type="button"
+          onClick={() => handleTargetSwitch('login')}
+          className={cn(
+            "flex-1 py-2.5 px-3 rounded-lg text-xs font-bold tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2",
+            selectedTarget === 'login'
+              ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md shadow-sky-500/20"
+              : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
+          )}
+        >
+          <Lock className="w-3.5 h-3.5" />
+          <span>LOGIN WALLPAPER</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => handleTargetSwitch('desktop')}
+          className={cn(
+            "flex-1 py-2.5 px-3 rounded-lg text-xs font-bold tracking-wider transition-all cursor-pointer flex items-center justify-center gap-2",
+            selectedTarget === 'desktop'
+              ? "bg-gradient-to-r from-sky-500 to-blue-600 text-white shadow-md shadow-sky-500/20"
+              : "text-slate-400 hover:text-white hover:bg-white/[0.04]"
+          )}
+        >
+          <Monitor className="w-3.5 h-3.5" />
+          <span>HOME / DESKTOP</span>
+        </button>
+      </div>
+
+      {/* Target Context Info Banner */}
+      <div className="px-3 py-2 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-300 text-[11px] flex items-center justify-between">
+        <span className="font-mono">Selected target: <strong className="text-white uppercase font-sans tracking-wide">{selectedTarget === 'login' ? 'LOGIN WALLPAPER' : 'HOME / DESKTOP'}</strong></span>
+        <span className="text-[10px] text-slate-400">Single Engine Shared Renderer</span>
+      </div>
+
       {/* Error Banner */}
       {errorMessage && (
         <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-3">
