@@ -1,15 +1,15 @@
 /**
- * ORION-9 LIVE SPACE WALLPAPER & LOGIN ENVIRONMENT (REAL 3D ROTATING EARTH REBUILD)
+ * ORION-9 LIVE SPACE WALLPAPER & LOGIN ENVIRONMENT (CINEMATIC VISUAL RESTORATION)
  *
  * Visual Source of Truth: /orion9-space-baseline.png (Master space visual asset)
  *
  * Architecture:
  * 1. Deep Space Background: Stationary orthographic quad displaying /orion9-space-baseline.png
- *    with subtle Orion constellation scintillation, microscopic starfield twinkling, and nebula drift.
- * 2. 3D Real Rotating Earth Globe: THREE.SphereGeometry(2.8, 128, 64) with equirectangular day map,
- *    photorealistic night city-lights map, specular map, clouds layer, and Rayleigh atmosphere rim glow.
+ *    with smooth linear filtering, subtle sub-pixel star twinkling, and delicate Orion constellation.
+ * 2. 3D Real Rotating Earth Globe: THREE.SphereGeometry(2.4, 128, 64) with equirectangular day map,
+ *    photorealistic night city-lights map, specular map, clouds layer, and thin Rayleigh atmosphere rim glow.
  * 3. Geographic Night Lights: City lights attached directly to the Earth surface texture, rotating
- *    in perfect 3D synchrony with continents across the day/night terminator.
+ *    in 3D unison with continents across the day/night terminator.
  * 4. Locked Background: Orion constellation, stars, nebula, and UI remain 100% stationary.
  * 5. Debug Toggle: window.EARTH_DEBUG_FAST_ROTATION or ?debug_fast=true forces 0.04 rad/s rotation
  *    for immediate visual verification of continent & city-light motion.
@@ -48,7 +48,7 @@ declare global {
 }
 
 // -----------------------------------------------------------------------------
-// 1. BACKGROUND DEEP SPACE SHADERS (Orion Constellation, Nebula & Star Twinkle)
+// 1. BACKGROUND DEEP SPACE SHADERS (Smooth Nebula, Orion & Subtle Pinpoint Stars)
 // -----------------------------------------------------------------------------
 const BG_VERTEX_SHADER = `
   varying vec2 vUv;
@@ -68,12 +68,6 @@ const BG_FRAGMENT_SHADER = `
 
   varying vec2 vUv;
 
-  float hash(vec2 p) {
-    p = fract(p * vec2(123.34, 456.21));
-    p += dot(p, p + 45.32);
-    return fract(p.x * p.y);
-  }
-
   void main() {
     vec2 uv = vUv;
     float aspect = uResolution.x / uResolution.y;
@@ -83,24 +77,17 @@ const BG_FRAGMENT_SHADER = `
       return;
     }
 
-    vec2 earthCenter = vec2(0.50, -0.68);
-    vec2 distVec = uv - earthCenter;
-    distVec.x *= aspect;
-    float distToCenter = length(distVec);
-    float isEarth = smoothstep(1.165, 1.155, distToCenter);
-
+    // Smooth nebula UV drift & breathing (upper space background only)
     vec2 finalUv = uv;
-
-    // Nebula subtle UV drift & breathing (upper space only)
-    if (isEarth < 0.5 && uv.y > 0.40) {
-      float nebDriftX = sin(uTime * 0.15 + uv.y * 3.0) * 0.0012;
-      float nebDriftY = cos(uTime * 0.12 + uv.x * 3.0) * 0.0010;
-      finalUv += vec2(nebDriftX, nebDriftY) * smoothstep(0.35, 0.60, uv.y);
+    if (uv.y > 0.40) {
+      float nebDriftX = sin(uTime * 0.12 + uv.y * 2.5) * 0.0008;
+      float nebDriftY = cos(uTime * 0.10 + uv.x * 2.5) * 0.0006;
+      finalUv += vec2(nebDriftX, nebDriftY) * smoothstep(0.40, 0.70, uv.y);
     }
 
     vec4 col = texture2D(uTexture, finalUv);
 
-    // Orion Constellation Stellar Scintillation (7 Major Stars - Upper Left)
+    // Orion Constellation Subtle Stellar Scintillation (7 Major Stars - Upper Left)
     vec2 orionStars[7];
     orionStars[0] = vec2(0.122, 0.852); // Betelgeuse
     orionStars[1] = vec2(0.285, 0.540); // Rigel
@@ -116,26 +103,16 @@ const BG_FRAGMENT_SHADER = `
       vec2 d = uv - sPos;
       d.x *= aspect;
       float r = length(d);
-      if (r < 0.035) {
+      if (r < 0.018) { // Pinpoint star radius
         float phase = float(i) * 1.731;
-        float sparkle = sin(uTime * (1.2 + float(i) * 0.3) + phase) * 0.5 + 0.5;
-        sparkle = pow(sparkle, 2.0) * 0.12;
-        float starFalloff = smoothstep(0.035, 0.0, r);
+        float sparkle = sin(uTime * (0.8 + float(i) * 0.25) + phase) * 0.5 + 0.5;
+        sparkle = pow(sparkle, 2.5) * 0.045; // Delicate, natural twinkle
+        float starFalloff = smoothstep(0.018, 0.0, r);
         orionSparkleBoost += sparkle * starFalloff;
       }
     }
 
-    // Microscopic Deep Space Starfield Twinkle
-    if (isEarth < 0.2 && uv.y > 0.45) {
-      float starGrid = hash(floor(uv * vec2(180.0 * aspect, 180.0)));
-      if (starGrid > 0.96) {
-        float t = sin(uTime * 2.5 + starGrid * 62.8) * 0.5 + 0.5;
-        float microTwinkle = t * 0.08 * smoothstep(0.96, 1.0, starGrid);
-        col.rgb += vec3(0.7, 0.85, 1.0) * microTwinkle;
-      }
-    }
-
-    col.rgb += vec3(0.8, 0.9, 1.0) * orionSparkleBoost;
+    col.rgb += vec3(0.75, 0.88, 1.0) * orionSparkleBoost;
 
     // Localized Sunlight Glint Shimmer on Space Background Right Horizon
     vec2 sunPos = vec2(0.725, 0.435);
@@ -145,8 +122,8 @@ const BG_FRAGMENT_SHADER = `
 
     if (uSunGlintIntensity > 1.001) {
       float glintFactor = uSunGlintIntensity - 1.0;
-      float sunMask = smoothstep(0.25, 0.0, sunDist);
-      vec3 glintColor = vec3(1.0, 0.88, 0.72) * (glintFactor * 1.5 * sunMask);
+      float sunMask = smoothstep(0.30, 0.0, sunDist);
+      vec3 glintColor = vec3(1.0, 0.90, 0.75) * (glintFactor * 0.6 * sunMask);
       col.rgb += glintColor;
     }
 
@@ -197,20 +174,20 @@ const EARTH_FRAGMENT_SHADER = `
 
     // Compute surface illumination relative to Sun direction
     float NdotL = dot(normal, sunDir);
-    float dayFactor = smoothstep(-0.15, 0.25, NdotL);
+    float dayFactor = smoothstep(-0.12, 0.22, NdotL);
 
     // 1. Night Side: Photorealistic Golden/Orange City Lights attached to surface
-    vec3 cityLights = nightSample.rgb * vec3(1.35, 0.95, 0.45) * 3.4;
-    vec3 nightAmbient = vec3(0.012, 0.035, 0.08) * daySample.rgb;
+    vec3 cityLights = nightSample.rgb * vec3(1.25, 0.90, 0.40) * 2.6;
+    vec3 nightAmbient = vec3(0.010, 0.028, 0.065) * daySample.rgb;
     vec3 nightSide = cityLights + nightAmbient;
 
     // 2. Day Side: Sunlit Continents & Ocean Specular Sheen
     float lightIntensity = clamp(NdotL, 0.05, 1.0);
-    vec3 dayLit = daySample.rgb * lightIntensity * vec3(1.0, 0.98, 0.92);
+    vec3 dayLit = daySample.rgb * lightIntensity * vec3(1.0, 0.97, 0.92);
 
     vec3 reflectDir = reflect(-sunDir, normal);
-    float specAmount = pow(max(0.0, dot(reflectDir, viewDir)), 22.0);
-    vec3 specularColor = vec3(0.4, 0.75, 1.0) * specAmount * specSample.r * 1.8 * dayFactor;
+    float specAmount = pow(max(0.0, dot(reflectDir, viewDir)), 24.0);
+    vec3 specularColor = vec3(0.35, 0.70, 0.95) * specAmount * specSample.r * 1.5 * dayFactor;
     vec3 daySide = dayLit + specularColor;
 
     // Blend day and night across the natural planetary terminator
@@ -219,8 +196,8 @@ const EARTH_FRAGMENT_SHADER = `
     // Periodic Localized Sunlight Glint
     if (uSunGlintIntensity > 1.001) {
       float glintFactor = uSunGlintIntensity - 1.0;
-      float glintMask = smoothstep(0.2, 0.95, NdotL);
-      finalColor += vec3(1.0, 0.88, 0.65) * glintFactor * glintMask * 1.4;
+      float glintMask = smoothstep(0.3, 0.95, NdotL);
+      finalColor += vec3(1.0, 0.88, 0.65) * glintFactor * glintMask * 0.6;
     }
 
     gl_FragColor = vec4(finalColor, 1.0);
@@ -228,7 +205,7 @@ const EARTH_FRAGMENT_SHADER = `
 `;
 
 // -----------------------------------------------------------------------------
-// 3. ATMOSPHERIC RAYLEIGH RIM GLOW SHADER
+// 3. THIN RAYLEIGH ATMOSPHERIC RIM GLOW SHADER
 // -----------------------------------------------------------------------------
 const ATMOSPHERE_VERTEX_SHADER = `
   varying vec3 vNormal;
@@ -250,11 +227,11 @@ const ATMOSPHERE_FRAGMENT_SHADER = `
     vec3 normal = normalize(vNormal);
     vec3 viewDir = normalize(vViewPosition);
 
-    // Rayleigh scattering Fresnel view angle intensity
-    float intensity = pow(1.0 - abs(dot(normal, viewDir)), 3.2);
-    vec3 atmosphereColor = mix(vec3(0.12, 0.45, 0.95), vec3(0.25, 0.78, 1.0), intensity);
+    // Thin, realistic Rayleigh scattering Fresnel limb glow
+    float intensity = pow(1.0 - abs(dot(normal, viewDir)), 5.0);
+    vec3 atmosphereColor = mix(vec3(0.10, 0.40, 0.90), vec3(0.20, 0.70, 0.95), intensity);
 
-    gl_FragColor = vec4(atmosphereColor, intensity * 0.75);
+    gl_FragColor = vec4(atmosphereColor, intensity * 0.35);
   }
 `;
 
@@ -331,7 +308,7 @@ export function OrionLiveLoginBackground({
     // -------------------------------------------------------------------------
     const earthScene = new THREE.Scene();
     const earthCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-    earthCamera.position.set(0, 0, 9.0);
+    earthCamera.position.set(0, 0, 8.5);
 
     // Load Equirectangular Geographic Textures from public assets
     const dayMap = textureLoader.load('/textures/earth_atmos_2048.jpg');
@@ -350,8 +327,8 @@ export function OrionLiveLoginBackground({
     earthGroup.rotation.x = THREE.MathUtils.degToRad(12);
     earthScene.add(earthGroup);
 
-    // 1. High-Density 3D Earth Sphere Geometry
-    const earthRadius = 2.8;
+    // 1. High-Density 3D Earth Sphere Geometry (Cinematic size: 2.4)
+    const earthRadius = 2.4;
     const earthGeo = new THREE.SphereGeometry(earthRadius, 128, 64);
 
     const earthUniforms = {
@@ -379,7 +356,7 @@ export function OrionLiveLoginBackground({
       const cloudMat = new THREE.MeshLambertMaterial({
         map: cloudsMap,
         transparent: true,
-        opacity: 0.22,
+        opacity: 0.20,
         blending: THREE.AdditiveBlending,
         depthWrite: false,
       });
@@ -390,7 +367,7 @@ export function OrionLiveLoginBackground({
     // 3. Thin Atmospheric Rayleigh Rim Glow Shell
     let atmosphereMesh: THREE.Mesh | null = null;
     if (qualityTier !== 'LOW') {
-      const atmoGeo = new THREE.SphereGeometry(earthRadius * 1.018, 128, 64);
+      const atmoGeo = new THREE.SphereGeometry(earthRadius * 1.016, 128, 64);
       const atmoMat = new THREE.ShaderMaterial({
         vertexShader: ATMOSPHERE_VERTEX_SHADER,
         fragmentShader: ATMOSPHERE_FRAGMENT_SHADER,
@@ -425,8 +402,8 @@ export function OrionLiveLoginBackground({
 
       const isMobile = w < 768;
       earthGroup.position.set(
-        isMobile ? -1.5 : -2.85,
-        isMobile ? -2.75 : -2.35,
+        isMobile ? -1.3 : -2.4,
+        isMobile ? -2.5 : -2.05,
         0
       );
     };

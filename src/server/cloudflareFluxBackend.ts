@@ -2,7 +2,7 @@
  * ORION-9 CLOUDFLARE WORKERS AI + FLUX BACKEND SERVICE
  *
  * Primary image-generation provider using Cloudflare Workers AI:
- * Models: @cf/black-forest-labs/flux-1-schnell, @cf/black-forest-labs/flux-2-klein-9b
+ * Model: @cf/black-forest-labs/flux-2-klein-9b (with flux-1-schnell fallback)
  */
 
 export type FluxStatusCode =
@@ -157,7 +157,8 @@ export async function generateFluxWallpaper(
   aiBinding: any,
   params: FluxGenerationParams
 ): Promise<FluxGenerationResponse> {
-  const primaryModel = "@cf/black-forest-labs/flux-1-schnell";
+  const primaryModel = "@cf/black-forest-labs/flux-2-klein-9b";
+  const fallbackModel = "@cf/black-forest-labs/flux-1-schnell";
 
   if (!aiBinding) {
     return {
@@ -189,14 +190,40 @@ export async function generateFluxWallpaper(
     const candidateResults: GeneratedImageCandidate[] = [];
     const timestamp = Date.now();
     const count = 3;
+    let usedModel = primaryModel;
 
     for (let i = 0; i < count; i++) {
-      // Clean payload with ONLY prompt to conform to Workers AI schema
+      const seedVal = (params.seed || timestamp) + i * 137;
       const inputPayload = {
         prompt: fullPrompt,
+        num_steps: 4,
+        seed: seedVal
       };
 
-      const rawResult = await aiBinding.run(primaryModel, inputPayload);
+      let rawResult: any;
+      try {
+        rawResult = await aiBinding.run(primaryModel, inputPayload);
+        usedModel = primaryModel;
+      } catch (primaryErr: any) {
+        // Handle Workers AI status errors (401, 429, 503, 5006)
+        const msg = (primaryErr?.message || String(primaryErr) || "").toLowerCase();
+        const statusVal = primaryErr?.status;
+        if (statusVal === 429 || msg.includes("daily") || msg.includes("allocation") || msg.includes("quota") || msg.includes("limit")) {
+          throw primaryErr;
+        }
+        if (statusVal === 503 || msg.includes("busy") || msg.includes("capacity") || msg.includes("overloaded")) {
+          throw primaryErr;
+        }
+        if (statusVal === 401 || statusVal === 403 || msg.includes("unauthorized") || msg.includes("forbidden") || msg.includes("auth")) {
+          throw primaryErr;
+        }
+
+        // Fallback to flux-1-schnell if flux-2-klein-9b fails payload schema
+        const cleanPayload = { prompt: fullPrompt };
+        rawResult = await aiBinding.run(fallbackModel, cleanPayload);
+        usedModel = fallbackModel;
+      }
+
       const dataUrl = await bufferToBase64DataUrl(rawResult);
 
       const candidateId = `flux_wp_${timestamp}_${String.fromCharCode(65 + i)}`;
@@ -207,7 +234,7 @@ export async function generateFluxWallpaper(
         thumbnailUrl: dataUrl,
         mimeType: "image/png",
         provider: "Cloudflare Workers AI",
-        model: primaryModel
+        model: usedModel
       });
     }
 
@@ -215,7 +242,7 @@ export async function generateFluxWallpaper(
       success: true,
       statusCode: 200,
       provider: "Cloudflare Workers AI",
-      model: primaryModel,
+      model: usedModel,
       candidates: candidateResults
     };
   } catch (err: any) {
