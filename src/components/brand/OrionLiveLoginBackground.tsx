@@ -28,7 +28,7 @@ export interface LiveBackgroundConfig {
   quality: QualityTier | 'auto';
   parallax: boolean;
   intensity: number;
-  rotationSpeedSeconds: number; // Default 45s per full rotation (~0.0023 rad/frame at 60fps)
+  rotationSpeedSeconds: number; // Default 240s per full rotation
   periods: {
     twinkle: number;
     constellation: number;
@@ -44,7 +44,7 @@ export const DEFAULT_LIVE_BACKGROUND_CONFIG: LiveBackgroundConfig = {
   quality: 'auto',
   parallax: true,
   intensity: 1.0,
-  rotationSpeedSeconds: 45,
+  rotationSpeedSeconds: 240,
   periods: {
     twinkle: 60,
     constellation: 60,
@@ -264,17 +264,17 @@ const STATIC_PARTICLES = generateMicroParticles();
 
 // Recognizable Orion Constellation Nodes & Major Stars (Upper-Right Sector)
 export const ORION_STARS = [
-  { id: 'betelgeuse', name: 'Betelgeuse', x: 0.71, y: 0.18, radius: 2.7, color: '#f97316', baseAlpha: 0.95, haloColor: 'rgba(249, 115, 22, 0.45)' },
-  { id: 'bellatrix', name: 'Bellatrix', x: 0.84, y: 0.19, radius: 2.2, color: '#93c5fd', baseAlpha: 0.90, haloColor: 'rgba(147, 197, 253, 0.35)' },
-  { id: 'meissa', name: 'Meissa', x: 0.77, y: 0.13, radius: 1.4, color: '#e0e7ff', baseAlpha: 0.75, haloColor: 'transparent' },
-  { id: 'alnitak', name: 'Alnitak', x: 0.74, y: 0.33, radius: 2.2, color: '#60a5fa', baseAlpha: 0.90, haloColor: 'rgba(96, 165, 250, 0.35)' },
-  { id: 'alnilam', name: 'Alnilam', x: 0.78, y: 0.32, radius: 2.3, color: '#93c5fd', baseAlpha: 0.92, haloColor: 'rgba(147, 197, 253, 0.40)' },
-  { id: 'mintaka', name: 'Mintaka', x: 0.83, y: 0.31, radius: 2.1, color: '#bfdbfe', baseAlpha: 0.88, haloColor: 'rgba(191, 219, 254, 0.30)' },
-  { id: 'saiph', name: 'Saiph', x: 0.73, y: 0.48, radius: 2.0, color: '#93c5fd', baseAlpha: 0.85, haloColor: 'transparent' },
-  { id: 'rigel', name: 'Rigel', x: 0.86, y: 0.47, radius: 2.9, color: '#a5f3fc', baseAlpha: 0.98, haloColor: 'rgba(165, 243, 252, 0.50)' },
-  { id: 'sword1', name: 'Sword Upper', x: 0.775, y: 0.37, radius: 1.2, color: '#c7d2fe', baseAlpha: 0.65, haloColor: 'transparent' },
-  { id: 'nebula_star', name: 'Orion Nebula Star', x: 0.778, y: 0.40, radius: 1.5, color: '#a78bfa', baseAlpha: 0.80, haloColor: 'rgba(167, 139, 250, 0.35)' },
-  { id: 'sword3', name: 'Sword Lower', x: 0.781, y: 0.43, radius: 1.1, color: '#c7d2fe', baseAlpha: 0.60, haloColor: 'transparent' },
+  { id: 'betelgeuse', name: 'Betelgeuse', x: 0.15, y: 0.18, radius: 2.7, color: '#f97316', baseAlpha: 0.95, haloColor: 'rgba(249, 115, 22, 0.45)' },
+  { id: 'bellatrix', name: 'Bellatrix', x: 0.28, y: 0.19, radius: 2.2, color: '#93c5fd', baseAlpha: 0.90, haloColor: 'rgba(147, 197, 253, 0.35)' },
+  { id: 'meissa', name: 'Meissa', x: 0.21, y: 0.13, radius: 1.4, color: '#e0e7ff', baseAlpha: 0.75, haloColor: 'transparent' },
+  { id: 'alnitak', name: 'Alnitak', x: 0.18, y: 0.33, radius: 2.2, color: '#60a5fa', baseAlpha: 0.90, haloColor: 'rgba(96, 165, 250, 0.35)' },
+  { id: 'alnilam', name: 'Alnilam', x: 0.22, y: 0.32, radius: 2.3, color: '#93c5fd', baseAlpha: 0.92, haloColor: 'rgba(147, 197, 253, 0.40)' },
+  { id: 'mintaka', name: 'Mintaka', x: 0.27, y: 0.31, radius: 2.1, color: '#bfdbfe', baseAlpha: 0.88, haloColor: 'rgba(191, 219, 254, 0.30)' },
+  { id: 'saiph', name: 'Saiph', x: 0.17, y: 0.48, radius: 2.0, color: '#93c5fd', baseAlpha: 0.85, haloColor: 'transparent' },
+  { id: 'rigel', name: 'Rigel', x: 0.30, y: 0.47, radius: 2.9, color: '#a5f3fc', baseAlpha: 0.98, haloColor: 'rgba(165, 243, 252, 0.50)' },
+  { id: 'sword1', name: 'Sword Upper', x: 0.215, y: 0.37, radius: 1.2, color: '#c7d2fe', baseAlpha: 0.65, haloColor: 'transparent' },
+  { id: 'nebula_star', name: 'Orion Nebula Star', x: 0.218, y: 0.40, radius: 1.5, color: '#a78bfa', baseAlpha: 0.80, haloColor: 'rgba(167, 139, 250, 0.35)' },
+  { id: 'sword3', name: 'Sword Lower', x: 0.221, y: 0.43, radius: 1.1, color: '#c7d2fe', baseAlpha: 0.60, haloColor: 'transparent' },
 ];
 
 export const ORION_LINES: Array<[string, string]> = [
@@ -524,12 +524,12 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
   const _constellationLandmarks = ['Betelgeuse', 'Rigel', 'Alnitak', 'Alnilam', 'Mintaka', 'ORION_LINES', ORION_LINES];
   const _meta = {
     stars: ['Betelgeuse', 'Rigel', 'Alnitak', 'Alnilam', 'Mintaka', 'ORION_LINES'],
-    rotationSpeedSeconds: 45,
+    rotationSpeedSeconds: 240,
   };
   if (false as any) console.log(_meta, _constellationLandmarks);
 
   const mergedConfig: LiveBackgroundConfig = {
-    rotationSpeedSeconds: 45,
+    rotationSpeedSeconds: 240,
     ...DEFAULT_LIVE_BACKGROUND_CONFIG,
     ...userConfig,
     periods: {
@@ -716,10 +716,10 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
 
     // 1. Directional Sun Light & Deep Space Ambient Light
     const sunLight = new THREE.DirectionalLight(0xffffff, 2.8);
-    sunLight.position.set(-6, 3, 5);
+    sunLight.position.set(10, 3, -6);
     scene.add(sunLight);
 
-    const ambientLight = new THREE.AmbientLight(0x0f2042, 0.40);
+    const ambientLight = new THREE.AmbientLight(0x1a153a, 0.60);
     scene.add(ambientLight);
 
     // 2. Earth Group with 23.44° Axial Tilt
@@ -740,8 +740,8 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
 
     // 4. Earth Sphere Surface with Photorealistic Day/Night Sun Terminator & Glowing Night City Lights
     // Earth size: responsive 35-45% of viewport height via camera FOV geometry
-    const earthGeo = new THREE.SphereGeometry(2.8, 64, 64);
-    const sunDirVector = new THREE.Vector3(-0.8, 0.35, 0.5).normalize();
+    const earthGeo = new THREE.SphereGeometry(12.0, 64, 64);
+    const sunDirVector = new THREE.Vector3(0.8, 0.2, -0.2).normalize();
 
     const earthMat = new THREE.ShaderMaterial({
       uniforms: {
@@ -775,14 +775,14 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
           float sunDot = dot(normal, sunDir);
 
           // Day/Night terminator transition factor
-          float dayFactor = smoothstep(-0.25, 0.25, sunDot);
+          float dayFactor = smoothstep(-0.15, 0.15, sunDot);
           float nightFactor = 1.0 - dayFactor;
 
           vec4 dayColor = texture2D(uDayMap, vUv);
           vec4 nightColor = texture2D(uNightMap, vUv);
 
-          // Intense glowing city lights emission on night side (warm golden/amber emission with bloom)
-          vec3 nightEmissive = nightColor.rgb * vec3(1.4, 1.25, 0.95) * 3.6 * nightFactor;
+          // Subtle glowing city lights emission on night side (warm golden/amber emission with bloom)
+          vec3 nightEmissive = nightColor.rgb * vec3(1.4, 1.25, 0.95) * 2.0 * nightFactor;
 
           // Sunlit day side surface diffuse
           vec3 dayIllumination = dayColor.rgb * max(0.04, sunDot * 1.15 + 0.05);
@@ -798,7 +798,7 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
     earthGroup.add(earthMesh);
 
     // 5. Cloud Layer Sphere
-    const cloudGeo = new THREE.SphereGeometry(2.835, 64, 64); // Slightly larger than Earth for cloud altitude
+    const cloudGeo = new THREE.SphereGeometry(12.05, 64, 64); // Slightly larger than Earth for cloud altitude
     const cloudMat = new THREE.MeshStandardMaterial({
       map: cloudTexture,
       transparent: true,
@@ -813,7 +813,7 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
     }
 
     // 6. Atmospheric Rayleigh Rim Glow Shader — disabled on LOW tier
-    const atmGeo = new THREE.SphereGeometry(2.94, 64, 64);
+    const atmGeo = new THREE.SphereGeometry(12.3, 64, 64);
     const atmMat = new THREE.ShaderMaterial({
       vertexShader: `
         varying vec3 vNormal;
@@ -846,8 +846,7 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
       earthGroup.add(atmosphereMesh);
     }
 
-    // Position Earth: lower-left/lower-center (desktop), lower-center (mobile)
-    // Earth occupies approximately 35-45% of viewport height via camera geometry
+    // Position Earth: cinematic bottom horizon (occupying lower 35-45% of viewport)
     const updateComposition = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -855,15 +854,13 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
 
-      // Compute Earth visual size as fraction of viewport
-      // At camera.position.z=9, FOV=45°, Earth radius=2.8:
-      // visible height ≈ 2 * 9 * tan(22.5°) ≈ 7.46 units
-      // Earth diameter = 5.6 → 5.6/7.46 ≈ 75% of viewport at center
-      // Offset moves it partially off-screen so visible portion ≈ 35-45%
+      // Earth radius = 12.0
+      // With camera.position.z=9, FOV=45°, visible height is roughly 7.46 units.
+      // To peak around y = -0.5, we place Earth at y = -12.5.
       const isMobile = w < 768;
       earthGroup.position.set(
-        isMobile ? -1.6 : -2.8,   // Desktop: lower-left; Mobile: lower-center
-        isMobile ? -2.8 : -2.4,   // Shift down so ~35-45% visible
+        0,                        // Centered horizontally
+        isMobile ? -12.2 : -12.4, // Shift down so only top curve is visible
         0
       );
     };
@@ -878,7 +875,7 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
       if (!running) return;
       if (isVisibleRef.current) {
         const elapsed = (now - startTime) * 0.001;
-        const speed = mergedConfig.rotationSpeedSeconds || 45;
+        const speed = mergedConfig.rotationSpeedSeconds || 240;
         const rotAngle = (elapsed / speed) * Math.PI * 2;
 
         earthMesh.rotation.y = rotAngle;
@@ -886,8 +883,8 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
 
         // Apply mouse parallax shift — matches updateComposition offsets
         const isMobile = window.innerWidth < 768;
-        earthGroup.position.x = (isMobile ? -1.6 : -2.8) + parallax.x * 0.3;
-        earthGroup.position.y = (isMobile ? -2.8 : -2.4) + parallax.y * 0.3;
+        earthGroup.position.x = 0 + parallax.x * 0.3;
+        earthGroup.position.y = (isMobile ? -12.2 : -12.4) + parallax.y * 0.3;
 
         renderer.render(scene, camera);
       }
@@ -1058,13 +1055,11 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
 
       // 5. 2D FALLBACK SPHERICAL EARTH RENDERER (If WebGL unavailable)
       if (!useWebGL) {
-        const earthCenterX = isMobile ? width * 0.12 + parallax.x * 4 : width * 0.18 + parallax.x * 6;
-        const earthCenterY = isMobile ? height * 0.88 + parallax.y * 4 : height * 0.82 + parallax.y * 6;
-        const earthRadius = isMobile 
-          ? Math.min(width, height) * 0.38 
-          : Math.min(width, height) * 0.44;
+        const earthCenterX = width * 0.5 + parallax.x * 6;
+        const earthCenterY = isMobile ? height * 0.95 + width * 1.2 : height * 0.92 + width * 1.2;
+        const earthRadius = width * 1.35;
 
-        const rotationPeriod = mergedConfig.rotationSpeedSeconds || 45;
+        const rotationPeriod = mergedConfig.rotationSpeedSeconds || 240;
         const rotAngle = isStatic ? 0.35 : (elapsed / rotationPeriod) * Math.PI * 2;
 
         const sunDir = { x: -0.7, y: 0.35, z: 0.6 };
