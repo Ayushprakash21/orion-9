@@ -62,9 +62,9 @@ describe('ORION-9 Live Earth & Astronomical Wallpaper Engine', () => {
     expect(code).toContain("ORION_LINES");
   });
 
-  it('6. verifies default 120s rotation speed per full rotation', () => {
+  it('6. verifies default 45s rotation speed per full rotation', () => {
     const code = OrionLiveLoginBackground.toString();
-    expect(code).toContain("rotationSpeedSeconds: 120");
+    expect(code).toContain("rotationSpeedSeconds: 45");
   });
 
   it('7. renders background element without crashing', () => {

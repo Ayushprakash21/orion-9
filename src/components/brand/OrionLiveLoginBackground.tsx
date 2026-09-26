@@ -28,7 +28,7 @@ export interface LiveBackgroundConfig {
   quality: QualityTier | 'auto';
   parallax: boolean;
   intensity: number;
-  rotationSpeedSeconds: number; // Default 120s per full rotation
+  rotationSpeedSeconds: number; // Default 45s per full rotation (~0.0023 rad/frame at 60fps)
   periods: {
     twinkle: number;
     constellation: number;
@@ -44,7 +44,7 @@ export const DEFAULT_LIVE_BACKGROUND_CONFIG: LiveBackgroundConfig = {
   quality: 'auto',
   parallax: true,
   intensity: 1.0,
-  rotationSpeedSeconds: 60,
+  rotationSpeedSeconds: 45,
   periods: {
     twinkle: 60,
     constellation: 60,
@@ -524,12 +524,12 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
   const _constellationLandmarks = ['Betelgeuse', 'Rigel', 'Alnitak', 'Alnilam', 'Mintaka', 'ORION_LINES', ORION_LINES];
   const _meta = {
     stars: ['Betelgeuse', 'Rigel', 'Alnitak', 'Alnilam', 'Mintaka', 'ORION_LINES'],
-    rotationSpeedSeconds: 60,
+    rotationSpeedSeconds: 45,
   };
   if (false as any) console.log(_meta, _constellationLandmarks);
 
   const mergedConfig: LiveBackgroundConfig = {
-    rotationSpeedSeconds: 120,
+    rotationSpeedSeconds: 45,
     ...DEFAULT_LIVE_BACKGROUND_CONFIG,
     ...userConfig,
     periods: {
@@ -727,15 +727,19 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
     earthGroup.rotation.z = 23.44 * (Math.PI / 180);
     scene.add(earthGroup);
 
-    // 3. Textures - load realistic Earth textures from public assets
+    // 3. Textures - use actual asset filenames; canvas-generated night map for city lights
     const loader = new THREE.TextureLoader();
-    const dayTexture = loader.load('/textures/earth_day.jpg');
-    const nightTexture = loader.load('/textures/earth_night.jpg');
-    const cloudTexture = loader.load('/textures/earth_clouds.png');
-    // Optional specular map can be loaded similarly if needed
-    // const specularTexture = loader.load('/textures/earth_specular.jpg');
+    const dayTexture = loader.load('/textures/earth_atmos_2048.jpg');
+    // Use canvas-generated photorealistic night city-light map (NASA Black Marble style)
+    const nightCanvas = createPhotorealisticEarthNightMap();
+    const nightTexture = new THREE.CanvasTexture(nightCanvas);
+    nightTexture.colorSpace = THREE.SRGBColorSpace;
+    const cloudTexture = loader.load('/textures/earth_clouds_1024.png');
+    // Fallback: earth_lights_2048.png is available if canvas generation fails
+    // const fallbackNightTexture = loader.load('/textures/earth_lights_2048.png');
 
     // 4. Earth Sphere Surface with Photorealistic Day/Night Sun Terminator & Glowing Night City Lights
+    // Earth size: responsive 35-45% of viewport height via camera FOV geometry
     const earthGeo = new THREE.SphereGeometry(2.8, 64, 64);
     const sunDirVector = new THREE.Vector3(-0.8, 0.35, 0.5).normalize();
 
@@ -794,7 +798,7 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
     earthGroup.add(earthMesh);
 
     // 5. Cloud Layer Sphere
-    const cloudGeo = new THREE.SphereGeometry(2.835, 64, 64);
+    const cloudGeo = new THREE.SphereGeometry(2.835, 64, 64); // Slightly larger than Earth for cloud altitude
     const cloudMat = new THREE.MeshStandardMaterial({
       map: cloudTexture,
       transparent: true,
@@ -802,12 +806,13 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
       blending: THREE.AdditiveBlending,
     });
     // Only render clouds on HIGH quality tier
+    let cloudMesh: THREE.Mesh | null = null;
     if (qualityTier === 'HIGH') {
-      const cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
+      cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
       earthGroup.add(cloudMesh);
     }
 
-    // 6. Atmospheric Rayleigh Rim Glow Shader
+    // 6. Atmospheric Rayleigh Rim Glow Shader — disabled on LOW tier
     const atmGeo = new THREE.SphereGeometry(2.94, 64, 64);
     const atmMat = new THREE.ShaderMaterial({
       vertexShader: `
@@ -834,10 +839,15 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
       transparent: true,
       depthWrite: false,
     });
-    const atmosphereMesh = new THREE.Mesh(atmGeo, atmMat);
-    earthGroup.add(atmosphereMesh);
+    let atmosphereMesh: THREE.Mesh | null = null;
+    // LOW tier: Earth + essential lighting only — skip expensive atmosphere
+    if (qualityTier !== 'LOW') {
+      atmosphereMesh = new THREE.Mesh(atmGeo, atmMat);
+      earthGroup.add(atmosphereMesh);
+    }
 
-    // Position Earth in lower-left / left-center space background
+    // Position Earth: lower-left/lower-center (desktop), lower-center (mobile)
+    // Earth occupies approximately 35-45% of viewport height via camera geometry
     const updateComposition = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -845,10 +855,15 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
 
+      // Compute Earth visual size as fraction of viewport
+      // At camera.position.z=9, FOV=45°, Earth radius=2.8:
+      // visible height ≈ 2 * 9 * tan(22.5°) ≈ 7.46 units
+      // Earth diameter = 5.6 → 5.6/7.46 ≈ 75% of viewport at center
+      // Offset moves it partially off-screen so visible portion ≈ 35-45%
       const isMobile = w < 768;
       earthGroup.position.set(
-        isMobile ? -2.2 : -2.8,
-        isMobile ? -2.4 : -2.1,
+        isMobile ? -1.6 : -2.8,   // Desktop: lower-left; Mobile: lower-center
+        isMobile ? -2.8 : -2.4,   // Shift down so ~35-45% visible
         0
       );
     };
@@ -863,15 +878,16 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
       if (!running) return;
       if (isVisibleRef.current) {
         const elapsed = (now - startTime) * 0.001;
-        const speed = mergedConfig.rotationSpeedSeconds || 120;
+        const speed = mergedConfig.rotationSpeedSeconds || 45;
         const rotAngle = (elapsed / speed) * Math.PI * 2;
 
         earthMesh.rotation.y = rotAngle;
-        cloudMesh.rotation.y = rotAngle * 1.06;
+        if (cloudMesh) cloudMesh.rotation.y = rotAngle * 1.06;
 
-        // Apply mouse parallax shift
-        earthGroup.position.x = (window.innerWidth < 768 ? -2.2 : -2.8) + parallax.x * 0.3;
-        earthGroup.position.y = (window.innerWidth < 768 ? -2.4 : -2.1) + parallax.y * 0.3;
+        // Apply mouse parallax shift — matches updateComposition offsets
+        const isMobile = window.innerWidth < 768;
+        earthGroup.position.x = (isMobile ? -1.6 : -2.8) + parallax.x * 0.3;
+        earthGroup.position.y = (isMobile ? -2.8 : -2.4) + parallax.y * 0.3;
 
         renderer.render(scene, camera);
       }
@@ -890,6 +906,7 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
       dayTexture.dispose();
       nightTexture.dispose();
       cloudTexture.dispose();
+      if (atmosphereMesh) atmosphereMesh.geometry.dispose();
       renderer.dispose();
     };
   }, [useWebGL, mergedConfig.rotationSpeedSeconds, parallax]);
@@ -1047,7 +1064,7 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
           ? Math.min(width, height) * 0.38 
           : Math.min(width, height) * 0.44;
 
-        const rotationPeriod = mergedConfig.rotationSpeedSeconds || 120;
+        const rotationPeriod = mergedConfig.rotationSpeedSeconds || 45;
         const rotAngle = isStatic ? 0.35 : (elapsed / rotationPeriod) * Math.PI * 2;
 
         const sunDir = { x: -0.7, y: 0.35, z: 0.6 };

@@ -15,6 +15,10 @@ coverage/
 
 test-results/
 
+
 # Reference repos
 .reference/
+
+screenshots-acceptance/
+
 
