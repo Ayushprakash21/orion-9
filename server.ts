@@ -6,6 +6,7 @@ import { GoogleGenAI } from "@google/genai";
 import * as firebaseAdmin from "firebase-admin";
 import dotenv from "dotenv";
 import { demoPersistentSchedulerService } from "./src/services/demo/DemoPersistentSchedulerService";
+import { checkGeminiWallpaperStatus, generateGeminiWallpapers } from "./src/server/geminiBackend";
 
 dotenv.config({ path: ['.env.local', '.env'] });
 
@@ -515,115 +516,19 @@ async function startServer() {
     }
   });
 
-  // AI Wallpaper Status Route
-  // AI Wallpaper Status Route - Enhanced with real connectivity check
-app.get("/api/ai/wallpaper-status", async (_req, res) => {
+  // AI Wallpaper Status Route - Enhanced with modular Gemini connectivity check
+  app.get("/api/ai/wallpaper-status", async (_req, res) => {
     const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      return res.json({ providerConfigured: false, configured: false, providerName: "Google Gemini", model: "gemini-3.1-flash-image", available: false, error: "GEMINI_SECRET_MISSING" });
-    }
-    try {
-      const gemini = getGemini();
-      if (!gemini) throw new Error("Gemini client unavailable");
-      await gemini.models.list();
-      return res.json({ providerConfigured: true, configured: true, providerName: "Google Gemini", model: "gemini-3.1-flash-image", available: true, error: null });
-    } catch (err: any) {
-      let errorCode = "BACKEND_UNREACHABLE";
-      if (err?.status === 401 || err?.status === 403 || (err?.message || '').toLowerCase().includes('api key')) errorCode = "GEMINI_AUTH_ERROR";
-      else if (err?.status === 429 || (err?.message || '').toLowerCase().includes('quota')) errorCode = "GEMINI_RATE_LIMIT";
-      return res.json({ providerConfigured: true, configured: true, providerName: "Google Gemini", model: "gemini-3.1-flash-image", available: false, error: errorCode });
-    }
+    const result = await checkGeminiWallpaperStatus(apiKey);
+    return res.json(result);
   });
 
   // Real Gemini AI Wallpaper Generation Route (3 Real Candidates)
   app.post("/api/ai/generate-wallpaper", async (req, res) => {
-      const gemini = getGemini();
-      if (!gemini || !process.env.GEMINI_API_KEY) return res.status(503).json({ error: "Gemini image provider is not configured." });
-      const { prompt, style, count, width, height } = req.body || {};
-      if (!prompt || typeof prompt !== "string" || !prompt.trim()) return res.status(400).json({ error: "Prompt is required and must be a non-empty string." });
-      if (prompt.trim().length > 1000) return res.status(400).json({ error: "Prompt length must not exceed 1000 characters." });
-      const reqCount = typeof count === "number" ? count : 3;
-      if (reqCount !== 3) return res.status(400).json({ error: "Candidate count must be exactly 3." });
-      const resolvedStyle = (typeof style === "string" && style.trim()) ? style.trim() : "Space";
-      
-      const buildCandidatePrompt = (userPrompt: string, styleName: string, candidateIndex: number) => {
-        const baseSystemInstruction = `You are generating a premium desktop operating-system wallpaper for Orion-9, an enterprise Supply Chain Operating System. Create a cinematic, realistic 16:9 desktop environment. No text. No logos. No UI. No buttons. No cards. No dashboards. No watermark. Visual direction: deep space, recognizable Orion constellation, subtle astronomical atmosphere, premium cinematic lighting, restrained blue/cyan palette, deep blacks, subtle depth, large negative space for OS UI, high-quality photographic/cinematic rendering. The image must work as a desktop wallpaper and must not look like a website hero image.`;
-        const candidateVariations = [
-          "cinematic deep-space composition, Orion constellation emphasized",
-          "deep-space composition with subtle Earth atmosphere and Orion constellation",
-          "deep-space enterprise network environment with restrained astronomical topology and Orion constellation"
-        ];
-        const variation = candidateVariations[candidateIndex % 3];
-        return `${baseSystemInstruction}\n\nUser Request: ${userPrompt} (Style: ${styleName}).\nCandidate Variant Direction: ${variation}.`;
-      };
-
-      const generateSingleCandidate = async (idx: number) => {
-        const candidatePrompt = buildCandidatePrompt(prompt, resolvedStyle, idx);
-        const modelName = "gemini-3.1-flash-image";
-        try {
-          const response = await gemini.models.generateContent({
-            model: modelName,
-            contents: candidatePrompt,
-            config: { responseModalities: ["IMAGE"], imageConfig: { aspectRatio: "16:9" } }
-          });
-          const candidates = response.candidates || [];
-          if (candidates.length > 0 && candidates[0].content?.parts) {
-            for (const part of candidates[0].content.parts) {
-              if (part.inlineData && part.inlineData.data) {
-                const mimeType = part.inlineData.mimeType || "image/png";
-                const dataUrl = `data:${mimeType};base64,${part.inlineData.data}`;
-                return {
-                  id: `ai_wp_${Date.now()}_${String.fromCharCode(65 + idx)}`,
-                  name: `${resolvedStyle} Vision ${String.fromCharCode(65 + idx)}`,
-                  imageUrl: dataUrl,
-                  thumbnailUrl: dataUrl,
-                  mimeType,
-                  modelUsed: modelName
-                };
-              }
-            }
-          }
-          throw new Error("No image data in response.");
-        } catch (err: any) {
-          if (err?.status === 429 || (err?.message || '').toLowerCase().includes("quota")) {
-            const error: any = new Error("Gemini image generation rate limit reached.");
-            error.statusCode = 429;
-            throw error;
-          }
-          if (err?.status === 401 || err?.status === 403 || (err?.message || '').toLowerCase().includes("api key")) {
-            const error: any = new Error("Gemini authentication failed.");
-            error.statusCode = 502;
-            throw error;
-          }
-          const error: any = new Error(`Gemini returned no image candidate for candidate ${idx + 1}.`);
-          error.statusCode = err?.status || 502;
-          throw error;
-        }
-      };
-
-      try {
-        const candidateResults = [];
-        for (let i = 0; i < 3; i++) {
-          candidateResults.push(await generateSingleCandidate(i));
-        }
-        return res.json({
-          candidates: candidateResults.map((c: any) => ({
-            candidateId: c.id,
-            id: c.id,
-            name: c.name,
-            assetUrl: c.imageUrl,
-            imageUrl: c.imageUrl,
-            thumbnailUrl: c.thumbnailUrl,
-            mimeType: c.mimeType
-          })),
-          provider: "Google Gemini",
-          model: "gemini-3.1-flash-image"
-        });
-      } catch (err: any) {
-        const statusCode = err.statusCode || 502;
-        return res.status(statusCode).json({ error: err.message || "Failed to generate AI wallpapers." });
-      }
-    });
+    const apiKey = process.env.GEMINI_API_KEY;
+    const result = await generateGeminiWallpapers(apiKey, req.body || {});
+    return res.status(result.statusCode).json(result.body);
+  });
 
   // AI Tool Selection Route
   app.post("/api/ai/choose-tools", async (req, res) => {

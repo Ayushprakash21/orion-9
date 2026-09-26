@@ -42,6 +42,7 @@ export const UserWallpaperStudio: React.FC = () => {
 
   // AI Generator Form & Provider State
   const [aiProviderConfigured, setAiProviderConfigured] = useState<boolean>(false);
+  const [aiProviderStatusCode, setAiProviderStatusCode] = useState<string>('GEMINI_CONFIGURED');
   const [aiProviderName, setAiProviderName] = useState<string>('Google Gemini / Nano Banana');
   const [prompt, setPrompt] = useState('Futuristic deep-space environment with subtle blue and graphite atmosphere');
   const [style, setStyle] = useState<WallpaperStyle>('Space');
@@ -74,6 +75,7 @@ export const UserWallpaperStudio: React.FC = () => {
         
         if (mounted) {
           setAiProviderConfigured(aiStatus.configured);
+          setAiProviderStatusCode(aiStatus.status || aiStatus.error || 'GEMINI_CONFIGURED');
           setAiProviderName(aiStatus.providerName);
           
           const validGallery = available && available.length > 0 ? available : SYSTEM_DEFAULT_WALLPAPERS;
@@ -349,17 +351,34 @@ export const UserWallpaperStudio: React.FC = () => {
       {/* TAB 2: CREATE WITH AI */}
       {activeTab === 'AI' && (
         <div className="space-y-4">
-          {!aiProviderConfigured && (
-            <div className="p-3.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-xs text-slate-300 space-y-1">
-              <div className="flex items-center gap-2 font-semibold text-sky-400">
-                <Sparkles className="w-4 h-4" />
-                <span>AI Provider: {aiProviderName}</span>
-              </div>
-              <p className="text-[11px] text-slate-400">
-                AI Image Generation uses Google Gemini / Nano Banana API provider.
-              </p>
+          <div className={cn(
+            "p-3.5 rounded-xl border text-xs space-y-1",
+            aiProviderConfigured
+              ? "bg-sky-500/10 border-sky-500/20 text-slate-300"
+              : aiProviderStatusCode === 'GEMINI_SECRET_MISSING'
+              ? "bg-amber-500/10 border-amber-500/20 text-amber-200"
+              : aiProviderStatusCode === 'GEMINI_AUTH_ERROR'
+              ? "bg-red-500/10 border-red-500/20 text-red-200"
+              : aiProviderStatusCode === 'GEMINI_RATE_LIMIT'
+              ? "bg-purple-500/10 border-purple-500/20 text-purple-200"
+              : "bg-slate-500/10 border-slate-500/20 text-slate-300"
+          )}>
+            <div className="flex items-center gap-2 font-semibold text-sky-400">
+              <Sparkles className="w-4 h-4" />
+              <span>AI Provider: {aiProviderName}</span>
+              <span className="ml-auto text-[10px] px-2 py-0.5 rounded-md font-mono uppercase bg-white/10">
+                {aiProviderStatusCode}
+              </span>
             </div>
-          )}
+            <p className="text-[11px] opacity-80">
+              {aiProviderStatusCode === 'GEMINI_CONFIGURED' && 'Google Gemini API is configured and ready for generation.'}
+              {aiProviderStatusCode === 'GEMINI_SECRET_MISSING' && 'GEMINI_API_KEY environment variable is not configured on the server.'}
+              {aiProviderStatusCode === 'GEMINI_AUTH_ERROR' && 'Gemini API authentication failed. Please verify server credentials.'}
+              {aiProviderStatusCode === 'GEMINI_RATE_LIMIT' && 'Gemini API quota or rate limit reached. Generation will retry when quota resets.'}
+              {aiProviderStatusCode === 'GEMINI_API_UNAVAILABLE' && 'Google Gemini API service is temporarily unavailable.'}
+              {aiProviderStatusCode === 'BACKEND_UNREACHABLE' && 'Unable to reach backend server endpoint.'}
+            </p>
+          </div>
 
           <form onSubmit={handleGenerateAiCandidates} className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3.5">
             <div>
