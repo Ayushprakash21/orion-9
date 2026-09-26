@@ -62,7 +62,7 @@ describe('ORION-9 Mobile Login Experience & OS Auth Surface', () => {
         </MemoryRouter>
       );
 
-      expect(html).toContain('max-w-[400px]');
+      expect(html).toContain('max-w-[500px]');
       expect(html).toContain('backdrop-blur-2xl');
       expect(html).toContain('bg-[#070e1c]/75');
     });
@@ -85,9 +85,9 @@ describe('ORION-9 Mobile Login Experience & OS Auth Surface', () => {
         </MemoryRouter>
       );
 
-      expect(html).toContain('Privacy');
-      expect(html).toContain('Terms');
-      expect(html).toContain('Help');
+      expect(html).not.toContain('Privacy');
+      expect(html).not.toContain('Terms');
+      expect(html).not.toContain('Help');
       expect(html).toContain('safe-area-inset-bottom');
       expect(html).toContain('safe-area-inset-top');
     });

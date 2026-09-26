@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from '../../store/AuthContext';
+import { useLanguage, SupportedLanguage } from '../../store/LanguageContext';
 import { userService } from '../../services/userService';
 import { useLocation } from "react-router-dom";
+import { BrandLogo } from '../brand/BrandLogo';
 import { OrionLiveLoginBackground } from "../brand/OrionLiveLoginBackground";
 import { UserProfile } from "../../types/auth";
 import { dbManager } from "../../core/database/DatabaseConnectionManager";
@@ -30,7 +32,7 @@ import {
   CheckCircle2
 } from "lucide-react";
 
-export type SupportedLanguage = 'en' | 'hi' | 'es' | 'de';
+
 
 export interface LanguageOption {
   code: SupportedLanguage;
@@ -55,7 +57,7 @@ export const AUTH_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>
     userNotFound: "User not found",
     enterPassword: "Password",
     enterOrionBtn: "Enter Orion",
-    otherUser: "Other user",
+    otherUser: "Back",
     rememberMe: "Remember me",
     forgotPassword: "Forgot password?",
     invalidCredentials: "Invalid password or credentials.",
@@ -76,7 +78,7 @@ export const AUTH_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>
     userNotFound: "उपयोगकर्ता नहीं मिला",
     enterPassword: "पासवर्ड",
     enterOrionBtn: "Orion में प्रवेश करें",
-    otherUser: "अन्य उपयोगकर्ता",
+    otherUser: "Back",
     rememberMe: "मुझे याद रखें",
     forgotPassword: "पासवर्ड भूल गए?",
     invalidCredentials: "गलत पासवर्ड या क्रेडेंशियल।",
@@ -97,7 +99,7 @@ export const AUTH_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>
     userNotFound: "Usuario no encontrado",
     enterPassword: "Contraseña",
     enterOrionBtn: "Entrar a Orion",
-    otherUser: "Otro usuario",
+    otherUser: "Back",
     rememberMe: "Recordarme",
     forgotPassword: "¿Olvidó su contraseña?",
     invalidCredentials: "Contraseña o credenciales incorrectas.",
@@ -118,7 +120,7 @@ export const AUTH_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>
     userNotFound: "Benutzer nicht gefunden",
     enterPassword: "Passwort",
     enterOrionBtn: "Orion betreten",
-    otherUser: "Anderer Benutzer",
+    otherUser: "Back",
     rememberMe: "Angemeldet bleiben",
     forgotPassword: "Passwort vergessen?",
     invalidCredentials: "Ungültiges Passwort oder Anmeldedaten.",
@@ -232,13 +234,7 @@ export const Login: React.FC = () => {
   }, []);
 
   // Language & Power Menu dropdown state
-  const [currentLang, setCurrentLang] = useState<SupportedLanguage>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('orion_language') as SupportedLanguage;
-      if (saved && AUTH_TRANSLATIONS[saved]) return saved;
-    }
-    return 'en';
-  });
+  const { language: currentLang, setLanguage: handleSelectLanguage } = useLanguage();
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false);
   const [isPowerMenuOpen, setIsPowerMenuOpen] = useState(false);
 
@@ -249,15 +245,7 @@ export const Login: React.FC = () => {
 
   const t = AUTH_TRANSLATIONS[currentLang] || AUTH_TRANSLATIONS.en;
 
-  // Save selected language to localStorage
-  const handleSelectLanguage = (langCode: SupportedLanguage) => {
-    setCurrentLang(langCode);
-    setIsLangMenuOpen(false);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('orion_language', langCode);
-      window.dispatchEvent(new CustomEvent('orion-language-changed', { detail: { language: langCode } }));
-    }
-  };
+
 
   // Close menus on click outside
   useEffect(() => {
@@ -456,7 +444,7 @@ export const Login: React.FC = () => {
                 <button
                   key={lang.code}
                   type="button"
-                  onClick={() => handleSelectLanguage(lang.code)}
+                  onClick={() => { handleSelectLanguage(lang.code); setIsLangMenuOpen(false); }}
                   className={`w-full text-left px-3.5 py-2 flex items-center justify-between hover:bg-white/10 transition-colors ${
                     currentLang === lang.code ? 'text-blue-400 font-semibold bg-white/5' : 'text-white/80'
                   }`}
@@ -491,12 +479,13 @@ export const Login: React.FC = () => {
           </span>
         </div>
 
-        <div className="backdrop-blur-2xl bg-[#070e1c]/75 border border-cyan-500/20 shadow-[0_0_50px_rgba(0,0,0,0.85)] rounded-[22px] p-5 sm:p-7 max-w-[400px] w-[calc(100vw-32px)] mx-auto relative overflow-hidden transition-all duration-300">
+        <div className="backdrop-blur-2xl bg-[#070e1c]/75 border border-cyan-500/20 shadow-[0_0_50px_rgba(0,0,0,0.85)] rounded-[22px] p-8 sm:p-10 w-full max-w-[500px] mx-auto relative overflow-hidden transition-all duration-300">
           
           {/* STAGE 1: USER ID STAGE */}
           {stage === 1 && (
             <div className="animate-fadeIn">
-              <div className="flex flex-col items-center justify-center mb-5 select-none text-center">
+              <div className="flex flex-col items-center justify-center mb-6 select-none text-center">
+                <BrandLogo variant="mark" sizePreset="lg" className="mx-auto mb-4" />
                 <span className="text-cyan-400 font-mono font-bold tracking-wider text-xs uppercase mb-1">
                   ORION-9
                 </span>
@@ -724,34 +713,13 @@ export const Login: React.FC = () => {
                   <span>{t.switchUser}</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => { setIsPowerMenuOpen(false); triggerLock(); }}
-                  className="w-full text-left px-3.5 py-2 flex items-center gap-2.5 text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-                >
-                  <Lock className="w-4 h-4 text-amber-400" />
-                  <span>{t.lock}</span>
-                </button>
 
-                <button
-                  type="button"
-                  onClick={() => { setIsPowerMenuOpen(false); signOut(); }}
-                  className="w-full text-left px-3.5 py-2 flex items-center gap-2.5 text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-                >
-                  <LogOut className="w-4 h-4 text-orange-400" />
-                  <span>{t.signOut}</span>
-                </button>
 
-                <div className="my-1 border-t border-white/10" />
 
-                <button
-                  type="button"
-                  onClick={() => { setIsPowerMenuOpen(false); triggerRestart(); }}
-                  className="w-full text-left px-3.5 py-2 flex items-center gap-2.5 text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-                >
-                  <RotateCcw className="w-4 h-4 text-emerald-400" />
-                  <span>{t.restart}</span>
-                </button>
+
+
+
+
 
                 <button
                   type="button"
@@ -765,32 +733,10 @@ export const Login: React.FC = () => {
             )}
           </div>
 
-          {/* Live Control Plane Runtime Telemetry */}
-          <div className="hidden md:flex flex-col text-[10.5px] font-mono text-white/50 space-y-0.5 select-none">
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-white/80 font-semibold tracking-wider">CONTROL PLANE ({dbEnv} MODE)</span>
-              <span className="text-white/30">•</span>
-              <span className="text-emerald-400 font-semibold">{systemHealth.runtimeStatus}</span>
-              <span className="text-white/30">•</span>
-              <span className="text-blue-400">{systemHealth.latencyMs}ms</span>
-            </div>
-            {systemHealth.activeBatchInfo && (
-              <div className="text-white/40 truncate max-w-xs text-[10px]">
-                {systemHealth.activeBatchInfo}
-              </div>
-            )}
-          </div>
+
         </div>
 
-        {/* Minimal Non-Competing System Links for Mobile */}
-        <div className="flex items-center gap-2 text-[10px] text-white/40 font-mono select-none">
-          <span>Privacy</span>
-          <span>•</span>
-          <span>Terms</span>
-          <span>•</span>
-          <span>Help</span>
-        </div>
+
       </footer>
     </div>
   );

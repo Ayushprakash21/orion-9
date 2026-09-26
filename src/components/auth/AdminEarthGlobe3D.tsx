@@ -42,13 +42,13 @@ export const AdminEarthGlobe3D: React.FC<AdminEarthGlobe3DProps> = ({
     const textureLoader = new THREE.TextureLoader();
 
     // Day Map: Real NASA Blue Marble daytime satellite texture
-    const dayMap = textureLoader.load('/textures/earth_atmos_2048.jpg');
+    const dayMap = textureLoader.load('/textures/earth/earth-day.jpg');
     // Normal Map: Real Earth topography & bathymetry relief
     const normalMap = textureLoader.load('/textures/earth_normal_2048.jpg');
     // Specular Map: Ocean reflection gloss
     const specularMap = textureLoader.load('/textures/earth_specular_2048.jpg');
     // Cloud Map: Real NASA satellite clouds
-    const cloudsMap = textureLoader.load('/textures/earth_clouds_1024.png');
+    const cloudsMap = textureLoader.load('/textures/earth/earth-clouds.png');
 
     // 4. Lighting Setup (Simulating Sun & Deep Space Ambient)
     // Soft deep space ambient luminescence

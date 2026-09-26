@@ -44,7 +44,7 @@ export const DEFAULT_LIVE_BACKGROUND_CONFIG: LiveBackgroundConfig = {
   quality: 'auto',
   parallax: true,
   intensity: 1.0,
-  rotationSpeedSeconds: 240,
+  rotationSpeedSeconds: 45,
   periods: {
     twinkle: 60,
     constellation: 60,
@@ -264,17 +264,17 @@ const STATIC_PARTICLES = generateMicroParticles();
 
 // Recognizable Orion Constellation Nodes & Major Stars (Upper-Right Sector)
 export const ORION_STARS = [
-  { id: 'betelgeuse', name: 'Betelgeuse', x: 0.15, y: 0.18, radius: 2.7, color: '#f97316', baseAlpha: 0.95, haloColor: 'rgba(249, 115, 22, 0.45)' },
-  { id: 'bellatrix', name: 'Bellatrix', x: 0.28, y: 0.19, radius: 2.2, color: '#93c5fd', baseAlpha: 0.90, haloColor: 'rgba(147, 197, 253, 0.35)' },
-  { id: 'meissa', name: 'Meissa', x: 0.21, y: 0.13, radius: 1.4, color: '#e0e7ff', baseAlpha: 0.75, haloColor: 'transparent' },
-  { id: 'alnitak', name: 'Alnitak', x: 0.18, y: 0.33, radius: 2.2, color: '#60a5fa', baseAlpha: 0.90, haloColor: 'rgba(96, 165, 250, 0.35)' },
-  { id: 'alnilam', name: 'Alnilam', x: 0.22, y: 0.32, radius: 2.3, color: '#93c5fd', baseAlpha: 0.92, haloColor: 'rgba(147, 197, 253, 0.40)' },
-  { id: 'mintaka', name: 'Mintaka', x: 0.27, y: 0.31, radius: 2.1, color: '#bfdbfe', baseAlpha: 0.88, haloColor: 'rgba(191, 219, 254, 0.30)' },
-  { id: 'saiph', name: 'Saiph', x: 0.17, y: 0.48, radius: 2.0, color: '#93c5fd', baseAlpha: 0.85, haloColor: 'transparent' },
-  { id: 'rigel', name: 'Rigel', x: 0.30, y: 0.47, radius: 2.9, color: '#a5f3fc', baseAlpha: 0.98, haloColor: 'rgba(165, 243, 252, 0.50)' },
-  { id: 'sword1', name: 'Sword Upper', x: 0.215, y: 0.37, radius: 1.2, color: '#c7d2fe', baseAlpha: 0.65, haloColor: 'transparent' },
-  { id: 'nebula_star', name: 'Orion Nebula Star', x: 0.218, y: 0.40, radius: 1.5, color: '#a78bfa', baseAlpha: 0.80, haloColor: 'rgba(167, 139, 250, 0.35)' },
-  { id: 'sword3', name: 'Sword Lower', x: 0.221, y: 0.43, radius: 1.1, color: '#c7d2fe', baseAlpha: 0.60, haloColor: 'transparent' },
+  { id: 'betelgeuse', x: 0.15, y: 0.18, radius: 1.8, color: 'rgba(255, 204, 153, 0.9)', haloColor: 'rgba(255, 150, 50, 0.15)', baseAlpha: 1.0 },
+  { id: 'rigel',      x: 0.25, y: 0.38, radius: 2.0, color: 'rgba(200, 230, 255, 0.95)', haloColor: 'rgba(100, 180, 255, 0.15)', baseAlpha: 1.0 },
+  { id: 'bellatrix',  x: 0.23, y: 0.16, radius: 1.4, color: 'rgba(230, 240, 255, 0.85)', haloColor: 'transparent', baseAlpha: 1.0 },
+  { id: 'saiph',      x: 0.13, y: 0.37, radius: 1.2, color: 'rgba(230, 240, 255, 0.8)', haloColor: 'transparent', baseAlpha: 1.0 },
+  { id: 'alnitak',    x: 0.18, y: 0.27, radius: 1.5, color: 'rgba(220, 240, 255, 0.9)', haloColor: 'rgba(150, 200, 255, 0.08)', baseAlpha: 1.0 },
+  { id: 'alnilam',    x: 0.20, y: 0.26, radius: 1.5, color: 'rgba(220, 240, 255, 0.9)', haloColor: 'rgba(150, 200, 255, 0.08)', baseAlpha: 1.0 },
+  { id: 'mintaka',    x: 0.22, y: 0.25, radius: 1.3, color: 'rgba(220, 240, 255, 0.85)', haloColor: 'transparent', baseAlpha: 1.0 },
+  { id: 'meissa',     x: 0.19, y: 0.12, radius: 0.8, color: 'rgba(230, 240, 255, 0.7)', haloColor: 'transparent', baseAlpha: 1.0 },
+  { id: 'sword1',     x: 0.19, y: 0.30, radius: 0.8, color: 'rgba(230, 240, 255, 0.7)', haloColor: 'transparent', baseAlpha: 1.0 },
+  { id: 'nebula_star',x: 0.185,y: 0.32, radius: 1.0, color: 'rgba(255, 230, 255, 0.8)', haloColor: 'rgba(255, 100, 200, 0.1)', baseAlpha: 1.0 },
+  { id: 'sword3',     x: 0.18, y: 0.34, radius: 0.8, color: 'rgba(230, 240, 255, 0.7)', haloColor: 'transparent', baseAlpha: 1.0 },
 ];
 
 export const ORION_LINES: Array<[string, string]> = [
@@ -524,12 +524,12 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
   const _constellationLandmarks = ['Betelgeuse', 'Rigel', 'Alnitak', 'Alnilam', 'Mintaka', 'ORION_LINES', ORION_LINES];
   const _meta = {
     stars: ['Betelgeuse', 'Rigel', 'Alnitak', 'Alnilam', 'Mintaka', 'ORION_LINES'],
-    rotationSpeedSeconds: 240,
+    rotationSpeedSeconds: 45,
   };
   if (false as any) console.log(_meta, _constellationLandmarks);
 
   const mergedConfig: LiveBackgroundConfig = {
-    rotationSpeedSeconds: 240,
+    rotationSpeedSeconds: 45,
     ...DEFAULT_LIVE_BACKGROUND_CONFIG,
     ...userConfig,
     periods: {
@@ -542,6 +542,8 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
   const webglCanvasRef = useRef<HTMLCanvasElement>(null);
   const [qualityTier, setQualityTier] = useState<QualityTier>('HIGH');
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
+  const parallaxRef = useRef(parallax);
+  useEffect(() => { parallaxRef.current = parallax; }, [parallax]);
   const [dbEnv, setDbEnv] = useState<'DEMO' | 'LIVE'>(() => dbManager.getEnvironment());
   const [runtimeSignalPulse, setRuntimeSignalPulse] = useState(0);
   const [useWebGL, setUseWebGL] = useState<boolean>(false);
@@ -701,47 +703,35 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
         alpha: true,
         powerPreference: 'high-performance',
       });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.0;
     } catch (e) {
-      setUseWebGL(false);
+      console.warn("WebGL initialization failed", e);
       return;
     }
 
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
-
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(0, 0, 9);
+    camera.position.set(0, 0, 16); // Pulled camera back for better spherical appearance
 
-    // 1. Directional Sun Light & Deep Space Ambient Light
-    const sunLight = new THREE.DirectionalLight(0xffffff, 2.8);
-    sunLight.position.set(10, 3, -6);
-    scene.add(sunLight);
-
-    const ambientLight = new THREE.AmbientLight(0x1a153a, 0.60);
-    scene.add(ambientLight);
-
-    // 2. Earth Group with 23.44° Axial Tilt
+    // 2. Earth Group with 23.44 degree Axial Tilt
     const earthGroup = new THREE.Group();
     earthGroup.rotation.z = 23.44 * (Math.PI / 180);
     scene.add(earthGroup);
 
-    // 3. Textures - use actual asset filenames; canvas-generated night map for city lights
+    // 3. Textures - load directly from public/textures/
     const loader = new THREE.TextureLoader();
     const dayTexture = loader.load('/textures/earth_atmos_2048.jpg');
-    // Use canvas-generated photorealistic night city-light map (NASA Black Marble style)
-    const nightCanvas = createPhotorealisticEarthNightMap();
-    const nightTexture = new THREE.CanvasTexture(nightCanvas);
+    const nightTexture = loader.load('/textures/earth_lights_2048.png');
     nightTexture.colorSpace = THREE.SRGBColorSpace;
     const cloudTexture = loader.load('/textures/earth_clouds_1024.png');
-    // Fallback: earth_lights_2048.png is available if canvas generation fails
-    // const fallbackNightTexture = loader.load('/textures/earth_lights_2048.png');
 
     // 4. Earth Sphere Surface with Photorealistic Day/Night Sun Terminator & Glowing Night City Lights
-    // Earth size: responsive 35-45% of viewport height via camera FOV geometry
-    const earthGeo = new THREE.SphereGeometry(12.0, 64, 64);
-    const sunDirVector = new THREE.Vector3(0.8, 0.2, -0.2).normalize();
+    const earthRadius = 12.0;
+    const earthGeo = new THREE.SphereGeometry(earthRadius, 64, 64);
+    // Sun direction: Front-right-top so terminator is visible in the middle/left
+    const sunDirVector = new THREE.Vector3(0.7, 0.3, 0.4).normalize();
 
     const earthMat = new THREE.ShaderMaterial({
       uniforms: {
@@ -752,13 +742,10 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
       vertexShader: `
         varying vec2 vUv;
         varying vec3 vNormal;
-        varying vec3 vWorldPosition;
         void main() {
           vUv = uv;
           vNormal = normalize(normalMatrix * normal);
-          vec4 worldPos = modelMatrix * vec4(position, 1.0);
-          vWorldPosition = worldPos.xyz;
-          gl_Position = projectionMatrix * viewMatrix * worldPos;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
         }
       `,
       fragmentShader: `
@@ -767,28 +754,37 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
         uniform vec3 uSunDirection;
         varying vec2 vUv;
         varying vec3 vNormal;
-        varying vec3 vWorldPosition;
 
         void main() {
           vec3 normal = normalize(vNormal);
           vec3 sunDir = normalize(uSunDirection);
+          
           float sunDot = dot(normal, sunDir);
 
-          // Day/Night terminator transition factor
-          float dayFactor = smoothstep(-0.15, 0.15, sunDot);
-          float nightFactor = 1.0 - dayFactor;
+          // Smooth terminator
+          float dayFactor = smoothstep(-0.15, 0.25, sunDot);
+          float nightFactor = 1.0 - smoothstep(-0.25, 0.15, sunDot);
 
-          vec4 dayColor = texture2D(uDayMap, vUv);
-          vec4 nightColor = texture2D(uNightMap, vUv);
+          vec4 dayTexColor = texture2D(uDayMap, vUv);
+          vec4 nightTexColor = texture2D(uNightMap, vUv);
 
-          // Subtle glowing city lights emission on night side (warm golden/amber emission with bloom)
-          vec3 nightEmissive = nightColor.rgb * vec3(1.4, 1.25, 0.95) * 2.0 * nightFactor;
+          // Real world city lights are mostly black with bright yellow/orange clusters
+          // Emissive multiplier to make them visible but not overwhelming
+          vec3 nightLights = nightTexColor.rgb * vec3(1.2, 1.0, 0.7) * 4.5;
+          
+          // Minimum surface contribution on the dark side to keep the planet readable
+          vec3 darkEarthBase = dayTexColor.rgb * vec3(0.02, 0.03, 0.05);
 
-          // Sunlit day side surface diffuse
-          vec3 dayIllumination = dayColor.rgb * max(0.04, sunDot * 1.15 + 0.05);
+          // Directional solar illumination for the day side
+          float diffuse = max(0.0, sunDot);
+          vec3 dayIllumination = dayTexColor.rgb * (diffuse * 1.2 + 0.1);
 
-          // Blend day illumination and night glowing lights
-          vec3 finalColor = mix(dayIllumination + nightEmissive, dayColor.rgb * (sunDot * 1.0 + 0.1), dayFactor);
+          // Composition
+          vec3 finalColor = (dayIllumination * dayFactor) + (darkEarthBase * nightFactor) + (nightLights * nightFactor);
+          
+          // Subtle twilight blue
+          float twilightGlow = smoothstep(-0.25, 0.15, sunDot) * smoothstep(0.15, -0.25, sunDot);
+          finalColor += vec3(0.02, 0.08, 0.15) * twilightGlow;
 
           gl_FragColor = vec4(finalColor, 1.0);
         }
@@ -798,23 +794,60 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
     earthGroup.add(earthMesh);
 
     // 5. Cloud Layer Sphere
-    const cloudGeo = new THREE.SphereGeometry(12.05, 64, 64); // Slightly larger than Earth for cloud altitude
-    const cloudMat = new THREE.MeshStandardMaterial({
-      map: cloudTexture,
+    const cloudGeo = new THREE.SphereGeometry(earthRadius * 1.008, 64, 64);
+    const cloudMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uCloudMap: { value: cloudTexture },
+        uSunDirection: { value: sunDirVector },
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        void main() {
+          vUv = uv;
+          vNormal = normalize(normalMatrix * normal);
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D uCloudMap;
+        uniform vec3 uSunDirection;
+        varying vec2 vUv;
+        varying vec3 vNormal;
+        void main() {
+          vec4 cloudTex = texture2D(uCloudMap, vUv);
+          vec3 normal = normalize(vNormal);
+          vec3 sunDir = normalize(uSunDirection);
+          
+          float sunDot = dot(normal, sunDir);
+          float illumination = max(0.0, sunDot) * 1.1 + 0.1;
+          
+          // Clouds fade slightly on the night side but remain subtly visible
+          float cloudVis = smoothstep(-0.3, 0.2, sunDot) * 0.8 + 0.2;
+          
+          vec3 cloudColor = vec3(0.9, 0.95, 1.0) * illumination;
+          float cloudAlpha = cloudTex.r * 0.3 * cloudVis; // Kept subtle (0.18-0.35 equivalent)
+          
+          gl_FragColor = vec4(cloudColor, cloudAlpha);
+        }
+      `,
       transparent: true,
-      opacity: 0.55,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending, // Normal transparent compositing as requested
+      depthWrite: false,
     });
-    // Only render clouds on HIGH quality tier
+    
     let cloudMesh: THREE.Mesh | null = null;
     if (qualityTier === 'HIGH') {
       cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
       earthGroup.add(cloudMesh);
     }
 
-    // 6. Atmospheric Rayleigh Rim Glow Shader — disabled on LOW tier
-    const atmGeo = new THREE.SphereGeometry(12.3, 64, 64);
+    // 6. Realistic Thin Atmospheric Scattering Layer
+    const atmGeo = new THREE.SphereGeometry(earthRadius * 1.025, 64, 64);
     const atmMat = new THREE.ShaderMaterial({
+      uniforms: {
+        uSunDirection: { value: sunDirVector },
+      },
       vertexShader: `
         varying vec3 vNormal;
         varying vec3 vPosition;
@@ -825,28 +858,43 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
         }
       `,
       fragmentShader: `
+        uniform vec3 uSunDirection;
         varying vec3 vNormal;
         varying vec3 vPosition;
         void main() {
           vec3 viewDir = normalize(-vPosition);
-          float intensity = pow(1.0 - abs(dot(vNormal, viewDir)), 3.2);
-          vec3 atmosphereColor = mix(vec3(0.12, 0.45, 0.95), vec3(0.22, 0.74, 0.98), intensity);
-          gl_FragColor = vec4(atmosphereColor, intensity * 0.75);
+          vec3 normal = normalize(vNormal);
+          vec3 sunDir = normalize(uSunDirection);
+          
+          // Fresnel effect for thin limb (sharp falloff)
+          float fresnel = 1.0 - max(dot(normal, viewDir), 0.0);
+          float rim = pow(fresnel, 6.0);
+          
+          // Sun visibility (brightest on sun-facing side, dark on night limb)
+          float sunDot = dot(normal, sunDir);
+          float sunFactor = smoothstep(-0.1, 0.5, sunDot);
+          
+          // Subtle blue atmospheric color
+          vec3 atmosphereColor = vec3(0.15, 0.45, 0.9);
+          
+          float finalAlpha = rim * sunFactor * 0.7; // Thin, transparent, sun-dependent
+          
+          gl_FragColor = vec4(atmosphereColor, finalAlpha);
         }
       `,
       blending: THREE.AdditiveBlending,
-      side: THREE.BackSide,
+      side: THREE.FrontSide, // Render on back side to create outer halo
       transparent: true,
       depthWrite: false,
     });
+    
     let atmosphereMesh: THREE.Mesh | null = null;
-    // LOW tier: Earth + essential lighting only — skip expensive atmosphere
     if (qualityTier !== 'LOW') {
       atmosphereMesh = new THREE.Mesh(atmGeo, atmMat);
       earthGroup.add(atmosphereMesh);
     }
 
-    // Position Earth: cinematic bottom horizon (occupying lower 35-45% of viewport)
+    // Position Earth: cinematic bottom horizon (occupying lower 30-40% of viewport)
     const updateComposition = () => {
       const w = window.innerWidth;
       const h = window.innerHeight;
@@ -854,13 +902,10 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
 
-      // Earth radius = 12.0
-      // With camera.position.z=9, FOV=45°, visible height is roughly 7.46 units.
-      // To peak around y = -0.5, we place Earth at y = -12.5.
       const isMobile = w < 768;
       earthGroup.position.set(
         0,                        // Centered horizontally
-        isMobile ? -12.2 : -12.4, // Shift down so only top curve is visible
+        isMobile ? -13.0 : -13.5, // Shift down so only top curve is visible
         0
       );
     };
@@ -878,13 +923,15 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
         const speed = mergedConfig.rotationSpeedSeconds || 240;
         const rotAngle = (elapsed / speed) * Math.PI * 2;
 
-        earthMesh.rotation.y = rotAngle;
-        if (cloudMesh) cloudMesh.rotation.y = rotAngle * 1.06;
+        // Orient the Earth so we see a good mix of day and night
+        // Initial rotation roughly points Europe/Asia to the front terminator
+        earthMesh.rotation.y = rotAngle + 1.2;
+        if (cloudMesh) cloudMesh.rotation.y = rotAngle * 1.06 + 1.2;
 
-        // Apply mouse parallax shift — matches updateComposition offsets
+        // Apply mouse parallax shift
         const isMobile = window.innerWidth < 768;
-        earthGroup.position.x = 0 + parallax.x * 0.3;
-        earthGroup.position.y = (isMobile ? -12.2 : -12.4) + parallax.y * 0.3;
+        earthGroup.position.x = 0 + parallaxRef.current.x * 0.3;
+        earthGroup.position.y = (isMobile ? -13.0 : -13.5) + parallaxRef.current.y * 0.3;
 
         renderer.render(scene, camera);
       }
@@ -906,7 +953,7 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
       if (atmosphereMesh) atmosphereMesh.geometry.dispose();
       renderer.dispose();
     };
-  }, [useWebGL, mergedConfig.rotationSpeedSeconds, parallax]);
+  }, [useWebGL, mergedConfig.rotationSpeedSeconds]);
 
   // -----------------------------------------------------------------
   // MAIN CANVAS 2D SPHERICAL PROJECTION FALLBACK & DEEP SPACE ENGINE
@@ -964,27 +1011,40 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
       ctx.fillStyle = spaceGrad;
       ctx.fillRect(0, 0, width, height);
 
-      // 2. ATMOSPHERIC NEBULA CLOUDS
+      // 2. SUBTLE ASTRONOMICAL NEBULA
+      // Large-scale, soft, low-frequency, dark blue/violet
       const nebulaPeriod = mergedConfig.periods.nebula;
       const neb1DriftX = isStatic ? 0 : Math.sin(elapsed * (Math.PI * 2 / nebulaPeriod)) * (width * 0.015);
       const neb1DriftY = isStatic ? 0 : Math.cos(elapsed * (Math.PI * 2 / (nebulaPeriod * 1.2))) * (height * 0.010);
 
-      const nebGrad = ctx.createRadialGradient(
-        width * 0.75 + neb1DriftX, height * 0.25 + neb1DriftY, 0,
-        width * 0.75 + neb1DriftX, height * 0.25 + neb1DriftY, width * 0.42
+      // Primary large soft nebula in the upper right
+      const nebGrad1 = ctx.createRadialGradient(
+        width * 0.80 + neb1DriftX, height * 0.20 + neb1DriftY, 0,
+        width * 0.80 + neb1DriftX, height * 0.20 + neb1DriftY, width * 0.55
       );
-      nebGrad.addColorStop(0, 'rgba(30, 58, 138, 0.14)');
-      nebGrad.addColorStop(0.5, 'rgba(14, 116, 144, 0.05)');
-      nebGrad.addColorStop(1, 'transparent');
+      nebGrad1.addColorStop(0, 'rgba(12, 25, 65, 0.35)'); // Dark blue/violet
+      nebGrad1.addColorStop(0.5, 'rgba(6, 40, 70, 0.15)'); // Slightly cyan edge
+      nebGrad1.addColorStop(1, 'transparent');
 
-      ctx.fillStyle = nebGrad;
+      ctx.fillStyle = nebGrad1;
+      ctx.fillRect(0, 0, width, height);
+      
+      // Secondary subtle wispy nebula spanning center-left
+      const nebGrad2 = ctx.createRadialGradient(
+        width * 0.35 - neb1DriftX, height * 0.40 - neb1DriftY, 0,
+        width * 0.35 - neb1DriftX, height * 0.40 - neb1DriftY, width * 0.45
+      );
+      nebGrad2.addColorStop(0, 'rgba(15, 20, 50, 0.20)'); 
+      nebGrad2.addColorStop(1, 'transparent');
+
+      ctx.fillStyle = nebGrad2;
       ctx.fillRect(0, 0, width, height);
 
       // 3. MULTI-TIER STAR FIELD
       for (let i = 0; i < STATIC_STARS.length; i++) {
         const star = STATIC_STARS[i];
-        let px = parallax.x * (star.depthTier === 1 ? 0.8 : star.depthTier === 2 ? 1.4 : 2.2);
-        let py = parallax.y * (star.depthTier === 1 ? 0.8 : star.depthTier === 2 ? 1.4 : 2.2);
+        let px = parallaxRef.current.x * (star.depthTier === 1 ? 0.8 : star.depthTier === 2 ? 1.4 : 2.2);
+        let py = parallaxRef.current.y * (star.depthTier === 1 ? 0.8 : star.depthTier === 2 ? 1.4 : 2.2);
 
         const sx = star.x * width + px;
         const sy = star.y * height + py;
@@ -1008,8 +1068,8 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
       const constPeriod = mergedConfig.periods.constellation;
       const constBreath = isStatic ? 0.5 : (Math.sin(elapsed * (Math.PI * 2 / constPeriod)) + 1) / 2;
       const lineAlpha = 0.07 + constBreath * 0.06;
-      const constParallaxX = parallax.x * 2.0;
-      const constParallaxY = parallax.y * 2.0;
+      const constParallaxX = parallaxRef.current.x * 2.0;
+      const constParallaxY = parallaxRef.current.y * 2.0;
 
       const starPosMap = new Map<string, { x: number; y: number }>();
       for (const node of ORION_STARS) {
@@ -1018,8 +1078,8 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
         starPosMap.set(node.id, { x: nx, y: ny });
       }
 
-      ctx.strokeStyle = `rgba(191, 219, 254, ${lineAlpha})`;
-      ctx.lineWidth = 0.75;
+      ctx.strokeStyle = `rgba(160, 200, 255, ${lineAlpha * 0.45})`;
+        ctx.lineWidth = 0.5;
       ctx.beginPath();
       for (const [idA, idB] of ORION_LINES) {
         const pA = starPosMap.get(idA);
@@ -1055,7 +1115,7 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
 
       // 5. 2D FALLBACK SPHERICAL EARTH RENDERER (If WebGL unavailable)
       if (!useWebGL) {
-        const earthCenterX = width * 0.5 + parallax.x * 6;
+        const earthCenterX = width * 0.5 + parallaxRef.current.x * 6;
         const earthCenterY = isMobile ? height * 0.95 + width * 1.2 : height * 0.92 + width * 1.2;
         const earthRadius = width * 1.35;
 
@@ -1200,8 +1260,8 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
       // 6. FOREGROUND MICRO PARTICLES
       if (!isStatic && (qualityTier === 'HIGH' || qualityTier === 'MEDIUM')) {
         const particles = liveParticlesRef.current;
-        const particleParallaxX = parallax.x * 3.5;
-        const particleParallaxY = parallax.y * 3.5;
+        const particleParallaxX = parallaxRef.current.x * 3.5;
+        const particleParallaxY = parallaxRef.current.y * 3.5;
 
         for (let i = 0; i < particles.length; i++) {
           const p = particles[i];
@@ -1241,7 +1301,7 @@ export const OrionLiveLoginBackground: React.FC<OrionLiveLoginBackgroundProps> =
       cancelAnimationFrame(animationFrameRef.current);
       window.removeEventListener('resize', handleResize);
     };
-  }, [useWebGL, qualityTier, isInputFocused, isTyping, authState, mergedConfig, parallax, runtimeSignalPulse]);
+  }, [useWebGL, qualityTier, isInputFocused, isTyping, authState, mergedConfig, runtimeSignalPulse]);
 
   return (
     <div

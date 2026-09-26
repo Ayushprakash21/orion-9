@@ -59,6 +59,7 @@ import { QuietRiskView } from './components/deep-intelligence/QuietRiskView';
 import { SupplyChainProvider } from './store/SupplyChainContext';
 import { ToastProvider } from './store/ToastContext';
 import { ConnectivityProvider } from './store/ConnectivityContext';
+import { LanguageProvider } from './store/LanguageContext';
 import { NotificationProvider } from './store/NotificationContext';
 import { EntityDrawerProvider } from './store/EntityDrawerContext';
 import { AuthProvider, useAuth } from './store/AuthContext';
@@ -431,6 +432,7 @@ function AppBootstrap() {
 export default function App() {
   return (
     <ErrorBoundary fallbackTitle="ORION SCM SYSTEM FAULT">
+      <LanguageProvider>
       <ConnectivityProvider>
         <AuthProvider>
           <BrandingProvider>
@@ -448,6 +450,7 @@ export default function App() {
           </BrandingProvider>
         </AuthProvider>
       </ConnectivityProvider>
+      </LanguageProvider>
     </ErrorBoundary>
   );
 }
