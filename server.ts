@@ -7,6 +7,7 @@ import * as firebaseAdmin from "firebase-admin";
 import dotenv from "dotenv";
 import { demoPersistentSchedulerService } from "./src/services/demo/DemoPersistentSchedulerService";
 import { checkGeminiWallpaperStatus, generateGeminiWallpapers } from "./src/server/geminiBackend";
+import { checkFluxWallpaperStatus } from "./src/server/cloudflareFluxBackend";
 
 dotenv.config({ path: ['.env.local', '.env'] });
 
@@ -516,10 +517,10 @@ async function startServer() {
     }
   });
 
-  // AI Wallpaper Status Route - Enhanced with modular Gemini connectivity check
+  // AI Wallpaper Status Route - Cloudflare Workers AI + FLUX.2 Klein 9B Primary
   app.get("/api/ai/wallpaper-status", async (_req, res) => {
     const apiKey = process.env.GEMINI_API_KEY;
-    const result = await checkGeminiWallpaperStatus(apiKey);
+    const result = await checkFluxWallpaperStatus(null, apiKey);
     return res.json(result);
   });
 

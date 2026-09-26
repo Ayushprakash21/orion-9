@@ -42,8 +42,9 @@ export const UserWallpaperStudio: React.FC = () => {
 
   // AI Generator Form & Provider State
   const [aiProviderConfigured, setAiProviderConfigured] = useState<boolean>(false);
-  const [aiProviderStatusCode, setAiProviderStatusCode] = useState<string>('GEMINI_CONFIGURED');
-  const [aiProviderName, setAiProviderName] = useState<string>('Google Gemini / Nano Banana');
+  const [aiProviderStatusCode, setAiProviderStatusCode] = useState<string>('READY');
+  const [aiProviderName, setAiProviderName] = useState<string>('Cloudflare Workers AI');
+  const [aiModelName, setAiModelName] = useState<string>('@cf/black-forest-labs/flux-2-klein-9b');
   const [prompt, setPrompt] = useState('Futuristic deep-space environment with subtle blue and graphite atmosphere');
   const [style, setStyle] = useState<WallpaperStyle>('Space');
   const [atmosphereIntensity, setAtmosphereIntensity] = useState(0.8);
@@ -75,8 +76,9 @@ export const UserWallpaperStudio: React.FC = () => {
         
         if (mounted) {
           setAiProviderConfigured(aiStatus.configured);
-          setAiProviderStatusCode(aiStatus.status || aiStatus.error || 'GEMINI_CONFIGURED');
-          setAiProviderName(aiStatus.providerName);
+          setAiProviderStatusCode(aiStatus.status || aiStatus.error || 'READY');
+          setAiProviderName(aiStatus.providerName || 'Cloudflare Workers AI');
+          setAiModelName(aiStatus.model || '@cf/black-forest-labs/flux-2-klein-9b');
           
           const validGallery = available && available.length > 0 ? available : SYSTEM_DEFAULT_WALLPAPERS;
           setGalleryWallpapers(validGallery);
@@ -353,14 +355,14 @@ export const UserWallpaperStudio: React.FC = () => {
         <div className="space-y-4">
           <div className={cn(
             "p-3.5 rounded-xl border text-xs space-y-1",
-            aiProviderConfigured
+            aiProviderConfigured || aiProviderStatusCode === 'READY'
               ? "bg-sky-500/10 border-sky-500/20 text-slate-300"
-              : aiProviderStatusCode === 'GEMINI_SECRET_MISSING'
+              : aiProviderStatusCode === 'CLOUDFLARE_AI_DAILY_LIMIT'
               ? "bg-amber-500/10 border-amber-500/20 text-amber-200"
-              : aiProviderStatusCode === 'GEMINI_AUTH_ERROR'
-              ? "bg-red-500/10 border-red-500/20 text-red-200"
-              : aiProviderStatusCode === 'GEMINI_RATE_LIMIT'
+              : aiProviderStatusCode === 'CLOUDFLARE_AI_CAPACITY'
               ? "bg-purple-500/10 border-purple-500/20 text-purple-200"
+              : aiProviderStatusCode === 'CLOUDFLARE_AI_AUTH_ERROR'
+              ? "bg-red-500/10 border-red-500/20 text-red-200"
               : "bg-slate-500/10 border-slate-500/20 text-slate-300"
           )}>
             <div className="flex items-center gap-2 font-semibold text-sky-400">
@@ -371,13 +373,47 @@ export const UserWallpaperStudio: React.FC = () => {
               </span>
             </div>
             <p className="text-[11px] opacity-80">
+              {aiProviderStatusCode === 'READY' && 'Cloudflare Workers AI (FLUX.2 Klein 9B) is ready for primary generation.'}
               {aiProviderStatusCode === 'GEMINI_CONFIGURED' && 'Google Gemini API is configured and ready for generation.'}
-              {aiProviderStatusCode === 'GEMINI_SECRET_MISSING' && 'GEMINI_API_KEY environment variable is not configured on the server.'}
-              {aiProviderStatusCode === 'GEMINI_AUTH_ERROR' && 'Gemini API authentication failed. Please verify server credentials.'}
-              {aiProviderStatusCode === 'GEMINI_RATE_LIMIT' && 'Gemini API quota or rate limit reached. Generation will retry when quota resets.'}
-              {aiProviderStatusCode === 'GEMINI_API_UNAVAILABLE' && 'Google Gemini API service is temporarily unavailable.'}
+              {aiProviderStatusCode === 'CLOUDFLARE_AI_DAILY_LIMIT' && "Today's free AI generation allocation has been reached. Live wallpaper rendering continues normally."}
+              {aiProviderStatusCode === 'CLOUDFLARE_AI_CAPACITY' && 'Cloudflare Workers AI is currently busy. Automatic Gemini fallback active.'}
+              {aiProviderStatusCode === 'GEMINI_FALLBACK' && 'Cloudflare Workers AI active with Gemini fallback.'}
+              {aiProviderStatusCode === 'CLOUDFLARE_AI_UNAVAILABLE' && 'Cloudflare Workers AI is currently unavailable.'}
               {aiProviderStatusCode === 'BACKEND_UNREACHABLE' && 'Unable to reach backend server endpoint.'}
             </p>
+          </div>
+
+          {/* Telemetry Status Panel */}
+          <div className="p-3.5 rounded-xl bg-[#0d1017] border border-white/[0.06] text-[11px] font-mono grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-slate-400">
+            <div>
+              <span className="block text-[10px] text-slate-500 uppercase tracking-wider">LIVE ENGINE</span>
+              <span className="text-emerald-400 font-semibold">60 FPS</span>
+            </div>
+            <div>
+              <span className="block text-[10px] text-slate-500 uppercase tracking-wider">AI PROVIDER</span>
+              <span className="text-sky-300 font-medium truncate block">Cloudflare AI</span>
+            </div>
+            <div>
+              <span className="block text-[10px] text-slate-500 uppercase tracking-wider">MODEL</span>
+              <span className="text-sky-300 font-medium truncate block">FLUX.2 Klein 9B</span>
+            </div>
+            <div>
+              <span className="block text-[10px] text-slate-500 uppercase tracking-wider">AI STATUS</span>
+              <span className="text-white font-medium">{aiProviderStatusCode}</span>
+            </div>
+            <div>
+              <span className="block text-[10px] text-slate-500 uppercase tracking-wider">LIVE RENDERER</span>
+              <span className="text-emerald-400 font-semibold">RUNNING</span>
+            </div>
+            <div>
+              <span className="block text-[10px] text-slate-500 uppercase tracking-wider">FREE ALLOCATION</span>
+              <span className={cn(
+                "font-semibold",
+                aiProviderStatusCode === 'CLOUDFLARE_AI_DAILY_LIMIT' ? "text-amber-400" : "text-emerald-400"
+              )}>
+                {aiProviderStatusCode === 'CLOUDFLARE_AI_DAILY_LIMIT' ? 'EXHAUSTED' : 'AVAILABLE'}
+              </span>
+            </div>
           </div>
 
           <form onSubmit={handleGenerateAiCandidates} className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3.5">

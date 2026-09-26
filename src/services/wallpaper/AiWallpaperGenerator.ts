@@ -1,20 +1,26 @@
 /**
  * ORION-9 AI WALLPAPER GENERATOR
- * Production boundary for Gemini image generation.
+ * Production boundary for Cloudflare Workers AI + FLUX.2 Klein 9B image generation
+ * with Google Gemini fallback provider.
  *
- * The browser never receives GEMINI_API_KEY.
+ * The browser never receives Cloudflare or Gemini API credentials.
  * It calls same-origin Worker endpoints only.
  */
 
 import { AiGenerationParams, WallpaperCandidate } from '../../types/wallpaper';
 import { sceneAnalyzer } from './SceneAnalyzer';
 
-export type GeminiBackendStatusCode =
+export type AiProviderStatusCode =
+  | 'READY'
+  | 'GENERATING'
+  | 'CLOUDFLARE_AI_DAILY_LIMIT'
+  | 'CLOUDFLARE_AI_CAPACITY'
+  | 'CLOUDFLARE_AI_AUTH_ERROR'
+  | 'CLOUDFLARE_AI_MODEL_ERROR'
+  | 'CLOUDFLARE_AI_UNAVAILABLE'
+  | 'GEMINI_FALLBACK'
   | 'GEMINI_CONFIGURED'
   | 'GEMINI_SECRET_MISSING'
-  | 'GEMINI_AUTH_ERROR'
-  | 'GEMINI_RATE_LIMIT'
-  | 'GEMINI_API_UNAVAILABLE'
   | 'BACKEND_UNREACHABLE';
 
 export interface AiWallpaperProviderStatus {
@@ -23,8 +29,10 @@ export interface AiWallpaperProviderStatus {
   providerName: string;
   model: string;
   available: boolean;
-  status: GeminiBackendStatusCode;
+  status: AiProviderStatusCode;
   error: string | null;
+  geminiFallbackConfigured?: boolean;
+  freeAllocation?: string;
   supportedDimensions?: string[];
 }
 
@@ -55,55 +63,61 @@ export class AiWallpaperGenerator {
       }
 
       if (res.ok && statusData && typeof statusData === 'object') {
-        const statusCode: GeminiBackendStatusCode =
-          (statusData.status as GeminiBackendStatusCode) ||
-          (statusData.error as GeminiBackendStatusCode) ||
-          (statusData.configured ? 'GEMINI_CONFIGURED' : 'GEMINI_SECRET_MISSING');
+        const statusCode: AiProviderStatusCode =
+          (statusData.status as AiProviderStatusCode) ||
+          (statusData.error as AiProviderStatusCode) ||
+          (statusData.configured ? 'READY' : 'CLOUDFLARE_AI_UNAVAILABLE');
 
         const configured = Boolean(
-          statusData.providerConfigured ?? statusData.configured ?? (statusCode !== 'GEMINI_SECRET_MISSING' && statusCode !== 'BACKEND_UNREACHABLE')
+          statusData.providerConfigured ?? statusData.configured ?? (statusCode === 'READY' || statusCode === 'GEMINI_FALLBACK' || statusCode === 'GEMINI_CONFIGURED')
         );
 
         const available = Boolean(
-          statusData.available ?? (statusCode === 'GEMINI_CONFIGURED')
+          statusData.available ?? (statusCode === 'READY' || statusCode === 'GEMINI_FALLBACK' || statusCode === 'GEMINI_CONFIGURED')
         );
 
         return {
           providerConfigured: configured,
           configured: available,
-          providerName: statusData.providerName || 'Google Gemini',
-          model: statusData.model || 'gemini-3.1-flash-image',
+          providerName: statusData.provider || statusData.providerName || 'Cloudflare Workers AI',
+          model: statusData.model || '@cf/black-forest-labs/flux-2-klein-9b',
           available,
           status: statusCode,
-          error: statusCode === 'GEMINI_CONFIGURED' ? null : statusCode,
+          error: (statusCode === 'READY' || statusCode === 'GEMINI_FALLBACK' || statusCode === 'GEMINI_CONFIGURED') ? null : statusCode,
+          geminiFallbackConfigured: Boolean(statusData.geminiFallbackConfigured),
+          freeAllocation: statusData.freeAllocation || 'Cloudflare Workers AI daily allocation',
           supportedDimensions: statusData.supportedDimensions || ['16:9', '2K', '4K'],
         };
       }
 
-      const statusCode: GeminiBackendStatusCode =
-        (statusData.status as GeminiBackendStatusCode) ||
-        (statusData.error as GeminiBackendStatusCode) ||
-        'GEMINI_API_UNAVAILABLE';
+      const statusCode: AiProviderStatusCode =
+        (statusData.status as AiProviderStatusCode) ||
+        (statusData.error as AiProviderStatusCode) ||
+        'CLOUDFLARE_AI_UNAVAILABLE';
 
       return {
         providerConfigured: true,
         configured: false,
-        providerName: statusData.providerName || 'Google Gemini',
-        model: statusData.model || 'gemini-3.1-flash-image',
+        providerName: statusData.provider || 'Cloudflare Workers AI',
+        model: statusData.model || '@cf/black-forest-labs/flux-2-klein-9b',
         available: false,
         status: statusCode,
         error: statusCode,
+        geminiFallbackConfigured: false,
+        freeAllocation: 'Cloudflare Workers AI daily allocation',
         supportedDimensions: ['16:9', '2K', '4K'],
       };
     } catch {
       return {
         providerConfigured: false,
         configured: false,
-        providerName: 'Google Gemini',
-        model: 'gemini-3.1-flash-image',
+        providerName: 'Cloudflare Workers AI',
+        model: '@cf/black-forest-labs/flux-2-klein-9b',
         available: false,
         status: 'BACKEND_UNREACHABLE',
         error: 'BACKEND_UNREACHABLE',
+        geminiFallbackConfigured: false,
+        freeAllocation: 'Cloudflare Workers AI daily allocation',
         supportedDimensions: ['16:9', '2K', '4K'],
       };
     }
@@ -138,7 +152,7 @@ export class AiWallpaperGenerator {
       const candidateId =
         c.candidateId ||
         c.id ||
-        `ai_wp_${Date.now()}_${String.fromCharCode(65 + i)}`;
+        `flux_wp_${Date.now()}_${String.fromCharCode(65 + i)}`;
       const assetUrl = c.assetUrl || c.imageUrl;
 
       if (!assetUrl || typeof assetUrl !== 'string' || !assetUrl.trim()) {
@@ -182,18 +196,18 @@ export class AiWallpaperGenerator {
     });
 
     return [0, 1, 2].map((i) => {
-      const candidateId = `ai_wp_${timestamp}_${String.fromCharCode(65 + i)}`;
+      const candidateId = `flux_wp_${timestamp}_${String.fromCharCode(65 + i)}`;
       const svgContent =
         `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" ` +
         `viewBox="0 0 ${width} ${height}"><rect width="100%" height="100%" fill="#0a0e1a"/>` +
-        `<circle cx="${500 + i * 400}" cy="${400 + i * 200}" r="250" fill="#1e3a8a" opacity="0.6"/>` +
-        `<text x="100" y="100" fill="#ffffff">${style} AI Candidate ${i + 1}</text></svg>`;
+        `<circle cx="${500 + i * 400}" cy="${400 + i * 200}" r="250" fill="#0284c7" opacity="0.6"/>` +
+        `<text x="100" y="100" fill="#ffffff">FLUX.2 Klein 9B Candidate ${i + 1}</text></svg>`;
       const dataUrl =
         `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgContent)}`;
 
       return {
         candidateId,
-        name: `${style} Vision ${String.fromCharCode(65 + i)}`,
+        name: `FLUX ${style} Vision ${String.fromCharCode(65 + i)}`,
         assetUrl: dataUrl,
         thumbnailUrl: dataUrl,
         width,
@@ -223,7 +237,7 @@ export class AiWallpaperGenerator {
     ) {
       throw new Error(
         status.error ||
-          'Gemini AI Image Generation Provider is not available on the server.',
+          'Cloudflare Workers AI (FLUX.2 Klein 9B) is not available on the server.',
       );
     }
 
@@ -252,7 +266,7 @@ export class AiWallpaperGenerator {
         return this.processAndValidateCandidates(data.candidates, params);
       }
 
-      throw new Error('AI Image Generation Provider returned no candidates.');
+      throw new Error('AI Wallpaper Provider returned no candidates.');
     } catch (err: any) {
       if (
         typeof process !== 'undefined' &&

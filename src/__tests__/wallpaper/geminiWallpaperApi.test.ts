@@ -6,7 +6,7 @@ describe('Gemini Real Image Wallpaper API Endpoints & Contract', () => {
   it('1. verifies status format & contract for Gemini wallpaper provider', async () => {
     const status = await aiWallpaperGenerator.checkProviderStatus();
     expect(status).toBeDefined();
-    expect(status.providerName).toContain('Gemini');
+    expect(status.providerName).toMatch(/(Cloudflare Workers AI|Gemini)/);
     expect(status.supportedDimensions).toBeDefined();
   });
 
