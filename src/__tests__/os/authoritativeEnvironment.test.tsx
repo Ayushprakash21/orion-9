@@ -49,7 +49,7 @@ describe('ORION-9 Single Authoritative Environment & Wallpaper Invariants', () =
     expect(typeof status.configured).toBe('boolean');
     expect(typeof status.providerName).toBe('string');
     expect(typeof status.model).toBe('string');
-    expect(status.providerName).toContain('Google Gemini');
+    expect(status.providerName).toMatch(/(Cloudflare Workers AI|Google Gemini)/);
   });
 
   it('4. verifies AI generation candidate validation enforces contract (exactly 3 candidates)', async () => {

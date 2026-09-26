@@ -1,18 +1,18 @@
 /**
- * ORION-9 LIVE SPACE WALLPAPER & LOGIN ENVIRONMENT (V6 FINAL REBUILD)
+ * ORION-9 LIVE SPACE WALLPAPER & LOGIN ENVIRONMENT (REAL 3D ROTATING EARTH REBUILD)
  *
- * Visual Source of Truth: /orion9-space-baseline.png (Master visual asset)
+ * Visual Source of Truth: /orion9-space-baseline.png (Master space visual asset)
  *
- * Features:
- * 1. Base image / composition 100% preserved from /orion9-space-baseline.png
- * 2. Independent, extremely slow Earth rotation (~0.004 rad/s)
- * 3. Orion constellation stars (upper-left) subtle stellar scintillation (5-12% phase-shifted)
- * 4. Microscopic starfield twinkling in deep space background
- * 5. Subtle nebula UV drift & breathing
- * 6. Periodic localized sunlight glint on the right horizon (300ms pulse every 5-12s)
- * 7. Atmosphere rim subtle flare response to sunlight
- * 8. Camera composition & framing 100% locked
- * 9. Reduced-motion & WebGL fallback to static baseline PNG
+ * Architecture:
+ * 1. Deep Space Background: Stationary orthographic quad displaying /orion9-space-baseline.png
+ *    with subtle Orion constellation scintillation, microscopic starfield twinkling, and nebula drift.
+ * 2. 3D Real Rotating Earth Globe: THREE.SphereGeometry(2.8, 128, 64) with equirectangular day map,
+ *    photorealistic night city-lights map, specular map, clouds layer, and Rayleigh atmosphere rim glow.
+ * 3. Geographic Night Lights: City lights attached directly to the Earth surface texture, rotating
+ *    in perfect 3D synchrony with continents across the day/night terminator.
+ * 4. Locked Background: Orion constellation, stars, nebula, and UI remain 100% stationary.
+ * 5. Debug Toggle: window.EARTH_DEBUG_FAST_ROTATION or ?debug_fast=true forces 0.04 rad/s rotation
+ *    for immediate visual verification of continent & city-light motion.
  */
 
 import React, { useEffect, useRef, useState } from 'react';
@@ -40,7 +40,17 @@ export const DEFAULT_LIVE_BACKGROUND_CONFIG = {
   },
 };
 
-const VERTEX_SHADER = `
+// Declare window extension for debug rotation toggle
+declare global {
+  interface Window {
+    EARTH_DEBUG_FAST_ROTATION?: boolean;
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 1. BACKGROUND DEEP SPACE SHADERS (Orion Constellation, Nebula & Star Twinkle)
+// -----------------------------------------------------------------------------
+const BG_VERTEX_SHADER = `
   varying vec2 vUv;
   void main() {
     vUv = uv;
@@ -48,7 +58,7 @@ const VERTEX_SHADER = `
   }
 `;
 
-const FRAGMENT_SHADER = `
+const BG_FRAGMENT_SHADER = `
   uniform sampler2D uTexture;
   uniform float uTime;
   uniform float uEarthRotationSpeed;
@@ -66,45 +76,31 @@ const FRAGMENT_SHADER = `
 
   void main() {
     vec2 uv = vUv;
+    float aspect = uResolution.x / uResolution.y;
 
-    // Reduced motion fallback
     if (uReducedMotion) {
       gl_FragColor = texture2D(uTexture, uv);
       return;
     }
 
-    // 1. EARTH SPHERICAL HORIZON MASK & INDEPENDENT ROTATION
     vec2 earthCenter = vec2(0.50, -0.68);
     vec2 distVec = uv - earthCenter;
-    float aspect = uResolution.x / uResolution.y;
     distVec.x *= aspect;
     float distToCenter = length(distVec);
+    float isEarth = smoothstep(1.165, 1.155, distToCenter);
 
-    float earthRadius = 1.16;
-    float isEarth = smoothstep(earthRadius + 0.005, earthRadius - 0.005, distToCenter);
+    vec2 finalUv = uv;
 
-    // Independent Earth surface rotation
-    vec2 earthUv = uv;
-    if (isEarth > 0.001) {
-      float rotOffset = uTime * uEarthRotationSpeed;
-      float r = clamp(distToCenter / earthRadius, 0.0, 1.0);
-      float sphereFactor = sqrt(max(0.0, 1.0 - r * r));
-      earthUv.x -= rotOffset * (0.012 + 0.008 * sphereFactor);
-      earthUv.x = fract(earthUv.x);
-    }
-
-    vec2 finalUv = mix(uv, earthUv, isEarth);
-
-    // 2. NEBULA DRIFT & BREATHING
+    // Nebula subtle UV drift & breathing (upper space only)
     if (isEarth < 0.5 && uv.y > 0.40) {
-      float nebDriftX = sin(uTime * 0.15 + uv.y * 3.0) * 0.0015;
-      float nebDriftY = cos(uTime * 0.12 + uv.x * 3.0) * 0.0012;
+      float nebDriftX = sin(uTime * 0.15 + uv.y * 3.0) * 0.0012;
+      float nebDriftY = cos(uTime * 0.12 + uv.x * 3.0) * 0.0010;
       finalUv += vec2(nebDriftX, nebDriftY) * smoothstep(0.35, 0.60, uv.y);
     }
 
     vec4 col = texture2D(uTexture, finalUv);
 
-    // 3. ORION CONSTELLATION STELLAR SCINTILLATION (7 Major Stars)
+    // Orion Constellation Stellar Scintillation (7 Major Stars - Upper Left)
     vec2 orionStars[7];
     orionStars[0] = vec2(0.122, 0.852); // Betelgeuse
     orionStars[1] = vec2(0.285, 0.540); // Rigel
@@ -129,7 +125,7 @@ const FRAGMENT_SHADER = `
       }
     }
 
-    // 4. GENERAL STARFIELD MICROSCOPIC TWINKLE
+    // Microscopic Deep Space Starfield Twinkle
     if (isEarth < 0.2 && uv.y > 0.45) {
       float starGrid = hash(floor(uv * vec2(180.0 * aspect, 180.0)));
       if (starGrid > 0.96) {
@@ -141,7 +137,7 @@ const FRAGMENT_SHADER = `
 
     col.rgb += vec3(0.8, 0.9, 1.0) * orionSparkleBoost;
 
-    // 5. SUNLIGHT LOCALIZED PERIODIC GLINT & ATMOSPHERE SHIMMER
+    // Localized Sunlight Glint Shimmer on Space Background Right Horizon
     vec2 sunPos = vec2(0.725, 0.435);
     vec2 sunDistVec = uv - sunPos;
     sunDistVec.x *= aspect;
@@ -151,14 +147,114 @@ const FRAGMENT_SHADER = `
       float glintFactor = uSunGlintIntensity - 1.0;
       float sunMask = smoothstep(0.25, 0.0, sunDist);
       vec3 glintColor = vec3(1.0, 0.88, 0.72) * (glintFactor * 1.5 * sunMask);
-      
-      float rimMask = smoothstep(0.08, 0.0, abs(distToCenter - earthRadius)) * smoothstep(0.40, 0.85, uv.x);
-      vec3 atmGlintColor = vec3(0.35, 0.75, 1.0) * (glintFactor * 0.8 * rimMask);
-
-      col.rgb += glintColor + atmGlintColor;
+      col.rgb += glintColor;
     }
 
     gl_FragColor = col;
+  }
+`;
+
+// -----------------------------------------------------------------------------
+// 2. REAL 3D ROTATING EARTH SHADERS (Day Map + Night City Lights + Specular + Sun)
+// -----------------------------------------------------------------------------
+const EARTH_VERTEX_SHADER = `
+  varying vec2 vUv;
+  varying vec3 vNormal;
+  varying vec3 vWorldPosition;
+  varying vec3 vViewPosition;
+
+  void main() {
+    vUv = uv;
+    vec4 worldPos = modelMatrix * vec4(position, 1.0);
+    vWorldPosition = worldPos.xyz;
+    vNormal = normalize(mat3(modelMatrix) * normal);
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    vViewPosition = -mvPosition.xyz;
+    gl_Position = projectionMatrix * mvPosition;
+  }
+`;
+
+const EARTH_FRAGMENT_SHADER = `
+  uniform sampler2D uDayTexture;
+  uniform sampler2D uNightTexture;
+  uniform sampler2D uSpecularTexture;
+  uniform vec3 uSunDirection;
+  uniform float uSunGlintIntensity;
+
+  varying vec2 vUv;
+  varying vec3 vNormal;
+  varying vec3 vWorldPosition;
+  varying vec3 vViewPosition;
+
+  void main() {
+    vec3 normal = normalize(vNormal);
+    vec3 viewDir = normalize(vViewPosition);
+    vec3 sunDir = normalize(uSunDirection);
+
+    vec4 daySample = texture2D(uDayTexture, vUv);
+    vec4 nightSample = texture2D(uNightTexture, vUv);
+    vec4 specSample = texture2D(uSpecularTexture, vUv);
+
+    // Compute surface illumination relative to Sun direction
+    float NdotL = dot(normal, sunDir);
+    float dayFactor = smoothstep(-0.15, 0.25, NdotL);
+
+    // 1. Night Side: Photorealistic Golden/Orange City Lights attached to surface
+    vec3 cityLights = nightSample.rgb * vec3(1.35, 0.95, 0.45) * 3.4;
+    vec3 nightAmbient = vec3(0.012, 0.035, 0.08) * daySample.rgb;
+    vec3 nightSide = cityLights + nightAmbient;
+
+    // 2. Day Side: Sunlit Continents & Ocean Specular Sheen
+    float lightIntensity = clamp(NdotL, 0.05, 1.0);
+    vec3 dayLit = daySample.rgb * lightIntensity * vec3(1.0, 0.98, 0.92);
+
+    vec3 reflectDir = reflect(-sunDir, normal);
+    float specAmount = pow(max(0.0, dot(reflectDir, viewDir)), 22.0);
+    vec3 specularColor = vec3(0.4, 0.75, 1.0) * specAmount * specSample.r * 1.8 * dayFactor;
+    vec3 daySide = dayLit + specularColor;
+
+    // Blend day and night across the natural planetary terminator
+    vec3 finalColor = mix(nightSide, daySide, dayFactor);
+
+    // Periodic Localized Sunlight Glint
+    if (uSunGlintIntensity > 1.001) {
+      float glintFactor = uSunGlintIntensity - 1.0;
+      float glintMask = smoothstep(0.2, 0.95, NdotL);
+      finalColor += vec3(1.0, 0.88, 0.65) * glintFactor * glintMask * 1.4;
+    }
+
+    gl_FragColor = vec4(finalColor, 1.0);
+  }
+`;
+
+// -----------------------------------------------------------------------------
+// 3. ATMOSPHERIC RAYLEIGH RIM GLOW SHADER
+// -----------------------------------------------------------------------------
+const ATMOSPHERE_VERTEX_SHADER = `
+  varying vec3 vNormal;
+  varying vec3 vViewPosition;
+
+  void main() {
+    vNormal = normalize(mat3(modelMatrix) * normal);
+    vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    vViewPosition = -mvPosition.xyz;
+    gl_Position = projectionMatrix * mvPosition;
+  }
+`;
+
+const ATMOSPHERE_FRAGMENT_SHADER = `
+  varying vec3 vNormal;
+  varying vec3 vViewPosition;
+
+  void main() {
+    vec3 normal = normalize(vNormal);
+    vec3 viewDir = normalize(vViewPosition);
+
+    // Rayleigh scattering Fresnel view angle intensity
+    float intensity = pow(1.0 - abs(dot(normal, viewDir)), 3.2);
+    vec3 atmosphereColor = mix(vec3(0.12, 0.45, 0.95), vec3(0.25, 0.78, 1.0), intensity);
+
+    gl_FragColor = vec4(atmosphereColor, intensity * 0.75);
   }
 `;
 
@@ -190,12 +286,15 @@ export function OrionLiveLoginBackground({
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     renderer.setPixelRatio(dpr);
+    renderer.autoClear = false;
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
-    camera.position.z = 1;
+    // -------------------------------------------------------------------------
+    // SCENE 1: BACKGROUND DEEP SPACE (Orthographic Camera)
+    // -------------------------------------------------------------------------
+    const bgScene = new THREE.Scene();
+    const bgCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 10);
+    bgCamera.position.z = 1;
 
-    // Load master baseline visual source of truth
     const textureLoader = new THREE.TextureLoader();
     const baselineTexture = textureLoader.load('/orion9-space-baseline.png', () => {
       baselineTexture.colorSpace = THREE.SRGBColorSpace;
@@ -206,7 +305,7 @@ export function OrionLiveLoginBackground({
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const isStatic = prefersReducedMotion || qualityTier === 'LOW' || (qualityTier as string) === 'STATIC';
 
-    const uniforms = {
+    const bgUniforms = {
       uTexture: { value: baselineTexture },
       uTime: { value: 0 },
       uEarthRotationSpeed: { value: (Math.PI * 2) / (rotationSpeedSeconds * 60) },
@@ -215,28 +314,125 @@ export function OrionLiveLoginBackground({
       uReducedMotion: { value: isStatic },
     };
 
-    const material = new THREE.ShaderMaterial({
-      vertexShader: VERTEX_SHADER,
-      fragmentShader: FRAGMENT_SHADER,
-      uniforms,
+    const bgMaterial = new THREE.ShaderMaterial({
+      vertexShader: BG_VERTEX_SHADER,
+      fragmentShader: BG_FRAGMENT_SHADER,
+      uniforms: bgUniforms,
       depthWrite: false,
       depthTest: false,
     });
 
-    const planeGeometry = new THREE.PlaneGeometry(2, 2);
-    const mesh = new THREE.Mesh(planeGeometry, material);
-    scene.add(mesh);
+    const bgPlane = new THREE.PlaneGeometry(2, 2);
+    const bgMesh = new THREE.Mesh(bgPlane, bgMaterial);
+    bgScene.add(bgMesh);
 
-    const handleResize = () => {
-      if (!canvas || !renderer) return;
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      renderer.setSize(width, height);
-      uniforms.uResolution.value.set(width, height);
+    // -------------------------------------------------------------------------
+    // SCENE 2: REAL 3D ROTATING EARTH GLOBE (Perspective Camera)
+    // -------------------------------------------------------------------------
+    const earthScene = new THREE.Scene();
+    const earthCamera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    earthCamera.position.set(0, 0, 9.0);
+
+    // Load Equirectangular Geographic Textures from public assets
+    const dayMap = textureLoader.load('/textures/earth_atmos_2048.jpg');
+    dayMap.colorSpace = THREE.SRGBColorSpace;
+
+    const nightMap = textureLoader.load('/textures/earth_lights_2048.jpg');
+    nightMap.colorSpace = THREE.SRGBColorSpace;
+
+    const normalMap = textureLoader.load('/textures/earth_normal_2048.jpg');
+    const specularMap = textureLoader.load('/textures/earth_specular_2048.jpg');
+    const cloudsMap = textureLoader.load('/textures/earth_clouds_1024.png');
+
+    const earthGroup = new THREE.Group();
+    // Axial tilt (23.4°) and spatial alignment
+    earthGroup.rotation.z = THREE.MathUtils.degToRad(23.4);
+    earthGroup.rotation.x = THREE.MathUtils.degToRad(12);
+    earthScene.add(earthGroup);
+
+    // 1. High-Density 3D Earth Sphere Geometry
+    const earthRadius = 2.8;
+    const earthGeo = new THREE.SphereGeometry(earthRadius, 128, 64);
+
+    const earthUniforms = {
+      uDayTexture: { value: dayMap },
+      uNightTexture: { value: nightMap },
+      uSpecularTexture: { value: specularMap },
+      uSunDirection: { value: new THREE.Vector3(0.85, 0.25, 0.55).normalize() },
+      uSunGlintIntensity: { value: 1.0 },
+      uTime: { value: 0 },
     };
 
-    handleResize();
-    window.addEventListener('resize', handleResize);
+    const earthMat = new THREE.ShaderMaterial({
+      vertexShader: EARTH_VERTEX_SHADER,
+      fragmentShader: EARTH_FRAGMENT_SHADER,
+      uniforms: earthUniforms,
+    });
+
+    const earthMesh = new THREE.Mesh(earthGeo, earthMat);
+    earthGroup.add(earthMesh);
+
+    // 2. Real Clouds Sphere Layer
+    let cloudMesh: THREE.Mesh | null = null;
+    if (qualityTier === 'HIGH') {
+      const cloudGeo = new THREE.SphereGeometry(earthRadius * 1.008, 96, 96);
+      const cloudMat = new THREE.MeshLambertMaterial({
+        map: cloudsMap,
+        transparent: true,
+        opacity: 0.22,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      });
+      cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
+      earthGroup.add(cloudMesh);
+    }
+
+    // 3. Thin Atmospheric Rayleigh Rim Glow Shell
+    let atmosphereMesh: THREE.Mesh | null = null;
+    if (qualityTier !== 'LOW') {
+      const atmoGeo = new THREE.SphereGeometry(earthRadius * 1.018, 128, 64);
+      const atmoMat = new THREE.ShaderMaterial({
+        vertexShader: ATMOSPHERE_VERTEX_SHADER,
+        fragmentShader: ATMOSPHERE_FRAGMENT_SHADER,
+        blending: THREE.AdditiveBlending,
+        side: THREE.BackSide,
+        transparent: true,
+        depthWrite: false,
+      });
+      atmosphereMesh = new THREE.Mesh(atmoGeo, atmoMat);
+      earthGroup.add(atmosphereMesh);
+    }
+
+    // Directional Light for ambient illumination
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+    dirLight.position.set(5, 2, 4);
+    earthScene.add(dirLight);
+
+    const ambientLight = new THREE.AmbientLight(0x112233, 0.6);
+    earthScene.add(ambientLight);
+
+    // Positioning Earth in lower-left / lower-center viewport matching baseline horizon
+    const updateComposition = () => {
+      if (!canvas || !renderer) return;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      renderer.setSize(w, h);
+
+      bgUniforms.uResolution.value.set(w, h);
+
+      earthCamera.aspect = w / h;
+      earthCamera.updateProjectionMatrix();
+
+      const isMobile = w < 768;
+      earthGroup.position.set(
+        isMobile ? -1.5 : -2.85,
+        isMobile ? -2.75 : -2.35,
+        0
+      );
+    };
+
+    updateComposition();
+    window.addEventListener('resize', updateComposition);
 
     let isVisible = true;
     const handleVisibilityChange = () => {
@@ -244,7 +440,7 @@ export function OrionLiveLoginBackground({
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Sunlight Glint State & Timing (Every ~5-12 seconds pseudo-random)
+    // Sunlight Glint Timing (Pulse every 5-12 seconds)
     let glintActive = false;
     let glintStartTime = 0;
     let glintDuration = 350;
@@ -260,9 +456,30 @@ export function OrionLiveLoginBackground({
 
       if (!isVisible) return;
 
+      const delta = clock.getDelta();
       const elapsed = clock.getElapsedTime();
-      uniforms.uTime.value = elapsed;
 
+      bgUniforms.uTime.value = elapsed;
+      earthUniforms.uTime.value = elapsed;
+
+      // Check Development Debug Fast Rotation Toggle
+      const isDebugFast =
+        (typeof window !== 'undefined' && Boolean(window.EARTH_DEBUG_FAST_ROTATION)) ||
+        (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('debug_fast'));
+
+      if (!isStatic) {
+        // Base production speed (~0.004 rad/s) vs Debug Fast Rotation (0.04 rad/s)
+        const baseSpeed = (Math.PI * 2) / (rotationSpeedSeconds * 60);
+        const rotationSpeed = isDebugFast ? 0.04 : baseSpeed;
+
+        // Actual 3D Earth Mesh Rotation — Continents AND City Lights rotate together across 3D sphere
+        earthMesh.rotation.y += delta * rotationSpeed;
+        if (cloudMesh) {
+          cloudMesh.rotation.y += delta * rotationSpeed * 1.06;
+        }
+      }
+
+      // Sunlight Glint Pulse logic
       const now = Date.now();
       if (!glintActive && now >= nextGlintTime) {
         glintActive = true;
@@ -276,14 +493,23 @@ export function OrionLiveLoginBackground({
         if (glintElapsed < glintDuration) {
           const progress = glintElapsed / glintDuration;
           const glintCurve = Math.sin(progress * Math.PI);
-          uniforms.uSunGlintIntensity.value = 1.0 + glintCurve * 0.15;
+          const intensity = 1.0 + glintCurve * 0.15;
+          bgUniforms.uSunGlintIntensity.value = intensity;
+          earthUniforms.uSunGlintIntensity.value = intensity;
         } else {
           glintActive = false;
-          uniforms.uSunGlintIntensity.value = 1.0;
+          bgUniforms.uSunGlintIntensity.value = 1.0;
+          earthUniforms.uSunGlintIntensity.value = 1.0;
         }
       }
 
-      renderer.render(scene, camera);
+      // Two-pass Render Sequence:
+      // Pass 1: Stationary Deep Space Background + Orion Constellation
+      renderer.clear();
+      renderer.render(bgScene, bgCamera);
+
+      // Pass 2: Real 3D Rotating Earth + Atmosphere
+      renderer.render(earthScene, earthCamera);
     };
 
     animate();
@@ -291,11 +517,25 @@ export function OrionLiveLoginBackground({
     return () => {
       running = false;
       cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', updateComposition);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      planeGeometry.dispose();
-      material.dispose();
+
+      bgPlane.dispose();
+      bgMaterial.dispose();
       baselineTexture.dispose();
+
+      earthGeo.dispose();
+      earthMat.dispose();
+      dayMap.dispose();
+      nightMap.dispose();
+      normalMap.dispose();
+      specularMap.dispose();
+      cloudsMap.dispose();
+
+      if (atmosphereMesh) {
+        atmosphereMesh.geometry.dispose();
+      }
+
       renderer.dispose();
     };
   }, [qualityTier, rotationSpeedSeconds]);

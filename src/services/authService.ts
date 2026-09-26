@@ -88,6 +88,19 @@ export const authService = {
         (cleanId === 'user' && cleanPass === 'user')) {
       const demoUser = userService.getUserByIdentifier(cleanId);
       if (!demoUser) throw new Error('Demo user not found.');
+      
+      const isAdminUser = demoUser.role === 'platform_admin' || demoUser.role === 'organization_admin';
+      if (isAdminUser) {
+        privilegedSessionManager.issuePrivilegedSession(
+          demoUser.id,
+          demoUser.organizationId || 'ORION_PLATFORM',
+          demoUser.role,
+          'step_up_password'
+        );
+      } else {
+        privilegedSessionManager.revoke('Normal user login');
+      }
+
       const details = await authService.loadFullSession(demoUser.id, demoUser.email);
       if (typeof window !== 'undefined') {
         localStorage.setItem('orion_auth_session', JSON.stringify(details));
