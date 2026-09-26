@@ -222,8 +222,6 @@ export const Login: React.FC = () => {
     if (dbManager.getEnvironment() === 'DEMO') {
       setUsername('admin');
       setPassword('admin');
-      // Attempt login programmatically (bypass UI)
-      login('admin', 'admin', { destination: '/' }).catch(() => {});
     }
 
     return () => {
