@@ -1,8 +1,7 @@
 /**
  * ORION-9 CLOUDFLARE WORKER ENTRY POINT
  * Serves API routes (/api/ai/wallpaper-status, /api/ai/generate-wallpaper, /api/health)
- * with Cloudflare Workers AI + FLUX.2 Klein 9B as primary provider
- * and Gemini as secondary fallback.
+ * with Cloudflare Workers AI + FLUX.2 Klein 9B as primary provider.
  */
 
 import { checkFluxWallpaperStatus, generateFluxWallpaper } from "./server/cloudflareFluxBackend";
@@ -32,7 +31,7 @@ export default {
       });
     }
 
-    // 2. POST /api/ai/generate-wallpaper (FLUX Primary -> Gemini Fallback)
+    // 2. POST /api/ai/generate-wallpaper (FLUX Direct Path)
     if (url.pathname === "/api/ai/generate-wallpaper" && request.method === "POST") {
       let body: any = {};
       try {
@@ -41,7 +40,7 @@ export default {
         body = {};
       }
 
-      // ATTEMPT 1: Cloudflare Workers AI + FLUX.2 Klein 9B
+      // Execute Cloudflare Workers AI + FLUX.2 Klein 9B
       if (env.AI) {
         const fluxResult = await generateFluxWallpaper(env.AI, body);
         if (fluxResult.success) {
@@ -51,20 +50,22 @@ export default {
           });
         }
 
-        // If daily allocation limit is reached, do NOT force infinite retries
-        if (fluxResult.code === "CLOUDFLARE_AI_DAILY_LIMIT") {
-          return new Response(JSON.stringify({
-            error: fluxResult.error,
-            code: "CLOUDFLARE_AI_DAILY_LIMIT",
-            status: "CLOUDFLARE_AI_DAILY_LIMIT"
-          }), {
-            status: 429,
-            headers: { "Content-Type": "application/json" }
-          });
-        }
+        // Return detailed raw server-side diagnostic error from FLUX / Cloudflare Workers AI
+        return new Response(JSON.stringify({
+          success: false,
+          statusCode: fluxResult.statusCode || 500,
+          provider: "Cloudflare Workers AI",
+          model: "@cf/black-forest-labs/flux-2-klein-9b",
+          error: fluxResult.error,
+          code: fluxResult.code || "CLOUDFLARE_AI_MODEL_ERROR",
+          status: fluxResult.status || "CLOUDFLARE_AI_MODEL_ERROR"
+        }), {
+          status: fluxResult.statusCode || 500,
+          headers: { "Content-Type": "application/json" }
+        });
       }
 
-      // ATTEMPT 2 (FALLBACK): Google Gemini Provider
+      // If env.AI binding is absent, fallback to Gemini
       if (apiKey && apiKey.trim()) {
         const geminiResult = await generateGeminiWallpapers(apiKey, body);
         if (geminiResult.success) {
@@ -79,12 +80,14 @@ export default {
         }
       }
 
-      // If both Cloudflare Workers AI and Gemini failed
       return new Response(JSON.stringify({
-        error: "AI Wallpaper Provider is currently unavailable. Live wallpaper engine continues using saved desktop environment.",
+        success: false,
+        statusCode: 503,
+        provider: "Cloudflare Workers AI",
+        model: "@cf/black-forest-labs/flux-2-klein-9b",
+        error: "Cloudflare Workers AI binding (env.AI) is not configured in Worker runtime.",
         code: "CLOUDFLARE_AI_UNAVAILABLE",
-        status: "CLOUDFLARE_AI_UNAVAILABLE",
-        fallbackAttempted: true
+        status: "CLOUDFLARE_AI_UNAVAILABLE"
       }), {
         status: 503,
         headers: { "Content-Type": "application/json" }
