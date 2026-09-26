@@ -51,6 +51,6 @@ describe('ORION-9 UI Clean-up & Duplicate Branding Specification Suite', () => {
     expect(html).toContain('Sign in to Orion');
     expect(html).toContain('ORION-9');
     expect(html).toContain('User ID');
-    expect(html).toContain('src="/orion-9-brand-logo.png"');
+    expect(html).toContain('src="/orion-9-official-logo.png"');
   });
 });

@@ -391,24 +391,7 @@ export const Login: React.FC = () => {
       
 
       {/* Header — Top Bar */}
-      <header className="relative z-10 w-full flex items-center justify-between px-4 sm:px-8 py-3.5 sm:py-6 pt-[calc(14px+env(safe-area-inset-top,0px))] select-none">
-        {/* Top Left Primary Orion Identity */}
-        <div className="flex items-center gap-3.5">
-          <img 
-            src="/orion-9-brand-logo.png" 
-            alt="Orion-9 Logo" 
-            className="h-7 sm:h-8 w-auto drop-shadow-[0_0_12px_rgba(59,130,246,0.5)] orion-brand-image" 
-          />
-          <div className="flex flex-col">
-            <span className="text-white font-bold text-sm sm:text-base tracking-wider leading-none drop-shadow-sm">
-              ORION-9
-            </span>
-            <span className="text-white/60 text-[9px] sm:text-[9.5px] uppercase tracking-[0.2em] font-medium mt-0.5 sm:mt-1 hidden xs:block">
-              SUPPLY CHAIN OPERATING SYSTEM
-            </span>
-          </div>
-        </div>
-        
+      <header className="relative z-10 w-full flex items-center justify-end px-4 sm:px-8 py-3.5 sm:py-6 pt-[calc(14px+env(safe-area-inset-top,0px))] select-none">
         {/* Top Right Functional Language Selector Dropdown */}
         <div className="relative" ref={langMenuRef}>
           <div 
@@ -664,14 +647,14 @@ export const Login: React.FC = () => {
       {/* Footer — Bottom Bar */}
       <footer className="relative z-10 w-full px-4 sm:px-8 py-3.5 sm:py-6 pb-[calc(14px+env(safe-area-inset-bottom,0px))] flex items-center justify-between select-none">
         
-        {/* Bottom Left Power Button & OS Session Power Menu + Telemetry */}
+        {/* Bottom Left Power Button & OS Session Power Menu */}
         <div className="flex items-center gap-4">
           <div className="relative" ref={powerMenuRef}>
             <button
               type="button"
               onClick={() => setIsPowerMenuOpen(!isPowerMenuOpen)}
-              title="Shut Down"
-              aria-label="Shut Down"
+              title={t.shutDown}
+              aria-label={t.shutDown}
               aria-expanded={isPowerMenuOpen}
               className="group flex items-center justify-center w-9 h-9 rounded-full bg-white/5 hover:bg-red-950/80 border border-white/15 hover:border-red-500/60 transition-all duration-300 backdrop-blur-md shadow-md cursor-pointer text-white/70 hover:text-red-400 hover:shadow-[0_0_20px_rgba(239,68,68,0.55)]"
             >
@@ -683,23 +666,6 @@ export const Login: React.FC = () => {
               <div className="absolute bottom-12 left-0 w-48 bg-[#090d16]/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-xl py-1.5 z-50 text-xs animate-fadeIn">
                 <button
                   type="button"
-                  onClick={handleSwitchUser}
-                  className="w-full text-left px-3.5 py-2 flex items-center gap-2.5 text-white/80 hover:text-white hover:bg-white/10 transition-colors"
-                >
-                  <Users className="w-4 h-4 text-blue-400" />
-                  <span>{t.switchUser}</span>
-                </button>
-
-
-
-
-
-
-
-
-
-                <button
-                  type="button"
                   onClick={() => { setIsPowerMenuOpen(false); triggerShutdown(); }}
                   className="w-full text-left px-3.5 py-2 flex items-center gap-2.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors font-medium"
                 >
@@ -709,11 +675,20 @@ export const Login: React.FC = () => {
               </div>
             )}
           </div>
-
-
         </div>
 
-
+        {/* Bottom Right User Switch Button */}
+        <div className="flex items-center">
+          <button
+            type="button"
+            onClick={handleSwitchUser}
+            title={t.switchUser}
+            aria-label={t.switchUser}
+            className="group flex items-center justify-center w-9 h-9 rounded-full bg-white/5 hover:bg-blue-950/80 border border-white/15 hover:border-blue-500/60 transition-all duration-300 backdrop-blur-md shadow-md cursor-pointer text-white/70 hover:text-blue-400 hover:shadow-[0_0_20px_rgba(59,130,246,0.55)]"
+          >
+            <User className="w-4 h-4 group-hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.9)]" />
+          </button>
+        </div>
       </footer>
     </div>
   );
