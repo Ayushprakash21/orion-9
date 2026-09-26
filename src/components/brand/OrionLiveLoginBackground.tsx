@@ -5,9 +5,9 @@
  *
  * Guaranteed Single-Earth Architecture:
  * 1. Background Shader: Renders stationary deep space, smooth nebula, sub-pixel starfield,
- *    and Orion constellation from /orion9-space-baseline.png. Masks out the baked 2D Earth
- *    so the background quad contains ONLY space, preventing any duplicate Earth artifact.
- * 2. 3D Real Rotating Earth Globe: ONE THREE.SphereGeometry(2.4, 128, 64) inside ONE earthGroup.
+ *    and Orion constellation from /orion9-space-baseline.png. Masks out the ENTIRE baked 2D Earth
+ *    horizon (uv.y < 0.45) so the background quad contains ONLY deep space, preventing any duplicate Earth artifact.
+ * 2. 3D Real Rotating Earth Globe: ONE THREE.SphereGeometry(3.0, 128, 64) inside ONE earthGroup.
  *    Equirectangular day map, photorealistic night city-lights map, specular map, clouds layer,
  *    and thin Rayleigh atmosphere rim glow.
  * 3. Single Scene & Canvas: 1 THREE.Scene, 1 THREE.WebGLRenderer, 1 <canvas> element.
@@ -50,7 +50,7 @@ declare global {
 }
 
 // -----------------------------------------------------------------------------
-// 1. BACKGROUND DEEP SPACE SHADERS (Space, Nebula, Orion — Baked Earth Masked)
+// 1. BACKGROUND DEEP SPACE SHADERS (Space, Nebula, Orion — Baked Earth Fully Masked)
 // -----------------------------------------------------------------------------
 const BG_VERTEX_SHADER = `
   varying vec2 vUv;
@@ -89,15 +89,12 @@ const BG_FRAGMENT_SHADER = `
 
     vec4 col = texture2D(uTexture, finalUv);
 
-    // MASK OUT BAKED 2D EARTH IN BACKGROUND TEXTURE:
-    // Guarantees zero double-vision / zero duplicate Earth artifacts
-    vec2 earthCenter = vec2(0.38, -0.22);
-    vec2 distVec = uv - earthCenter;
-    distVec.x *= aspect;
-    float distToBakedEarth = length(distVec);
-    float earthMask = smoothstep(1.05, 0.85, distToBakedEarth);
+    // MASK OUT ALL BAKED 2D EARTH & HORIZON FROM BACKGROUND TEXTURE:
+    // Guarantees ZERO double-vision / ZERO duplicate Earth artifacts across full screen width
+    float horizonLine = 0.46 - 0.12 * pow(uv.x - 0.70, 2.0);
+    float earthMask = smoothstep(horizonLine + 0.08, horizonLine - 0.04, uv.y);
 
-    vec3 deepSpaceBackground = vec3(0.003, 0.008, 0.018);
+    vec3 deepSpaceBackground = vec3(0.002, 0.006, 0.015);
     col.rgb = mix(col.rgb, deepSpaceBackground, earthMask);
 
     // Orion Constellation Subtle Stellar Scintillation (7 Major Stars - Upper Left)
@@ -341,7 +338,7 @@ export function OrionLiveLoginBackground({
     earthScene.add(earthGroup);
 
     // 1. Exactly ONE 3D Earth Surface Mesh (SphereGeometry)
-    const earthRadius = 2.4;
+    const earthRadius = 3.0;
     const earthGeo = new THREE.SphereGeometry(earthRadius, 128, 64);
 
     const earthUniforms = {
@@ -415,8 +412,8 @@ export function OrionLiveLoginBackground({
 
       const isMobile = w < 768;
       earthGroup.position.set(
-        isMobile ? -1.3 : -2.4,
-        isMobile ? -2.5 : -2.05,
+        isMobile ? -1.0 : -1.8,
+        isMobile ? -2.6 : -2.25,
         0
       );
     };
