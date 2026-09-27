@@ -3,6 +3,7 @@ import { useWindowManager } from '../WindowManagerContext';
 import { ORION_REGISTRY } from '../OrionApplicationRegistry';
 import { useOrionContextMenu, ContextMenuItem } from '../contextMenu/OrionContextMenuContext';
 import { useToast } from '../../store/ToastContext';
+import { useI18n } from '../../store/LanguageContext';
 import { cn } from '../../lib/utils';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
 import { 
@@ -20,6 +21,7 @@ import {
 } from 'lucide-react';
 
 export function OrionDock() {
+  const { t } = useI18n();
   const { 
     windows, 
     activeAppId, 
@@ -500,7 +502,7 @@ export function OrionDock() {
         {/* WINDOWS TASKBAR: START / LAUNCHER BUTTON */}
         <button
           type="button"
-          aria-label="Start / All Applications"
+          aria-label={`${t('desktop.startMenu')} (All Applications)`}
           tabIndex={0}
           onClick={(e) => {
             e.stopPropagation();
@@ -519,21 +521,21 @@ export function OrionDock() {
             transform: `scale(${hoveredApp === 'launcher' ? 1.05 : 1})`,
             width: '48px', height: '48px' 
           }}
-          title="Start / All Applications"
+          title={`${t('desktop.startMenu')} (All Applications)`}
         >
           <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-400 transition-colors shadow-xs">
             <Grid className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
           </div>
 
           <div className="absolute -top-11 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#12151a]/95 backdrop-blur-xl text-white text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/[0.08] shadow-xl z-50">
-            Start Menu (Applications)
+            {t('desktop.startMenu')}
           </div>
         </button>
 
         {/* WINDOWS TASKBAR: SEARCH BUTTON */}
         <button
           type="button"
-          aria-label="Search"
+          aria-label={t('common.search')}
           tabIndex={0}
           onClick={(e) => {
             e.stopPropagation();
@@ -545,14 +547,14 @@ export function OrionDock() {
             transform: `scale(${hoveredApp === 'search' ? 1.05 : 1})`,
             width: '48px', height: '48px' 
           }}
-          title="Search (Ctrl+Space / ⌘K)"
+          title={`${t('common.search')} (Ctrl+Space / ⌘K)`}
         >
           <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-os-text-muted hover:text-white transition-colors">
             <Search className="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-105" />
           </div>
 
           <div className="absolute -top-11 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#12151a]/95 backdrop-blur-xl text-white text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/[0.08] shadow-xl z-50">
-            Search (Ctrl+Space)
+            {t('common.search')} (Ctrl+Space)
           </div>
         </button>
 

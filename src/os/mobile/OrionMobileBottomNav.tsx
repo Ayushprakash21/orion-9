@@ -1,6 +1,7 @@
 import React from 'react';
 import { useMobileNavigation, MobileTab } from './OrionMobileNavigation';
 import { useNotifications } from '../../store/NotificationContext';
+import { useI18n } from '../../store/LanguageContext';
 import { 
   Home, 
   ShieldAlert, 
@@ -19,13 +20,14 @@ interface NavItem {
 export const OrionMobileBottomNav: React.FC = () => {
   const { activeTab, navigateToTab } = useMobileNavigation();
   const { unreadCount } = useNotifications();
+  const { t } = useI18n();
 
   const navItems: NavItem[] = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'control', label: 'Control', icon: ShieldAlert },
-    { id: 'ai', label: 'AI', icon: Sparkles },
-    { id: 'alerts', label: 'Alerts', icon: AlertTriangle, badge: unreadCount },
-    { id: 'apps', label: 'Apps', icon: LayoutGrid },
+    { id: 'home', label: t('navigation.home'), icon: Home },
+    { id: 'control', label: t('navigation.control'), icon: ShieldAlert },
+    { id: 'ai', label: t('navigation.ai'), icon: Sparkles },
+    { id: 'alerts', label: t('navigation.alerts'), icon: AlertTriangle, badge: unreadCount },
+    { id: 'apps', label: t('navigation.apps'), icon: LayoutGrid },
   ];
 
   return (

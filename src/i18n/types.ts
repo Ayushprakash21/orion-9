@@ -6,7 +6,8 @@
 export type SupportedLocale =
   | 'en' | 'hi' | 'es' | 'fr' | 'de' | 'pt' | 'it' | 'zh' | 'ja' | 'ko'
   | 'ar' | 'ru' | 'bn' | 'mr' | 'te' | 'ta' | 'gu' | 'kn' | 'ml' | 'pa'
-  | 'tr' | 'nl' | 'pl' | 'uk' | 'vi' | 'th' | 'id' | 'he' | 'fa' | 'ur'
+  | 'ur' | 'fa' | 'tr' | 'nl' | 'pl' | 'uk' | 'vi' | 'th' | 'id' | 'he'
+  | 'sv' | 'no' | 'da' | 'fi' | 'el' | 'cs' | 'ro' | 'hu' | 'fil' | 'sw'
   | (string & {});
 
 export type SupportedLanguage = SupportedLocale; // Canonical alias
@@ -41,6 +42,8 @@ export const SUPPORTED_LOCALES: Record<string, LocaleInfo> = {
   kn: { code: 'kn', name: 'Kannada', nativeName: 'ಕನ್ನಡ', dir: 'ltr', bcp47: 'kn-IN' },
   ml: { code: 'ml', name: 'Malayalam', nativeName: 'മലയാളം', dir: 'ltr', bcp47: 'ml-IN' },
   pa: { code: 'pa', name: 'Punjabi', nativeName: 'ਪੰਜਾਬੀ', dir: 'ltr', bcp47: 'pa-IN' },
+  ur: { code: 'ur', name: 'Urdu', nativeName: 'اردو', dir: 'rtl', bcp47: 'ur-PK' },
+  fa: { code: 'fa', name: 'Persian', nativeName: 'فارسی', dir: 'rtl', bcp47: 'fa-IR' },
   tr: { code: 'tr', name: 'Turkish', nativeName: 'Türkçe', dir: 'ltr', bcp47: 'tr-TR' },
   nl: { code: 'nl', name: 'Dutch', nativeName: 'Nederlands', dir: 'ltr', bcp47: 'nl-NL' },
   pl: { code: 'pl', name: 'Polish', nativeName: 'Polski', dir: 'ltr', bcp47: 'pl-PL' },
@@ -49,8 +52,16 @@ export const SUPPORTED_LOCALES: Record<string, LocaleInfo> = {
   th: { code: 'th', name: 'Thai', nativeName: 'ไทย', dir: 'ltr', bcp47: 'th-TH' },
   id: { code: 'id', name: 'Indonesian', nativeName: 'Bahasa Indonesia', dir: 'ltr', bcp47: 'id-ID' },
   he: { code: 'he', name: 'Hebrew', nativeName: 'עברית', dir: 'rtl', bcp47: 'he-IL' },
-  fa: { code: 'fa', name: 'Persian', nativeName: 'فارسی', dir: 'rtl', bcp47: 'fa-IR' },
-  ur: { code: 'ur', name: 'Urdu', nativeName: 'اردو', dir: 'rtl', bcp47: 'ur-PK' },
+  sv: { code: 'sv', name: 'Swedish', nativeName: 'Svenska', dir: 'ltr', bcp47: 'sv-SE' },
+  no: { code: 'no', name: 'Norwegian', nativeName: 'Norsk', dir: 'ltr', bcp47: 'nb-NO' },
+  da: { code: 'da', name: 'Danish', nativeName: 'Dansk', dir: 'ltr', bcp47: 'da-DK' },
+  fi: { code: 'fi', name: 'Finnish', nativeName: 'Suomi', dir: 'ltr', bcp47: 'fi-FI' },
+  el: { code: 'el', name: 'Greek', nativeName: 'Ελληνικά', dir: 'ltr', bcp47: 'el-GR' },
+  cs: { code: 'cs', name: 'Czech', nativeName: 'Čeština', dir: 'ltr', bcp47: 'cs-CZ' },
+  ro: { code: 'ro', name: 'Romanian', nativeName: 'Română', dir: 'ltr', bcp47: 'ro-RO' },
+  hu: { code: 'hu', name: 'Hungarian', nativeName: 'Magyar', dir: 'ltr', bcp47: 'hu-HU' },
+  fil: { code: 'fil', name: 'Filipino', nativeName: 'Filipino', dir: 'ltr', bcp47: 'fil-PH' },
+  sw: { code: 'sw', name: 'Swahili', nativeName: 'Kiswahili', dir: 'ltr', bcp47: 'sw-KE' },
 };
 
 export const SUPPORTED_LOCALE_CODES: SupportedLocale[] = Object.keys(SUPPORTED_LOCALES) as SupportedLocale[];
@@ -83,6 +94,13 @@ export interface TranslationSchema {
     language: string;
     selectLanguage: string;
     orionPlatform: string;
+    home: string;
+    apps: string;
+    control: string;
+    ai: string;
+    alerts: string;
+    more: string;
+    allApplications: string;
   };
   auth: {
     signInTitle: string;
@@ -106,8 +124,16 @@ export interface TranslationSchema {
     selectLanguage: string;
     verifyingCredentials: string;
     enteringOrion: string;
+    showPassword: string;
+    hidePassword: string;
   };
   navigation: {
+    home: string;
+    apps: string;
+    control: string;
+    ai: string;
+    alerts: string;
+    more: string;
     dashboard: string;
     settings: string;
     wallpaperStudio: string;
@@ -195,10 +221,12 @@ export interface TranslationSchema {
     aboutOrion: string;
     applications: string;
     recentApplications: string;
+    noRecentApplications: string;
     systemSettings: string;
     activityMonitor: string;
     closeAllWindows: string;
     lockWorkstation: string;
+    startMenu: string;
   };
   admin: {
     orgDefaultLanguage: string;
@@ -223,3 +251,4 @@ export type TranslationKey =
   | `wallpaper.${keyof TranslationSchema['wallpaper']}`
   | `desktop.${keyof TranslationSchema['desktop']}`
   | `admin.${keyof TranslationSchema['admin']}`;
+

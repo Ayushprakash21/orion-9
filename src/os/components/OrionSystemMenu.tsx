@@ -66,13 +66,13 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
         onClick={() => handleAction(() => setLauncherOpen(true))}
         className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors flex items-center justify-between cursor-pointer"
       >
-        <span>Applications...</span>
+        <span>{t('desktop.applications')}</span>
         <kbd className="text-[10px] font-mono text-slate-500 bg-os-surface-hover px-1.5 py-0.5 rounded border border-os-border">F4</kbd>
       </button>
 
       {/* Recent Applications sub-menu */}
       <div className="relative group w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors flex items-center justify-between cursor-default">
-        <span>Recent Applications</span>
+        <span>{t('desktop.recentApplications')}</span>
         <ChevronRight className="w-3.5 h-3.5 opacity-50" />
         
         {/* Sub-menu (appears on hover) */}
@@ -89,7 +89,7 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
               </button>
             ))
           ) : (
-            <div className="px-4 py-1.5 text-slate-500 text-xs italic">No recent applications</div>
+            <div className="px-4 py-1.5 text-slate-500 text-xs italic">{t('desktop.noRecentApplications')}</div>
           )}
         </div>
       </div>

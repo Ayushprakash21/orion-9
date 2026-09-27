@@ -101,7 +101,7 @@ describe('ORION-9 Two-Stage Native OS Authentication Experience', () => {
     expect(codes).toContain('zh');
     expect(codes).toContain('ja');
     expect(codes).toContain('ar');
-    expect(codes.length).toBe(30);
+    expect(codes.length).toBe(40);
     expect(AUTH_TRANSLATIONS.en.signInTitle).toBe('Sign in to Orion');
     expect(AUTH_TRANSLATIONS.hi.signInTitle).toBe('Orion में साइन इन करें');
     expect(AUTH_TRANSLATIONS.es.signInTitle).toBe('Iniciar sesión en Orion');

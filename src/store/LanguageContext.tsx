@@ -44,7 +44,7 @@ export interface I18nContextType {
   setUserPreferredLanguage: (lang: SupportedLocale, userId?: string) => void;
   setOrganizationDefaultLanguage: (lang: SupportedLocale) => void;
   t: (key: string, params?: Record<string, string | number>) => string;
-  dir: 'ltr';
+  dir: 'ltr' | 'rtl';
   languages: LocaleInfo[];
   formatDate: (date: Date | string | number, options?: Intl.DateTimeFormatOptions) => string;
   formatTime: (date: Date | string | number, options?: Intl.DateTimeFormatOptions) => string;
@@ -80,8 +80,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Apply DOM language & direction attributes
   const applyHtmlAttributes = useCallback((loc: SupportedLocale) => {
     if (typeof document !== 'undefined' && document.documentElement) {
-      document.documentElement.lang = loc;
       const info = SUPPORTED_LOCALES[loc];
+      document.documentElement.lang = info?.bcp47 || loc;
       document.documentElement.dir = info?.dir === 'rtl' ? 'rtl' : 'ltr';
     }
   }, []);
@@ -171,6 +171,10 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     [locale]
   );
 
+  const currentDir = useMemo((): 'ltr' | 'rtl' => {
+    return SUPPORTED_LOCALES[locale]?.dir === 'rtl' ? 'rtl' : 'ltr';
+  }, [locale]);
+
   const contextValue: I18nContextType = useMemo(
     () => ({
       locale,
@@ -180,7 +184,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setUserPreferredLanguage,
       setOrganizationDefaultLanguage,
       t,
-      dir: 'ltr' as const,
+      dir: currentDir,
       languages: Object.values(SUPPORTED_LOCALES),
       formatDate: (d, opts) => formatDate(d, locale, opts),
       formatTime: (d, opts) => formatTime(d, locale, opts),
@@ -188,7 +192,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       formatNumber: (n, opts) => formatNumber(n, locale, opts),
       formatCurrency: (a, cur) => formatCurrency(a, locale, cur),
     }),
-    [locale, setLocale, setUserPreferredLanguage, setOrganizationDefaultLanguage, t]
+    [locale, setLocale, setUserPreferredLanguage, setOrganizationDefaultLanguage, t, currentDir]
   );
 
   return (

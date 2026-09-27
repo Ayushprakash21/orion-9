@@ -194,12 +194,16 @@ describe('Login Language Selector Functionality', () => {
     }
   });
 
-  // TEST 13: SUPPORTED_LOCALES registry contains 30 world languages
-  it('SUPPORTED_LOCALES contains 30 global languages', () => {
-    expect(Object.keys(SUPPORTED_LOCALES).length).toBe(30);
-    expect(SUPPORTED_LOCALE_CODES.length).toBe(30);
+  // TEST 13: SUPPORTED_LOCALES registry contains 40 world languages
+  it('SUPPORTED_LOCALES contains 40 global languages', () => {
+    expect(Object.keys(SUPPORTED_LOCALES).length).toBe(40);
+    expect(SUPPORTED_LOCALE_CODES.length).toBe(40);
     const codes = Object.values(SUPPORTED_LOCALES).map(l => l.code);
     expect(codes).toEqual(SUPPORTED_LOCALE_CODES);
+    expect(SUPPORTED_LOCALES.ar.dir).toBe('rtl');
+    expect(SUPPORTED_LOCALES.he.dir).toBe('rtl');
+    expect(SUPPORTED_LOCALES.ur.dir).toBe('rtl');
+    expect(SUPPORTED_LOCALES.fa.dir).toBe('rtl');
   });
 
   // TEST 14: selectLanguage auth key exists in all locales

@@ -34,7 +34,7 @@ import {
 
 
 import { WorldLanguagePanel } from '../i18n/WorldLanguagePanel';
-import { SUPPORTED_LOCALES } from '../../i18n';
+import { SUPPORTED_LOCALES, SupportedLocale, TRANSLATIONS } from '../../i18n';
 
 export interface LanguageOption {
   code: string;
@@ -49,90 +49,10 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = Object.values(SUPPORTED_LOC
 }));
 
 export const AUTH_TRANSLATIONS: Record<string, Record<string, string>> = {
-  en: {
-    signInTitle: "Sign in to Orion",
-    userIdLabel: "User ID",
-    userIdPlaceholder: "Username or email",
-    continueBtn: "Continue",
-    identifying: "Identifying user...",
-    userNotFound: "User not found",
-    enterPassword: "Password",
-    enterOrionBtn: "Enter Orion",
-    otherUser: "Back",
-    rememberMe: "Remember me",
-    forgotPassword: "Forgot password?",
-    invalidCredentials: "Invalid password or credentials.",
-    switchUser: "Switch User",
-    lock: "Lock",
-    signOut: "Sign Out",
-    restart: "Restart",
-    shutDown: "Shut Down",
-    selectLanguage: "Select language",
-    subtitle: "Enter your User ID to access your workspace"
-  },
-  hi: {
-    signInTitle: "Orion में साइन इन करें",
-    userIdLabel: "यूज़र ID",
-    userIdPlaceholder: "उपयोगकर्ता नाम या ईमेल",
-    continueBtn: "आगे बढ़ें",
-    identifying: "उपयोगकर्ता पहचाना जा रहा है...",
-    userNotFound: "उपयोगकर्ता नहीं मिला",
-    enterPassword: "पासवर्ड",
-    enterOrionBtn: "Orion में प्रवेश करें",
-    otherUser: "Back",
-    rememberMe: "मुझे याद रखें",
-    forgotPassword: "पासवर्ड भूल गए?",
-    invalidCredentials: "गलत पासवर्ड या क्रेडेंशियल।",
-    switchUser: "उपयोगकर्ता बदलें",
-    lock: "लॉक करें",
-    signOut: "साइन आउट",
-    restart: "रीस्टार्ट करें",
-    shutDown: "शट डाउन",
-    selectLanguage: "भाषा चुनें",
-    subtitle: "अपने वर्कस्पेस तक पहुँचने के लिए यूज़र ID दर्ज करें"
-  },
-  es: {
-    signInTitle: "Iniciar sesión en Orion",
-    userIdLabel: "ID de usuario",
-    userIdPlaceholder: "Nombre de usuario o correo",
-    continueBtn: "Continuar",
-    identifying: "Identificando usuario...",
-    userNotFound: "Usuario no encontrado",
-    enterPassword: "Contraseña",
-    enterOrionBtn: "Entrar a Orion",
-    otherUser: "Back",
-    rememberMe: "Recordarme",
-    forgotPassword: "¿Olvidó su contraseña?",
-    invalidCredentials: "Contraseña o credenciales incorrectas.",
-    switchUser: "Cambiar de usuario",
-    lock: "Bloquear",
-    signOut: "Cerrar sesión",
-    restart: "Reiniciar",
-    shutDown: "Apagar",
-    selectLanguage: "Seleccionar idioma",
-    subtitle: "Ingrese su ID de usuario para acceder a su espacio de trabajo"
-  },
-  de: {
-    signInTitle: "Anmelden bei Orion",
-    userIdLabel: "Benutzer-ID",
-    userIdPlaceholder: "Benutzername oder E-Mail",
-    continueBtn: "Weiter",
-    identifying: "Benutzer wird identifiziert...",
-    userNotFound: "Benutzer nicht gefunden",
-    enterPassword: "Passwort",
-    enterOrionBtn: "Orion betreten",
-    otherUser: "Back",
-    rememberMe: "Angemeldet bleiben",
-    forgotPassword: "Passwort vergessen?",
-    invalidCredentials: "Ungültiges Passwort oder Anmeldedaten.",
-    switchUser: "Benutzer wechseln",
-    lock: "Sperren",
-    signOut: "Abmelden",
-    restart: "Neustarten",
-    shutDown: "Herunterfahren",
-    selectLanguage: "Sprache auswählen",
-    subtitle: "Geben Sie Ihre Benutzer-ID ein, um auf Ihren Arbeitsbereich zuzugreifen"
-  },
+  en: TRANSLATIONS.en.auth,
+  hi: TRANSLATIONS.hi.auth,
+  es: TRANSLATIONS.es.auth,
+  de: TRANSLATIONS.de.auth,
 };
 
 export const Login: React.FC = () => {
@@ -263,6 +183,9 @@ export const Login: React.FC = () => {
     shutDown: translate('auth.shutDown'),
     selectLanguage: translate('auth.selectLanguage'),
     subtitle: translate('auth.subtitle'),
+    showPassword: translate('auth.showPassword'),
+    hidePassword: translate('auth.hidePassword'),
+    enteringOrion: translate('auth.enteringOrion'),
   };
 
 
@@ -595,7 +518,7 @@ export const Login: React.FC = () => {
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
                           className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-white/40 hover:text-white transition-colors cursor-pointer"
-                          aria-label={showPassword ? "Hide password" : "Show password"}
+                          aria-label={showPassword ? t.hidePassword : t.showPassword}
                         >
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
@@ -611,7 +534,7 @@ export const Login: React.FC = () => {
                       {isSubmitting ? (
                         <>
                           <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>ENTERING ORION...</span>
+                          <span>{t.enteringOrion}</span>
                         </>
                       ) : (
                         <>
