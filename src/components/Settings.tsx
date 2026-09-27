@@ -454,33 +454,50 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                 </div>
 
                 {/* Preferred Language Card */}
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div>
-                    <h4 className="text-xs font-semibold text-white flex items-center gap-2">
-                      <Globe size={14} className="text-sky-400" />
-                      {t('settings.languageLabel')}
-                    </h4>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      {t('settings.languageDescription')}
-                    </p>
+                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3 min-w-0 max-w-full overflow-hidden">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                    <div>
+                      <h4 className="text-xs font-semibold text-white flex items-center gap-2">
+                        <Globe size={14} className="text-sky-400 shrink-0" />
+                        <span>{t('settings.languageLabel')}</span>
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {t('settings.languageDescription')}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-mono text-sky-400 uppercase tracking-wider shrink-0 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
+                      {languages.find(l => l.code === locale)?.nativeName || 'English'} ({locale.toUpperCase()})
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1.5 bg-white/[0.04] p-1 rounded-xl border border-white/[0.08]">
-                    {languages.map((lang) => (
-                      <button
-                        key={lang.code}
-                        type="button"
-                        onClick={() => setUserPreferredLanguage(lang.code, profile?.id)}
-                        className={cn(
-                          "px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer",
-                          locale === lang.code
-                            ? "bg-sky-500 text-black font-semibold shadow-sm"
-                            : "text-slate-400 hover:text-white hover:bg-white/[0.06]"
-                        )}
-                      >
-                        <span>{lang.nativeName}</span>
-                        <span className="text-[10px] opacity-60 ml-1 uppercase">{lang.code}</span>
-                      </button>
-                    ))}
+
+                  <div className="min-w-0 max-w-full overflow-hidden bg-white/[0.02] p-2 rounded-xl border border-white/[0.06]">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-3 2xl:grid-cols-4 gap-1.5 max-h-56 overflow-y-auto custom-scrollbar p-0.5 min-w-0">
+                      {languages.map((lang) => {
+                        const isSelected = locale === lang.code;
+                        return (
+                          <button
+                            key={lang.code}
+                            type="button"
+                            onClick={() => setUserPreferredLanguage(lang.code, profile?.id)}
+                            title={`${lang.name} (${lang.nativeName})`}
+                            className={cn(
+                              "px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center justify-between gap-1.5 min-w-0 border text-left",
+                              isSelected
+                                ? "bg-sky-500 text-black font-semibold border-sky-400 shadow-xs"
+                                : "bg-white/[0.03] border-white/[0.06] text-slate-300 hover:text-white hover:bg-white/[0.08] hover:border-white/[0.12]"
+                            )}
+                          >
+                            <span className="truncate text-[11px] leading-tight">{lang.nativeName}</span>
+                            <span className={cn(
+                              "text-[9px] font-mono shrink-0 px-1 py-0.2 rounded uppercase",
+                              isSelected ? "bg-black/20 text-black font-bold" : "bg-white/10 text-slate-400"
+                            )}>
+                              {lang.code}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
@@ -815,33 +832,50 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                 </div>
 
                 {/* System UI Language Card */}
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div>
-                    <h4 className="text-xs font-semibold text-white flex items-center gap-2">
-                      <Globe size={14} className="text-sky-400" />
-                      {t('settings.languageLabel')}
-                    </h4>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
-                      {t('settings.languageDescription')}
-                    </p>
+                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3 min-w-0 max-w-full overflow-hidden">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                    <div>
+                      <h4 className="text-xs font-semibold text-white flex items-center gap-2">
+                        <Globe size={14} className="text-sky-400 shrink-0" />
+                        <span>{t('settings.languageLabel')}</span>
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {t('settings.languageDescription')}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-mono text-sky-400 uppercase tracking-wider shrink-0 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
+                      {languages.find(l => l.code === locale)?.nativeName || 'English'} ({locale.toUpperCase()})
+                    </span>
                   </div>
-                  <div className="flex items-center gap-1.5 bg-white/[0.04] p-1 rounded-xl border border-white/[0.08]">
-                    {languages.map((lang) => (
-                      <button
-                        key={lang.code}
-                        type="button"
-                        onClick={() => setUserPreferredLanguage(lang.code, profile?.id)}
-                        className={cn(
-                          "px-2.5 py-1 rounded-lg text-xs font-medium transition-all cursor-pointer",
-                          locale === lang.code
-                            ? "bg-sky-500 text-black font-semibold shadow-sm"
-                            : "text-slate-400 hover:text-white hover:bg-white/[0.06]"
-                        )}
-                      >
-                        <span>{lang.nativeName}</span>
-                        <span className="text-[10px] opacity-60 ml-1 uppercase">{lang.code}</span>
-                      </button>
-                    ))}
+
+                  <div className="min-w-0 max-w-full overflow-hidden bg-white/[0.02] p-2 rounded-xl border border-white/[0.06]">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-3 2xl:grid-cols-4 gap-1.5 max-h-56 overflow-y-auto custom-scrollbar p-0.5 min-w-0">
+                      {languages.map((lang) => {
+                        const isSelected = locale === lang.code;
+                        return (
+                          <button
+                            key={lang.code}
+                            type="button"
+                            onClick={() => setUserPreferredLanguage(lang.code, profile?.id)}
+                            title={`${lang.name} (${lang.nativeName})`}
+                            className={cn(
+                              "px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center justify-between gap-1.5 min-w-0 border text-left",
+                              isSelected
+                                ? "bg-sky-500 text-black font-semibold border-sky-400 shadow-xs"
+                                : "bg-white/[0.03] border-white/[0.06] text-slate-300 hover:text-white hover:bg-white/[0.08] hover:border-white/[0.12]"
+                            )}
+                          >
+                            <span className="truncate text-[11px] leading-tight">{lang.nativeName}</span>
+                            <span className={cn(
+                              "text-[9px] font-mono shrink-0 px-1 py-0.2 rounded uppercase",
+                              isSelected ? "bg-black/20 text-black font-bold" : "bg-white/10 text-slate-400"
+                            )}>
+                              {lang.code}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
