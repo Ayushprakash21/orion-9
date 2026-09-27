@@ -1,26 +1,29 @@
 /**
  * ORION-9 AI WALLPAPER GENERATOR
  * Production abstraction manager delegating AI image generation to WallpaperImageProvider
- * with Google Gemini (gemini-2.5-flash-image) as active primary implementation.
+ * with Cloudflare Workers AI (@cf/black-forest-labs/flux-2-klein-4b) as active primary implementation.
  */
 
 import { AiGenerationParams, WallpaperCandidate } from '../../types/wallpaper';
 import { WallpaperImageProvider, WallpaperImageProviderStatus } from './WallpaperImageProvider';
-import { geminiWallpaperImageProvider } from './GeminiWallpaperImageProvider';
+import { cloudflareWallpaperImageProvider } from './CloudflareWallpaperImageProvider';
 
 export type AiProviderStatusCode =
-  | 'GEMINI_CONFIGURED'
-  | 'GEMINI_SECRET_MISSING'
-  | 'GEMINI_AUTH_ERROR'
-  | 'GEMINI_RATE_LIMIT'
-  | 'GEMINI_API_UNAVAILABLE'
-  | 'BACKEND_UNREACHABLE';
+  | 'READY'
+  | 'GENERATING'
+  | 'SUCCESS'
+  | 'CLOUDFLARE_CONFIGURED'
+  | 'CLOUDFLARE_QUOTA_EXCEEDED'
+  | 'CLOUDFLARE_AUTH_ERROR'
+  | 'CLOUDFLARE_MODEL_ERROR'
+  | 'CLOUDFLARE_AI_UNAVAILABLE'
+  | 'NETWORK_ERROR';
 
 export type AiWallpaperProviderStatus = WallpaperImageProviderStatus;
 
 export class AiWallpaperGenerator {
   private static instance: AiWallpaperGenerator;
-  private activeProvider: WallpaperImageProvider = geminiWallpaperImageProvider;
+  private activeProvider: WallpaperImageProvider = cloudflareWallpaperImageProvider;
 
   private constructor() {}
 

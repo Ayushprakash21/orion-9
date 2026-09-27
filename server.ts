@@ -6,7 +6,7 @@ import { GoogleGenAI } from "@google/genai";
 import * as firebaseAdmin from "firebase-admin";
 import dotenv from "dotenv";
 import { demoPersistentSchedulerService } from "./src/services/demo/DemoPersistentSchedulerService";
-import { checkGeminiWallpaperStatus, generateGeminiWallpapers } from "./src/server/geminiBackend";
+import { checkCloudflareWallpaperStatus, generateCloudflareWallpapers } from "./src/server/cloudflareAiBackend";
 
 dotenv.config({ path: ['.env.local', '.env'] });
 
@@ -516,20 +516,27 @@ async function startServer() {
     }
   });
 
-  // AI Wallpaper Status Routes - Google Gemini Image Generation Health Check
+  // AI Wallpaper Status Routes - Cloudflare Workers AI FLUX
   const handleWallpaperStatus = async (_req: express.Request, res: express.Response) => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    const result = await checkGeminiWallpaperStatus(apiKey);
+    const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+    const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+    const result = await checkCloudflareWallpaperStatus(null, apiToken, accountId);
     return res.json(result);
   };
-  app.get("/api/wallpaper/gemini/status", handleWallpaperStatus);
+  app.get("/api/wallpaper/cloudflare/status", handleWallpaperStatus);
+  app.get("/api/wallpaper/status", handleWallpaperStatus);
   app.get("/api/ai/wallpaper-status", handleWallpaperStatus);
 
-  // Real Gemini AI Wallpaper Generation Routes (3 Real Static Candidates)
+  // Cloudflare Workers AI Wallpaper Generation Routes (3 Static Candidates with @cf/black-forest-labs/flux-2-klein-4b)
   const handleWallpaperGenerate = async (req: express.Request, res: express.Response) => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    const result = await generateGeminiWallpapers(apiKey, req.body || {});
-    return res.status(result.statusCode).json(result.body);
+    const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+    const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+    const result = await generateCloudflareWallpapers(null, {
+      ...(req.body || {}),
+      apiToken,
+      accountId,
+    });
+    return res.status(result.statusCode).json(result);
   };
   app.post("/api/wallpaper/generate", handleWallpaperGenerate);
   app.post("/api/ai/generate-wallpaper", handleWallpaperGenerate);

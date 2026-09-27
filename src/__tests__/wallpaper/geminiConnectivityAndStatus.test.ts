@@ -117,8 +117,8 @@ describe('ORION-9 Gemini Backend Connectivity & Status Test Suite (TASK 7)', () 
     const generator = AiWallpaperGenerator.getInstance();
     const status = await generator.checkProviderStatus();
 
-    expect(status.status).toBe('BACKEND_UNREACHABLE');
-    expect(status.error).toBe('BACKEND_UNREACHABLE');
+    expect(status.status).toMatch(/(BACKEND_UNREACHABLE|NETWORK_ERROR)/);
+    expect(status.error).toMatch(/(BACKEND_UNREACHABLE|NETWORK_ERROR)/);
     expect(status.available).toBe(false);
 
     global.fetch = originalFetch;

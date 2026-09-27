@@ -92,8 +92,8 @@ export const UserWallpaperStudio: React.FC = () => {
   // AI Generator Form & Provider State
   const [aiProviderConfigured, setAiProviderConfigured] = useState<boolean>(false);
   const [aiProviderStatusCode, setAiProviderStatusCode] = useState<string>('READY');
-  const [aiProviderName, setAiProviderName] = useState<string>('Google Gemini');
-  const [aiModelName, setAiModelName] = useState<string>('gemini-2.5-flash-image');
+  const [aiProviderName, setAiProviderName] = useState<string>('Cloudflare Workers AI');
+  const [aiModelName, setAiModelName] = useState<string>('@cf/black-forest-labs/flux-2-klein-4b');
   const [prompt, setPrompt] = useState('Futuristic deep-space environment with subtle blue and graphite atmosphere');
   const [style, setStyle] = useState<WallpaperStyle>('Space');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -120,13 +120,10 @@ export const UserWallpaperStudio: React.FC = () => {
         
         if (mounted) {
           setAiProviderConfigured(aiStatus.configured);
-          let statusCode = aiStatus.status || aiStatus.error || 'READY';
-          if (typeof statusCode === 'string' && statusCode.toUpperCase().includes('CLOUDFLARE')) {
-            statusCode = aiStatus.configured ? 'GEMINI_CONFIGURED' : 'GEMINI_SECRET_MISSING';
-          }
+          const statusCode = aiStatus.status || aiStatus.error || (aiStatus.configured ? 'READY' : 'CLOUDFLARE_AI_UNAVAILABLE');
           setAiProviderStatusCode(statusCode);
-          setAiProviderName(aiStatus.providerName || 'Google Gemini');
-          setAiModelName(aiStatus.model || 'gemini-2.5-flash-image');
+          setAiProviderName(aiStatus.providerName || 'Cloudflare Workers AI');
+          setAiModelName(aiStatus.model || '@cf/black-forest-labs/flux-2-klein-4b');
           
           const validGallery = available && available.length > 0 ? available : SYSTEM_DEFAULT_WALLPAPERS;
           setGalleryWallpapers(validGallery);
@@ -208,10 +205,7 @@ export const UserWallpaperStudio: React.FC = () => {
       showToast('3 AI Wallpaper candidates generated!', 'success');
     } catch (err: any) {
       setStudioState('ERROR');
-      let msg = err.message || 'AI wallpaper generation failed';
-      if (typeof msg === 'string' && msg.toUpperCase().includes('CLOUDFLARE')) {
-        msg = 'GEMINI_GENERATION_FAILED: AI wallpaper generation failed.';
-      }
+      const msg = err.message || 'Cloudflare Workers AI generation failed';
       setErrorMessage(msg);
       showToast(msg, 'error');
     } finally {
@@ -525,7 +519,7 @@ export const UserWallpaperStudio: React.FC = () => {
         <div className="space-y-4">
           <div className={cn(
             "p-3.5 rounded-xl border text-xs space-y-1",
-            aiProviderConfigured || aiProviderStatusCode === 'READY' || aiProviderStatusCode === 'GEMINI_CONFIGURED' || aiProviderStatusCode === 'GEMINI_READY'
+            aiProviderConfigured || aiProviderStatusCode === 'READY' || aiProviderStatusCode === 'SUCCESS' || aiProviderStatusCode === 'CLOUDFLARE_CONFIGURED'
               ? "bg-sky-500/10 border-sky-500/20 text-slate-300"
               : "bg-slate-500/10 border-slate-500/20 text-slate-300"
           )}>
@@ -537,12 +531,12 @@ export const UserWallpaperStudio: React.FC = () => {
               </span>
             </div>
             <p className="text-[11px] opacity-80">
-              {(aiProviderStatusCode === 'READY' || aiProviderStatusCode === 'GEMINI_READY' || aiProviderStatusCode === 'GEMINI_CONFIGURED') && `Google Gemini (${aiModelName}) is ready for primary generation.`}
-              {aiProviderStatusCode === 'GEMINI_SECRET_MISSING' && 'Gemini API is not configured on the ORION-9 server.'}
-              {aiProviderStatusCode === 'GEMINI_AUTH_ERROR' && 'Gemini API authentication failed. Please verify GEMINI_API_KEY.'}
-              {aiProviderStatusCode === 'GEMINI_RATE_LIMIT' && 'Gemini image generation quota has been reached.'}
-              {aiProviderStatusCode === 'GEMINI_API_UNAVAILABLE' && 'Selected Gemini image model is unavailable.'}
-              {aiProviderStatusCode === 'BACKEND_UNREACHABLE' && 'Unable to reach backend server endpoint.'}
+              {(aiProviderStatusCode === 'READY' || aiProviderStatusCode === 'SUCCESS' || aiProviderStatusCode === 'CLOUDFLARE_CONFIGURED') && `Cloudflare Workers AI (${aiModelName}) is ready for primary generation.`}
+              {aiProviderStatusCode === 'CLOUDFLARE_AI_UNAVAILABLE' && 'Cloudflare Workers AI is not configured on the ORION-9 server.'}
+              {aiProviderStatusCode === 'CLOUDFLARE_AUTH_ERROR' && 'Cloudflare Workers AI authentication failed. Please verify credentials.'}
+              {aiProviderStatusCode === 'CLOUDFLARE_QUOTA_EXCEEDED' && 'Cloudflare Workers AI image generation quota has been reached.'}
+              {aiProviderStatusCode === 'CLOUDFLARE_MODEL_ERROR' && 'Cloudflare Workers AI model error during generation.'}
+              {aiProviderStatusCode === 'NETWORK_ERROR' && 'Unable to reach backend server endpoint.'}
             </p>
           </div>
 

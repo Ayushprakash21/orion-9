@@ -1,7 +1,7 @@
 /**
  * ORION-9 WALLPAPER IMAGE PROVIDER ABSTRACT INTERFACE
  * Abstraction layer for AI Image Generation providers.
- * Active Implementation: Google Gemini (gemini-3.1-flash-image / Nano Banana 2).
+ * Active Implementation: Cloudflare Workers AI (@cf/black-forest-labs/flux-2-klein-4b).
  */
 
 import { AiGenerationParams, WallpaperCandidate } from '../../types/wallpaper';
