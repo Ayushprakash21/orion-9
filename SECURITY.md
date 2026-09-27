@@ -1,65 +1,212 @@
-# ORION-9 — Phase 2 Security Hardening Blueprint
+# ORION-9 — Enterprise Security & Authorization Architecture
 
-This document details the server-side authorization architecture, database schema alignment instructions, and security policies implemented for the production release of ORION-9.
-
----
-
-## 1. Authentication & Secure Username Resolution
-- **Email Enumeration Mitigation**: The `/api/auth/resolve-identity` endpoint dynamically resolves username inputs to emails via a secure server-side lookup on `public.profiles`. If the username does not exist, the server returns a generic `404 Invalid username or password.` error without revealing whether the username is valid or invalid.
-- **Strict Key Requirement**: Legacy fallbacks like `VITE_SUPABASE_ANON_KEY` have been completely removed. Both the client-side `/src/lib/supabaseClient.ts` and server-side `/server.ts` enforce the presence of `VITE_SUPABASE_PUBLISHABLE_KEY`.
+This document details the security model, authentication pipelines, tenant isolation boundaries, and database authorization policies governing the **Orion-9 Supply Chain Operating System**.
 
 ---
 
-## 2. Server-Side Authorization Pipeline
-All administrative endpoints under `/api/admin/*` are secured using JWT-based token verification:
-1. **Access Token Extraction**: Reads the bearer token directly from the incoming `Authorization: Bearer <access_token>` request header.
-2. **Identity Verification**: Checks the validity of the token with Supabase Auth via `admin.auth.getUser(token)`.
-3. **Database Validation**: Retrieves the profile of the verified user from `public.profiles` and validates that `status` is `active`.
-4. **Role & Membership Resolution**: Verifies the caller's organization membership and dynamic database role name (resolving `roles.name` as `platform_admin` or `organization_admin`).
-5. **Organizational Scoping**:
-   - `platform_admin`: Has global, unrestricted authority to manage users and resources across any organization.
-   - `organization_admin`: Has scoped authority restricted strictly to their own organization. Creating, deleting, or resetting passwords of users outside their own organization is rejected with an HTTP `403 Forbidden` response.
+## 1. Executive Security Architecture Overview
 
----
+Orion-9 operates on a **zero-trust, multi-tenant cloud-native architecture** powered by **Google Firebase Authentication**, **Cloud Firestore Enterprise Rules**, and the **Orion-9 Kernel Security Subsystem**.
 
-## 3. Dynamic Role Assignment during User Creation
-On administrative user creation (`POST /api/admin/users`), the specified role is dynamically resolved from `public.roles` where `name` matches the requested role parameter:
-- Prevents empty or default-assigned role ids.
-- Enforces strict role insertion into `public.organization_memberships` (with columns `user_id`, `organization_id`, `role_id`, and `status = 'active'`).
-
----
-
-## 4. Audit Logging Architecture
-A server-side audit logger writes privileged events directly to the `public.audit_logs` table for tracking compliance and operational changes:
-- **Logged Events**:
-  - `USER_CREATED` (On successful admin user creation)
-  - `PASSWORD_RESET` (On password override)
-  - `USER_DELETED` (On user termination)
-- **Log Payload**: Records `actor_user_id`, target `organization_id`, `action`, target `entity_type`, target `entity_id`, and description context.
-- **Privacy Enforcement**: Passwords, hashes, and access tokens are strictly stripped and never logged.
-
----
-
-## 5. Database Schema Alignment
-Execute the safe migration commands defined in `/migration.sql` in your Supabase SQL Editor. 
-This script ensures all schema tables (`profiles` and `organizations`) match the frontend requirements by appending missing columns only if they do not already exist, avoiding any data loss:
-
-```bash
-# Locate and run the following file in your Supabase Console:
-/migration.sql
+```text
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                             CLIENT / AGENT / OS                             │
+│       Desktop / Mobile UI  •  Kernel Command Bus  •  Autonomous AI          │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │ Bearer Token / Identity Context
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                       ORION-9 KERNEL SECURITY LAYER                         │
+│  • Identity Resolution (No Email/User Enumeration)                          │
+│  • AuthorizationEngine (Actor & Role Evaluation)                            │
+│  • Privileged Admin Session Manager (15-Min Step-Up TTL)                     │
+│  • Constant-Time Crypto & Salted SHA-256 Hashing                            │
+│  • Namespaced Cache Key Isolation (`orion9:{env}:{tenant}:{col}:{id}`)      │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │ Authenticated Token & Scoped Claims
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                   FIREBASE AUTH & GOVERNED ENVIRONMENTS                     │
+│  • LIVE: Authoritative Firebase Project (`orion9-dev-db-2026`)              │
+│  • DEMO: Isolated Synthetic Sandbox (`demo-orion9-db-2026` / Emulators)     │
+└──────────────────────────────────────┬──────────────────────────────────────┘
+                                       │ Firestore Rules Evaluation (v2)
+                                       ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                    CLOUD FIRESTORE SECURITY RULES (V2)                      │
+│  • Default Deny on all unmatched document paths                             │
+│  • Strict Multi-Tenant Isolation (`isOrgMember(tenantId)`)                  │
+│  • Approvals State Machine Integrity (`requiredApprovers`)                  │
+│  • Immutable Append-Only Audit Logging (`allow update, delete: if false;`)   │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 6. Required Environment Variables (.env)
-Ensure your `.env` configuration contains these server-side and client-side variables:
+## 2. Authentication & Identity Management
+
+### 2.1 Firebase Authentication as Single Authority
+All human operators, enterprise accounts, and platform administrators authenticate through **Firebase Authentication** (`firebase/auth`), which serves as the sole authoritative identity provider.
+- **Identity Resolution**: Handled via `authService.resolveIdentity`. Supports both organizational emails and unique usernames. If an identifier does not exist or credentials fail, generic error responses (`Invalid username or password.`) are returned to prevent user or email enumeration.
+- **Dual-Environment Architecture**:
+  - **LIVE Database**: Bound to authoritative production Firebase project (`orion9-dev-db-2026`).
+  - **DEMO Sandbox**: Bound to an isolated sandbox project (`demo-orion9-db-2026`) or local Firebase Emulators (`auth:9099`, `firestore:8080`), ensuring test traffic never touches live tenant infrastructure.
+- **Session Lifecycle & Hardened Boot**:
+  - Ephemeral tokens and user profile metadata are verified on system boot.
+  - Physical power-on sequences require explicit re-authentication (`LOGIN_REQUIRED`) before mounting operational command centers.
+
+---
+
+## 3. Cloud Firestore Security Rules (v2)
+
+Database security is enforced at the database engine level via [`firestore.rules`](./firestore.rules) using rules version 2.
+
+### 3.1 Strict Default Deny
+Every document path is closed by default. Only explicitly declared paths with valid tenant predicates allow access:
+```javascript
+match /{document=**} {
+  allow read, write: if false;
+}
+```
+
+### 3.2 Tenant Isolation & Organization Scoping
+Multi-tenancy is enforced on every query and transaction using document-level `organizationId` and `tenantId` verification:
+```javascript
+function isAuthenticated() {
+  return request.auth != null;
+}
+
+function isOrgMember(orgId) {
+  return isAuthenticated() && (
+    (request.auth.token != null && (
+      request.auth.token.organizationId == orgId || 
+      request.auth.token.tenantId == orgId
+    )) ||
+    (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && (
+      getUserData().organizationId == orgId ||
+      getUserData().tenantId == orgId
+    ))
+  );
+}
+```
+- **Operational Collections**: `purchase_orders`, `inventory`, `suppliers`, `shipments`, `exceptions`, `events`, `signals`, `customer_orders`, `atp_calculations`, and `decisions` strictly require `isOrgMember(resource.data.organizationId)`.
+- **Compound Tenant Indexing**: Every collection in [`firestore.indexes.json`](./firestore.indexes.json) enforces `tenantId ASCENDING` as its leading composite index, ensuring high performance without cross-tenant query contamination.
+
+### 3.3 State Machine & Approval Workflow Protection
+Supply chain commitments cannot be arbitrarily approved or modified:
+```javascript
+match /approvals/{approvalId} {
+  allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isAdmin());
+  allow create: if isAuthenticated() && isOrgMember(request.resource.data.organizationId);
+  allow update: if isAuthenticated() && (
+    isAdmin() ||
+    (request.resource.data.status in ['APPROVED', 'REJECTED'] && 
+     request.auth.uid in resource.data.requiredApprovers)
+  );
+  allow delete: if isAdmin();
+}
+```
+
+### 3.4 Immutable Audit Logs
+Audit records in `/audit_logs/{auditId}` are **append-only**. Once created by authenticated kernel services, updates and deletions are permanently blocked at the rule level:
+```javascript
+match /audit_logs/{auditId} {
+  allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isAdmin());
+  allow create: if isAuthenticated();
+  allow update, delete: if false; // Audit records are immutable once written
+}
+```
+
+---
+
+## 4. Kernel Authorization & Role-Based Access Control (RBAC)
+
+### 4.1 Governed Roles & Hierarchy
+The Orion-9 Kernel defines 9 standardized enterprise roles:
+1. `platform_admin`: Global system configuration, tenant provisioning, database switching.
+2. `organization_admin`: Organization-scoped administrator, user management, policy authoring.
+3. `supply_chain_manager`: Full operational oversight across procurement, inventory, and logistics.
+4. `planner`: Inventory optimization, ATP promising, demand forecasting.
+5. `procurement_user`: RFQ creation, PO authoring, supplier management.
+6. `inventory_user`: Warehouse stock movements, stock counts, adjustments.
+7. `logistics_coordinator`: ASN management, shipments tracking, carrier scheduling.
+8. `viewer`: Read-only operational transparency and report viewing.
+9. `user`: Base authenticated organizational user.
+
+### 4.2 Kernel AuthorizationEngine
+Every command dispatched across the Kernel Command Bus passes through `AuthorizationEngine`:
+- Evaluates actor type: `USER`, `ADMIN`, `SYSTEM`, `SERVICE`, `AI_AGENT`, `EXTERNAL_INTEGRATION`, `SCHEDULER`.
+- Verifies resource-action permissions (e.g. `purchase_order:approve`, `shipment:reroute`).
+- Verifies organizational boundaries before executing handlers.
+
+### 4.3 Presentation vs Authority Invariant
+Orion-9 provides two UX modes: **Simple Mode** (action-oriented business workflows) and **Advanced Mode** (canonical SCM execution).
+> [!IMPORTANT]
+> Mode switching alters **presentation and information disclosure only**. RBAC authority, tenant boundaries, approval thresholds, and privileged constraints remain identical and strictly enforced regardless of UX mode.
+
+---
+
+## 5. Privileged Session Engine & Step-Up Authentication
+
+To defend against unauthorized administrative actions, Orion-9 employs a **Just-In-Time Step-Up Authentication Engine** (`privilegedSessionManager`):
+- **Never static**: The client application never relies on a client-side boolean `isAdmin = true`.
+- **Cryptographic Token**: Administrative access generates a cryptographically random 192-bit token (`crypto.getRandomValues`).
+- **Strict 15-Minute TTL**: Privileged sessions expire automatically after 15 minutes (`PRIVILEGED_TTL_MS = 900,000 ms`).
+- **Session-Only Storage**: Privileged sessions reside exclusively in `sessionStorage` (cleared immediately when tab or browser closes, never stored in persistent `localStorage`).
+- **Explicit Revocation**: Administrative sessions are instantly revoked on manual lock, role changes, or user logout.
+
+---
+
+## 6. Cryptographic Integrity & Anti-Tamper Mechanisms
+
+Implemented in [`src/kernel/security/crypto.ts`](./src/kernel/security/crypto.ts):
+- **Salted SHA-256 Hashing**: Uses modern SubtleCrypto (`sha256:{salt}:{hash}`) with high-entropy salts for credential verification.
+- **Timing Attack Mitigation**: Password and token verifications use constant-time XOR byte comparison (`verifyPassword`) to prevent timing side-channel exploits.
+- **Distributed Correlation Tracing**: Every authentication attempt, decision evaluation, and state transition receives an RFC-compliant cryptographic correlation ID (`generateCorrelationId('trace')`).
+- **Transactional Idempotency**: Commands generate deterministic idempotency keys (`generateIdempotencyKey`) scoped to 1-minute deduplication windows to prevent double-execution or replay attacks.
+
+---
+
+## 7. Database Environment Isolation & Cache Namespacing
+
+The `DatabaseConnectionManager` guarantees that data from different environments and organizations cannot cross-contaminate:
+- **Namespaced Caching**: In-memory and browser caches enforce the strict format:
+  ```text
+  orion9:{environment}:{tenantId}:{collection}:{documentId}
+  ```
+- **Lifecycle Teardown**: Switching between `LIVE` and `DEMO` automatically halts all active Firestore snapshot listeners, invalidates cache partitions, and recreates isolated channels.
+
+---
+
+## 8. Required Environment Variables Configuration
+
+Configure the following environment variables in your deployment environment (`.env`):
 
 ```env
-# Server-Only Secrets (Never exposed to the client-side)
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-GEMINI_API_KEY=your_gemini_api_key
+# ============================================================================
+# ORION-9 ENTERPRISE CONFIGURATION
+# ============================================================================
 
-# Client-Facing Publishable Keys
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+# Orion Platform Host & Gemini AI Copilot
+APP_URL="https://orion9.network"
+GEMINI_API_KEY="your_production_gemini_api_key"
+
+# Live Firebase Project (Authoritative Production Database)
+VITE_FIREBASE_API_KEY="AIzaSy..."
+VITE_FIREBASE_AUTH_DOMAIN="orion9-dev-db-2026.firebaseapp.com"
+VITE_FIREBASE_PROJECT_ID="orion9-dev-db-2026"
+VITE_FIREBASE_STORAGE_BUCKET="orion9-dev-db-2026.firebasestorage.app"
+VITE_FIREBASE_MESSAGING_SENDER_ID="1031466156269"
+VITE_FIREBASE_APP_ID="1:1031466156269:web:44dd23cdcc883f809b8ce4"
+
+# Demo Firebase Project (Isolated Sandbox / Emulators)
+VITE_DEMO_FIREBASE_API_KEY="AIzaSyDemo..."
+VITE_DEMO_FIREBASE_AUTH_DOMAIN="demo-orion9-db-2026.firebaseapp.com"
+VITE_DEMO_FIREBASE_PROJECT_ID="demo-orion9-db-2026"
+VITE_DEMO_FIREBASE_STORAGE_BUCKET="demo-orion9-db-2026.firebasestorage.app"
+VITE_DEMO_FIREBASE_MESSAGING_SENDER_ID="999999999999"
+VITE_DEMO_FIREBASE_APP_ID="1:999999999999:web:demo44dd23cdcc883f809b8ce4"
 ```
+
+> [!NOTE]
+> All legacy Supabase dependencies and variables (`VITE_SUPABASE_ANON_KEY`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) have been fully retired and removed from the active runtime architecture.

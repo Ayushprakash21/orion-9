@@ -2,11 +2,12 @@
  * ORION-9 MOBILE HOME & INFORMATION ARCHITECTURE NAVIGATION TEST SUITE
  * 
  * Verifies:
- * 1. Mobile Home is a dedicated OS landing page ("What is happening in my Orion environment?").
+ * 1. Mobile Home is a dedicated OS landing page ("What do you want to do?").
  * 2. Mobile Control is the distinct destination for the full Supply Chain Command Center / Control Tower.
- * 3. Bottom navigation semantics: Home, Control, AI, Alerts, Apps remain distinct.
- * 4. Deep linking to /mobile/home, /mobile/control, /mobile/ai, /mobile/alerts, /mobile/apps.
- * 5. Desktop OS and Command Center capabilities remain unaffected.
+ * 3. Mobile Home does NOT duplicate Control Tower telemetry, charts, or KPI dashboards.
+ * 4. Bottom navigation semantics: Home, Control, AI, Alerts, Apps remain distinct.
+ * 5. Deep linking to /mobile/home, /mobile/control, /mobile/ai, /mobile/alerts, /mobile/apps.
+ * 6. Desktop OS and Command Center capabilities remain unaffected.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -94,8 +95,8 @@ describe('Mobile Home & Information Architecture Navigation Suite', () => {
     });
   });
 
-  describe('1. Mobile Home Screen Invariants', () => {
-    it('renders dedicated Mobile Home landing page with personalized greeting', () => {
+  describe('1. Mobile Home Screen Invariants (OS Landing Screen)', () => {
+    it('renders dedicated Mobile Home OS landing page with personalized greeting and environment indicator', () => {
       const html = renderToString(
         <MemoryRouter initialEntries={['/mobile/home']}>
           <MobileNavigationProvider>
@@ -108,8 +109,25 @@ describe('Mobile Home & Information Architecture Navigation Suite', () => {
       expect(plainText).toContain('ORION-9 OS');
       expect(html).toContain('MOBILE HOME');
       expect(html).toContain('Operations Manager');
+      expect(html).toContain('Enterprise Supply Chain Operating System');
       expect(html).toContain('System Operational');
-      expect(html).toContain('Your supply chain environment at a glance');
+    });
+
+    it('renders primary action section "What do you want to do?" with intuitive actions', () => {
+      const html = renderToString(
+        <MemoryRouter initialEntries={['/mobile/home']}>
+          <MobileNavigationProvider>
+            <OrionMobileHome />
+          </MobileNavigationProvider>
+        </MemoryRouter>
+      );
+
+      expect(html).toContain('What do you want to do?');
+      expect(html).toContain('Check Inventory');
+      expect(html).toContain('Track Shipment');
+      expect(html).toContain('Check Order');
+      expect(html).toContain('Report Issue');
+      expect(html).toContain('Buy Something');
     });
 
     it('renders 4 Quick Access buttons (Control, AI, Alerts, Apps)', () => {
@@ -128,23 +146,7 @@ describe('Mobile Home & Information Architecture Navigation Suite', () => {
       expect(html).toContain('Apps');
     });
 
-    it('renders Control Tower Overview summary card with navigation link', () => {
-      const html = renderToString(
-        <MemoryRouter initialEntries={['/mobile/home']}>
-          <MobileNavigationProvider>
-            <OrionMobileHome />
-          </MobileNavigationProvider>
-        </MemoryRouter>
-      );
-
-      expect(html).toContain('Control Tower Overview');
-      expect(html).toContain('Open Control Center');
-      expect(html).toContain('Exceptions');
-      expect(html).toContain('Cargo Delays');
-      expect(html).toContain('Stock Risks');
-    });
-
-    it('renders Orion AI Assistant card and Critical Alerts summary', () => {
+    it('renders compact Orion AI Assistant entry and Recent Activity feed', () => {
       const html = renderToString(
         <MemoryRouter initialEntries={['/mobile/home']}>
           <MobileNavigationProvider>
@@ -154,12 +156,12 @@ describe('Mobile Home & Information Architecture Navigation Suite', () => {
       );
 
       expect(html).toContain('ORION AI');
-      expect(html).toContain('Ask Orion anything about your supply chain...');
-      expect(html).toContain('Critical Alerts');
-      expect(html).toContain('Port Congestion at Rotterdam');
+      expect(html).toContain('Ask ORION about your supply chain');
+      expect(html).toContain('Recent Activity');
+      expect(html).toContain('Shipment Delay: TRK-9821');
     });
 
-    it('does NOT render duplicated full Control Tower Recharts telemetry charts inside Mobile Home', () => {
+    it('strictly does NOT render Control Tower Command Center telemetry, charts, or KPI grids on Mobile Home', () => {
       const html = renderToString(
         <MemoryRouter initialEntries={['/mobile/home']}>
           <MobileNavigationProvider>
@@ -168,14 +170,16 @@ describe('Mobile Home & Information Architecture Navigation Suite', () => {
         </MemoryRouter>
       );
 
-      // Invariant: Home must be a lightweight landing page, NOT the full Control Tower
+      // Invariant: Home must be a lightweight OS landing page, NOT the Command Center
+      expect(html).not.toContain('Control Tower Overview');
+      expect(html).not.toContain('Active Disruption Telemetry');
       expect(html).not.toContain('Telemetry Trajectories');
       expect(html).not.toContain('1. Purchase Order Volume (14D)');
       expect(html).not.toContain('Capital Risk Distribution by Domain');
     });
   });
 
-  describe('2. Mobile Control Tower Screen Invariants', () => {
+  describe('2. Mobile Control Tower Screen Invariants (Dedicated Command Center)', () => {
     it('renders full Control Tower Command Center under Control destination', () => {
       const html = renderToString(
         <MemoryRouter initialEntries={['/mobile/control']}>
@@ -224,7 +228,7 @@ describe('Mobile Home & Information Architecture Navigation Suite', () => {
       expect(html).toContain('aria-label="Navigate to Control"');
     });
 
-    it('renders Orion Mobile Shell with Home destination on initial load', () => {
+    it('renders Orion Mobile Shell with Home OS landing screen on initial load', () => {
       const html = renderToString(
         <MemoryRouter initialEntries={['/mobile/home']}>
           <OrionMobileShell />
@@ -233,7 +237,7 @@ describe('Mobile Home & Information Architecture Navigation Suite', () => {
 
       expect(html).toContain('data-orion-mobile-shell="true"');
       expect(html).toContain('ORION HOME');
-      expect(html).toContain('Your supply chain environment at a glance');
+      expect(html).toContain('What do you want to do?');
     });
   });
 });

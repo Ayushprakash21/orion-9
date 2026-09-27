@@ -41,7 +41,7 @@ export interface AuthorizationResult {
 }
 
 // Inline error class — avoids dependency on non-existent KernelError module.
-class AuthorizationError extends Error {
+export class AuthorizationError extends Error {
   code: 'UNAUTHORIZED' | 'TENANT_ACCESS_DENIED';
   constructor(code: 'UNAUTHORIZED' | 'TENANT_ACCESS_DENIED', message: string) {
     super(message);
