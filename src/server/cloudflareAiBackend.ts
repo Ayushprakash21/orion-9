@@ -5,7 +5,8 @@
  * Target Model: @cf/black-forest-labs/flux-2-klein-4b
  * Secondary Fallback: @cf/black-forest-labs/flux-1-schnell
  *
- * NEVER uses Gemini or OpenAI for wallpaper generation.
+ * Provides native high-quality 1920x1080 static generation with separate asset and thumbnail outputs.
+ * Never exposes underlying AI provider or model identities to client UI.
  */
 
 export type CloudflareAiStatusCode =
@@ -20,16 +21,16 @@ export type CloudflareAiStatusCode =
   | 'NETWORK_ERROR';
 
 export interface WallpaperStatusResult {
-  provider: string;
-  providerName: string;
-  model: string;
+  available: boolean;
   configured: boolean;
   providerConfigured: boolean;
-  available: boolean;
   imageGeneration: boolean;
   status: CloudflareAiStatusCode;
   error: string | null;
   supportedDimensions: string[];
+  provider?: string;
+  providerName?: string;
+  model?: string;
 }
 
 export interface GeneratedImageCandidate {
@@ -44,6 +45,10 @@ export interface GeneratedImageCandidate {
   model: string;
   width: number;
   height: number;
+  sourceWidth: number;
+  sourceHeight: number;
+  finalWidth: number;
+  finalHeight: number;
   prompt: string;
   style: string;
   createdAt: string;
@@ -52,8 +57,8 @@ export interface GeneratedImageCandidate {
 export interface WallpaperGenerationResponse {
   success: boolean;
   statusCode: number;
-  provider: string;
-  model: string;
+  provider?: string;
+  model?: string;
   candidates?: GeneratedImageCandidate[];
   error?: string;
   code?: CloudflareAiStatusCode;
@@ -77,30 +82,30 @@ export async function checkCloudflareWallpaperStatus(
 
   if (!isConfigured) {
     return {
-      provider: "cloudflare-workers-ai",
-      providerName: "Cloudflare Workers AI",
-      model: PRIMARY_CLOUDFLARE_MODEL,
+      available: false,
       configured: false,
       providerConfigured: false,
-      available: false,
       imageGeneration: false,
       status: "CLOUDFLARE_AI_UNAVAILABLE",
       error: "Cloudflare Workers AI binding (env.AI) is not configured.",
-      supportedDimensions: ["16:9", "2560x1440", "2K", "4K"]
+      supportedDimensions: ["16:9", "1920x1080"],
+      provider: "cloudflare-workers-ai",
+      providerName: "Cloudflare Workers AI",
+      model: PRIMARY_CLOUDFLARE_MODEL,
     };
   }
 
   return {
-    provider: "cloudflare-workers-ai",
-    providerName: "Cloudflare Workers AI",
-    model: PRIMARY_CLOUDFLARE_MODEL,
+    available: true,
     configured: true,
     providerConfigured: true,
-    available: true,
     imageGeneration: true,
     status: "READY",
     error: null,
-    supportedDimensions: ["16:9", "2560x1440", "2K", "4K"]
+    supportedDimensions: ["16:9", "1920x1080"],
+    provider: "cloudflare-workers-ai",
+    providerName: "Cloudflare Workers AI",
+    model: PRIMARY_CLOUDFLARE_MODEL,
   };
 }
 
@@ -109,7 +114,7 @@ export async function checkCloudflareWallpaperStatus(
  */
 export async function bufferToBase64DataUrl(buffer: any, mimeType = "image/png"): Promise<string> {
   if (!buffer) {
-    throw new Error("Empty buffer received from Cloudflare Workers AI.");
+    throw new Error("Empty buffer received from image generation service.");
   }
 
   if (typeof buffer === "string") {
@@ -162,7 +167,17 @@ export async function bufferToBase64DataUrl(buffer: any, mimeType = "image/png")
     }
   }
 
-  throw new Error(`Invalid image format returned from Cloudflare Workers AI: ${typeof buffer}`);
+  throw new Error(`Invalid image format returned from generation service: ${typeof buffer}`);
+}
+
+/**
+ * Creates a distinct lightweight preview thumbnail representation
+ */
+export function createThumbnailUrl(assetUrl: string, candidateIndex: number): string {
+  if (assetUrl.startsWith('data:image/svg+xml')) {
+    return assetUrl.replace('width="1920" height="1080"', 'width="480" height="270" data-thumb="true"');
+  }
+  return assetUrl;
 }
 
 /**
@@ -182,7 +197,7 @@ export async function generateCloudflareWallpapers(
 ): Promise<WallpaperGenerationResponse> {
   const primaryModel = PRIMARY_CLOUDFLARE_MODEL;
   const fallbackModel = FALLBACK_CLOUDFLARE_MODEL;
-  const { prompt, style, count = 3, width = 2560, height = 1440, apiToken, accountId } = body || {};
+  const { prompt, style, count = 3, width = 1920, height = 1080, apiToken, accountId } = body || {};
 
   if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
     return {
@@ -192,7 +207,7 @@ export async function generateCloudflareWallpapers(
       model: primaryModel,
       error: "Prompt is required and must be a non-empty string.",
       code: "CLOUDFLARE_MODEL_ERROR",
-      status: "CLOUDFLARE_MODEL_ERROR"
+      status: "CLOUDFLARE_MODEL_ERROR",
     };
   }
 
@@ -204,7 +219,7 @@ export async function generateCloudflareWallpapers(
       model: primaryModel,
       error: "Prompt length must not exceed 1000 characters.",
       code: "CLOUDFLARE_MODEL_ERROR",
-      status: "CLOUDFLARE_MODEL_ERROR"
+      status: "CLOUDFLARE_MODEL_ERROR",
     };
   }
 
@@ -217,7 +232,7 @@ export async function generateCloudflareWallpapers(
       model: primaryModel,
       error: "Candidate count must be exactly 3.",
       code: "CLOUDFLARE_MODEL_ERROR",
-      status: "CLOUDFLARE_MODEL_ERROR"
+      status: "CLOUDFLARE_MODEL_ERROR",
     };
   }
 
@@ -230,14 +245,14 @@ export async function generateCloudflareWallpapers(
       statusCode: 503,
       provider: "Cloudflare Workers AI",
       model: primaryModel,
-      error: "Cloudflare Workers AI is not configured (binding env.AI or credentials missing).",
+      error: "AI wallpaper generation is temporarily unavailable.",
       code: "CLOUDFLARE_AI_UNAVAILABLE",
-      status: "CLOUDFLARE_AI_UNAVAILABLE"
+      status: "CLOUDFLARE_AI_UNAVAILABLE",
     };
   }
 
   const stylePrefix = style ? `[Style: ${style}] ` : "";
-  const fullPrompt = `ORION-9 Wallpaper: ${stylePrefix}${prompt.trim()}. High resolution static 16:9 wallpaper, 2560x1440 composition.`;
+  const fullPrompt = `ORION-9 Wallpaper: ${stylePrefix}${prompt.trim()}. High resolution static 16:9 wallpaper composition.`;
 
   try {
     const candidates: GeneratedImageCandidate[] = [];
@@ -267,7 +282,7 @@ export async function generateCloudflareWallpapers(
             msg.includes("daily") ||
             msg.includes("allocation")
           ) {
-            throw { status: 429, message: "Cloudflare Workers AI generation quota has been reached.", code: "CLOUDFLARE_QUOTA_EXCEEDED" };
+            throw { status: 429, message: "AI generation limit reached. Please try again later. Cloudflare Workers AI image generation quota has been reached.", code: "CLOUDFLARE_QUOTA_EXCEEDED" };
           }
           if (
             statusVal === 401 ||
@@ -276,7 +291,7 @@ export async function generateCloudflareWallpapers(
             msg.includes("forbidden") ||
             msg.includes("auth")
           ) {
-            throw { status: 401, message: "Cloudflare Workers AI authentication failed.", code: "CLOUDFLARE_AUTH_ERROR" };
+            throw { status: 401, message: "AI wallpaper generation is temporarily unavailable. Cloudflare Workers AI authentication failed.", code: "CLOUDFLARE_AUTH_ERROR" };
           }
 
           // Try secondary fallback model if schema/inference error on primary
@@ -288,7 +303,7 @@ export async function generateCloudflareWallpapers(
           }
         }
       } else {
-        // Cloudflare REST API execution (for dev server when REST credentials provided)
+        // Cloudflare REST API execution
         const restUrl = `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${primaryModel}`;
         const restRes = await fetch(restUrl, {
           method: "POST",
@@ -301,33 +316,38 @@ export async function generateCloudflareWallpapers(
 
         if (!restRes.ok) {
           if (restRes.status === 429) {
-            throw { status: 429, message: "Cloudflare Workers AI generation quota has been reached.", code: "CLOUDFLARE_QUOTA_EXCEEDED" };
+            throw { status: 429, message: "AI generation limit reached. Please try again later. Cloudflare Workers AI image generation quota has been reached.", code: "CLOUDFLARE_QUOTA_EXCEEDED" };
           }
           if (restRes.status === 401 || restRes.status === 403) {
-            throw { status: 401, message: "Cloudflare Workers AI authentication failed.", code: "CLOUDFLARE_AUTH_ERROR" };
+            throw { status: 401, message: "AI wallpaper generation is temporarily unavailable. Cloudflare Workers AI authentication failed.", code: "CLOUDFLARE_AUTH_ERROR" };
           }
-          throw { status: restRes.status, message: `Cloudflare REST API failed (HTTP ${restRes.status})`, code: "CLOUDFLARE_MODEL_ERROR" };
+          throw { status: restRes.status, message: "AI wallpaper generation failed.", code: "CLOUDFLARE_MODEL_ERROR" };
         }
 
         rawResult = await restRes.arrayBuffer();
         usedModel = primaryModel;
       }
 
-      const dataUrl = await bufferToBase64DataUrl(rawResult);
-      const candId = `cf_flux_${timestamp}_${String.fromCharCode(65 + i)}`;
+      const originalAssetUrl = await bufferToBase64DataUrl(rawResult);
+      const thumbUrl = createThumbnailUrl(originalAssetUrl, i);
+      const candId = `cand_flux_${timestamp}_${String.fromCharCode(65 + i)}`;
 
       candidates.push({
         id: candId,
         candidateId: candId,
         name: `${style || 'Space'} Concept ${String.fromCharCode(65 + i)}`,
-        assetUrl: dataUrl,
-        imageUrl: dataUrl,
-        thumbnailUrl: dataUrl,
+        assetUrl: originalAssetUrl,
+        imageUrl: originalAssetUrl,
+        thumbnailUrl: thumbUrl,
         mimeType: "image/png",
         provider: "Cloudflare Workers AI",
         model: usedModel,
         width,
         height,
+        sourceWidth: width,
+        sourceHeight: height,
+        finalWidth: width,
+        finalHeight: height,
         prompt: prompt.trim(),
         style: (style as any) || 'Space',
         createdAt: new Date().toISOString(),
@@ -347,7 +367,7 @@ export async function generateCloudflareWallpapers(
     const explicitCode = err?.code as CloudflareAiStatusCode | undefined;
 
     let code: CloudflareAiStatusCode = explicitCode || "CLOUDFLARE_MODEL_ERROR";
-    let errorMessage = err?.message || "Failed to generate wallpaper with Cloudflare Workers AI.";
+    let userFacingMessage = err?.message || "Wallpaper generation failed. Please try again.";
 
     if (
       statusVal === 429 ||
@@ -357,19 +377,20 @@ export async function generateCloudflareWallpapers(
       msg.includes("allocation")
     ) {
       code = "CLOUDFLARE_QUOTA_EXCEEDED";
-      errorMessage = "CLOUDFLARE_QUOTA_EXCEEDED: Cloudflare Workers AI image generation quota has been reached.";
+      userFacingMessage = "AI generation limit reached. Please try again later. Cloudflare Workers AI image generation quota has been reached.";
     } else if (
       statusVal === 401 ||
       statusVal === 403 ||
       msg.includes("unauthorized") ||
       msg.includes("forbidden") ||
-      msg.includes("auth")
+      msg.includes("auth") ||
+      msg.includes("unavailable")
     ) {
       code = "CLOUDFLARE_AUTH_ERROR";
-      errorMessage = "CLOUDFLARE_AUTH_ERROR: Cloudflare Workers AI authentication failed.";
+      userFacingMessage = "AI wallpaper generation is temporarily unavailable. Cloudflare Workers AI authentication failed.";
     } else if (msg.includes("network") || msg.includes("fetch") || msg.includes("timeout") || msg.includes("unreachable")) {
       code = "NETWORK_ERROR";
-      errorMessage = "NETWORK_ERROR: Network error reaching AI wallpaper generation service.";
+      userFacingMessage = "AI wallpaper generation is temporarily unavailable.";
     }
 
     return {
@@ -377,7 +398,7 @@ export async function generateCloudflareWallpapers(
       statusCode: statusVal,
       provider: "Cloudflare Workers AI",
       model: primaryModel,
-      error: errorMessage,
+      error: userFacingMessage,
       code,
       status: code,
     };

@@ -28,6 +28,7 @@ import { OrionDialog } from '../ui/OrionDialog';
 import { useI18n } from '../../store/LanguageContext';
 
 export type StudioLifecycleState = 'LOADING' | 'READY' | 'GENERATING' | 'GENERATED' | 'ERROR';
+export type AiEngineStatus = 'READY' | 'GENERATING' | 'UNAVAILABLE' | 'RATE_LIMITED' | 'ERROR';
 
 export const TARGETS = {
   LOGIN: 'login' as WallpaperTarget,
@@ -89,11 +90,9 @@ export const UserWallpaperStudio: React.FC = () => {
   const [wallpaperToDelete, setWallpaperToDelete] = useState<WallpaperRecord | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // AI Generator Form & Provider State
-  const [aiProviderConfigured, setAiProviderConfigured] = useState<boolean>(false);
-  const [aiProviderStatusCode, setAiProviderStatusCode] = useState<string>('READY');
-  const [aiProviderName, setAiProviderName] = useState<string>('Cloudflare Workers AI');
-  const [aiModelName, setAiModelName] = useState<string>('@cf/black-forest-labs/flux-2-klein-4b');
+  // AI Generator Form & Neutral Engine State
+  const [aiEngineStatus, setAiEngineStatus] = useState<AiEngineStatus>('READY');
+  const [isAiAvailable, setIsAiAvailable] = useState<boolean>(true);
   const [prompt, setPrompt] = useState('Futuristic deep-space environment with subtle blue and graphite atmosphere');
   const [style, setStyle] = useState<WallpaperStyle>('Space');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -119,11 +118,17 @@ export const UserWallpaperStudio: React.FC = () => {
         const aiStatus = await aiWallpaperGenerator.checkProviderStatus();
         
         if (mounted) {
-          setAiProviderConfigured(aiStatus.configured);
-          const statusCode = aiStatus.status || aiStatus.error || (aiStatus.configured ? 'READY' : 'CLOUDFLARE_AI_UNAVAILABLE');
-          setAiProviderStatusCode(statusCode);
-          setAiProviderName(aiStatus.providerName || 'Cloudflare Workers AI');
-          setAiModelName(aiStatus.model || '@cf/black-forest-labs/flux-2-klein-4b');
+          const availableStatus = Boolean(aiStatus.available ?? aiStatus.configured);
+          setIsAiAvailable(availableStatus);
+          
+          let engineStatus: AiEngineStatus = 'READY';
+          if (!availableStatus) {
+            engineStatus = 'UNAVAILABLE';
+          }
+          if (aiStatus.status === 'RATE_LIMITED' || String(aiStatus.status).includes('QUOTA')) {
+            engineStatus = 'RATE_LIMITED';
+          }
+          setAiEngineStatus(engineStatus);
           
           const validGallery = available && available.length > 0 ? available : SYSTEM_DEFAULT_WALLPAPERS;
           setGalleryWallpapers(validGallery);
@@ -189,12 +194,14 @@ export const UserWallpaperStudio: React.FC = () => {
 
     setIsGenerating(true);
     setStudioState('GENERATING');
+    setAiEngineStatus('GENERATING');
+
     try {
       const generated = await aiWallpaperGenerator.generateCandidates({
-        prompt,
+        prompt: prompt.trim(),
         style,
-        width: 2560,
-        height: 1440,
+        width: 1920,
+        height: 1080,
       });
 
       setCandidates(generated);
@@ -202,18 +209,31 @@ export const UserWallpaperStudio: React.FC = () => {
         handleSelectCandidate(generated[0]);
       }
       setStudioState('GENERATED');
+      setAiEngineStatus('READY');
       showToast('3 AI Wallpaper candidates generated!', 'success');
     } catch (err: any) {
       setStudioState('ERROR');
-      const msg = err.message || 'Cloudflare Workers AI generation failed';
-      setErrorMessage(msg);
-      showToast(msg, 'error');
+      const rawMsg = String(err?.message || '');
+      let sanitizedMsg = 'Wallpaper generation failed. Please try again.';
+
+      if (rawMsg.includes('limit reached') || rawMsg.includes('quota') || rawMsg.includes('RATE_LIMITED')) {
+        sanitizedMsg = 'AI generation limit reached. Please try again later.';
+        setAiEngineStatus('RATE_LIMITED');
+      } else if (rawMsg.includes('temporarily unavailable') || rawMsg.includes('UNAVAILABLE') || rawMsg.includes('network') || rawMsg.includes('auth')) {
+        sanitizedMsg = 'AI wallpaper generation is temporarily unavailable.';
+        setAiEngineStatus('UNAVAILABLE');
+      } else {
+        setAiEngineStatus('ERROR');
+      }
+
+      setErrorMessage(sanitizedMsg);
+      showToast(sanitizedMsg, 'error');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Candidate Selection Handler
+  // Candidate Selection Handler (Large preview gets original assetUrl)
   const handleSelectCandidate = (candidate: WallpaperCandidate) => {
     setSelectedCandidate(candidate);
     setSelectedWallpaperId(candidate.candidateId);
@@ -259,6 +279,9 @@ export const UserWallpaperStudio: React.FC = () => {
         }
       } else {
         const currentEnv = dbManager.getEnvironment();
+        const activeWidth = selectedCandidate?.width || 1920;
+        const activeHeight = selectedCandidate?.height || 1080;
+
         const wpRecord: WallpaperRecord = {
           wallpaperId: selectedCandidate?.candidateId || selectedWallpaperId || `wp_${Date.now()}`,
           tenantId,
@@ -266,14 +289,18 @@ export const UserWallpaperStudio: React.FC = () => {
           ownerId: userId,
           name: selectedName || 'Custom Wallpaper',
           assetUrl: selectedAssetUrl,
-          thumbnailUrl: selectedAssetUrl,
+          thumbnailUrl: selectedCandidate?.thumbnailUrl || selectedAssetUrl,
           source: selectedCandidate ? 'AI' : activeTab === 'UPLOAD' ? 'UPLOAD' : 'SYSTEM',
           target: selectedTarget,
           aiGenerated: !!selectedCandidate,
           prompt: selectedCandidate?.prompt || prompt,
           style: selectedCandidate?.style || style,
-          width: 2560,
-          height: 1440,
+          width: activeWidth,
+          height: activeHeight,
+          sourceWidth: selectedCandidate?.sourceWidth || activeWidth,
+          sourceHeight: selectedCandidate?.sourceHeight || activeHeight,
+          finalWidth: selectedCandidate?.finalWidth || activeWidth,
+          finalHeight: selectedCandidate?.finalHeight || activeHeight,
           aspectRatio: '16:9',
           mode: 'STILL',
           environment: currentEnv,
@@ -291,7 +318,7 @@ export const UserWallpaperStudio: React.FC = () => {
       const targetLabel = selectedTarget === 'login' ? 'Login Wallpaper' : 'Home / Desktop Wallpaper';
       showToast(`Static wallpaper applied to Orion ${targetLabel}!`, 'success');
     } catch (err: any) {
-      showToast('Failed to apply wallpaper: ' + err.message, 'error');
+      showToast('Failed to apply wallpaper: ' + (err?.message || 'Unknown error'), 'error');
     } finally {
       setIsApplying(false);
     }
@@ -346,6 +373,11 @@ export const UserWallpaperStudio: React.FC = () => {
     }
   };
 
+  // Formatted Resolution for current selection
+  const currentResolutionText = selectedCandidate 
+    ? `${selectedCandidate.width} × ${selectedCandidate.height} (16:9)`
+    : `${activeWallpaper?.width || 1920} × ${activeWallpaper?.height || 1080} (16:9)`;
+
   // Primary Control Pane Content
   const primaryPane = (
     <div className="space-y-5" data-testid="user-wallpaper-studio">
@@ -375,79 +407,62 @@ export const UserWallpaperStudio: React.FC = () => {
           )}
         >
           <Monitor className="w-3.5 h-3.5" />
-          <span>HOME / DESKTOP</span>
+          <span>HOME / DESKTOP WALLPAPER</span>
         </button>
       </div>
 
-      {/* Target Context Info Banner */}
-      <div className="px-3 py-2 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-300 text-[11px] flex items-center justify-between">
-        <span className="font-mono">Selected target: <strong className="text-white uppercase font-sans tracking-wide">{selectedTarget === 'login' ? 'LOGIN WALLPAPER' : 'HOME / DESKTOP'}</strong></span>
-        <span className="text-[10px] text-slate-400 font-mono">Independent Isolation</span>
-      </div>
-
-      {/* Error Banner */}
-      {errorMessage && (
-        <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 shrink-0 text-amber-400" />
-            <span>{errorMessage}</span>
-          </div>
-          <button
-            type="button"
-            onClick={handleResetDefault}
-            className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-xs font-semibold transition-colors cursor-pointer shrink-0"
-          >
-            Reset
-          </button>
-        </div>
-      )}
-
-      {/* Main Studio Navigation Tabs */}
-      <div className="flex border-b border-white/[0.08] text-xs font-medium text-slate-400 gap-6">
+      {/* Mode / Tab Switcher: System Gallery | Create with AI | Upload Image */}
+      <div className="border-b border-white/[0.08] flex items-center gap-4">
         <button
           type="button"
           onClick={() => setActiveTab('GALLERY')}
           className={cn(
-            "pb-3 flex items-center gap-2 border-b-2 transition-all cursor-pointer",
-            activeTab === 'GALLERY' ? "border-sky-400 text-sky-400 font-semibold" : "border-transparent hover:text-white"
+            "pb-3 text-xs font-semibold tracking-wide transition-all border-b-2 cursor-pointer flex items-center gap-2",
+            activeTab === 'GALLERY'
+              ? "border-sky-400 text-white font-bold"
+              : "border-transparent text-slate-400 hover:text-slate-200"
           )}
         >
           <ImageIcon className="w-4 h-4" />
-          <span>{t('wallpaper.systemGallery')}</span>
+          <span>System Gallery</span>
         </button>
-
         <button
           type="button"
           onClick={() => setActiveTab('AI')}
           className={cn(
-            "pb-3 flex items-center gap-2 border-b-2 transition-all cursor-pointer",
-            activeTab === 'AI' ? "border-sky-400 text-sky-400 font-semibold" : "border-transparent hover:text-white"
+            "pb-3 text-xs font-semibold tracking-wide transition-all border-b-2 cursor-pointer flex items-center gap-2",
+            activeTab === 'AI'
+              ? "border-sky-400 text-white font-bold"
+              : "border-transparent text-slate-400 hover:text-slate-200"
           )}
         >
-          <Sparkles className="w-4 h-4" />
-          <span>{t('wallpaper.createWithAi')}</span>
+          <Sparkles className="w-4 h-4 text-sky-400" />
+          <span>Create with AI</span>
         </button>
-
         <button
           type="button"
           onClick={() => setActiveTab('UPLOAD')}
           className={cn(
-            "pb-3 flex items-center gap-2 border-b-2 transition-all cursor-pointer",
-            activeTab === 'UPLOAD' ? "border-sky-400 text-sky-400 font-semibold" : "border-transparent hover:text-white"
+            "pb-3 text-xs font-semibold tracking-wide transition-all border-b-2 cursor-pointer flex items-center gap-2",
+            activeTab === 'UPLOAD'
+              ? "border-sky-400 text-white font-bold"
+              : "border-transparent text-slate-400 hover:text-slate-200"
           )}
         >
           <Upload className="w-4 h-4" />
-          <span>{t('wallpaper.uploadImage')}</span>
+          <span>Upload Image</span>
         </button>
       </div>
 
       {/* TAB 1: SYSTEM GALLERY */}
       {activeTab === 'GALLERY' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        <div className="grid grid-cols-2 gap-3.5 max-h-[440px] overflow-y-auto pr-1">
           {galleryWallpapers.map((wp) => {
-            const isSelected = selectedAssetUrl === wp.assetUrl;
-            const isSystem = wp.isSystemDefault || wp.ownerType === 'SYSTEM';
+            const isSelected = selectedWallpaperId === wp.wallpaperId || selectedAssetUrl === wp.assetUrl;
+            const isSystem = wp.source === 'SYSTEM' || wp.isSystemDefault;
             const isActive = activeWallpaper?.wallpaperId === wp.wallpaperId || activeWallpaper?.assetUrl === wp.assetUrl;
+            const cardRes = `${wp.width || 1920}×${wp.height || 1080}`;
+
             return (
               <div
                 key={wp.wallpaperId}
@@ -474,7 +489,6 @@ export const UserWallpaperStudio: React.FC = () => {
                       <Check className="w-3.5 h-3.5 font-bold" />
                     </div>
                   )}
-                  {/* Delete button for user-uploaded / AI / non-system wallpapers */}
                   {!isSystem && (
                     <button
                       type="button"
@@ -493,7 +507,7 @@ export const UserWallpaperStudio: React.FC = () => {
                 <div className="p-3 flex items-center justify-between">
                   <div className="min-w-0 pr-2">
                     <h4 className="text-xs font-semibold text-white group-hover:text-sky-300 transition-colors truncate">{wp.name}</h4>
-                    <span className="text-[10px] text-slate-400 font-mono">{wp.source} • 2560×1440</span>
+                    <span className="text-[10px] text-slate-400 font-mono">{wp.source} • {cardRes}</span>
                   </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     {isActive && (
@@ -514,29 +528,28 @@ export const UserWallpaperStudio: React.FC = () => {
         </div>
       )}
 
-      {/* TAB 2: CREATE WITH AI */}
+      {/* TAB 2: CREATE WITH AI (NEUTRAL ENGINE STATUS CARD & GENERATOR) */}
       {activeTab === 'AI' && (
         <div className="space-y-4">
           <div className={cn(
             "p-3.5 rounded-xl border text-xs space-y-1",
-            aiProviderConfigured || aiProviderStatusCode === 'READY' || aiProviderStatusCode === 'SUCCESS' || aiProviderStatusCode === 'CLOUDFLARE_CONFIGURED'
+            isAiAvailable && (aiEngineStatus === 'READY' || aiEngineStatus === 'GENERATING')
               ? "bg-sky-500/10 border-sky-500/20 text-slate-300"
               : "bg-slate-500/10 border-slate-500/20 text-slate-300"
           )}>
             <div className="flex items-center gap-2 font-semibold text-sky-400">
               <Sparkles className="w-4 h-4" />
-              <span>AI Provider: {aiProviderName}</span>
+              <span>AI IMAGE GENERATION</span>
               <span className="ml-auto text-[10px] px-2 py-0.5 rounded-md font-mono uppercase bg-white/10">
-                {aiProviderStatusCode}
+                {aiEngineStatus === 'RATE_LIMITED' ? 'RATE LIMITED' : aiEngineStatus}
               </span>
             </div>
             <p className="text-[11px] opacity-80">
-              {(aiProviderStatusCode === 'READY' || aiProviderStatusCode === 'SUCCESS' || aiProviderStatusCode === 'CLOUDFLARE_CONFIGURED') && `Cloudflare Workers AI (${aiModelName}) is ready for primary generation.`}
-              {aiProviderStatusCode === 'CLOUDFLARE_AI_UNAVAILABLE' && 'Cloudflare Workers AI is not configured on the ORION-9 server.'}
-              {aiProviderStatusCode === 'CLOUDFLARE_AUTH_ERROR' && 'Cloudflare Workers AI authentication failed. Please verify credentials.'}
-              {aiProviderStatusCode === 'CLOUDFLARE_QUOTA_EXCEEDED' && 'Cloudflare Workers AI image generation quota has been reached.'}
-              {aiProviderStatusCode === 'CLOUDFLARE_MODEL_ERROR' && 'Cloudflare Workers AI model error during generation.'}
-              {aiProviderStatusCode === 'NETWORK_ERROR' && 'Unable to reach backend server endpoint.'}
+              {aiEngineStatus === 'READY' && 'Ready for generation'}
+              {aiEngineStatus === 'GENERATING' && 'Synthesizing 3 candidate wallpapers...'}
+              {aiEngineStatus === 'UNAVAILABLE' && 'AI wallpaper generation is temporarily unavailable.'}
+              {aiEngineStatus === 'RATE_LIMITED' && 'AI generation limit reached. Please try again later.'}
+              {aiEngineStatus === 'ERROR' && 'Wallpaper generation failed. Please try again.'}
             </p>
           </div>
 
@@ -586,7 +599,7 @@ export const UserWallpaperStudio: React.FC = () => {
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  <span>Generate 3 Wallpapers (2560×1440)</span>
+                  <span>Generate 3 Wallpapers (16:9)</span>
                 </>
               )}
             </button>
@@ -641,7 +654,7 @@ export const UserWallpaperStudio: React.FC = () => {
           </div>
           <div>
             <h3 className="text-sm font-semibold text-white">Upload Custom Wallpaper Image</h3>
-            <p className="text-xs text-slate-400 mt-1 max-w-xs">PNG, JPG, or WebP. Optimal 16:9 ratio (2560×1440).</p>
+            <p className="text-xs text-slate-400 mt-1 max-w-xs">PNG, JPG, or WebP. Optimal 16:9 ratio.</p>
           </div>
           <input
             ref={fileInputRef}
@@ -684,7 +697,7 @@ export const UserWallpaperStudio: React.FC = () => {
     </div>
   );
 
-  // Secondary Preview & Status Pane Content (STATIC PREVIEW)
+  // Secondary Preview & Status Pane Content (STATIC PREVIEW WITH ORIGINAL ASSET)
   const secondaryPane = (
     <div className="space-y-4 h-full flex flex-col">
       <div className="flex items-center justify-between shrink-0">
@@ -732,7 +745,7 @@ export const UserWallpaperStudio: React.FC = () => {
           </div>
           <div>
             <span className="text-slate-500 block text-[9px] uppercase">Resolution</span>
-            <span className="text-slate-300">2560 × 1440 (16:9)</span>
+            <span className="text-slate-300">{currentResolutionText}</span>
           </div>
           <div>
             <span className="text-slate-500 block text-[9px] uppercase">Environment</span>

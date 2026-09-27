@@ -516,18 +516,24 @@ async function startServer() {
     }
   });
 
-  // AI Wallpaper Status Routes - Cloudflare Workers AI FLUX
+  // AI Wallpaper Status Routes - Private Engine Status
   const handleWallpaperStatus = async (_req: express.Request, res: express.Response) => {
     const apiToken = process.env.CLOUDFLARE_API_TOKEN;
     const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
     const result = await checkCloudflareWallpaperStatus(null, apiToken, accountId);
-    return res.json(result);
+    return res.json({
+      available: result.available,
+      configured: result.configured,
+      status: result.status,
+      error: result.error,
+      supportedDimensions: result.supportedDimensions,
+    });
   };
   app.get("/api/wallpaper/cloudflare/status", handleWallpaperStatus);
   app.get("/api/wallpaper/status", handleWallpaperStatus);
   app.get("/api/ai/wallpaper-status", handleWallpaperStatus);
 
-  // Cloudflare Workers AI Wallpaper Generation Routes (3 Static Candidates with @cf/black-forest-labs/flux-2-klein-4b)
+  // AI Wallpaper Generation Routes (3 Static Candidates with Native 1920x1080 Resolution)
   const handleWallpaperGenerate = async (req: express.Request, res: express.Response) => {
     const apiToken = process.env.CLOUDFLARE_API_TOKEN;
     const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
@@ -536,7 +542,34 @@ async function startServer() {
       apiToken,
       accountId,
     });
-    return res.status(result.statusCode).json(result);
+
+    const clientResponse = result.success
+      ? {
+          success: true,
+          candidates: (result.candidates || []).map(c => ({
+            id: c.candidateId || c.id,
+            candidateId: c.candidateId || c.id,
+            name: c.name,
+            assetUrl: c.assetUrl,
+            thumbnailUrl: c.thumbnailUrl,
+            width: c.width,
+            height: c.height,
+            sourceWidth: c.sourceWidth,
+            sourceHeight: c.sourceHeight,
+            finalWidth: c.finalWidth,
+            finalHeight: c.finalHeight,
+            prompt: c.prompt,
+            style: c.style,
+            createdAt: c.createdAt,
+          }))
+        }
+      : {
+          success: false,
+          error: result.error || "Wallpaper generation failed. Please try again.",
+          status: result.status || "ERROR",
+        };
+
+    return res.status(result.statusCode).json(clientResponse);
   };
   app.post("/api/wallpaper/generate", handleWallpaperGenerate);
   app.post("/api/ai/generate-wallpaper", handleWallpaperGenerate);

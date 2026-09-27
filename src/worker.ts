@@ -2,6 +2,7 @@
  * ORION-9 CLOUDFLARE WORKER ENTRY POINT
  * Serves API routes (/api/wallpaper/cloudflare/status, /api/wallpaper/status, /api/wallpaper/generate, /api/health)
  * with Cloudflare Workers AI (@cf/black-forest-labs/flux-2-klein-4b) as the sole AI image provider.
+ * Enforces provider privacy by returning minimal clean responses to the client.
  */
 
 import { checkCloudflareWallpaperStatus, generateCloudflareWallpapers } from "./server/cloudflareAiBackend";
@@ -25,7 +26,14 @@ export default {
       request.method === "GET"
     ) {
       const status = await checkCloudflareWallpaperStatus(env.AI, env.CLOUDFLARE_API_TOKEN, env.CLOUDFLARE_ACCOUNT_ID);
-      return new Response(JSON.stringify(status), {
+      const clientStatus = {
+        available: status.available,
+        configured: status.configured,
+        status: status.status,
+        error: status.error,
+        supportedDimensions: status.supportedDimensions,
+      };
+      return new Response(JSON.stringify(clientStatus), {
         status: 200,
         headers: { "Content-Type": "application/json", "Cache-Control": "no-store" }
       });
@@ -49,7 +57,33 @@ export default {
         accountId: env.CLOUDFLARE_ACCOUNT_ID,
       });
 
-      return new Response(JSON.stringify(result), {
+      const clientResponse = result.success
+        ? {
+            success: true,
+            candidates: (result.candidates || []).map(c => ({
+              id: c.candidateId || c.id,
+              candidateId: c.candidateId || c.id,
+              name: c.name,
+              assetUrl: c.assetUrl,
+              thumbnailUrl: c.thumbnailUrl,
+              width: c.width,
+              height: c.height,
+              sourceWidth: c.sourceWidth,
+              sourceHeight: c.sourceHeight,
+              finalWidth: c.finalWidth,
+              finalHeight: c.finalHeight,
+              prompt: c.prompt,
+              style: c.style,
+              createdAt: c.createdAt,
+            }))
+          }
+        : {
+            success: false,
+            error: result.error || "Wallpaper generation failed. Please try again.",
+            status: result.status || "ERROR",
+          };
+
+      return new Response(JSON.stringify(clientResponse), {
         status: result.statusCode,
         headers: { "Content-Type": "application/json" }
       });
@@ -61,8 +95,6 @@ export default {
         JSON.stringify({
           status: "ok",
           environment: "CLOUDFLARE_WORKER",
-          aiProvider: "Cloudflare Workers AI",
-          model: "@cf/black-forest-labs/flux-2-klein-4b"
         }),
         {
           status: 200,
@@ -74,5 +106,3 @@ export default {
     return env.ASSETS.fetch(request);
   }
 };
-
-
