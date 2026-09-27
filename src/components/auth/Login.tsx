@@ -33,20 +33,22 @@ import {
 
 
 
+import { WorldLanguagePanel } from '../i18n/WorldLanguagePanel';
+import { SUPPORTED_LOCALES } from '../../i18n';
+
 export interface LanguageOption {
-  code: SupportedLanguage;
+  code: string;
   name: string;
   nativeName: string;
 }
 
-export const SUPPORTED_LANGUAGES: LanguageOption[] = [
-  { code: 'en', name: 'English', nativeName: 'English' },
-  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी' },
-  { code: 'es', name: 'Spanish', nativeName: 'Español' },
-  { code: 'de', name: 'German', nativeName: 'Deutsch' },
-];
+export const SUPPORTED_LANGUAGES: LanguageOption[] = Object.values(SUPPORTED_LOCALES).map(l => ({
+  code: l.code,
+  name: l.name,
+  nativeName: l.nativeName,
+}));
 
-export const AUTH_TRANSLATIONS: Record<SupportedLanguage, Record<string, string>> = {
+export const AUTH_TRANSLATIONS: Record<string, Record<string, string>> = {
   en: {
     signInTitle: "Sign in to Orion",
     userIdLabel: "User ID",
@@ -422,40 +424,24 @@ export const Login: React.FC = () => {
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 backdrop-blur-md transition-all duration-200 cursor-pointer text-white/90 hover:text-white text-xs font-medium group shadow-lg"
             aria-label={t.selectLanguage}
-            aria-haspopup="listbox"
+            aria-haspopup="dialog"
             aria-expanded={isLangMenuOpen}
           >
             <Globe className="w-3.5 h-3.5 text-white/70 group-hover:text-white transition-colors" />
-            <span>{SUPPORTED_LANGUAGES.find(l => l.code === currentLang)?.nativeName || 'English'}</span>
+            <span>{SUPPORTED_LOCALES[currentLang]?.nativeName || 'English'}</span>
             <ChevronDown className={`w-3 h-3 text-white/50 group-hover:text-white transition-transform duration-200 ml-0.5 ${isLangMenuOpen ? 'rotate-180' : ''}`} />
           </button>
 
-          {/* Language Menu Dropdown */}
-          {isLangMenuOpen && (
-            <div 
-              role="listbox"
-              aria-label={t.selectLanguage}
-              className="absolute right-0 mt-2 w-40 bg-[#090d16]/95 border border-white/15 rounded-xl shadow-2xl backdrop-blur-xl py-1.5 z-50 text-xs animate-fadeIn"
-              data-testid="language-menu"
-            >
-              {SUPPORTED_LANGUAGES.map((lang) => (
-                <button
-                  key={lang.code}
-                  type="button"
-                  role="option"
-                  aria-selected={currentLang === lang.code}
-                  data-testid={`language-option-${lang.code}`}
-                  onClick={() => { handleSelectLanguage(lang.code); setIsLangMenuOpen(false); }}
-                  className={`w-full text-left px-3.5 py-2 flex items-center justify-between hover:bg-white/10 transition-colors ${
-                    currentLang === lang.code ? 'text-blue-400 font-semibold bg-white/5' : 'text-white/80'
-                  }`}
-                >
-                  <span>{lang.nativeName}</span>
-                  <span className="text-[10px] text-white/40 uppercase">{lang.code}</span>
-                </button>
-              ))}
-            </div>
-          )}
+          {/* World Language Panel */}
+          <WorldLanguagePanel
+            isOpen={isLangMenuOpen}
+            onClose={() => setIsLangMenuOpen(false)}
+            currentLocale={currentLang}
+            onSelectLocale={(loc) => {
+              handleSelectLanguage(loc as any);
+              setIsLangMenuOpen(false);
+            }}
+          />
         </div>
       </header>
 

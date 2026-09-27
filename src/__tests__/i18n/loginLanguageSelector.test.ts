@@ -87,13 +87,14 @@ describe('Login Language Selector Functionality', () => {
     expect(t('auth.continueBtn')).toBe('Weiter');
   });
 
-  // TEST 5: All four locales produce DIFFERENT signInTitle strings
-  it('all four locales produce distinct signInTitle translations', () => {
-    const titles = SUPPORTED_LOCALE_CODES.map(code =>
-      getTranslation(code, 'auth.signInTitle')
+  // TEST 5: Major locales produce distinct signInTitle strings
+  it('major locales produce distinct signInTitle translations', () => {
+    const testCodes = ['en', 'hi', 'es', 'de', 'fr', 'ja', 'ar', 'zh', 'ru'];
+    const titles = testCodes.map(code =>
+      getTranslation(code as SupportedLocale, 'auth.signInTitle')
     );
     const unique = new Set(titles);
-    expect(unique.size).toBe(4);
+    expect(unique.size).toBe(testCodes.length);
   });
 
   // TEST 6: localStorage persistence via setLocale simulation
@@ -163,7 +164,10 @@ describe('Login Language Selector Functionality', () => {
     expect(isValidLocale('hi')).toBe(true);
     expect(isValidLocale('es')).toBe(true);
     expect(isValidLocale('de')).toBe(true);
-    expect(isValidLocale('fr')).toBe(false);
+    expect(isValidLocale('fr')).toBe(true);
+    expect(isValidLocale('ja')).toBe(true);
+    expect(isValidLocale('ar')).toBe(true);
+    expect(isValidLocale('invalid_code')).toBe(false);
     expect(isValidLocale('')).toBe(false);
     expect(isValidLocale(null)).toBe(false);
     expect(isValidLocale(undefined)).toBe(false);
@@ -190,11 +194,12 @@ describe('Login Language Selector Functionality', () => {
     }
   });
 
-  // TEST 13: SUPPORTED_LANGUAGES in Login.tsx matches SUPPORTED_LOCALES
-  it('Login SUPPORTED_LANGUAGES codes match global SUPPORTED_LOCALE_CODES', () => {
-    // These are the codes used in Login.tsx's SUPPORTED_LANGUAGES array
-    const loginCodes = ['en', 'hi', 'es', 'de'];
-    expect(loginCodes).toEqual(SUPPORTED_LOCALE_CODES);
+  // TEST 13: SUPPORTED_LOCALES registry contains 30 world languages
+  it('SUPPORTED_LOCALES contains 30 global languages', () => {
+    expect(Object.keys(SUPPORTED_LOCALES).length).toBe(30);
+    expect(SUPPORTED_LOCALE_CODES.length).toBe(30);
+    const codes = Object.values(SUPPORTED_LOCALES).map(l => l.code);
+    expect(codes).toEqual(SUPPORTED_LOCALE_CODES);
   });
 
   // TEST 14: selectLanguage auth key exists in all locales

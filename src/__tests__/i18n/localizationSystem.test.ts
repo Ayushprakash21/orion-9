@@ -194,9 +194,9 @@ describe('ORION-9 Global Language & Localization System', () => {
   });
 
   // TEST 10: Browser Language Fallback & Unsupported Languages
-  it('10. Unsupported browser language (ja) falls back gracefully to English (en)', () => {
-    vi.spyOn(navigator, 'language', 'get').mockReturnValue('ja-JP');
-    vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['ja-JP', 'ja']);
+  it('10. Unsupported browser language (xx) falls back gracefully to English (en)', () => {
+    vi.spyOn(navigator, 'language', 'get').mockReturnValue('xx-YY');
+    vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['xx-YY', 'xx']);
 
     const resolved = resolveInitialLocale();
     expect(resolved).toBe('en'); // Falls back to English
@@ -210,7 +210,7 @@ describe('ORION-9 Global Language & Localization System', () => {
     expect(detected).toBe('de');
   });
 
-  // TEST 11: 100% Key Parity Across All 4 Locales
+  // TEST 11: 100% Key Parity Across Base Locales
   it('11. 100% translation key parity across English, Hindi, Spanish, and German', () => {
     const validation = validateAllLocales();
     expect(validation.valid).toBe(true);
@@ -251,13 +251,16 @@ describe('ORION-9 Global Language & Localization System', () => {
     expect(numDe).toContain('1.234.567,89');
   });
 
-  // All 4 Selector Options are Valid
-  it('13. All 4 supported locales exist with full native metadata', () => {
-    expect(SUPPORTED_LOCALE_CODES).toEqual(['en', 'hi', 'es', 'de']);
+  // All World Locales Exist with Full Native Metadata
+  it('13. All 30 supported world locales exist with full native metadata', () => {
+    expect(SUPPORTED_LOCALE_CODES.length).toBeGreaterThanOrEqual(30);
 
     expect(SUPPORTED_LOCALES.en.nativeName).toBe('English');
     expect(SUPPORTED_LOCALES.hi.nativeName).toBe('हिन्दी');
     expect(SUPPORTED_LOCALES.es.nativeName).toBe('Español');
     expect(SUPPORTED_LOCALES.de.nativeName).toBe('Deutsch');
+    expect(SUPPORTED_LOCALES.ja.nativeName).toBe('日本語');
+    expect(SUPPORTED_LOCALES.ar.nativeName).toBe('العربية');
+    expect(SUPPORTED_LOCALES.ar.dir).toBe('rtl');
   });
 });

@@ -81,7 +81,8 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const applyHtmlAttributes = useCallback((loc: SupportedLocale) => {
     if (typeof document !== 'undefined' && document.documentElement) {
       document.documentElement.lang = loc;
-      document.documentElement.dir = 'ltr';
+      const info = SUPPORTED_LOCALES[loc];
+      document.documentElement.dir = info?.dir === 'rtl' ? 'rtl' : 'ltr';
     }
   }, []);
 
