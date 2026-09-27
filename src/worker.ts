@@ -1,7 +1,7 @@
 /**
  * ORION-9 CLOUDFLARE WORKER ENTRY POINT
- * Serves API routes (/api/ai/wallpaper-status, /api/ai/generate-wallpaper, /api/health)
- * with Google Gemini (gemini-3.1-flash-image) as primary AI provider.
+ * Serves API routes (/api/wallpaper/gemini/status, /api/wallpaper/generate, /api/health)
+ * with Google Gemini (gemini-2.5-flash-image) as primary AI provider.
  */
 
 import { checkGeminiWallpaperStatus, generateGeminiWallpapers } from "./server/geminiBackend";
@@ -16,8 +16,8 @@ export default {
     const url = new URL(request.url);
     const apiKey = env.GEMINI_API_KEY || (typeof process !== "undefined" ? process.env?.GEMINI_API_KEY : undefined);
 
-    // 1. GET /api/ai/wallpaper-status
-    if (url.pathname === "/api/ai/wallpaper-status" && request.method === "GET") {
+    // 1. GET /api/wallpaper/gemini/status or /api/ai/wallpaper-status
+    if ((url.pathname === "/api/wallpaper/gemini/status" || url.pathname === "/api/ai/wallpaper-status") && request.method === "GET") {
       const status = await checkGeminiWallpaperStatus(apiKey);
       return new Response(JSON.stringify(status), {
         status: 200,
@@ -25,8 +25,8 @@ export default {
       });
     }
 
-    // 2. POST /api/ai/generate-wallpaper (Gemini Primary Path)
-    if (url.pathname === "/api/ai/generate-wallpaper" && request.method === "POST") {
+    // 2. POST /api/wallpaper/generate or /api/ai/generate-wallpaper (Gemini Primary Path)
+    if ((url.pathname === "/api/wallpaper/generate" || url.pathname === "/api/ai/generate-wallpaper") && request.method === "POST") {
       let body: any = {};
       try {
         body = await request.json();
@@ -52,3 +52,4 @@ export default {
     return env.ASSETS.fetch(request);
   }
 };
+

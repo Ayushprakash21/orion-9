@@ -93,7 +93,7 @@ export const UserWallpaperStudio: React.FC = () => {
   const [aiProviderConfigured, setAiProviderConfigured] = useState<boolean>(false);
   const [aiProviderStatusCode, setAiProviderStatusCode] = useState<string>('READY');
   const [aiProviderName, setAiProviderName] = useState<string>('Google Gemini');
-  const [aiModelName, setAiModelName] = useState<string>('gemini-3.1-flash-image');
+  const [aiModelName, setAiModelName] = useState<string>('gemini-2.5-flash-image');
   const [prompt, setPrompt] = useState('Futuristic deep-space environment with subtle blue and graphite atmosphere');
   const [style, setStyle] = useState<WallpaperStyle>('Space');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -126,7 +126,7 @@ export const UserWallpaperStudio: React.FC = () => {
           }
           setAiProviderStatusCode(statusCode);
           setAiProviderName(aiStatus.providerName || 'Google Gemini');
-          setAiModelName(aiStatus.model || 'gemini-3.1-flash-image');
+          setAiModelName(aiStatus.model || 'gemini-2.5-flash-image');
           
           const validGallery = available && available.length > 0 ? available : SYSTEM_DEFAULT_WALLPAPERS;
           setGalleryWallpapers(validGallery);
@@ -537,12 +537,11 @@ export const UserWallpaperStudio: React.FC = () => {
               </span>
             </div>
             <p className="text-[11px] opacity-80">
-              {(aiProviderStatusCode === 'READY' || aiProviderStatusCode === 'GEMINI_READY') && 'Google Gemini (gemini-3.1-flash-image) is ready for primary generation.'}
-              {aiProviderStatusCode === 'GEMINI_CONFIGURED' && 'Google Gemini API is configured and ready for generation.'}
-              {aiProviderStatusCode === 'GEMINI_SECRET_MISSING' && 'GEMINI_API_KEY environment variable is not configured.'}
+              {(aiProviderStatusCode === 'READY' || aiProviderStatusCode === 'GEMINI_READY' || aiProviderStatusCode === 'GEMINI_CONFIGURED') && `Google Gemini (${aiModelName}) is ready for primary generation.`}
+              {aiProviderStatusCode === 'GEMINI_SECRET_MISSING' && 'Gemini API is not configured on the ORION-9 server.'}
               {aiProviderStatusCode === 'GEMINI_AUTH_ERROR' && 'Gemini API authentication failed. Please verify GEMINI_API_KEY.'}
-              {aiProviderStatusCode === 'GEMINI_RATE_LIMIT' && 'Gemini API rate limit reached. Please retry in a few moments.'}
-              {aiProviderStatusCode === 'GEMINI_API_UNAVAILABLE' && 'Google Gemini service is temporarily unavailable.'}
+              {aiProviderStatusCode === 'GEMINI_RATE_LIMIT' && 'Gemini image generation quota has been reached.'}
+              {aiProviderStatusCode === 'GEMINI_API_UNAVAILABLE' && 'Selected Gemini image model is unavailable.'}
               {aiProviderStatusCode === 'BACKEND_UNREACHABLE' && 'Unable to reach backend server endpoint.'}
             </p>
           </div>

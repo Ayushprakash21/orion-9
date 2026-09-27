@@ -1,7 +1,7 @@
 /**
  * ORION-9 AI WALLPAPER GENERATOR
  * Production abstraction manager delegating AI image generation to WallpaperImageProvider
- * with Google Gemini (gemini-3.1-flash-image) as active primary implementation.
+ * with Google Gemini (gemini-2.5-flash-image) as active primary implementation.
  */
 
 import { AiGenerationParams, WallpaperCandidate } from '../../types/wallpaper';

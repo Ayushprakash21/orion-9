@@ -516,19 +516,23 @@ async function startServer() {
     }
   });
 
-  // AI Wallpaper Status Route - Google Gemini Nano Banana 2 Primary
-  app.get("/api/ai/wallpaper-status", async (_req, res) => {
+  // AI Wallpaper Status Routes - Google Gemini Image Generation Health Check
+  const handleWallpaperStatus = async (_req: express.Request, res: express.Response) => {
     const apiKey = process.env.GEMINI_API_KEY;
     const result = await checkGeminiWallpaperStatus(apiKey);
     return res.json(result);
-  });
+  };
+  app.get("/api/wallpaper/gemini/status", handleWallpaperStatus);
+  app.get("/api/ai/wallpaper-status", handleWallpaperStatus);
 
-  // Real Gemini AI Wallpaper Generation Route (3 Real Candidates)
-  app.post("/api/ai/generate-wallpaper", async (req, res) => {
+  // Real Gemini AI Wallpaper Generation Routes (3 Real Static Candidates)
+  const handleWallpaperGenerate = async (req: express.Request, res: express.Response) => {
     const apiKey = process.env.GEMINI_API_KEY;
     const result = await generateGeminiWallpapers(apiKey, req.body || {});
     return res.status(result.statusCode).json(result.body);
-  });
+  };
+  app.post("/api/wallpaper/generate", handleWallpaperGenerate);
+  app.post("/api/ai/generate-wallpaper", handleWallpaperGenerate);
 
   // AI Tool Selection Route
   app.post("/api/ai/choose-tools", async (req, res) => {

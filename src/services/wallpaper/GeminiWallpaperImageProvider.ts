@@ -1,6 +1,6 @@
 /**
  * ORION-9 GEMINI WALLPAPER IMAGE PROVIDER
- * Active primary implementation of WallpaperImageProvider powered by Google Gemini (gemini-3.1-flash-image).
+ * Active primary implementation of WallpaperImageProvider powered by Google Gemini (gemini-2.5-flash-image).
  */
 
 import { AiGenerationParams, WallpaperCandidate } from '../../types/wallpaper';
@@ -8,14 +8,26 @@ import { WallpaperImageProvider, WallpaperImageProviderStatus } from './Wallpape
 
 export class GeminiWallpaperImageProvider implements WallpaperImageProvider {
   public readonly name = 'Google Gemini';
-  public readonly model = 'gemini-3.1-flash-image';
+  public readonly model = 'gemini-2.5-flash-image';
 
   public async checkStatus(): Promise<WallpaperImageProviderStatus> {
     try {
-      const res = await fetch('/api/ai/wallpaper-status', {
+      // Try /api/wallpaper/gemini/status first, then /api/ai/wallpaper-status
+      let res = await fetch('/api/wallpaper/gemini/status', {
         method: 'GET',
         cache: 'no-store',
-      });
+      }).catch(() => null);
+
+      if (!res || !res.ok) {
+        res = await fetch('/api/ai/wallpaper-status', {
+          method: 'GET',
+          cache: 'no-store',
+        }).catch(() => null);
+      }
+
+      if (!res) {
+        throw new Error('Failed to fetch status');
+      }
 
       let statusData: any = {};
       try {
@@ -34,12 +46,14 @@ export class GeminiWallpaperImageProvider implements WallpaperImageProvider {
         let configured = false;
         let available = false;
         let statusCode = 'GEMINI_SECRET_MISSING';
+        let errorMsg: string | null = null;
 
         if (isCloudflarePayload) {
           // If legacy Cloudflare endpoint response was received, check if Gemini fallback is configured
           configured = Boolean(statusData.geminiFallbackConfigured || statusData.geminiConfigured);
           available = configured;
           statusCode = configured ? 'GEMINI_CONFIGURED' : 'GEMINI_SECRET_MISSING';
+          errorMsg = available ? null : 'Gemini API is not configured on the ORION-9 server.';
         } else {
           configured = Boolean(statusData.configured ?? statusData.providerConfigured);
           available = Boolean(statusData.available ?? configured);
@@ -47,17 +61,18 @@ export class GeminiWallpaperImageProvider implements WallpaperImageProvider {
           if (String(statusCode).toUpperCase().includes('CLOUDFLARE')) {
             statusCode = configured ? 'GEMINI_CONFIGURED' : 'GEMINI_SECRET_MISSING';
           }
+          errorMsg = statusData.error || (available ? null : statusCode);
         }
 
         return {
           providerConfigured: configured,
           configured: available,
           providerName: this.name,
-          model: this.model,
+          model: statusData.model || this.model,
           available,
           status: statusCode,
-          error: available ? null : statusCode,
-          supportedDimensions: statusData.supportedDimensions || ['16:9', '2K', '4K'],
+          error: errorMsg,
+          supportedDimensions: statusData.supportedDimensions || ['16:9', '2560x1440', '2K', '4K'],
         };
       }
 
@@ -68,8 +83,8 @@ export class GeminiWallpaperImageProvider implements WallpaperImageProvider {
         model: this.model,
         available: false,
         status: 'GEMINI_SECRET_MISSING',
-        error: 'GEMINI_SECRET_MISSING',
-        supportedDimensions: ['16:9', '2K', '4K'],
+        error: 'Gemini API is not configured on the ORION-9 server.',
+        supportedDimensions: ['16:9', '2560x1440', '2K', '4K'],
       };
     } catch {
       return {
@@ -80,7 +95,7 @@ export class GeminiWallpaperImageProvider implements WallpaperImageProvider {
         available: false,
         status: 'BACKEND_UNREACHABLE',
         error: 'BACKEND_UNREACHABLE',
-        supportedDimensions: ['16:9', '2K', '4K'],
+        supportedDimensions: ['16:9', '2560x1440', '2K', '4K'],
       };
     }
   }
@@ -93,12 +108,14 @@ export class GeminiWallpaperImageProvider implements WallpaperImageProvider {
       const cleanCode = String(rawCode).toUpperCase().includes('CLOUDFLARE') ? 'GEMINI_CONFIGURATION_REQUIRED' : rawCode;
       
       let errMsg = cleanCode;
-      if (cleanCode === 'GEMINI_SECRET_MISSING' || cleanCode === 'GEMINI_CONFIGURATION_REQUIRED') {
-        errMsg = 'GEMINI_CONFIGURATION_REQUIRED: Gemini API key is not configured.';
-      } else if (cleanCode === 'GEMINI_AUTH_ERROR') {
-        errMsg = 'GEMINI_AUTH_ERROR: Gemini API key is invalid or unauthorized.';
-      } else if (cleanCode === 'GEMINI_RATE_LIMIT') {
-        errMsg = 'GEMINI_RATE_LIMIT: Gemini API rate limit reached.';
+      if (cleanCode === 'GEMINI_SECRET_MISSING' || cleanCode === 'GEMINI_CONFIGURATION_REQUIRED' || cleanCode.includes('not configured')) {
+        errMsg = 'GEMINI_CONFIGURATION_REQUIRED: Gemini API is not configured on the ORION-9 server.';
+      } else if (cleanCode === 'GEMINI_AUTH_ERROR' || cleanCode.includes('authentication failed')) {
+        errMsg = 'GEMINI_AUTH_ERROR: Gemini API authentication failed.';
+      } else if (cleanCode === 'GEMINI_RATE_LIMIT' || cleanCode.includes('quota')) {
+        errMsg = 'GEMINI_RATE_LIMIT: Gemini image generation quota has been reached.';
+      } else if (cleanCode === 'GEMINI_API_UNAVAILABLE' || cleanCode.includes('unavailable')) {
+        errMsg = 'GEMINI_API_UNAVAILABLE: Selected Gemini image model is unavailable.';
       } else if (cleanCode === 'BACKEND_UNREACHABLE') {
         errMsg = 'BACKEND_UNREACHABLE: AI wallpaper backend service is unreachable.';
       }
@@ -111,17 +128,32 @@ export class GeminiWallpaperImageProvider implements WallpaperImageProvider {
     }
 
     try {
-      const res = await fetch('/api/ai/generate-wallpaper', {
+      const requestPayload = {
+        prompt: params.prompt,
+        style: params.style,
+        count: 3,
+        width: params.width || 2560,
+        height: params.height || 1440,
+      };
+
+      // Try /api/wallpaper/generate first, then fallback to /api/ai/generate-wallpaper
+      let res = await fetch('/api/wallpaper/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: params.prompt,
-          style: params.style,
-          count: 3,
-          width: params.width || 2560,
-          height: params.height || 1440,
-        }),
-      });
+        body: JSON.stringify(requestPayload),
+      }).catch(() => null);
+
+      if (!res || !res.ok) {
+        res = await fetch('/api/ai/generate-wallpaper', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestPayload),
+        }).catch(() => null);
+      }
+
+      if (!res) {
+        throw new Error('BACKEND_UNREACHABLE: AI wallpaper backend service is unreachable.');
+      }
 
       if (!res.ok) {
         let errData: any = {};
@@ -208,7 +240,7 @@ export class GeminiWallpaperImageProvider implements WallpaperImageProvider {
         `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" ` +
         `viewBox="0 0 ${width} ${height}"><rect width="100%" height="100%" fill="#0a0e1a"/>` +
         `<circle cx="${500 + i * 400}" cy="${400 + i * 200}" r="250" fill="#0284c7" opacity="0.6"/>` +
-        `<text x="100" y="100" fill="#ffffff">Google Gemini 3.1 Candidate ${i + 1}</text></svg>`;
+        `<text x="100" y="100" fill="#ffffff">Google Gemini 2.5 Flash Image Candidate ${i + 1}</text></svg>`;
       const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgContent)}`;
 
       return {
@@ -227,3 +259,4 @@ export class GeminiWallpaperImageProvider implements WallpaperImageProvider {
 }
 
 export const geminiWallpaperImageProvider = new GeminiWallpaperImageProvider();
+
