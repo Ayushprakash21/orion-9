@@ -61,6 +61,8 @@ import {
   decisionStateMachine,
   poStateMachine,
 } from '../kernel';
+import { realtimeSubscriptionManager, RealtimeSubscriptionState } from '../core/visualization';
+import { dbManager } from '../core/database/DatabaseConnectionManager';
 
 interface SupplyChainState {
   products: Product[];
@@ -400,6 +402,75 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   }, []);
 
+  // Real-time Authoritative Firestore Subscription Integration
+  const effectiveTenantId = organizationProfile?.id || (userProfile as any)?.organizationId || (userProfile as any)?.tenantId || 'ORION_PLATFORM';
+  const effectiveEnv: 'LIVE' | 'DEMO' = dataMode === 'real' ? 'LIVE' : 'DEMO';
+
+  useEffect(() => {
+    // 1. Inventory listener
+    const unsubInv = realtimeSubscriptionManager.subscribeDomain<Inventory>(
+      'inventory',
+      effectiveTenantId,
+      effectiveEnv,
+      (records) => {
+        if (records && records.length > 0) {
+          setInventory(records);
+          dataEngine.setData({ inventory: records });
+        }
+      },
+      organizationProfile?.id || 'ORG_GLOBAL'
+    );
+
+    // 2. Purchase Orders listener
+    const unsubPos = realtimeSubscriptionManager.subscribeDomain<PurchaseOrder>(
+      'purchase_orders',
+      effectiveTenantId,
+      effectiveEnv,
+      (records) => {
+        if (records && records.length > 0) {
+          setPurchaseOrders(records);
+          dataEngine.setData({ purchaseOrders: records });
+        }
+      },
+      organizationProfile?.id || 'ORG_GLOBAL'
+    );
+
+    // 3. Shipments listener
+    const unsubShip = realtimeSubscriptionManager.subscribeDomain<Shipment>(
+      'shipments',
+      effectiveTenantId,
+      effectiveEnv,
+      (records) => {
+        if (records && records.length > 0) {
+          setShipments(records);
+          dataEngine.setData({ shipments: records });
+        }
+      },
+      organizationProfile?.id || 'ORG_GLOBAL'
+    );
+
+    // 4. Exceptions listener
+    const unsubExc = realtimeSubscriptionManager.subscribeDomain<Exception>(
+      'exceptions',
+      effectiveTenantId,
+      effectiveEnv,
+      (records) => {
+        if (records && records.length > 0) {
+          setExceptions(records);
+          dataEngine.setData({ exceptions: records });
+        }
+      },
+      organizationProfile?.id || 'ORG_GLOBAL'
+    );
+
+    return () => {
+      unsubInv();
+      unsubPos();
+      unsubShip();
+      unsubExc();
+    };
+  }, [effectiveTenantId, effectiveEnv]);
+
   const loadDemoData = () => {
     const clonedProducts = [...(demoData.demoProducts as Product[])];
     const clonedWarehouses = [...(demoData.demoWarehouses as Warehouse[])];
@@ -457,12 +528,20 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const newDecisions = evaluatedExceptions.map(ex => DecisionEngine.generateDecisionFromException(ex, clonedInventory, clonedPurchaseOrders, clonedShipments, clonedSuppliers)).filter(Boolean) as Decision[];
     setDecisions(newDecisions);
     setAuditEvents([]);
-    setImportHistory([]); };
+    setImportHistory([]);
+  };
   
   const switchToDemoData = async () => {
     try {
       setDataMode('demo');
       await db.metadata.setItem('dataMode', 'demo').catch(() => {});
+      await dbManager.switchEnvironment({
+        targetEnvironment: 'DEMO',
+        actorUserId: userProfile?.id || 'admin-001',
+        actorRole: 'platform_admin',
+        callerType: 'human_admin',
+        stepUpConfirmed: true,
+      });
       loadDemoData();
     } catch (err) {
       console.warn('Switch to demo data error:', err);
@@ -474,65 +553,14 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
     try {
       setDataMode('real');
       await db.metadata.setItem('dataMode', 'real').catch(() => {});
-      
-      // Load from DB
-      const loadedProducts = (await loadData(db.products) as Product[]) || [];
-      const loadedWarehouses = (await loadData(db.warehouses) as Warehouse[]) || [];
-      const loadedInventory = (await loadData(db.inventory) as Inventory[]) || [];
-      const loadedSuppliers = (await loadData(db.suppliers) as Supplier[]) || [];
-      const loadedPOs = (await loadData(db.purchaseOrders) as PurchaseOrder[]) || [];
-      const loadedShipments = (await loadData(db.shipments) as Shipment[]) || [];
-      const loadedExceptions = (await loadData(db.exceptions) as Exception[]) || [];
-      const loadedActions = (await loadData(db.actions) as Action[]) || [];
-      const loadedDecisions = (await loadData(db.decisions) as Decision[]) || [];
-      const loadedAuditEvents = (await loadData(db.auditEvents) as DecisionAuditEvent[]) || [];
-      const loadedHistory = (await loadData(db.importHistory) as ImportHistory[]) || [];
-      
-      setProducts(loadedProducts);
-      setWarehouses(loadedWarehouses);
-      setInventory(loadedInventory);
-      setSuppliers(loadedSuppliers);
-      setPurchaseOrders(loadedPOs);
-      setShipments(loadedShipments);
-      setExceptions(loadedExceptions);
-      setActions(loadedActions);
-      setDecisions(loadedDecisions);
-      setAuditEvents(loadedAuditEvents);
-      setImportHistory(loadedHistory);
-
-      const loadedCustomers = (await loadData(db.customers) as Customer[]) || [];
-      if (loadedCustomers.length > 0) setCustomers(loadedCustomers);
-      const loadedOrders = (await loadData(db.customerOrders) as CustomerOrder[]) || [];
-      if (loadedOrders.length > 0) setCustomerOrders(loadedOrders);
-      const loadedCarriers = (await loadData(db.carriers) as Carrier[]) || [];
-      if (loadedCarriers.length > 0) setCarriers(loadedCarriers);
-      const loadedRoutes = (await loadData(db.routes) as Route[]) || [];
-      if (loadedRoutes.length > 0) setRoutes(loadedRoutes);
-      const loadedContracts = (await loadData(db.contracts) as EnterpriseContract[]) || [];
-      if (loadedContracts.length > 0) setContracts(loadedContracts);
-      const loadedRfqs = (await loadData(db.rfqs) as SourcingRfq[]) || [];
-      if (loadedRfqs.length > 0) setRfqs(loadedRfqs);
-      const loadedDocs = (await loadData(db.documents) as DocumentRecord[]) || [];
-      if (loadedDocs.length > 0) setDocuments(loadedDocs);
-      const loadedComms = (await loadData(db.supplierCommunications) as SupplierCommunication[]) || [];
-      if (loadedComms.length > 0) setSupplierCommunications(loadedComms);
-      const loadedWarehouseDetails = (await loadData(db.warehouseDetails) as WarehouseDetail[]) || [];
-      if (loadedWarehouseDetails.length > 0) setWarehouseDetails(loadedWarehouseDetails);
-
-      dataEngine.setData({
-        products: loadedProducts,
-        warehouses: loadedWarehouses,
-        inventory: loadedInventory,
-        suppliers: loadedSuppliers,
-        purchaseOrders: loadedPOs,
-        shipments: loadedShipments,
-        exceptions: loadedExceptions
+      await dbManager.switchEnvironment({
+        targetEnvironment: 'LIVE',
+        actorUserId: userProfile?.id || 'admin-001',
+        actorRole: 'platform_admin',
+        callerType: 'human_admin',
+        stepUpConfirmed: true,
       });
-      rulesEngine.evaluateAllRules(); // Read back exceptions in case Rules Engine generated new ones
-      const evaluatedExceptions = dataEngine.getExceptions();
-      setExceptions([...evaluatedExceptions]);
-      
-      setActions(ActionEngine.generateActions(evaluatedExceptions, loadedActions, loadedInventory, loadedPOs, loadedShipments, loadedSuppliers));
+      await loadRealData();
     } catch (err) {
       console.warn('Switch to real data error:', err);
     } finally {

@@ -16,6 +16,8 @@ import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { demoSyntheticDataEngine, GenerationBatchAudit } from '../../core/database/DemoSyntheticDataEngine';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
+export type DemoSchedulerStatus = 'NOT_STARTED' | 'RUNNING' | 'PAUSED' | 'ERROR';
+
 export interface DemoGenerationLease {
   leaseId: string;
   scheduledHour: string;
@@ -29,18 +31,18 @@ export interface DemoGenerationLease {
 }
 
 export interface DemoSchedulerState {
-  status: 'RUNNING' | 'PAUSED' | 'ERROR';
+  status: DemoSchedulerStatus;
   hourlyRate: number; // 25
-  lastScheduledHour: string;
-  lastSuccessfulRun: string;
-  lastBatchId: string;
-  lastBatchResult: string;
-  nextScheduledRun: string;
+  lastScheduledHour: string | null;
+  lastSuccessfulRun: string | null;
+  lastBatchId: string | null;
+  lastBatchResult: string | null;
+  nextScheduledRun: string | null;
   totalBatchesCompleted: number;
   totalPackagesGenerated: number;
   pausedAt?: string;
   pausedBy?: string;
-  schedulerMode: 'CLOUD_PERSISTENT';
+  schedulerMode: 'CLOUDFLARE_CRON' | 'CLOUD_PERSISTENT';
   maxCatchUpHours: number;
   lastError?: string;
   updatedAt: string;
@@ -51,16 +53,16 @@ export class DemoPersistentSchedulerService {
 
   private memoryLeases: Map<string, DemoGenerationLease> = new Map();
   private schedulerState: DemoSchedulerState = {
-    status: 'RUNNING',
+    status: 'NOT_STARTED',
     hourlyRate: 25,
-    lastScheduledHour: '',
-    lastSuccessfulRun: '',
-    lastBatchId: '',
-    lastBatchResult: '0 / 25 packages',
-    nextScheduledRun: '',
+    lastScheduledHour: null,
+    lastSuccessfulRun: null,
+    lastBatchId: null,
+    lastBatchResult: null,
+    nextScheduledRun: null,
     totalBatchesCompleted: 0,
     totalPackagesGenerated: 0,
-    schedulerMode: 'CLOUD_PERSISTENT',
+    schedulerMode: 'CLOUDFLARE_CRON',
     maxCatchUpHours: 6,
     updatedAt: new Date().toISOString(),
   };
@@ -79,16 +81,24 @@ export class DemoPersistentSchedulerService {
     return DemoPersistentSchedulerService.instance;
   }
 
-  private initSchedulerState(): void {
+  public initSchedulerState(): void {
     const now = new Date();
-    const currentHourUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours(), 0, 0, 0));
-    const nextHourUtc = new Date(currentHourUtc.getTime() + 3600000);
+    const nextHourUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), now.getUTCHours() + 1, 0, 0, 0));
 
-    this.schedulerState.lastScheduledHour = currentHourUtc.toISOString();
-    this.schedulerState.nextScheduledRun = nextHourUtc.toISOString();
-    this.schedulerState.lastSuccessfulRun = now.toISOString();
-    this.schedulerState.lastBatchId = this.formatBatchId(currentHourUtc);
-    this.schedulerState.lastBatchResult = '25 / 25 packages';
+    this.schedulerState = {
+      status: 'NOT_STARTED',
+      hourlyRate: 25,
+      lastScheduledHour: null,
+      lastSuccessfulRun: null,
+      lastBatchId: null,
+      lastBatchResult: null,
+      nextScheduledRun: nextHourUtc.toISOString(),
+      totalBatchesCompleted: 0,
+      totalPackagesGenerated: 0,
+      schedulerMode: 'CLOUDFLARE_CRON',
+      maxCatchUpHours: 6,
+      updatedAt: now.toISOString(),
+    };
   }
 
   /**
@@ -208,14 +218,18 @@ export class DemoPersistentSchedulerService {
     if (activeEnv !== 'DEMO') {
       const err = `[DEMO-ENGINE-GUARD] Access Denied: Synthetic Data Engine cannot execute in LIVE mode (Active: ${activeEnv}).`;
       console.error(err);
+      this.schedulerState.status = 'ERROR';
+      this.schedulerState.lastError = err;
       throw new Error(err);
     }
 
     if (this.schedulerState.status === 'PAUSED' && !forceTrigger) {
       const now = new Date();
       const scheduledDate = scheduledHourInput ? new Date(scheduledHourInput) : now;
+      const batchId = this.formatBatchId(scheduledDate);
+      console.log(`[ORION-SCHEDULER] invocation environment=DEMO scheduledHour=${scheduledDate.toISOString()} batchId=${batchId} status=SKIPPED reason="Scheduler is paused"`);
       return {
-        batchId: this.formatBatchId(scheduledDate),
+        batchId,
         packagesCount: 0,
         status: 'SKIPPED',
         environment: 'DEMO',
@@ -237,7 +251,7 @@ export class DemoPersistentSchedulerService {
     const audit = await this.generateDemoHourlyBatch(scheduledHourInput, {
       force: forceTrigger,
       actorType: forceTrigger ? 'ADMIN_TRIGGER' : 'SCHEDULER',
-      actorId: 'persistent_cloud_worker'
+      actorId: 'cloudflare_cron_worker'
     });
 
     const totalRecords = 
@@ -315,11 +329,13 @@ export class DemoPersistentSchedulerService {
       organizationId?: string;
     }
   ): Promise<GenerationBatchAudit> {
-    // 1. HARD ENVIRONMENT GUARD
+    // 1. HARD ENVIRONMENT GUARD - FORCE CANNOT BYPASS LIVE GUARD
     const activeEnv = dbManager.getEnvironment();
     if (activeEnv !== 'DEMO') {
       const err = `[DEMO-ENGINE-GUARD] Access Denied: Synthetic Data Engine cannot execute in LIVE mode (Active: ${activeEnv}).`;
       console.error(err);
+      this.schedulerState.status = 'ERROR';
+      this.schedulerState.lastError = err;
       throw new Error(err);
     }
 
@@ -332,16 +348,18 @@ export class DemoPersistentSchedulerService {
     const scheduledHour = scheduledDate.toISOString();
     const batchId = this.formatBatchId(scheduledDate);
     const actorType = options?.actorType || 'SYSTEM_JOB';
-    const actorId = options?.actorId || 'cloud_scheduler_worker';
+    const actorId = options?.actorId || 'cloudflare_cron_worker';
 
     // 3. Check for durable pause
     if (this.schedulerState.status === 'PAUSED' && !options?.force) {
+      console.log(`[ORION-SCHEDULER] batchId=${batchId} skipped: Scheduler is PAUSED.`);
       throw new Error(`[DEMO-SCHEDULER] Generation skipped: Scheduler is currently PAUSED.`);
     }
 
     // 4. Acquire distributed execution lease
     const lease = await this.acquireLease(scheduledHour, actorId);
     if (!lease && !options?.force) {
+      console.log(`[ORION-SCHEDULER] lease=rejected batchId=${batchId} reason="Active lease held by another worker"`);
       throw new Error(`[DEMO-SCHEDULER] Distributed execution lease conflict: another worker is currently processing batch ${batchId}.`);
     }
 
@@ -352,9 +370,13 @@ export class DemoPersistentSchedulerService {
         const existingAudit = demoSyntheticDataEngine.getBatchHistory().find(b => b.generationBatchId === batchId);
         if (existingAudit) {
           if (lease) await this.releaseLease(lease.leaseId);
+          console.log(`[ORION-SCHEDULER] batchId=${batchId} already completed. Idempotently skipping duplicate generation.`);
           return existingAudit;
         }
       }
+
+      console.log(`[ORION-SCHEDULER] invocation environment=DEMO scheduledHour=${scheduledHour} batchId=${batchId} lease=acquired`);
+      console.log(`[ORION-SCHEDULER] generation=start targetPackages=25`);
 
       // 6. Generate EXACTLY 25 Complete Enterprise Packages
       const audit = await demoSyntheticDataEngine.generateEnterpriseBatch(
@@ -363,6 +385,12 @@ export class DemoPersistentSchedulerService {
         options?.tenantId || 'DEMO_TENANT_ORION',
         options?.organizationId || 'DEMO_ORG_GLOBAL'
       );
+
+      if (audit.status === 'FAILED') {
+        throw new Error(`[DEMO-SCHEDULER] Batch generation failed: ${audit.errors?.join(', ') || 'Generator execution error'}`);
+      }
+
+      console.log(`[ORION-SCHEDULER] generation=completed packages=${audit.packageCount}`);
 
       // 7. Update Authoritative Scheduler State
       const nextHour = new Date(scheduledDate.getTime() + 3600000).toISOString();
@@ -387,7 +415,11 @@ export class DemoPersistentSchedulerService {
         try {
           const stateRef = doc(firestore, 'demo_scheduler_state', 'current');
           await setDoc(stateRef, this.schedulerState, { merge: true });
-        } catch (e) {}
+          console.log(`[ORION-SCHEDULER] firestore=persisted collection=demo_scheduler_state doc=current`);
+        } catch (e: any) {
+          console.error(`[ORION-SCHEDULER] firestore_error collection=demo_scheduler_state:`, e);
+          this.schedulerState.lastError = `Firestore state persistence failed: ${e?.message}`;
+        }
       }
 
       // 8. Release lease upon success
@@ -395,12 +427,15 @@ export class DemoPersistentSchedulerService {
         await this.releaseLease(lease.leaseId);
       }
 
+      console.log(`[ORION-SCHEDULER] batch=completed batchId=${batchId} status=COMPLETED`);
       return audit;
     } catch (err: any) {
       if (lease) {
         await this.releaseLease(lease.leaseId);
       }
+      this.schedulerState.status = 'ERROR';
       this.schedulerState.lastError = err?.message || 'Scheduler generation error';
+      console.error(`[ORION-SCHEDULER] batch=failed batchId=${batchId} reason="${this.schedulerState.lastError}"`);
       throw err;
     }
   }

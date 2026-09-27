@@ -677,6 +677,78 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
             badge="VISUAL SYSTEM"
             primary={
               <div className="space-y-4">
+                {/* User Experience Mode Card */}
+                <div className="bg-[#12151a] border border-white/[0.08] rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">User Experience Mode</span>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Choose between simplified business workflows or full technical SCM controls.</p>
+                    </div>
+                    <span className={cn(
+                      "px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase",
+                      (settings?.userExperienceMode ?? 'SIMPLE') === 'SIMPLE'
+                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                        : "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                    )}>
+                      {settings?.userExperienceMode ?? 'SIMPLE'} MODE
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateSettings({ userExperienceMode: 'SIMPLE' });
+                        setLocalSettings(prev => ({ ...prev, userExperienceMode: 'SIMPLE' }));
+                        showToast('Switched to Simple Mode UX', 'info');
+                      }}
+                      className={cn(
+                        "p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between",
+                        (settings?.userExperienceMode ?? 'SIMPLE') === 'SIMPLE'
+                          ? "bg-emerald-500/10 border-emerald-500/40 text-white shadow-xs"
+                          : "bg-white/[0.02] border-white/[0.06] text-slate-400 hover:text-white hover:bg-white/[0.04]"
+                      )}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                          <CheckCircle2 size={14} className={cn((settings?.userExperienceMode ?? 'SIMPLE') === 'SIMPLE' ? "text-emerald-400" : "text-slate-500")} />
+                          Simple Mode (Default)
+                        </span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-slate-300">Action-First</span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Guided 5-step workflows, clean 8-module navigation, automated smart sourcing, and proactive operational alerts.
+                      </p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        updateSettings({ userExperienceMode: 'ADVANCED' });
+                        setLocalSettings(prev => ({ ...prev, userExperienceMode: 'ADVANCED' }));
+                        showToast('Switched to Advanced SCM Mode', 'info');
+                      }}
+                      className={cn(
+                        "p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between",
+                        settings?.userExperienceMode === 'ADVANCED'
+                          ? "bg-sky-500/10 border-sky-500/40 text-white shadow-xs"
+                          : "bg-white/[0.02] border-white/[0.06] text-slate-400 hover:text-white hover:bg-white/[0.04]"
+                      )}
+                    >
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+                          <BrainCircuit size={14} className={cn(settings?.userExperienceMode === 'ADVANCED' ? "text-sky-400" : "text-slate-500")} />
+                          Advanced SCM Mode
+                        </span>
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-slate-300">Full Power</span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        50+ canonical modules, PR/RFQ/PO/ASN/GRN pipeline, digital twin telemetry, decision engines, and real-time event fabric.
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="bg-[#12151a] border border-white/[0.08] rounded-xl p-4 space-y-3">
                   <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">Theme Mode</span>
                   <div className="grid grid-cols-3 gap-2.5">

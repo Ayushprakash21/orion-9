@@ -77,13 +77,14 @@ export class ChartDataAdapter {
 
     for (const [key, points] of Object.entries(seriesMap)) {
       points.forEach(p => {
-        if (!timeMap.has(p.formattedDate)) {
-          timeMap.set(p.formattedDate, {
+        const timeKey = p.timestamp || p.formattedDate;
+        if (!timeMap.has(timeKey)) {
+          timeMap.set(timeKey, {
             formattedDate: p.formattedDate,
             timestamp: p.timestamp,
           });
         }
-        const row = timeMap.get(p.formattedDate);
+        const row = timeMap.get(timeKey);
         row[key] = p.value;
       });
     }

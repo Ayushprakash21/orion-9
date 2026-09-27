@@ -1036,12 +1036,17 @@ Analyze the supplied document and return a strict JSON object with:
     });
   }
 
-  // Start authoritative background persistent scheduler daemon for 25 synthetic packages/hour
-  try {
-    demoPersistentSchedulerService.startPersistentScheduler(60000);
-    console.log("[DEMO-SCHEDULER] Persistent cloud daemon started (Rate: 25 packages/hour, Environment: DEMO isolated)");
-  } catch (err) {
-    console.warn("[DEMO-SCHEDULER] Daemon startup warning:", err);
+  // Production scheduler runs via Cloudflare Worker cron triggers (0 * * * *).
+  // Node.js setInterval timer is strictly for local dev testing when explicitly requested.
+  if (process.env.ORION_ENABLE_LOCAL_SCHEDULER === 'true') {
+    try {
+      demoPersistentSchedulerService.startPersistentScheduler(60000);
+      console.log("[DEMO-SCHEDULER] Local development timer started (ORION_ENABLE_LOCAL_SCHEDULER=true, Rate: 25 packages/hour)");
+    } catch (err) {
+      console.warn("[DEMO-SCHEDULER] Local daemon startup warning:", err);
+    }
+  } else {
+    console.log("[DEMO-SCHEDULER] Production runtime: Cloudflare Worker scheduled() cron (0 * * * *). Local node timer disabled.");
   }
 
   server.listen(PORT, "0.0.0.0", () => {

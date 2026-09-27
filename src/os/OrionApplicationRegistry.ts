@@ -7,7 +7,8 @@ import {
   Clock, History, Sliders, ShieldAlert, Eye, HelpCircle, GitBranch,
   Compass, UserCheck, HeartPulse, RefreshCw, Info, User, Building2,
   ShieldCheck, DollarSign, PackageCheck, FlaskConical, TrendingUp,
-  FileCheck, RotateCcw, AlertOctagon, GitCommit, Factory, BarChart3
+  FileCheck, RotateCcw, AlertOctagon, GitCommit, Factory, BarChart3,
+  ShoppingBag
 } from 'lucide-react';
 
 
@@ -33,6 +34,16 @@ export const ORION_REGISTRY: Record<string, OrionApp> = {
     icon: LayoutDashboard,
     color: '#00F2FE',
     description: 'Central supply chain control tower, multi-domain observability, and governed command workspace.',
+    dockDefault: true,
+  },
+  'buy-workflow': {
+    id: 'buy-workflow',
+    name: 'Buy Something',
+    route: '/buy',
+    category: 'Operations',
+    icon: ShoppingBag,
+    color: '#30D158',
+    description: 'Simple guided 5-step purchasing workflow for business users.',
     dockDefault: true,
   },
   'inventory': {

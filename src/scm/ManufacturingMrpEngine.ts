@@ -15,6 +15,7 @@ import {
 } from './types';
 import { kernelAuditEngine } from '../kernel/AuditEngine';
 import { observabilityService } from '../operations/ObservabilityService';
+import { scmPersistenceService } from '../services/scm/ScmPersistenceService';
 
 
 export class ManufacturingMrpEngine {
@@ -338,6 +339,20 @@ export class ManufacturingMrpEngine {
       issuedAt: new Date().toISOString()
     };
 
+    // Authoritative component inventory decrement if stock exists
+    scmPersistenceService.adjustInventory({
+      tenantId: params.tenantId,
+      productId: params.componentProductId,
+      warehouseId: params.warehouseId,
+      quantityDelta: -params.quantityIssued,
+      transactionType: 'PRODUCTION_ISSUE',
+      referenceEntityType: 'PRODUCTION_ORDER',
+      referenceEntityId: params.productionOrderId,
+      actor: params.actor,
+      correlationId: `CORR-MAT-ISS-${issueId}`,
+      lotNumber: params.lotNumber,
+    }).catch(() => {});
+
     const existing = this.materialIssues.get(params.productionOrderId) || [];
     existing.push(issueRecord);
     this.materialIssues.set(params.productionOrderId, existing);
@@ -416,9 +431,24 @@ export class ManufacturingMrpEngine {
       throw new Error(`Production order [${orderId}] not found`);
     }
 
+    const outputQty = order.completedQuantity > 0 ? order.completedQuantity : order.plannedQuantity;
     order.status = 'COMPLETED';
+    order.completedQuantity = outputQty;
     order.actualCompletedDate = new Date().toISOString();
     order.updatedAt = new Date().toISOString();
+
+    // Authoritative finished goods inventory increment
+    scmPersistenceService.adjustInventory({
+      tenantId,
+      productId: order.productId,
+      warehouseId: order.warehouseId,
+      quantityDelta: outputQty,
+      transactionType: 'PRODUCTION_RECEIPT',
+      referenceEntityType: 'PRODUCTION_ORDER',
+      referenceEntityId: orderId,
+      actor,
+      correlationId: `CORR-PRD-COMP-${orderId}`,
+    }).catch(() => {});
 
     kernelAuditEngine.record({
       action: 'COMPLETE_PRODUCTION_ORDER',

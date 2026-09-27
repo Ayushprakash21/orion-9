@@ -219,6 +219,7 @@ export class ScmPersistenceService {
 
   /**
    * Authoritative inventory stock adjustment with immutable inventory transaction posting.
+   * Guarantees idempotency via correlationId tracking and strictly prevents negative inventory balances.
    */
   public async adjustInventory(params: {
     tenantId: string;
@@ -226,13 +227,37 @@ export class ScmPersistenceService {
     warehouseId: string;
     quantityDelta: number;
     transactionType: InventoryTransactionType;
-    referenceEntityType: 'GRN' | 'PUTAWAY' | 'CUSTOMER_ORDER' | 'CYCLE_COUNT' | 'TRANSFER';
+    referenceEntityType: 'GRN' | 'PUTAWAY' | 'CUSTOMER_ORDER' | 'CYCLE_COUNT' | 'TRANSFER' | 'PRODUCTION_ORDER' | 'RMA';
     referenceEntityId: string;
     actor: string;
     correlationId: string;
     lotNumber?: string;
     batchNumber?: string;
-  }): Promise<{ balanceBefore: number; balanceAfter: number; transactionId: string }> {
+  }): Promise<{ balanceBefore: number; balanceAfter: number; transactionId: string; isDuplicate?: boolean }> {
+    if (!params.tenantId) {
+      throw new Error('[SCM-VALIDATION-ERROR] tenantId is required for inventory adjustment');
+    }
+    if (!params.productId) {
+      throw new Error('[SCM-VALIDATION-ERROR] productId is required for inventory adjustment');
+    }
+    if (!params.warehouseId) {
+      throw new Error('[SCM-VALIDATION-ERROR] warehouseId is required for inventory adjustment');
+    }
+
+    // 0. Idempotency pre-check via correlationId
+    if (params.correlationId) {
+      const existingTxs = this.listCachedRecords<InventoryTransactionRecord>('inventory_transactions', params.tenantId);
+      const matched = existingTxs.find((tx) => tx.correlationId === params.correlationId);
+      if (matched) {
+        return {
+          balanceBefore: matched.balanceBefore,
+          balanceAfter: matched.balanceAfter,
+          transactionId: matched.transactionId,
+          isDuplicate: true,
+        };
+      }
+    }
+
     const invId = `INV-${params.warehouseId}-${params.productId}`;
     const now = new Date().toISOString();
 

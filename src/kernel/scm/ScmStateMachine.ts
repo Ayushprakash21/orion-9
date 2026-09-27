@@ -35,10 +35,10 @@ export class ScmStateMachine {
 
     // 2. Purchase Requisition (PR)
     this.defineTransitions('PurchaseRequisition', [
-      { from: 'DRAFT', to: ['SUBMITTED', 'REJECTED'] },
-      { from: 'SUBMITTED', to: ['UNDER_REVIEW', 'REJECTED'] },
-      { from: 'UNDER_REVIEW', to: ['APPROVED', 'REJECTED'] },
-      { from: 'APPROVED', to: ['CONVERTED'] },
+      { from: 'DRAFT', to: ['SUBMITTED', 'REJECTED', 'CANCELLED'] },
+      { from: 'SUBMITTED', to: ['UNDER_REVIEW', 'APPROVED', 'REJECTED', 'CANCELLED'] },
+      { from: 'UNDER_REVIEW', to: ['APPROVED', 'REJECTED', 'CANCELLED'] },
+      { from: 'APPROVED', to: ['CONVERTED', 'CANCELLED'] },
     ]);
 
     // 3. Sourcing: RFQ / RFP
@@ -68,8 +68,8 @@ export class ScmStateMachine {
 
     // 6. Purchase Order (PO)
     this.defineTransitions('PurchaseOrder', [
-      { from: 'DRAFT', to: ['PENDING_APPROVAL', 'CANCELLED'] },
-      { from: 'PENDING_APPROVAL', to: ['APPROVED', 'REJECTED'] },
+      { from: 'DRAFT', to: ['PENDING_APPROVAL', 'APPROVED', 'REJECTED', 'CANCELLED'] },
+      { from: 'PENDING_APPROVAL', to: ['APPROVED', 'REJECTED', 'CANCELLED'] },
       { from: 'APPROVED', to: ['RELEASED', 'CANCELLED'] },
       { from: 'RELEASED', to: ['ACKNOWLEDGED', 'PARTIALLY_CONFIRMED', 'CONFIRMED', 'CANCELLED'] },
       { from: 'ACKNOWLEDGED', to: ['CONFIRMED', 'PARTIALLY_CONFIRMED', 'CANCELLED'] },

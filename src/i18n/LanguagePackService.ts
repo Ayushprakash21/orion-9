@@ -314,6 +314,31 @@ export class LanguagePackService {
       this.availableCatalog.set(code, entry);
       this.availableCatalog.set(entry.bcp47, entry);
     }
+
+    // Populate remaining supported non-built-in locales systematically into availableCatalog
+    for (const [code, info] of Object.entries(SUPPORTED_LOCALES)) {
+      if (['en', 'hi', 'es', 'de'].includes(code)) continue;
+      if (!this.availableCatalog.has(code)) {
+        const manifest: LanguagePackManifest = {
+          id: `${code}-${info.bcp47.split('-')[1] || '001'}`,
+          name: info.name,
+          nativeName: info.nativeName,
+          bcp47: info.bcp47,
+          direction: info.dir,
+          version: '1.0.0',
+          orionCompatibility: '>=1.0.0',
+          translationSchemaVersion: 1,
+          coverage: 92,
+          features: { ui: true, regionalFormatting: true, rtl: info.dir === 'rtl' },
+          author: 'Orion Language Engineering Team',
+          sizeBytes: 120000,
+          updatedAt: '2026-09-01T00:00:00Z',
+          description: `Official Orion-9 ${info.name} (${info.nativeName}) language pack.`,
+        };
+        this.availableCatalog.set(code, manifest);
+        this.availableCatalog.set(info.bcp47, manifest);
+      }
+    }
   }
 
   /**
@@ -339,13 +364,6 @@ export class LanguagePackService {
       }
     } catch (e) {
       console.warn('Failed to load installed language packs from localStorage', e);
-    }
-
-    // Also populate dictionaries from built-in worldLocales if available
-    for (const [code, dict] of Object.entries(WORLD_TRANSLATIONS)) {
-      if (!this.dictionaries.has(code)) {
-        this.dictionaries.set(code, dict);
-      }
     }
   }
 
@@ -394,7 +412,7 @@ export class LanguagePackService {
   }
 
   /**
-   * Update HTML element attributes (lang, dir)
+   * Update HTML element attributes (lang, dir, translate="no")
    */
   private applyDomAttributes(locale: string): void {
     if (typeof document !== 'undefined' && document.documentElement) {
@@ -403,6 +421,7 @@ export class LanguagePackService {
 
       document.documentElement.lang = bcp47;
       document.documentElement.dir = dir;
+      document.documentElement.setAttribute('translate', 'no');
     }
   }
 
@@ -418,11 +437,13 @@ export class LanguagePackService {
    * List all officially available language packs from catalog
    */
   public listAvailableLanguages(): LanguagePackManifest[] {
+    const installed = new Set(this.listInstalledLanguages().map(i => i.locale));
     const uniqueManifests = new Map<string, LanguagePackManifest>();
-    for (const [_, manifest] of this.availableCatalog) {
+
+    for (const [key, manifest] of this.availableCatalog) {
       const code = manifest.bcp47.split('-')[0].toLowerCase();
-      // Only include if not built-in
-      if (!this.isBuiltIn(code) && !uniqueManifests.has(code)) {
+      // Only include if not built-in and not currently installed
+      if (!this.isBuiltIn(code) && !installed.has(code as SupportedLocale) && !uniqueManifests.has(code)) {
         uniqueManifests.set(code, manifest);
       }
     }
@@ -453,7 +474,7 @@ export class LanguagePackService {
       });
     }
 
-    // 2. Dynamic installed language packs
+    // 2. Dynamic installed language packs (from localStorage / user installation)
     for (const [code, pack] of this.installedPacks) {
       if (!builtInCodes.includes(code)) {
         result.push({
@@ -468,26 +489,6 @@ export class LanguagePackService {
           coverage: pack.manifest.coverage,
           version: pack.manifest.version,
           sizeBytes: pack.manifest.sizeBytes || 120000,
-        });
-      }
-    }
-
-    // 3. Bundled world locales (auto-installed in runtime)
-    for (const [code, info] of Object.entries(SUPPORTED_LOCALES)) {
-      if (!builtInCodes.includes(code) && !this.installedPacks.has(code)) {
-        const manifest = this.availableCatalog.get(code);
-        result.push({
-          locale: code as SupportedLocale,
-          name: info.name,
-          nativeName: info.nativeName,
-          direction: (info.dir || 'ltr') as 'ltr' | 'rtl',
-          bcp47: info.bcp47,
-          status: code === this.activeLocale ? 'ACTIVE' : 'INSTALLED',
-          isBuiltIn: false,
-          manifest,
-          coverage: manifest?.coverage || 95,
-          version: manifest?.version || '1.0.0',
-          sizeBytes: manifest?.sizeBytes || 110000,
         });
       }
     }
@@ -766,9 +767,11 @@ export class LanguagePackService {
 
     this.applyDomAttributes(clean);
 
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('orion-locale-changed', { detail: { locale: clean } }));
-      window.dispatchEvent(new CustomEvent('orion-language-changed', { detail: { language: clean } }));
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      try {
+        window.dispatchEvent(new CustomEvent('orion-locale-changed', { detail: { locale: clean } }));
+        window.dispatchEvent(new CustomEvent('orion-language-changed', { detail: { language: clean } }));
+      } catch (e) {}
     }
 
     this.notifyListeners();

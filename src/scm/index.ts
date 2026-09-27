@@ -38,3 +38,7 @@ export * from './CustomerServiceEngine';
 export * from './SustainabilityEngine';
 export * from './SupplierCapacityEngine';
 export * from './useScmLifecycle';
+export * from './canonical/ScmCanonicalRegistry';
+export * from './canonical/ScmReferentialIntegrityEngine';
+export * from './ScmReconciliationEngine';
+export * from './ScmBusinessRuleEngine';

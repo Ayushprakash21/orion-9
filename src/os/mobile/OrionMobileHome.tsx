@@ -174,6 +174,26 @@ export const OrionMobileHome: React.FC = () => {
             <span className="text-[10px] font-mono font-semibold text-os-text-primary">Apps</span>
           </button>
         </div>
+
+        {/* Guided Buy Action Card */}
+        <button
+          onClick={() => openApp('buy-workflow')}
+          className="w-full mt-2 p-3 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 hover:border-emerald-500/40 rounded-xl flex items-center justify-between transition-all cursor-pointer group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
+              <ShoppingCart size={16} />
+            </div>
+            <div className="text-left">
+              <div className="text-xs font-semibold text-white flex items-center gap-1.5">
+                Buy Something
+                <span className="text-[9px] font-mono px-1 py-0.2 bg-emerald-500/20 text-emerald-300 rounded font-normal">5-Step Wizard</span>
+              </div>
+              <div className="text-[10px] text-slate-400">Guided requisition, auto-sourcing & order creation</div>
+            </div>
+          </div>
+          <ArrowRight size={14} className="text-emerald-400 group-hover:translate-x-1 transition-transform" />
+        </button>
       </div>
 
       {/* 3. CONTROL TOWER SUMMARY CARD */}

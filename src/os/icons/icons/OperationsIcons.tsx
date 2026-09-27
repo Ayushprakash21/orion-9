@@ -365,3 +365,14 @@ export const IconSupplierCollaboration: React.FC<{ size?: number; className?: st
     <circle cx="64" cy="63" r="6" fill="#0891B2" stroke="#FFFFFF" strokeWidth="2" />
   </OrionSquircleBase>
 );
+
+// 27. Guided Buy Workflow
+export const IconBuyWorkflow: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
+  <OrionSquircleBase gradientId="icon-buy-flow" from="#10B981" to="#047857" {...props}>
+    {/* Shopping Bag with Lightning Sourcing Flow */}
+    <path d="M 42 46 L 86 46 L 94 92 L 34 92 Z" fill="#34D399" stroke="#FFFFFF" strokeWidth="2.5" />
+    <path d="M 52 46 C 52 32 76 32 76 46" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" fill="none" />
+    <circle cx="64" cy="68" r="8" fill="#065F46" />
+    <path d="M 64 62 L 64 74 M 58 68 L 70 68" stroke="#34D399" strokeWidth="2" strokeLinecap="round" />
+  </OrionSquircleBase>
+);

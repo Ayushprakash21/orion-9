@@ -39,18 +39,28 @@ export const STANDARD_CURRENCIES = new Set(['USD', 'EUR', 'GBP', 'JPY', 'CAD', '
 export const STANDARD_UOMS = new Set(['KG', 'G', 'MG', 'L', 'ML', 'M', 'CM', 'MM', 'EA', 'PALLET', 'BOX', 'DRUM', 'UNIT', 'BAG', 'CONTAINER']);
 
 const VALID_LIFECYCLE_TRANSITIONS: Record<string, string[]> = {
-  DRAFT: ['VALIDATED', 'VALIDATION_PENDING', 'DUPLICATE_CHECKED', 'REJECTED'],
-  VALIDATED: ['DUPLICATE_CHECKED', 'APPROVAL_PENDING', 'ACTIVE', 'REJECTED', 'DRAFT'],
-  DUPLICATE_CHECKED: ['APPROVAL_PENDING', 'ACTIVE', 'REJECTED', 'DRAFT'],
-  APPROVAL_PENDING: ['ACTIVE', 'APPROVED', 'REJECTED', 'DRAFT'],
-  VALIDATION_PENDING: ['REVIEW_REQUIRED', 'APPROVED', 'REJECTED', 'DRAFT'],
-  REVIEW_REQUIRED: ['APPROVED', 'ACTIVE', 'REJECTED', 'DRAFT'],
-  APPROVED: ['ACTIVE', 'REJECTED', 'DRAFT'],
-  ACTIVE: ['INACTIVE', 'SUPERSEDED', 'RETIRED'],
-  INACTIVE: ['ACTIVE', 'SUPERSEDED', 'RETIRED', 'REJECTED'],
+  // Uppercase states
+  DRAFT: ['VALIDATED', 'VALIDATION_PENDING', 'DUPLICATE_CHECKED', 'REVIEW_REQUIRED', 'APPROVAL_PENDING', 'APPROVED', 'Pending Review', 'Approved', 'REJECTED', 'Archived'],
+  VALIDATED: ['DUPLICATE_CHECKED', 'APPROVAL_PENDING', 'REVIEW_REQUIRED', 'ACTIVE', 'APPROVED', 'REJECTED', 'DRAFT', 'Draft'],
+  DUPLICATE_CHECKED: ['APPROVAL_PENDING', 'REVIEW_REQUIRED', 'ACTIVE', 'APPROVED', 'REJECTED', 'DRAFT', 'Draft'],
+  APPROVAL_PENDING: ['ACTIVE', 'APPROVED', 'REJECTED', 'DRAFT', 'Draft', 'Pending Review'],
+  VALIDATION_PENDING: ['REVIEW_REQUIRED', 'APPROVED', 'REJECTED', 'DRAFT', 'Draft'],
+  REVIEW_REQUIRED: ['APPROVED', 'ACTIVE', 'REJECTED', 'DRAFT', 'Draft'],
+  APPROVED: ['ACTIVE', 'INACTIVE', 'REJECTED', 'DRAFT', 'Draft', 'Active', 'Inactive', 'Archived', 'SUPERSEDED', 'RETIRED'],
+  ACTIVE: ['INACTIVE', 'SUPERSEDED', 'RETIRED', 'ARCHIVED', 'Inactive', 'Archived'],
+  INACTIVE: ['ACTIVE', 'SUPERSEDED', 'RETIRED', 'ARCHIVED', 'REJECTED', 'Active', 'Archived'],
   RETIRED: [],
-  REJECTED: ['DRAFT'],
+  ARCHIVED: [],
+  REJECTED: ['DRAFT', 'Draft', 'Pending Review'],
   SUPERSEDED: [],
+
+  // Title Case canonical states
+  Draft: ['Pending Review', 'Approved', 'Archived', 'DRAFT', 'VALIDATED', 'REVIEW_REQUIRED', 'APPROVAL_PENDING'],
+  'Pending Review': ['Approved', 'Draft', 'Archived', 'REJECTED', 'DRAFT'],
+  Approved: ['Active', 'Inactive', 'Archived', 'ACTIVE', 'INACTIVE', 'Draft'],
+  Active: ['Inactive', 'Archived', 'INACTIVE', 'RETIRED', 'SUPERSEDED'],
+  Inactive: ['Active', 'Archived', 'ACTIVE', 'RETIRED', 'SUPERSEDED'],
+  Archived: [],
 };
 
 export class MasterDataValidationEngine {

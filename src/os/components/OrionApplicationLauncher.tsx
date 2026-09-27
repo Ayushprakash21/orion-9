@@ -5,11 +5,13 @@ import { Search, X, Play, Square, Grid2X2, List, Settings, Power } from 'lucide-
 import { cn } from '../../lib/utils';
 import { useOrionContextMenu } from '../contextMenu/OrionContextMenuContext';
 import { useAuth } from '../../store/AuthContext';
+import { useSupplyChain } from '../../store/SupplyChainContext';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
 
 export function OrionApplicationLauncher() {
   const { launcherOpen, setLauncherOpen, openApplication, focusApplication, windows, dockPinnedApps, pinToDock, unpinFromDock } = useWindowManager();
   const { isAdmin, currentUser } = useAuth();
+  const { settings, updateSettings } = useSupplyChain();
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>(() => {
     try { return (localStorage.getItem('orion.launcher.viewMode') as 'list' | 'grid') || 'list'; } catch { return 'list'; }
@@ -134,8 +136,96 @@ export function OrionApplicationLauncher() {
                 {filteredApps.map(app => <AppRow key={app.id} app={app} onClick={() => handleOpen(app.id)} isPinned={dockPinnedApps.includes(app.id)} pinToDock={() => pinToDock(app.id)} unpinFromDock={() => unpinFromDock(app.id)} isOpen={!!windows[app.id] && windows[app.id].state !== 'closed'} />)}
               </div>
             )
+          ) : settings.userExperienceMode !== 'ADVANCED' ? (
+            /* Simple Mode: Action-Oriented Primary Apps */
+            <div className="flex flex-col gap-5 pb-6">
+              <div className="flex items-center justify-between px-1">
+                <div>
+                  <h3 className="text-xs font-semibold tracking-wide text-white flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    <span>Simple Mode Navigation</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">8 primary business tasks • Technical SCM complexity managed by Orion</p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => updateSettings({ userExperienceMode: 'ADVANCED' })}
+                  className="text-[11px] font-mono text-purple-400 hover:text-purple-300 underline cursor-pointer"
+                >
+                  Switch to Advanced SCM Mode
+                </button>
+              </div>
+
+              {viewMode === 'grid' ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {[
+                    ORION_REGISTRY['command-center'],
+                    ORION_REGISTRY['buy-workflow'],
+                    ORION_REGISTRY['procurement'],
+                    ORION_REGISTRY['inventory'],
+                    ORION_REGISTRY['shipments'],
+                    ORION_REGISTRY['exceptions'],
+                    ORION_REGISTRY['reports'],
+                    ORION_REGISTRY['orion-ai'],
+                  ].filter(Boolean).map(app => (
+                    <AppGridCard
+                      key={app.id}
+                      app={app}
+                      onClick={() => handleOpen(app.id)}
+                      isPinned={dockPinnedApps.includes(app.id)}
+                      pinToDock={() => pinToDock(app.id)}
+                      unpinFromDock={() => unpinFromDock(app.id)}
+                      isOpen={!!windows[app.id] && windows[app.id].state !== 'closed'}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  {[
+                    ORION_REGISTRY['command-center'],
+                    ORION_REGISTRY['buy-workflow'],
+                    ORION_REGISTRY['procurement'],
+                    ORION_REGISTRY['inventory'],
+                    ORION_REGISTRY['shipments'],
+                    ORION_REGISTRY['exceptions'],
+                    ORION_REGISTRY['reports'],
+                    ORION_REGISTRY['orion-ai'],
+                  ].filter(Boolean).map(app => (
+                    <AppRow
+                      key={app.id}
+                      app={app}
+                      onClick={() => handleOpen(app.id)}
+                      isPinned={dockPinnedApps.includes(app.id)}
+                      pinToDock={() => pinToDock(app.id)}
+                      unpinFromDock={() => unpinFromDock(app.id)}
+                      isOpen={!!windows[app.id] && windows[app.id].state !== 'closed'}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           ) : (
+            /* Advanced Mode: Full Technical SCM Taxonomy */
             <div className="flex flex-col gap-6 pb-6">
+              <div className="flex items-center justify-between px-1">
+                <div>
+                  <h3 className="text-xs font-semibold tracking-wide text-white flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-purple-400" />
+                    <span>Advanced SCM Operating Model</span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Full enterprise command towers, intelligence models, and orchestration centers</p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => updateSettings({ userExperienceMode: 'SIMPLE' })}
+                  className="text-[11px] font-mono text-emerald-400 hover:text-emerald-300 underline cursor-pointer"
+                >
+                  Switch to Simple Mode
+                </button>
+              </div>
+
               {categories.map(category => {
                 const categoryApps = apps.filter(a => a.category === category);
                 if (categoryApps.length === 0) return null;

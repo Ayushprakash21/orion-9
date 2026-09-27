@@ -464,25 +464,38 @@ export class DemoSyntheticDataEngine {
         }
       } catch (err: any) {
         console.error('[DEMO-ENGINE] Firestore write error:', err);
-        errors.push(err?.message || 'Database write warning');
+        errors.push(err?.message || 'Database write error');
       }
     }
 
     const durationMs = Math.round(performance.now() - startTime);
     const completedAt = new Date().toISOString();
+    const isSuccess = errors.length === 0;
 
     const audit: GenerationBatchAudit = {
       generationBatchId,
       environment: 'DEMO',
       generatedBy: 'ORION_PERSISTENT_CLOUD_SCHEDULER',
       generatorVersion: '2.5.0',
-      packageCount: targetPackageCount,
-      recordCounts,
+      packageCount: isSuccess ? targetPackageCount : 0,
+      recordCounts: isSuccess ? recordCounts : {
+        companies: 0,
+        suppliers: 0,
+        customers: 0,
+        products: 0,
+        warehouses: 0,
+        purchaseOrders: 0,
+        shipments: 0,
+        inventoryItems: 0,
+        invoices: 0,
+        exceptions: 0,
+        signals: 0,
+      },
       startedAt,
       completedAt,
       durationMs,
       errors,
-      status: 'COMPLETED',
+      status: isSuccess ? 'COMPLETED' : 'FAILED',
     };
 
     // Save batch audit to DEMO Firestore
@@ -490,10 +503,17 @@ export class DemoSyntheticDataEngine {
       try {
         const auditRef = doc(firestore, 'demo_generation_batches', generationBatchId);
         await setDoc(auditRef, audit, { merge: true });
-      } catch (e) {}
+      } catch (e: any) {
+        console.error('[DEMO-ENGINE] Firestore batch audit write error:', e);
+        errors.push(`Audit write error: ${e?.message}`);
+        audit.status = 'FAILED';
+        audit.errors = errors;
+      }
     }
 
-    this.executedBatchIds.add(generationBatchId);
+    if (isSuccess) {
+      this.executedBatchIds.add(generationBatchId);
+    }
     this.batchHistory.unshift(audit);
 
     if (this.batchHistory.length > 100) {

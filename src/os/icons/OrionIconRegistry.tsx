@@ -25,7 +25,8 @@ import {
   IconOutboundExecution,
   IconDeliveryPod,
   IconWarrantyService,
-  IconSupplierCollaboration
+  IconSupplierCollaboration,
+  IconBuyWorkflow
 } from './icons/OperationsIcons';
 
 import {
@@ -264,6 +265,15 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     description: 'Central supply chain control tower and multi-domain observability.',
     palette: { from: '#0F2027', to: '#203A43', accent: '#00F2FE', surface: '#00F2FE15' },
     component: IconCommandCenter
+  },
+  'buy-workflow': {
+    appId: 'buy-workflow',
+    iconId: 'icon-buy-workflow',
+    name: 'Buy Something',
+    category: 'Operations',
+    description: 'Simple guided 5-step purchasing workflow for business users.',
+    palette: { from: '#10B981', to: '#047857', accent: '#34D399', surface: '#34D39915' },
+    component: IconBuyWorkflow
   },
   'inventory': {
     appId: 'inventory',

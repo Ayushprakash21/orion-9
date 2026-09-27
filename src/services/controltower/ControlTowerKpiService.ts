@@ -15,6 +15,8 @@ import {
 } from './types';
 import { getFirebaseFirestore } from '../../lib/firebaseClient';
 import { doc, setDoc, Firestore } from 'firebase/firestore';
+import { realtimeSubscriptionManager } from '../../core/visualization/RealtimeSubscriptionManager';
+import { dbManager } from '../../core/database/DatabaseConnectionManager';
 
 export class ControlTowerKpiService {
   private static instance: ControlTowerKpiService;
@@ -42,6 +44,16 @@ export class ControlTowerKpiService {
    * Compute all governed KPIs for a given tenant across all 17 operational domains.
    */
   public async computeDomainKpis(tenantId: string): Promise<GovernedKpiRecord[]> {
+    const env = dbManager.getEnvironment();
+
+    const rtPos = realtimeSubscriptionManager.getDomainData('purchase_orders', tenantId, env);
+    const rtShipments = realtimeSubscriptionManager.getDomainData('shipments', tenantId, env);
+    const rtInventory = realtimeSubscriptionManager.getDomainData('inventory', tenantId, env);
+    const rtSuppliers = realtimeSubscriptionManager.getDomainData('suppliers', tenantId, env);
+    const rtInspections = realtimeSubscriptionManager.getDomainData('quality_inspections', tenantId, env);
+    const rtInvoices = realtimeSubscriptionManager.getDomainData('invoices', tenantId, env);
+    const rtCustomerOrders = realtimeSubscriptionManager.getDomainData('customer_orders', tenantId, env);
+
     const [
       pos,
       shipments,
@@ -52,13 +64,13 @@ export class ControlTowerKpiService {
       customerOrders,
       asns,
     ] = await Promise.all([
-      this.persistence.listRecords<any>('purchase_orders', tenantId),
-      this.persistence.listRecords<any>('shipments', tenantId),
-      this.persistence.listRecords<any>('inventory', tenantId),
-      this.persistence.listRecords<any>('suppliers', tenantId),
-      this.persistence.listRecords<any>('quality_inspections', tenantId),
-      this.persistence.listRecords<any>('invoices', tenantId),
-      this.persistence.listRecords<any>('customer_orders', tenantId),
+      rtPos.length > 0 ? rtPos : this.persistence.listRecords<any>('purchase_orders', tenantId),
+      rtShipments.length > 0 ? rtShipments : this.persistence.listRecords<any>('shipments', tenantId),
+      rtInventory.length > 0 ? rtInventory : this.persistence.listRecords<any>('inventory', tenantId),
+      rtSuppliers.length > 0 ? rtSuppliers : this.persistence.listRecords<any>('suppliers', tenantId),
+      rtInspections.length > 0 ? rtInspections : this.persistence.listRecords<any>('quality_inspections', tenantId),
+      rtInvoices.length > 0 ? rtInvoices : this.persistence.listRecords<any>('invoices', tenantId),
+      rtCustomerOrders.length > 0 ? rtCustomerOrders : this.persistence.listRecords<any>('customer_orders', tenantId),
       this.persistence.listRecords<any>('asns', tenantId),
     ]);
 

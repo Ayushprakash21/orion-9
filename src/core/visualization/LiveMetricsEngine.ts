@@ -12,6 +12,7 @@ import { ScmPersistenceService } from '../../services/scm/ScmPersistenceService'
 import { dataEngine } from '../data/DataEngine';
 import { DatabaseEnvironmentMode } from '../database/DatabaseEnvironment';
 import { dbManager } from '../database/DatabaseConnectionManager';
+import { realtimeSubscriptionManager } from './RealtimeSubscriptionManager';
 
 export type MetricValueStatus = 'LIVE' | 'DEMO' | 'STALE' | 'NO_DATA' | 'INTEGRATION_BOUNDARY';
 
@@ -81,7 +82,17 @@ export class LiveMetricsEngine {
     const baseStatus: MetricValueStatus = env === 'LIVE' ? 'LIVE' : 'DEMO';
 
     try {
-      // 1. Fetch transactional data for this tenant
+      // 1. Check real-time subscription manager in-memory cache first
+      const rtPos = realtimeSubscriptionManager.getDomainData('purchase_orders', tenantId, env);
+      const rtShipments = realtimeSubscriptionManager.getDomainData('shipments', tenantId, env);
+      const rtInventory = realtimeSubscriptionManager.getDomainData('inventory', tenantId, env);
+      const rtSuppliers = realtimeSubscriptionManager.getDomainData('suppliers', tenantId, env);
+      const rtInspections = realtimeSubscriptionManager.getDomainData('quality_inspections', tenantId, env);
+      const rtInvoices = realtimeSubscriptionManager.getDomainData('invoices', tenantId, env);
+      const rtCustomerOrders = realtimeSubscriptionManager.getDomainData('customer_orders', tenantId, env);
+      const rtExceptions = realtimeSubscriptionManager.getDomainData('exceptions', tenantId, env);
+
+      // 2. Fetch transactional data for this tenant if not yet in real-time store
       const [
         pos,
         shipments,
@@ -92,14 +103,14 @@ export class LiveMetricsEngine {
         customerOrders,
         exceptions
       ] = await Promise.all([
-        this.persistence.listRecords<any>('purchase_orders', tenantId),
-        this.persistence.listRecords<any>('shipments', tenantId),
-        this.persistence.listRecords<any>('inventory', tenantId),
-        this.persistence.listRecords<any>('suppliers', tenantId),
-        this.persistence.listRecords<any>('quality_inspections', tenantId),
-        this.persistence.listRecords<any>('invoices', tenantId),
-        this.persistence.listRecords<any>('customer_orders', tenantId),
-        this.persistence.listRecords<any>('exceptions', tenantId),
+        rtPos.length > 0 ? rtPos : this.persistence.listRecords<any>('purchase_orders', tenantId),
+        rtShipments.length > 0 ? rtShipments : this.persistence.listRecords<any>('shipments', tenantId),
+        rtInventory.length > 0 ? rtInventory : this.persistence.listRecords<any>('inventory', tenantId),
+        rtSuppliers.length > 0 ? rtSuppliers : this.persistence.listRecords<any>('suppliers', tenantId),
+        rtInspections.length > 0 ? rtInspections : this.persistence.listRecords<any>('quality_inspections', tenantId),
+        rtInvoices.length > 0 ? rtInvoices : this.persistence.listRecords<any>('invoices', tenantId),
+        rtCustomerOrders.length > 0 ? rtCustomerOrders : this.persistence.listRecords<any>('customer_orders', tenantId),
+        rtExceptions.length > 0 ? rtExceptions : this.persistence.listRecords<any>('exceptions', tenantId),
       ]);
 
       // Fallback to in-memory DataEngine in DEMO ONLY for default/demo test tenants
@@ -283,6 +294,48 @@ export class LiveMetricsEngine {
             unit: def.unit,
             status: safeShipments.length > 0 ? baseStatus : 'NO_DATA',
             trend: 'STABLE',
+            calculatedAt: now,
+            source: def.source,
+            sampleCount: safeShipments.length,
+          };
+        }
+
+        case 'IN_TRANSIT_VALUE': {
+          const inTransitShipments = safeShipments.filter(s => s.status === 'IN_TRANSIT' || s.status === 'In Transit' || s.status === 'SHIPPED');
+          const totalInTransit = inTransitShipments.reduce((sum, s) => sum + (s.declaredValue || s.value || s.totalValue || 0), 0);
+          return {
+            metricId,
+            tenantId,
+            environment: env,
+            name: def.name,
+            domain: def.domain,
+            value: Math.round(totalInTransit),
+            unit: def.unit,
+            status: safeShipments.length > 0 ? baseStatus : 'NO_DATA',
+            trend: 'STABLE',
+            calculatedAt: now,
+            source: def.source,
+            sampleCount: safeShipments.length,
+          };
+        }
+
+        case 'ON_TIME_TRANSIT_RATE': {
+          if (safeShipments.length === 0) {
+            return this.createNoDataValue(def, tenantId, env, 'No shipments recorded for tenant');
+          }
+          const onTimeShipments = safeShipments.filter(s => (!s.delayDays || s.delayDays === 0) && s.status !== 'Delayed');
+          const otRate = (onTimeShipments.length / safeShipments.length) * 100;
+          return {
+            metricId,
+            tenantId,
+            environment: env,
+            name: def.name,
+            domain: def.domain,
+            value: parseFloat(otRate.toFixed(1)),
+            targetValue: 95.0,
+            unit: def.unit,
+            status: baseStatus,
+            trend: otRate >= 90 ? 'UP' : 'DOWN',
             calculatedAt: now,
             source: def.source,
             sampleCount: safeShipments.length,

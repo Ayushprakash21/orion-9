@@ -7,6 +7,8 @@ import { useBranding } from '../../store/BrandingContext';
 import { LogOut, Settings, Monitor, Activity, Lock, RefreshCw, Moon, ChevronRight, XSquare } from 'lucide-react';
 import { ORION_REGISTRY } from '../OrionApplicationRegistry';
 import { useI18n } from '../../store/LanguageContext';
+import { useSupplyChain } from '../../store/SupplyChainContext';
+import { cn } from '../../lib/utils';
 
 interface OrionSystemMenuProps {
   onClose: () => void;
@@ -16,6 +18,7 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
   const { branding } = useBranding();
   const appName = branding.appName || 'ORION-9';
   const { t } = useI18n();
+  const { settings, updateSettings } = useSupplyChain();
   
   const { logout, triggerRestart, triggerSleep, triggerLock, currentUser } = useAuth();
   const { setLauncherOpen, windows, openApplication, focusApplication, closeAllWindows } = useWindowManager();
@@ -59,6 +62,38 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
       >
         {t('desktop.aboutOrion')}
       </button>
+      
+      {/* Operating UX Mode Switcher */}
+      <div className="px-4 py-2 bg-white/[0.02] border-y border-white/[0.04]">
+        <div className="text-[10px] font-mono text-os-text-muted uppercase tracking-wider mb-1.5 flex justify-between items-center">
+          <span>Operating Mode</span>
+          <span className={cn("font-bold text-[10px]", settings.userExperienceMode === 'ADVANCED' ? "text-purple-400" : "text-emerald-400")}>
+            {settings.userExperienceMode === 'ADVANCED' ? 'ADVANCED SCM' : 'SIMPLE MODE'}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-1 p-0.5 bg-black/40 rounded-lg border border-os-border text-[11px] font-mono">
+          <button
+            type="button"
+            onClick={() => handleAction(() => updateSettings({ userExperienceMode: 'SIMPLE' }))}
+            className={cn(
+              "px-2 py-1 rounded-md transition-all cursor-pointer text-center font-medium",
+              settings.userExperienceMode !== 'ADVANCED' ? "bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30" : "text-os-text-muted hover:text-white"
+            )}
+          >
+            Simple
+          </button>
+          <button
+            type="button"
+            onClick={() => handleAction(() => updateSettings({ userExperienceMode: 'ADVANCED' }))}
+            className={cn(
+              "px-2 py-1 rounded-md transition-all cursor-pointer text-center font-medium",
+              settings.userExperienceMode === 'ADVANCED' ? "bg-purple-500/20 text-purple-400 font-bold border border-purple-500/30" : "text-os-text-muted hover:text-white"
+            )}
+          >
+            Advanced
+          </button>
+        </div>
+      </div>
       
       <div className="h-px bg-white/[0.06] my-1.5 mx-2" />
       
