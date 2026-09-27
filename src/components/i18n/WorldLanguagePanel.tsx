@@ -82,7 +82,7 @@ export const WorldLanguagePanel: React.FC<WorldLanguagePanelProps> = ({
       role="dialog"
       aria-label="World Languages"
       data-testid="world-language-panel"
-      className="absolute right-0 top-full mt-2 w-80 sm:w-96 max-h-[480px] flex flex-col bg-[#090d16]/95 border border-white/15 rounded-2xl shadow-2xl backdrop-blur-2xl z-50 text-xs overflow-hidden animate-fadeIn"
+      className="absolute right-0 top-full mt-2 w-80 sm:w-96 max-w-[calc(100vw-1.5rem)] max-h-[80dvh] sm:max-h-[480px] flex flex-col bg-[#090d16]/95 border border-white/15 rounded-2xl shadow-2xl backdrop-blur-2xl z-50 text-xs overflow-hidden animate-fadeIn"
     >
       {/* Header with Title & Search Input */}
       <div className="p-3.5 border-b border-white/10 space-y-2.5 bg-white/[0.02]">
