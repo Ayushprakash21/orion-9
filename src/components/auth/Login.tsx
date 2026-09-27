@@ -42,18 +42,16 @@ export interface LanguageOption {
   nativeName: string;
 }
 
+// Derived strictly from central authoritative i18n registry
 export const SUPPORTED_LANGUAGES: LanguageOption[] = Object.values(SUPPORTED_LOCALES).map(l => ({
   code: l.code,
   name: l.name,
   nativeName: l.nativeName,
 }));
 
-export const AUTH_TRANSLATIONS: Record<string, Record<string, string>> = {
-  en: TRANSLATIONS.en.auth,
-  hi: TRANSLATIONS.hi.auth,
-  es: TRANSLATIONS.es.auth,
-  de: TRANSLATIONS.de.auth,
-};
+export const AUTH_TRANSLATIONS: Record<string, Record<string, string>> = Object.fromEntries(
+  Object.entries(TRANSLATIONS).map(([k, v]) => [k, v.auth || TRANSLATIONS.en.auth])
+);
 
 export const Login: React.FC = () => {
   const { login, triggerShutdown, triggerRestart, triggerLock, signOut } = useAuth();

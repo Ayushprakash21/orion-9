@@ -21,6 +21,8 @@ import { validateAllLocales } from './validation';
 
 export * from './types';
 export * from './validation';
+export * from './languagePack';
+export * from './LanguagePackService';
 
 export const TRANSLATIONS: Record<string, TranslationSchema> = {
   en,
