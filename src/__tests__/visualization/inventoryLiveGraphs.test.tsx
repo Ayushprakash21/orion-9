@@ -7,6 +7,7 @@ import { AuthProvider } from '../../store/AuthContext';
 import { ToastProvider } from '../../store/ToastContext';
 import { OrionSearchProvider } from '../../os/OrionSearchContext';
 import { EntityDrawerProvider } from '../../store/EntityDrawerContext';
+import { OrionContextMenuProvider } from '../../os/contextMenu/OrionContextMenuContext';
 import { MemoryRouter } from 'react-router-dom';
 import * as visualizationModule from '../../core/visualization/useLiveChartSeries';
 
@@ -18,6 +19,12 @@ vi.mock('recharts', async () => {
     ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container">{children}</div>,
   };
 });
+
+vi.mock('../../os/contextMenu/useEntityContextMenu', () => ({
+  useEntityContextMenu: () => ({
+    openInventoryContextMenu: vi.fn(),
+  }),
+}));
 
 describe('Inventory Real-Time Live Graphs', () => {
   beforeEach(() => {
@@ -32,11 +39,13 @@ describe('Inventory Real-Time Live Graphs', () => {
         <AuthProvider>
           <SupplyChainProvider>
             <ToastProvider>
-              <OrionSearchProvider>
-                <EntityDrawerProvider>
-                  <Inventory />
-                </EntityDrawerProvider>
-              </OrionSearchProvider>
+              <OrionContextMenuProvider>
+                <OrionSearchProvider>
+                  <EntityDrawerProvider>
+                    <Inventory />
+                  </EntityDrawerProvider>
+                </OrionSearchProvider>
+              </OrionContextMenuProvider>
             </ToastProvider>
           </SupplyChainProvider>
         </AuthProvider>
