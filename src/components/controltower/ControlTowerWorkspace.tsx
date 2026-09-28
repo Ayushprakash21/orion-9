@@ -22,6 +22,7 @@ import { exceptionWorkbenchService } from '../../services/controltower/Exception
 import { controlTowerRiskIntegrator } from '../../services/controltower/ControlTowerRiskIntegrator';
 import { realtimeSubscriptionManager, TruthfulConnectionState, ControlTowerRealtimeState } from '../../core/visualization';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
+import { SystemStatusModal } from '../modals/SystemStatusModal';
 import { 
   ShieldAlert, Activity, CheckCircle2, AlertTriangle, 
   Layers, BrainCircuit, ArrowRight, Zap, Target, Truck, 
@@ -72,6 +73,7 @@ export const ControlTowerWorkspace: React.FC = () => {
   const [executingAction, setExecutingAction] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<TruthfulConnectionState>('LOADING');
+  const [statusModalOpen, setStatusOpen] = useState<boolean>(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -285,21 +287,26 @@ export const ControlTowerWorkspace: React.FC = () => {
         </div>
 
         <div className="flex flex-col justify-center items-end gap-1.5">
-          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono border ${
-            connectionStatus === 'CONNECTED' ? 'bg-emerald-950/80 text-emerald-400 border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.2)]' :
-            connectionStatus === 'LOADING' ? 'bg-blue-950/80 text-blue-400 border-blue-500/50' :
-            connectionStatus === 'STALE' ? 'bg-purple-950/80 text-purple-400 border-purple-500/50' :
-            connectionStatus === 'EMPTY' ? 'bg-slate-900 text-slate-400 border-slate-700' :
-            connectionStatus === 'ERROR' ? 'bg-red-950/80 text-red-400 border-red-500/50' :
-            'bg-slate-900 text-slate-400 border-slate-700'
-          }`}>
+          <button
+            onClick={() => setStatusOpen(true)}
+            title="Inspect Orion-9 System Status Fabric"
+            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-mono border hover:brightness-110 cursor-pointer transition-all ${
+              connectionStatus === 'CONNECTED' ? 'bg-emerald-950/80 text-emerald-400 border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.2)]' :
+              connectionStatus === 'LOADING' ? 'bg-blue-950/80 text-blue-400 border-blue-500/50' :
+              connectionStatus === 'STALE' ? 'bg-purple-950/80 text-purple-400 border-purple-500/50' :
+              connectionStatus === 'EMPTY' ? 'bg-slate-900 text-slate-400 border-slate-700' :
+              connectionStatus === 'ERROR' ? 'bg-red-950/80 text-red-400 border-red-500/50' :
+              'bg-slate-900 text-slate-400 border-slate-700'
+            }`}
+          >
             <span className={`w-1.5 h-1.5 rounded-full ${
               connectionStatus === 'CONNECTED' ? 'bg-emerald-400 animate-pulse' :
               connectionStatus === 'LOADING' ? 'bg-blue-400 animate-pulse' :
               connectionStatus === 'ERROR' ? 'bg-red-400' : 'bg-slate-400'
             }`} />
-            {connectionStatus}
-          </span>
+            <span>{connectionStatus}</span>
+            <span className="text-[9px] text-os-text-muted">↗</span>
+          </button>
           <button 
             onClick={loadControlTowerData}
             disabled={loading}
@@ -534,6 +541,8 @@ export const ControlTowerWorkspace: React.FC = () => {
         </div>
       </div>
 
+      {/* System Status & Subsystems Diagnostics Modal */}
+      <SystemStatusModal isOpen={statusModalOpen} onClose={() => setStatusOpen(false)} />
     </div>
   );
 };
