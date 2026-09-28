@@ -14,12 +14,25 @@ import {
   formatNumber,
   formatCurrency,
   isValidLocale,
+  languageService,
+  LanguagePackService,
+  LanguagePackEntry,
+  LanguagePackManifest,
+  OrionLanguagePack,
+  LanguagePackStatus,
+  OrganizationLanguagePolicy,
+  DEFAULT_ORG_LANGUAGE_POLICY,
 } from '../i18n';
 
 export type {
   SupportedLocale,
   SupportedLanguage,
   LocaleInfo,
+  LanguagePackEntry,
+  LanguagePackManifest,
+  OrionLanguagePack,
+  LanguagePackStatus,
+  OrganizationLanguagePolicy,
 };
 
 export {
@@ -34,6 +47,8 @@ export {
   formatNumber,
   formatCurrency,
   isValidLocale,
+  languageService,
+  DEFAULT_ORG_LANGUAGE_POLICY,
 };
 
 export interface I18nContextType {
@@ -44,8 +59,17 @@ export interface I18nContextType {
   setUserPreferredLanguage: (lang: SupportedLocale, userId?: string) => void;
   setOrganizationDefaultLanguage: (lang: SupportedLocale) => void;
   t: (key: string, params?: Record<string, string | number>) => string;
-  dir: 'ltr';
+  dir: 'ltr' | 'rtl';
   languages: LocaleInfo[];
+  installedLanguages: LanguagePackEntry[];
+  availableLanguages: LanguagePackManifest[];
+  activeLanguagePack: OrionLanguagePack | null;
+  installLanguagePack: (locale: string) => Promise<{ success: boolean; message?: string }>;
+  uninstallLanguagePack: (locale: string) => Promise<{ success: boolean; message?: string }>;
+  installLanguagePackFromFile: (content: string | object) => Promise<{ success: boolean; locale?: string; error?: string }>;
+  updateLanguagePack: (locale: string) => Promise<{ success: boolean; message?: string }>;
+  organizationPolicy: OrganizationLanguagePolicy;
+  setOrganizationPolicy: (policy: Partial<OrganizationLanguagePolicy>) => void;
   formatDate: (date: Date | string | number, options?: Intl.DateTimeFormatOptions) => string;
   formatTime: (date: Date | string | number, options?: Intl.DateTimeFormatOptions) => string;
   formatDateTime: (date: Date | string | number, options?: Intl.DateTimeFormatOptions) => string;
@@ -60,9 +84,18 @@ const defaultI18nContext: I18nContextType = {
   setLanguage: () => {},
   setUserPreferredLanguage: () => {},
   setOrganizationDefaultLanguage: () => {},
-  t: (key: string, params?: Record<string, string | number>) => getTranslation('en', key, params),
+  t: (key: string, params?: Record<string, string | number>) => languageService.getTranslation('en', key, params),
   dir: 'ltr',
   languages: Object.values(SUPPORTED_LOCALES),
+  installedLanguages: [],
+  availableLanguages: [],
+  activeLanguagePack: null,
+  installLanguagePack: async () => ({ success: true }),
+  uninstallLanguagePack: async () => ({ success: true }),
+  installLanguagePackFromFile: async () => ({ success: true }),
+  updateLanguagePack: async () => ({ success: true }),
+  organizationPolicy: DEFAULT_ORG_LANGUAGE_POLICY,
+  setOrganizationPolicy: () => {},
   formatDate: (d) => String(d),
   formatTime: (d) => String(d),
   formatDateTime: (d) => String(d),
@@ -74,42 +107,42 @@ const LanguageContext = createContext<I18nContextType>(defaultI18nContext);
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [locale, setLocaleState] = useState<SupportedLocale>(() => {
-    return resolveInitialLocale();
+    return languageService.getActiveLanguage() || resolveInitialLocale();
   });
 
-  // Apply DOM language & direction attributes
-  const applyHtmlAttributes = useCallback((loc: SupportedLocale) => {
-    if (typeof document !== 'undefined' && document.documentElement) {
-      document.documentElement.lang = loc;
-      document.documentElement.dir = 'ltr';
-    }
+  const [installedLanguages, setInstalledLanguages] = useState<LanguagePackEntry[]>(() => {
+    return languageService.listInstalledLanguages();
+  });
+
+  const [availableLanguages, setAvailableLanguages] = useState<LanguagePackManifest[]>(() => {
+    return languageService.listAvailableLanguages();
+  });
+
+  const [organizationPolicy, setOrganizationPolicyState] = useState<OrganizationLanguagePolicy>(() => {
+    return languageService.getOrganizationPolicy();
+  });
+
+  // Sync state when LanguageService triggers updates
+  useEffect(() => {
+    const syncState = () => {
+      setLocaleState(languageService.getActiveLanguage());
+      setInstalledLanguages(languageService.listInstalledLanguages());
+      setAvailableLanguages(languageService.listAvailableLanguages());
+      setOrganizationPolicyState(languageService.getOrganizationPolicy());
+    };
+
+    const unsubscribe = languageService.addListener(syncState);
+    return () => unsubscribe();
   }, []);
 
   // Update locale and broadcast changes
-  const setLocale = useCallback((newLocale: SupportedLocale) => {
+  const setLocale = useCallback(async (newLocale: SupportedLocale) => {
     if (!isValidLocale(newLocale)) return;
-    setLocaleState(newLocale);
-
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem(LOCALE_STORAGE_KEYS.PRE_LOGIN, newLocale);
-        localStorage.setItem(LOCALE_STORAGE_KEYS.GLOBAL, newLocale);
-        sessionStorage.setItem(LOCALE_STORAGE_KEYS.PRE_LOGIN, newLocale);
-        sessionStorage.setItem(LOCALE_STORAGE_KEYS.GLOBAL, newLocale);
-      } catch (e) {
-        // Storage access might be restricted
-      }
-
-      applyHtmlAttributes(newLocale);
-
-      window.dispatchEvent(
-        new CustomEvent('orion-locale-changed', { detail: { locale: newLocale } })
-      );
-      window.dispatchEvent(
-        new CustomEvent('orion-language-changed', { detail: { language: newLocale } })
-      );
+    const success = await languageService.setActiveLanguage(newLocale);
+    if (success) {
+      setLocaleState(newLocale);
     }
-  }, [applyHtmlAttributes]);
+  }, []);
 
   // Set explicit user preference
   const setUserPreferredLanguage = useCallback((newLocale: SupportedLocale, userId?: string) => {
@@ -128,11 +161,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Set organization default language
   const setOrganizationDefaultLanguage = useCallback((orgLocale: SupportedLocale) => {
     if (!isValidLocale(orgLocale)) return;
-    if (typeof localStorage !== 'undefined') {
-      try {
-        localStorage.setItem(LOCALE_STORAGE_KEYS.ORG_DEFAULT, orgLocale);
-      } catch (e) {}
-    }
+    languageService.setOrganizationPolicy({ defaultLanguage: orgLocale });
 
     // Only switch the active locale if user has NOT explicitly selected a personal preference
     const hasExplicit = typeof localStorage !== 'undefined' && localStorage.getItem('orion_user_has_explicit_language') === 'true';
@@ -141,34 +170,47 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [setLocale]);
 
-  // Sync on mount and listen to window events
-  useEffect(() => {
-    applyHtmlAttributes(locale);
+  // Language pack operations
+  const installLanguagePack = useCallback(async (loc: string) => {
+    return languageService.installLanguagePack(loc);
+  }, []);
 
-    const handleLocaleEvent = (e: any) => {
-      const incoming = e.detail?.locale || e.detail?.language;
-      if (isValidLocale(incoming) && incoming !== locale) {
-        setLocaleState(incoming);
-        applyHtmlAttributes(incoming);
-      }
-    };
+  const uninstallLanguagePack = useCallback(async (loc: string) => {
+    return languageService.uninstallLanguagePack(loc);
+  }, []);
 
-    window.addEventListener('orion-locale-changed', handleLocaleEvent);
-    window.addEventListener('orion-language-changed', handleLocaleEvent);
+  const installLanguagePackFromFile = useCallback(async (content: string | object) => {
+    return languageService.installLanguagePackFromFile(content);
+  }, []);
 
-    return () => {
-      window.removeEventListener('orion-locale-changed', handleLocaleEvent);
-      window.removeEventListener('orion-language-changed', handleLocaleEvent);
-    };
-  }, [locale, applyHtmlAttributes]);
+  const updateLanguagePack = useCallback(async (loc: string) => {
+    return languageService.updateLanguagePack(loc);
+  }, []);
 
-  // Translation function wrapper
+  const setOrganizationPolicy = useCallback((newPolicy: Partial<OrganizationLanguagePolicy>) => {
+    languageService.setOrganizationPolicy(newPolicy);
+    setOrganizationPolicyState(languageService.getOrganizationPolicy());
+  }, []);
+
+  // Translation function wrapper with fallback
   const t = useCallback(
     (key: string, params?: Record<string, string | number>): string => {
-      return getTranslation(locale, key, params);
+      return languageService.getTranslation(locale, key, params);
     },
     [locale]
   );
+
+  const currentDir = useMemo((): 'ltr' | 'rtl' => {
+    return languageService.getDirection(locale);
+  }, [locale]);
+
+  const activeLanguagePack = useMemo((): OrionLanguagePack | null => {
+    return languageService.getLanguagePack(locale);
+  }, [locale, installedLanguages]);
+
+  const allLocaleInfos = useMemo((): LocaleInfo[] => {
+    return Object.values(SUPPORTED_LOCALES);
+  }, [installedLanguages]);
 
   const contextValue: I18nContextType = useMemo(
     () => ({
@@ -179,15 +221,41 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setUserPreferredLanguage,
       setOrganizationDefaultLanguage,
       t,
-      dir: 'ltr' as const,
-      languages: Object.values(SUPPORTED_LOCALES),
+      dir: currentDir,
+      languages: allLocaleInfos,
+      installedLanguages,
+      availableLanguages,
+      activeLanguagePack,
+      installLanguagePack,
+      uninstallLanguagePack,
+      installLanguagePackFromFile,
+      updateLanguagePack,
+      organizationPolicy,
+      setOrganizationPolicy,
       formatDate: (d, opts) => formatDate(d, locale, opts),
       formatTime: (d, opts) => formatTime(d, locale, opts),
       formatDateTime: (d, opts) => formatDateTime(d, locale, opts),
       formatNumber: (n, opts) => formatNumber(n, locale, opts),
       formatCurrency: (a, cur) => formatCurrency(a, locale, cur),
     }),
-    [locale, setLocale, setUserPreferredLanguage, setOrganizationDefaultLanguage, t]
+    [
+      locale,
+      setLocale,
+      setUserPreferredLanguage,
+      setOrganizationDefaultLanguage,
+      t,
+      currentDir,
+      allLocaleInfos,
+      installedLanguages,
+      availableLanguages,
+      activeLanguagePack,
+      installLanguagePack,
+      uninstallLanguagePack,
+      installLanguagePackFromFile,
+      updateLanguagePack,
+      organizationPolicy,
+      setOrganizationPolicy,
+    ]
   );
 
   return (

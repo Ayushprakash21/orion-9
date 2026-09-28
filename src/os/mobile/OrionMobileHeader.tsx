@@ -1,26 +1,29 @@
 import React, { useState } from 'react';
 import { useMobileNavigation } from './OrionMobileNavigation';
 import { useAuth } from '../../store/AuthContext';
+import { useSupplyChain } from '../../store/SupplyChainContext';
 import { useNotifications } from '../../store/NotificationContext';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
-import { Bell, User, ChevronLeft, ShieldCheck, Database, LogOut, Settings as SettingsIcon } from 'lucide-react';
+import { Bell, User, ChevronLeft, ShieldCheck, Database, LogOut, Settings as SettingsIcon, SlidersHorizontal } from 'lucide-react';
 import { OrionMark } from '../../components/brand/OrionLogo';
 import { NotificationCenter } from '../../components/modals/NotificationCenter';
 
 export const OrionMobileHeader: React.FC = () => {
   const { activeTab, activeApp, closeApp, navigateToTab } = useMobileNavigation();
   const { currentUser, signOut } = useAuth();
+  const { settings, updateSettings } = useSupplyChain();
   const { notifications, unreadCount } = useNotifications();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
+  const isAdvancedMode = settings.userExperienceMode === 'ADVANCED';
   const environment = dbManager.getEnvironment();
   const isLive = environment === 'LIVE';
 
   // Determine current screen title
   let displayTitle = 'ORION HOME';
   if (activeTab === 'home') displayTitle = 'ORION HOME';
-  else if (activeTab === 'control') displayTitle = 'CONTROL TOWER';
+  else if (activeTab === 'control') displayTitle = 'ORION CONTROL TOWER';
   else if (activeTab === 'ai') displayTitle = 'ORION AI';
   else if (activeTab === 'alerts') displayTitle = 'ALERTS & RISKS';
   else if (activeTab === 'apps') displayTitle = 'ALL APPLICATIONS';
@@ -34,11 +37,11 @@ export const OrionMobileHeader: React.FC = () => {
           {activeTab === 'app_view' ? (
             <button
               onClick={closeApp}
-              className="flex items-center gap-1 py-1.5 px-2 -ml-1 rounded-lg bg-os-surface-secondary text-os-text-primary active:bg-os-surface-hover text-xs font-mono font-medium border border-os-border transition-colors touch-manipulation min-h-[44px] min-w-[44px] justify-center"
+              className="flex items-center gap-1 py-1.5 px-2.5 -ml-1 rounded-lg bg-os-surface-secondary text-os-text-primary active:bg-os-surface-hover text-xs font-mono font-medium border border-os-border transition-colors touch-manipulation min-h-[44px] justify-center"
               aria-label="Back to Applications"
             >
               <ChevronLeft size={16} />
-              <span className="hidden xs:inline">Back</span>
+              <span>Apps</span>
             </button>
           ) : (
             <button 
@@ -58,10 +61,31 @@ export const OrionMobileHeader: React.FC = () => {
           <h1 className="text-xs font-mono font-bold tracking-wider text-os-text-primary truncate uppercase">
             {displayTitle}
           </h1>
+          {activeTab === 'app_view' && activeApp && (
+            <p className="text-[10px] font-mono text-os-text-muted uppercase truncate">
+              {activeApp.category} • MOBILE
+            </p>
+          )}
         </div>
 
-        {/* RIGHT: Live/Demo Indicator + Notifications + Profile */}
+        {/* RIGHT: Mode Switcher + Live/Demo + Notifications + Profile */}
         <div className="flex items-center gap-1.5 shrink-0">
+          {/* User Experience Mode Switcher (Simple <-> Advanced) */}
+          <button
+            onClick={() => updateSettings({
+              userExperienceMode: isAdvancedMode ? 'SIMPLE' : 'ADVANCED'
+            })}
+            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-mono font-semibold border transition-colors touch-manipulation cursor-pointer min-h-[36px] ${
+              isAdvancedMode
+                ? 'bg-purple-500/15 text-purple-400 border-purple-500/30 active:bg-purple-500/25'
+                : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30 active:bg-emerald-500/25'
+            }`}
+            title={`Current: ${isAdvancedMode ? 'ADVANCED' : 'SIMPLE'} Mode. Tap to switch.`}
+            aria-label={`Switch to ${isAdvancedMode ? 'Simple' : 'Advanced'} Mode`}
+          >
+            <span>{isAdvancedMode ? 'ADV' : 'SMPL'}</span>
+          </button>
+
           {/* Environment Indicator Badge */}
           <div 
             className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-mono font-semibold border ${
@@ -139,6 +163,38 @@ export const OrionMobileHeader: React.FC = () => {
               <div className="text-[10px] text-os-text-muted truncate">{currentUser?.email}</div>
               <div className="mt-1 inline-block px-1.5 py-0.5 rounded bg-os-surface-secondary text-[9px] text-os-accent font-semibold uppercase">
                 {currentUser?.role || 'User'}
+              </div>
+            </div>
+
+            {/* Experience Mode Selector in Profile Menu */}
+            <div className="py-2 border-b border-os-border">
+              <div className="text-[10px] text-os-text-muted uppercase mb-1.5 flex items-center justify-between">
+                <span>UX Experience Mode</span>
+                <span className="text-os-accent font-semibold">{isAdvancedMode ? 'ADVANCED' : 'SIMPLE'}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 bg-os-surface-secondary p-1 rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => updateSettings({ userExperienceMode: 'SIMPLE' })}
+                  className={`py-1.5 px-2 rounded text-center text-[10px] font-semibold transition-all cursor-pointer ${
+                    !isAdvancedMode
+                      ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-xs'
+                      : 'text-os-text-muted hover:text-os-text-primary'
+                  }`}
+                >
+                  Simple
+                </button>
+                <button
+                  type="button"
+                  onClick={() => updateSettings({ userExperienceMode: 'ADVANCED' })}
+                  className={`py-1.5 px-2 rounded text-center text-[10px] font-semibold transition-all cursor-pointer ${
+                    isAdvancedMode
+                      ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40 shadow-xs'
+                      : 'text-os-text-muted hover:text-os-text-primary'
+                  }`}
+                >
+                  Advanced
+                </button>
               </div>
             </div>
 

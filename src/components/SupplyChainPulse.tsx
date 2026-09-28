@@ -2,30 +2,25 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
 } from 'recharts';
-import { BrainCircuit, Activity, Clock, FileText, Package, AlertCircle, X, ArrowRight } from 'lucide-react';
+import { BrainCircuit, Activity, Clock, FileText, Package, AlertCircle, X, ArrowRight, Radio } from 'lucide-react';
 import { useSupplyChain } from '../store/SupplyChainContext';
 import { useEntityDrawer } from '../store/EntityDrawerContext';
+import { realtimeSubscriptionManager } from '../core/visualization';
+import { dbManager } from '../core/database/DatabaseConnectionManager';
 import { format, subHours, subDays, isAfter } from 'date-fns';
 
 export const SupplyChainPulse: React.FC = () => {
-  const { inventory, purchaseOrders, shipments, exceptions, dataMode } = useSupplyChain();
+  const { inventory, purchaseOrders, shipments, exceptions, dataMode, userProfile, organizationProfile } = useSupplyChain();
   const { openEntity } = useEntityDrawer();
   
   const [timeFilter, setTimeFilter] = useState<'24h' | '7d' | '30d'>('24h');
   const [activityFilter, setActivityFilter] = useState<'ALL' | 'INVENTORY' | 'PROCUREMENT' | 'SHIPMENTS' | 'EXCEPTIONS'>('ALL');
   const [isLive, setIsLive] = useState(true);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [selectedBucket, setSelectedBucket] = useState<any>(null);
 
-  // Auto-refresh simulation when LIVE is checked
-  useEffect(() => {
-    if (isLive && dataMode === 'demo') {
-      const interval = setInterval(() => {
-        setRefreshTrigger(prev => prev + 1);
-      }, 30000); // 30s refresh to show it's active
-      return () => clearInterval(interval);
-    }
-  }, [isLive, dataMode]);
+  const tenantId = organizationProfile?.id || (userProfile as any)?.organizationId || (userProfile as any)?.tenantId || 'ORION_PLATFORM';
+  const environment = dataMode === 'real' ? 'LIVE' : 'DEMO';
+  const subscriptionState = realtimeSubscriptionManager.getSubscriptionState('inventory', tenantId, environment);
 
   const graphData = useMemo(() => {
     // We construct a time series based on the current time and selected filter
@@ -117,7 +112,7 @@ export const SupplyChainPulse: React.FC = () => {
     });
     
     return buckets;
-  }, [inventory, purchaseOrders, shipments, exceptions, timeFilter, refreshTrigger]);
+  }, [inventory, purchaseOrders, shipments, exceptions, timeFilter]);
 
   const activeSeries = {
     inventory: activityFilter === 'ALL' || activityFilter === 'INVENTORY',
@@ -207,11 +202,20 @@ export const SupplyChainPulse: React.FC = () => {
           <div 
             className="flex items-center gap-1.5 ml-2 cursor-pointer select-none" 
             onClick={() => setIsLive(!isLive)}
-            title="Toggle real-time pulse activity streaming"
+            title={subscriptionState?.error ? `Error: ${subscriptionState.error}` : `Real-time Firestore: ${subscriptionState?.status || 'INITIALIZING'}`}
           >
-            <div className={`w-2 h-2 rounded-full ${isLive ? 'bg-[#30D158] animate-pulse' : 'bg-[#777777]'}`} />
+            <div className={`w-2 h-2 rounded-full ${
+              !isLive ? 'bg-[#777777]' :
+              subscriptionState?.status === 'ERROR' ? 'bg-[#FF453A]' :
+              subscriptionState?.status === 'LIVE' ? 'bg-[#30D158] animate-pulse' :
+              subscriptionState?.status === 'CONNECTING' ? 'bg-[#FF9F0A] animate-pulse' :
+              'bg-[#30D158]'
+            }`} />
             <span className="text-[10px] uppercase font-mono tracking-wider text-os-text-secondary">
-              {dataMode === 'demo' ? (isLive ? 'LOCAL STREAM' : 'STREAM PAUSED') : (isLive ? 'LIVE' : 'PAUSED')}
+              {!isLive ? 'STREAM PAUSED' :
+               subscriptionState?.status === 'ERROR' ? 'ERROR' :
+               subscriptionState?.status === 'CONNECTING' ? 'CONNECTING...' :
+               dataMode === 'real' ? 'LIVE FIRESTORE' : 'DEMO FIRESTORE'}
             </span>
           </div>
         </div>

@@ -16,6 +16,8 @@ import {
   SupplierAwardRecord,
   SupplierQuotationRecord,
 } from './types';
+import { scmBusinessRuleEngine } from './ScmBusinessRuleEngine';
+import { scmReferentialIntegrityEngine } from './canonical/ScmReferentialIntegrityEngine';
 
 export class SourcingEngine {
   private static instance: SourcingEngine;
@@ -101,12 +103,84 @@ export class SourcingEngine {
       estimatedValue: pr.totalEstimatedValue,
       payload: null,
     }, async () => {
-      pr.status = 'APPROVED'; // Default approved if no policy block
+      pr.status = 'SUBMITTED';
       pr.updatedAt = new Date().toISOString();
       this.prs.set(key, pr);
       await scmPersistenceService.saveRecord('purchase_requisitions', prId, pr);
       return pr;
     });
+  }
+
+  public async approvePR(tenantId: string, prId: string, actor: AuthorizationActor) {
+    const key = `${tenantId}:${prId}`;
+    const pr = this.prs.get(key) || scmPersistenceService.getCachedRecord<PurchaseRequisitionRecord>('purchase_requisitions', tenantId, prId);
+    if (!pr) throw new Error(`PR ${prId} not found`);
+
+    // SoD & Rule validation
+    const ruleEval = scmBusinessRuleEngine.evaluatePRApproval({ pr, approver: actor });
+    if (!ruleEval.allowed) {
+      return {
+        success: false,
+        status: 'DENIED_POLICY' as const,
+        message: ruleEval.reason || 'PR approval policy violation',
+        correlationId: `CORR-PR-APP-${Date.now()}`,
+      };
+    }
+
+    return scmTransactionEngine.executeCommand({
+      commandName: 'PR:Approve',
+      tenantId,
+      actor,
+      entityType: 'PurchaseRequisition',
+      entityId: prId,
+      currentState: pr.status,
+      targetState: 'APPROVED',
+      requiredPermission: 'pr:approve',
+      estimatedValue: pr.totalEstimatedValue,
+      payload: null,
+    }, async () => {
+      pr.status = 'APPROVED';
+      pr.updatedAt = new Date().toISOString();
+      this.prs.set(key, pr);
+      await scmPersistenceService.saveRecord('purchase_requisitions', prId, pr);
+      return pr;
+    });
+  }
+
+  public async rejectPR(tenantId: string, prId: string, actor: AuthorizationActor, reason: string) {
+    const key = `${tenantId}:${prId}`;
+    const pr = this.prs.get(key) || scmPersistenceService.getCachedRecord<PurchaseRequisitionRecord>('purchase_requisitions', tenantId, prId);
+    if (!pr) throw new Error(`PR ${prId} not found`);
+
+    return scmTransactionEngine.executeCommand({
+      commandName: 'PR:Reject',
+      tenantId,
+      actor,
+      entityType: 'PurchaseRequisition',
+      entityId: prId,
+      currentState: pr.status,
+      targetState: 'REJECTED',
+      requiredPermission: 'pr:approve',
+      payload: null,
+    }, async () => {
+      pr.status = 'REJECTED';
+      pr.updatedAt = new Date().toISOString();
+      this.prs.set(key, pr);
+      await scmPersistenceService.saveRecord('purchase_requisitions', prId, pr);
+      return pr;
+    });
+  }
+
+  public async cancelPR(tenantId: string, prId: string, actor: AuthorizationActor) {
+    const key = `${tenantId}:${prId}`;
+    const pr = this.prs.get(key) || scmPersistenceService.getCachedRecord<PurchaseRequisitionRecord>('purchase_requisitions', tenantId, prId);
+    if (!pr) throw new Error(`PR ${prId} not found`);
+
+    pr.status = 'REJECTED';
+    pr.updatedAt = new Date().toISOString();
+    this.prs.set(key, pr);
+    await scmPersistenceService.saveRecord('purchase_requisitions', prId, pr);
+    return pr;
   }
 
   // 2. RFQ / RFP SOURCING
@@ -176,6 +250,18 @@ export class SourcingEngine {
       await scmPersistenceService.saveRecord('rfqs', rfqId, rfq);
       return rfq;
     });
+  }
+
+  public async closeRFQ(tenantId: string, rfqId: string, actor: AuthorizationActor) {
+    const key = `${tenantId}:${rfqId}`;
+    const rfq = this.rfqs.get(key) || scmPersistenceService.getCachedRecord<RFQRecord>('rfqs', tenantId, rfqId);
+    if (!rfq) throw new Error(`RFQ ${rfqId} not found`);
+
+    rfq.status = 'CLOSED';
+    rfq.updatedAt = new Date().toISOString();
+    this.rfqs.set(key, rfq);
+    await scmPersistenceService.saveRecord('rfqs', rfqId, rfq);
+    return rfq;
   }
 
   // 3. SUPPLIER QUOTATION

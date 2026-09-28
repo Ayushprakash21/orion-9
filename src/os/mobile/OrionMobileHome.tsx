@@ -4,25 +4,25 @@ import { useSupplyChain } from '../../store/SupplyChainContext';
 import { useAuth } from '../../store/AuthContext';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { 
-  Activity, 
   ShieldAlert, 
   Sparkles, 
   AlertTriangle, 
   LayoutGrid, 
-  ChevronRight, 
   ArrowRight, 
-  ArrowUpRight, 
   CheckCircle2, 
   Clock, 
   Package, 
   Truck, 
-  ShoppingCart
+  ShoppingCart,
+  Search,
+  FileQuestion,
+  Layers
 } from 'lucide-react';
-import { formatCurrency, formatNumber } from '../../lib/formatters';
+import { formatCurrency } from '../../lib/formatters';
 
 export const OrionMobileHome: React.FC = () => {
-  const { navigateToTab, openEntityDetail, openApp, openOrionAI } = useMobileNavigation();
-  const { exceptions, shipments, inventory, decisions, currency } = useSupplyChain();
+  const { navigateToTab, openApp, openOrionAI } = useMobileNavigation();
+  const { exceptions, shipments, decisions, currency } = useSupplyChain();
   const { currentUser } = useAuth();
   const environment = dbManager.getEnvironment();
   const isLive = environment === 'LIVE';
@@ -36,23 +36,18 @@ export const OrionMobileHome: React.FC = () => {
   }, []);
 
   const userName = currentUser?.fullName || currentUser?.username || 'Operator';
-
-  // Real metric summary derived from SupplyChainContext
   const activeExceptionsCount = useMemo(() => (exceptions || []).filter(e => e.status !== 'Resolved').length, [exceptions]);
-  const criticalExceptions = useMemo(() => (exceptions || []).filter(e => e.severity === 'Critical' && e.status !== 'Resolved').slice(0, 3), [exceptions]);
-  const delayedShipmentsCount = useMemo(() => (shipments || []).filter(s => s.delayDays > 0 && s.status !== 'Delivered').length, [shipments]);
-  const lowStockCount = useMemo(() => (inventory || []).filter(i => (i.onHand - i.reserved) < i.safetyStock).length, [inventory]);
 
-  // Recent operational activity items from real runtime state
+  // Recent operational activity feed (compact activity feed, NOT a dashboard)
   const recentActivities = useMemo(() => {
     const items: Array<{ id: string; title: string; subtitle: string; time: string; icon: any; color: string }> = [];
     
     (exceptions || []).slice(0, 2).forEach(exc => {
       items.push({
         id: `exc-${exc.id}`,
-        title: (exc as any).title || exc.type || 'Operational Exception',
+        title: (exc as any).title || exc.type || 'Operational Issue',
         subtitle: `Impact: ${formatCurrency(exc.estimatedImpact || 12500, currency)}`,
-        time: 'Recently logged',
+        time: 'Logged recently',
         icon: AlertTriangle,
         color: 'text-red-400 bg-red-500/10 border-red-500/30'
       });
@@ -72,7 +67,7 @@ export const OrionMobileHome: React.FC = () => {
     (decisions || []).slice(0, 1).forEach(dec => {
       items.push({
         id: `dec-${dec.id}`,
-        title: (dec as any).title || 'Autonomous Decision Executed',
+        title: (dec as any).title || 'Autonomous Policy Applied',
         subtitle: (dec as any).summary || 'SCM Autopilot policy re-route applied',
         time: 'Automated',
         icon: CheckCircle2,
@@ -80,13 +75,13 @@ export const OrionMobileHome: React.FC = () => {
       });
     });
 
-    return items.slice(0, 4);
+    return items.slice(0, 3);
   }, [exceptions, shipments, decisions, currency]);
 
   return (
     <div className="w-full max-w-full space-y-4 pb-6 select-none animate-in fade-in duration-200">
       
-      {/* 1. PERSONALIZED GREETING & OS ENVIRONMENT STATUS */}
+      {/* 1. OS LANDING HEADER & ENVIRONMENT STATUS */}
       <div className="bg-os-surface border border-os-border rounded-2xl p-4 shadow-sm space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -111,50 +106,137 @@ export const OrionMobileHome: React.FC = () => {
             {greeting}, {userName}
           </h1>
           <p className="text-xs text-os-text-muted mt-0.5">
-            Supply Chain Command Center • Your supply chain environment at a glance
+            Enterprise Supply Chain Operating System
           </p>
         </div>
 
-        {/* SYSTEM STATUS BANNER */}
+        {/* System Operational Banner */}
         <div className="pt-2.5 border-t border-os-border flex items-center justify-between text-xs font-mono">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34D399]" />
             <span className="text-os-text-primary font-semibold">System Operational</span>
           </div>
           <span className="text-[10px] text-os-text-muted">
-            Telemetry Synced
+            Live Edge Connected
           </span>
         </div>
       </div>
 
-      {/* 2. QUICK ACCESS GRID (Control, AI, Alerts, Apps) */}
+      {/* 2. PRIMARY ACTION: WHAT DO YOU WANT TO DO? */}
+      <div className="bg-os-surface border border-os-border rounded-2xl p-4 shadow-sm space-y-3">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-mono font-bold uppercase tracking-wider text-os-text-primary">
+            What do you want to do?
+          </span>
+        </div>
+
+        {/* Primary Action Buttons Grid */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => openApp('inventory')}
+            className="flex items-center gap-2.5 p-3 bg-os-surface-secondary hover:bg-os-surface-hover border border-os-border hover:border-os-border-strong rounded-xl text-left transition-all active:scale-[0.98] cursor-pointer min-h-[44px]"
+          >
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+              <Package size={16} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-semibold text-os-text-primary truncate">Check Inventory</div>
+              <div className="text-[10px] text-os-text-muted truncate">Stock & ATP</div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => openApp('shipments')}
+            className="flex items-center gap-2.5 p-3 bg-os-surface-secondary hover:bg-os-surface-hover border border-os-border hover:border-os-border-strong rounded-xl text-left transition-all active:scale-[0.98] cursor-pointer min-h-[44px]"
+          >
+            <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
+              <Truck size={16} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-semibold text-os-text-primary truncate">Track Shipment</div>
+              <div className="text-[10px] text-os-text-muted truncate">Cargo in transit</div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => openApp('procurement')}
+            className="flex items-center gap-2.5 p-3 bg-os-surface-secondary hover:bg-os-surface-hover border border-os-border hover:border-os-border-strong rounded-xl text-left transition-all active:scale-[0.98] cursor-pointer min-h-[44px]"
+          >
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+              <ShoppingCart size={16} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-semibold text-os-text-primary truncate">Check Order</div>
+              <div className="text-[10px] text-os-text-muted truncate">POs & requisitions</div>
+            </div>
+          </button>
+
+          <button
+            onClick={() => navigateToTab('alerts')}
+            className="flex items-center gap-2.5 p-3 bg-os-surface-secondary hover:bg-os-surface-hover border border-os-border hover:border-os-border-strong rounded-xl text-left transition-all active:scale-[0.98] cursor-pointer min-h-[44px]"
+          >
+            <div className="w-8 h-8 rounded-lg bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shrink-0">
+              <FileQuestion size={16} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs font-semibold text-os-text-primary truncate">Report Issue</div>
+              <div className="text-[10px] text-os-text-muted truncate">Exceptions & risks</div>
+            </div>
+          </button>
+        </div>
+
+        {/* Guided Buy Action Wizard Entry */}
+        <button
+          onClick={() => openApp('buy-workflow')}
+          className="w-full p-3 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/20 hover:border-emerald-500/40 rounded-xl flex items-center justify-between transition-all cursor-pointer group active:scale-[0.99]"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
+              <ShoppingCart size={16} />
+            </div>
+            <div className="text-left">
+              <div className="text-xs font-semibold text-white flex items-center gap-1.5">
+                Buy Something
+                <span className="text-[9px] font-mono px-1.5 py-0.2 bg-emerald-500/20 text-emerald-300 rounded font-normal">Guided Wizard</span>
+              </div>
+              <div className="text-[10px] text-slate-400">Step-by-step requisition, sourcing & order creation</div>
+            </div>
+          </div>
+          <ArrowRight size={14} className="text-emerald-400 group-hover:translate-x-1 transition-transform" />
+        </button>
+      </div>
+
+      {/* 3. QUICK ACCESS DESTINATIONS */}
       <div className="space-y-1.5">
         <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-os-text-muted px-1">
           Quick Access
         </div>
         <div className="grid grid-cols-4 gap-2">
-          {/* Control Button */}
+          {/* Control Destination */}
           <button
             onClick={() => navigateToTab('control')}
             className="flex flex-col items-center justify-center p-3 bg-os-surface border border-os-border hover:border-os-accent/40 rounded-xl active:scale-95 transition-all cursor-pointer min-h-[44px]"
+            aria-label="Open Command Center"
           >
             <ShieldAlert size={20} className="text-os-accent mb-1" />
             <span className="text-[10px] font-mono font-semibold text-os-text-primary">Control</span>
           </button>
 
-          {/* AI Button */}
+          {/* AI Destination */}
           <button
-            onClick={() => navigateToTab('ai')}
+            onClick={() => openOrionAI()}
             className="flex flex-col items-center justify-center p-3 bg-os-surface border border-os-border hover:border-cyan-500/40 rounded-xl active:scale-95 transition-all cursor-pointer min-h-[44px]"
+            aria-label="Open AI Copilot"
           >
             <Sparkles size={20} className="text-cyan-400 mb-1" />
             <span className="text-[10px] font-mono font-semibold text-os-text-primary">AI</span>
           </button>
 
-          {/* Alerts Button */}
+          {/* Alerts Destination */}
           <button
             onClick={() => navigateToTab('alerts')}
             className="flex flex-col items-center justify-center p-3 bg-os-surface border border-os-border hover:border-red-500/40 rounded-xl active:scale-95 transition-all cursor-pointer min-h-[44px] relative"
+            aria-label="Open Alerts"
           >
             <AlertTriangle size={20} className="text-red-400 mb-1" />
             <span className="text-[10px] font-mono font-semibold text-os-text-primary">Alerts</span>
@@ -165,10 +247,11 @@ export const OrionMobileHome: React.FC = () => {
             )}
           </button>
 
-          {/* Apps Button */}
+          {/* Apps Destination */}
           <button
             onClick={() => navigateToTab('apps')}
             className="flex flex-col items-center justify-center p-3 bg-os-surface border border-os-border hover:border-os-border-strong rounded-xl active:scale-95 transition-all cursor-pointer min-h-[44px]"
+            aria-label="Browse Applications"
           >
             <LayoutGrid size={20} className="text-amber-400 mb-1" />
             <span className="text-[10px] font-mono font-semibold text-os-text-primary">Apps</span>
@@ -176,55 +259,7 @@ export const OrionMobileHome: React.FC = () => {
         </div>
       </div>
 
-      {/* 3. CONTROL TOWER SUMMARY CARD */}
-      <div className="bg-os-surface border border-os-border rounded-2xl p-4 shadow-sm space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-lg bg-os-accent/15 border border-os-accent/30 flex items-center justify-center text-os-accent">
-              <Activity size={14} />
-            </div>
-            <span className="text-xs font-mono font-bold text-os-text-primary uppercase tracking-wider">
-              Control Tower Overview
-            </span>
-          </div>
-          <button
-            onClick={() => navigateToTab('control')}
-            className="text-[11px] font-mono text-os-accent hover:underline flex items-center gap-0.5 min-h-[44px] px-1"
-          >
-            <span>Open Control Center</span>
-            <ChevronRight size={14} />
-          </button>
-        </div>
-
-        {/* Snapshot Metric Counters */}
-        {/* Snapshot Metric Counters */}
-        <div className="grid grid-cols-4 gap-1.5">
-          <div className="p-2 bg-os-surface-secondary rounded-xl border border-os-border text-center">
-            <div className="text-[9px] font-mono uppercase text-os-text-muted truncate">Exceptions</div>
-            <div className="text-xs sm:text-sm font-mono font-bold text-red-400 mt-0.5">
-              {formatNumber(activeExceptionsCount)}
-            </div>
-          </div>
-          <div className="p-2 bg-os-surface-secondary rounded-xl border border-os-border text-center">
-            <div className="text-[9px] font-mono uppercase text-os-text-muted truncate">Cargo Delays</div>
-            <div className="text-xs sm:text-sm font-mono font-bold text-amber-400 mt-0.5">
-              {formatNumber(delayedShipmentsCount)}
-            </div>
-          </div>
-          <div className="p-2 bg-os-surface-secondary rounded-xl border border-os-border text-center">
-            <div className="text-[9px] font-mono uppercase text-os-text-muted truncate">Stock Risks</div>
-            <div className="text-xs sm:text-sm font-mono font-bold text-emerald-400 mt-0.5">
-              {formatNumber(lowStockCount)}
-            </div>
-          </div>
-          <div className="p-2 bg-os-surface-secondary rounded-xl border border-os-border text-center">
-            <div className="text-[9px] font-mono uppercase text-os-text-muted truncate">Orders</div>
-            <div className="text-xs sm:text-sm font-mono font-bold text-os-text-primary mt-0.5">Active</div>
-          </div>
-        </div>
-      </div>
-
-      {/* 4. ORION AI ASSISTANT CARD */}
+      {/* 4. COMPACT ORION AI ASSISTANT ENTRY */}
       <div 
         onClick={() => openOrionAI()}
         className="bg-gradient-to-r from-cyan-950/40 via-os-surface to-os-surface border border-cyan-500/30 rounded-2xl p-4 flex items-center justify-between gap-3 active:scale-[0.98] transition-all cursor-pointer shadow-sm group"
@@ -241,7 +276,7 @@ export const OrionMobileHome: React.FC = () => {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             </div>
             <p className="text-xs text-os-text-muted truncate mt-0.5">
-              Ask Orion anything about your supply chain...
+              Ask ORION about your supply chain
             </p>
           </div>
         </div>
@@ -251,67 +286,11 @@ export const OrionMobileHome: React.FC = () => {
         </div>
       </div>
 
-      {/* 5. CRITICAL ALERTS SUMMARY */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-mono font-bold uppercase tracking-wider text-os-text-primary flex items-center gap-1.5">
-            <AlertTriangle size={14} className="text-red-400" />
-            Critical Alerts ({criticalExceptions.length})
-          </span>
-          <button 
-            onClick={() => navigateToTab('alerts')} 
-            className="text-[11px] font-mono text-os-accent hover:underline min-h-[44px] flex items-center"
-          >
-            View Alerts →
-          </button>
-        </div>
-
-        {criticalExceptions.length > 0 ? (
-          <div className="space-y-2">
-            {criticalExceptions.map((exc) => (
-              <div
-                key={exc.id}
-                onClick={() => openEntityDetail({
-                  type: 'exception',
-                  id: exc.id,
-                  title: (exc as any).title || exc.type,
-                  subtitle: `Entity: ${exc.entityId || exc.id}`,
-                  severity: 'critical',
-                  impact: exc.estimatedImpact || 12500,
-                  data: exc
-                })}
-                className="bg-os-surface border border-os-border hover:border-os-border-strong rounded-xl p-3 active:scale-[0.99] transition-all cursor-pointer space-y-1.5"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-                    <span className="text-xs font-medium text-os-text-primary line-clamp-1">
-                      {(exc as any).title || exc.type}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-mono text-red-400 font-semibold shrink-0">
-                    {formatCurrency(exc.estimatedImpact || 12500, currency)}
-                  </span>
-                </div>
-
-                <div className="text-[11px] text-os-text-secondary line-clamp-1">
-                  {exc.description || 'Action required by operator.'}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="bg-os-surface border border-os-border rounded-xl p-3.5 text-center text-xs font-mono text-os-text-muted">
-            No critical alerts requiring immediate attention.
-          </div>
-        )}
-      </div>
-
-      {/* 6. RECENT OPERATIONAL ACTIVITY */}
+      {/* 5. RECENT OPERATIONAL ACTIVITY FEED (COMPACT) */}
       <div className="space-y-2">
         <div className="text-[10px] font-mono font-bold uppercase tracking-wider text-os-text-muted px-1 flex items-center gap-1.5">
           <Clock size={12} />
-          Supply Chain Activity
+          Recent Activity
         </div>
 
         <div className="bg-os-surface border border-os-border rounded-2xl p-3 space-y-2.5">
@@ -336,47 +315,6 @@ export const OrionMobileHome: React.FC = () => {
               No recent activity recorded.
             </div>
           )}
-        </div>
-      </div>
-
-      {/* 7. QUICK APPS ACCESS */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between px-1">
-          <span className="text-xs font-mono font-bold uppercase tracking-wider text-os-text-primary">
-            Quick Applications
-          </span>
-          <button
-            onClick={() => navigateToTab('apps')}
-            className="text-[11px] font-mono text-os-accent hover:underline min-h-[44px] flex items-center"
-          >
-            All Applications →
-          </button>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2">
-          <div
-            onClick={() => openApp('inventory')}
-            className="bg-os-surface border border-os-border rounded-xl p-2.5 flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
-          >
-            <Package size={16} className="text-emerald-400 shrink-0" />
-            <span className="text-xs font-mono text-os-text-primary font-medium truncate">Inventory</span>
-          </div>
-
-          <div
-            onClick={() => openApp('procurement')}
-            className="bg-os-surface border border-os-border rounded-xl p-2.5 flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
-          >
-            <ShoppingCart size={16} className="text-cyan-400 shrink-0" />
-            <span className="text-xs font-mono text-os-text-primary font-medium truncate">Procurement</span>
-          </div>
-
-          <div
-            onClick={() => openApp('shipments')}
-            className="bg-os-surface border border-os-border rounded-xl p-2.5 flex items-center gap-2 cursor-pointer active:scale-95 transition-all"
-          >
-            <Truck size={16} className="text-amber-400 shrink-0" />
-            <span className="text-xs font-mono text-os-text-primary font-medium truncate">Shipments</span>
-          </div>
         </div>
       </div>
 

@@ -25,7 +25,7 @@ export function OrionSystemBar() {
   const { activeAppId, setCommandPaletteOpen, activeWorkspaceId, setWorkspace, openApplication } = useWindowManager();
   const { unreadCount } = useNotifications();
   const { isOnline, statusLabel, isLocalMode } = useConnectivity();
-  const { exceptions } = useSupplyChain();
+  const { exceptions, settings, updateSettings } = useSupplyChain();
   
   const [currentTime, setCurrentTime] = useState(new Date());
   const [menuOpen, setMenuOpen] = useState(false);
@@ -130,6 +130,36 @@ export function OrionSystemBar() {
             {dbEnv}
           </span>
         </button>
+
+        {/* User Experience Mode Switcher (Simple vs Advanced) */}
+        <div className="hidden lg:flex items-center p-0.5 bg-black/40 border border-white/[0.08] rounded-lg text-[10px] font-mono">
+          <button
+            type="button"
+            onClick={() => updateSettings({ userExperienceMode: 'SIMPLE' })}
+            className={cn(
+              "px-2 py-0.5 rounded-md transition-all cursor-pointer font-medium",
+              settings.userExperienceMode !== 'ADVANCED'
+                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-xs font-semibold"
+                : "text-os-text-muted hover:text-os-text-primary"
+            )}
+            title="Simple Mode: Goal & action-oriented business experience"
+          >
+            Simple
+          </button>
+          <button
+            type="button"
+            onClick={() => updateSettings({ userExperienceMode: 'ADVANCED' })}
+            className={cn(
+              "px-2 py-0.5 rounded-md transition-all cursor-pointer font-medium",
+              settings.userExperienceMode === 'ADVANCED'
+                ? "bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-xs font-semibold"
+                : "text-os-text-muted hover:text-os-text-primary"
+            )}
+            title="Advanced Mode: Full enterprise SCM operating model"
+          >
+            Advanced
+          </button>
+        </div>
 
         {/* Sync/Refresh Action */}
         <button 

@@ -4,7 +4,7 @@ import { es } from './locales/es';
 import { de } from './locales/de';
 import { SupportedLocale } from './types';
 
-export const LOCALES: Record<SupportedLocale, any> = {
+export const LOCALES: Record<string, any> = {
   en,
   hi,
   es,
@@ -29,22 +29,22 @@ export function extractKeys(obj: any, prefix = ''): string[] {
 export interface LocaleValidationResult {
   valid: boolean;
   baseKeyCount: number;
-  missingKeys: Record<SupportedLocale, string[]>;
-  extraKeys: Record<SupportedLocale, string[]>;
+  missingKeys: Partial<Record<SupportedLocale, string[]>>;
+  extraKeys: Partial<Record<SupportedLocale, string[]>>;
 }
 
 export function validateAllLocales(): LocaleValidationResult {
   const baseKeys = extractKeys(en).sort();
   const baseKeySet = new Set(baseKeys);
 
-  const missingKeys: Record<SupportedLocale, string[]> = {
+  const missingKeys: Partial<Record<SupportedLocale, string[]>> = {
     en: [],
     hi: [],
     es: [],
     de: [],
   };
 
-  const extraKeys: Record<SupportedLocale, string[]> = {
+  const extraKeys: Partial<Record<SupportedLocale, string[]>> = {
     en: [],
     hi: [],
     es: [],

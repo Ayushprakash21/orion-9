@@ -6,7 +6,7 @@ import { GoogleGenAI } from "@google/genai";
 import * as firebaseAdmin from "firebase-admin";
 import dotenv from "dotenv";
 import { demoPersistentSchedulerService } from "./src/services/demo/DemoPersistentSchedulerService";
-import { checkGeminiWallpaperStatus, generateGeminiWallpapers } from "./src/server/geminiBackend";
+import { checkCloudflareWallpaperStatus, generateCloudflareWallpapers } from "./src/server/cloudflareAiBackend";
 
 dotenv.config({ path: ['.env.local', '.env'] });
 
@@ -516,19 +516,63 @@ async function startServer() {
     }
   });
 
-  // AI Wallpaper Status Route - Google Gemini Nano Banana 2 Primary
-  app.get("/api/ai/wallpaper-status", async (_req, res) => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    const result = await checkGeminiWallpaperStatus(apiKey);
-    return res.json(result);
-  });
+  // AI Wallpaper Status Routes - Private Engine Status
+  const handleWallpaperStatus = async (_req: express.Request, res: express.Response) => {
+    const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+    const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+    const result = await checkCloudflareWallpaperStatus(null, apiToken, accountId);
+    return res.json({
+      available: result.available,
+      configured: result.configured,
+      status: result.status,
+      error: result.error,
+      supportedDimensions: result.supportedDimensions,
+    });
+  };
+  app.get("/api/wallpaper/cloudflare/status", handleWallpaperStatus);
+  app.get("/api/wallpaper/status", handleWallpaperStatus);
+  app.get("/api/ai/wallpaper-status", handleWallpaperStatus);
 
-  // Real Gemini AI Wallpaper Generation Route (3 Real Candidates)
-  app.post("/api/ai/generate-wallpaper", async (req, res) => {
-    const apiKey = process.env.GEMINI_API_KEY;
-    const result = await generateGeminiWallpapers(apiKey, req.body || {});
-    return res.status(result.statusCode).json(result.body);
-  });
+  // AI Wallpaper Generation Routes (3 Static Candidates with Native 1920x1080 Resolution)
+  const handleWallpaperGenerate = async (req: express.Request, res: express.Response) => {
+    const apiToken = process.env.CLOUDFLARE_API_TOKEN;
+    const accountId = process.env.CLOUDFLARE_ACCOUNT_ID;
+    const result = await generateCloudflareWallpapers(null, {
+      ...(req.body || {}),
+      apiToken,
+      accountId,
+    });
+
+    const clientResponse = result.success
+      ? {
+          success: true,
+          candidates: (result.candidates || []).map(c => ({
+            id: c.candidateId || c.id,
+            candidateId: c.candidateId || c.id,
+            name: c.name,
+            assetUrl: c.assetUrl,
+            thumbnailUrl: c.thumbnailUrl,
+            width: c.width,
+            height: c.height,
+            sourceWidth: c.sourceWidth,
+            sourceHeight: c.sourceHeight,
+            finalWidth: c.finalWidth,
+            finalHeight: c.finalHeight,
+            prompt: c.prompt,
+            style: c.style,
+            createdAt: c.createdAt,
+          }))
+        }
+      : {
+          success: false,
+          error: result.error || "Wallpaper generation failed. Please try again.",
+          status: result.status || "ERROR",
+        };
+
+    return res.status(result.statusCode).json(clientResponse);
+  };
+  app.post("/api/wallpaper/generate", handleWallpaperGenerate);
+  app.post("/api/ai/generate-wallpaper", handleWallpaperGenerate);
 
   // AI Tool Selection Route
   app.post("/api/ai/choose-tools", async (req, res) => {
@@ -992,12 +1036,17 @@ Analyze the supplied document and return a strict JSON object with:
     });
   }
 
-  // Start authoritative background persistent scheduler daemon for 25 synthetic packages/hour
-  try {
-    demoPersistentSchedulerService.startPersistentScheduler(60000);
-    console.log("[DEMO-SCHEDULER] Persistent cloud daemon started (Rate: 25 packages/hour, Environment: DEMO isolated)");
-  } catch (err) {
-    console.warn("[DEMO-SCHEDULER] Daemon startup warning:", err);
+  // Production scheduler runs via Cloudflare Worker cron triggers (0 * * * *).
+  // Node.js setInterval timer is strictly for local dev testing when explicitly requested.
+  if (process.env.ORION_ENABLE_LOCAL_SCHEDULER === 'true') {
+    try {
+      demoPersistentSchedulerService.startPersistentScheduler(60000);
+      console.log("[DEMO-SCHEDULER] Local development timer started (ORION_ENABLE_LOCAL_SCHEDULER=true, Rate: 25 packages/hour)");
+    } catch (err) {
+      console.warn("[DEMO-SCHEDULER] Local daemon startup warning:", err);
+    }
+  } else {
+    console.log("[DEMO-SCHEDULER] Production runtime: Cloudflare Worker scheduled() cron (0 * * * *). Local node timer disabled.");
   }
 
   server.listen(PORT, "0.0.0.0", () => {

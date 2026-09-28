@@ -1,5 +1,8 @@
+export type UserExperienceMode = 'SIMPLE' | 'ADVANCED';
+
 export interface SystemSettings {
   // Display & Experience
+  userExperienceMode?: UserExperienceMode; // 'SIMPLE' (default) | 'ADVANCED'
   theme?: 'light' | 'dark' | 'system';
   brightness?: number; // 20 - 100
   reducedMotion?: boolean;
@@ -52,6 +55,7 @@ export interface SystemSettings {
 }
 
 export const DEFAULT_SETTINGS: SystemSettings = {
+  userExperienceMode: 'SIMPLE',
   theme: 'system',
   brightness: 100,
   reducedMotion: false,
@@ -188,6 +192,7 @@ export function normalizeSettings(raw?: Partial<SystemSettings> | Record<string,
     theme: (['light','dark','system'].includes(String(raw.theme || '').toLowerCase()) 
   ? String(raw.theme).toLowerCase() as SystemSettings['theme'] 
   : DEFAULT_SETTINGS.theme) as SystemSettings['theme'],
+    userExperienceMode: (raw.userExperienceMode === 'ADVANCED' ? 'ADVANCED' : 'SIMPLE') as UserExperienceMode,
     brightness: validBrightness as number,
     displayScale: validDisplayScale,
     textSize: validTextSize,

@@ -13,15 +13,18 @@ import { OrionLiveWallpaper } from '../components/OrionLiveWallpaper';
 
 const OrionMobileContentRouter: React.FC = () => {
   const { activeTab } = useMobileNavigation();
+  const isAppView = activeTab === 'app_view';
 
   return (
-    <main className="flex-1 w-full max-w-full overflow-y-auto overflow-x-hidden px-3.5 pt-3 pb-[calc(60px+env(safe-area-inset-bottom,8px))] overscroll-contain">
+    <main
+      className={`flex-1 w-full max-w-full overflow-y-auto overflow-x-hidden pb-[calc(60px+env(safe-area-inset-bottom,8px))] overscroll-contain ${isAppView ? '' : 'px-3.5 pt-3'}`}
+    >
       {activeTab === 'home' && <OrionMobileHome />}
       {activeTab === 'control' && <OrionMobileControlTower />}
       {activeTab === 'ai' && <OrionMobileAICopilot />}
       {activeTab === 'alerts' && <OrionMobileAlerts />}
       {activeTab === 'apps' && <OrionMobileAppLauncher />}
-      {activeTab === 'app_view' && <OrionMobileAppContainer />}
+      {isAppView && <OrionMobileAppContainer />}
     </main>
   );
 };

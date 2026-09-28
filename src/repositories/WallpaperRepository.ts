@@ -13,7 +13,7 @@ import {
   DEFAULT_WALLPAPER_POLICY,
   WallpaperTarget
 } from '../types/wallpaper';
-import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, getDocs, deleteDoc } from 'firebase/firestore';
 import { wallpaperAssetStorage } from '../services/wallpaper/WallpaperAssetStorage';
 
 export { type WallpaperTarget } from '../types/wallpaper';
@@ -83,8 +83,8 @@ export const SYSTEM_DEFAULT_WALLPAPERS: WallpaperRecord[] = [
     ownerType: 'SYSTEM',
     ownerId: 'system',
     name: 'Deep Orion Atmospheric Nebula',
-    assetUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1440" viewBox="0 0 2560 1440"><defs><radialGradient id="n1" cx="60%" cy="35%" r="65%"><stop offset="0%" stop-color="%231e3a8a" stop-opacity="0.95"/><stop offset="45%" stop-color="%230f172a" stop-opacity="0.98"/><stop offset="100%" stop-color="%23010307"/></radialGradient><radialGradient id="n2" cx="30%" cy="60%" r="45%"><stop offset="0%" stop-color="%230284c7" stop-opacity="0.35"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs><rect width="2560" height="1440" fill="url(%23n1)"/><rect width="2560" height="1440" fill="url(%23n2)"/></svg>',
-    thumbnailUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180"><rect width="320" height="180" fill="%230f172a"/><circle cx="200" cy="70" r="90" fill="%231e3a8a" opacity="0.8"/></svg>',
+    assetUrl: '/orion9-space-baseline.png',
+    thumbnailUrl: '/orion9-space-baseline.png',
     source: 'SYSTEM',
     aiGenerated: false,
     width: 2560,
@@ -93,6 +93,7 @@ export const SYSTEM_DEFAULT_WALLPAPERS: WallpaperRecord[] = [
     mode: 'STILL',
     environment: 'DEMO',
     status: 'APPROVED',
+    isSystemDefault: true,
     createdAt: new Date(1700000000000).toISOString(),
     updatedAt: new Date(1700000000000).toISOString(),
   },
@@ -102,8 +103,8 @@ export const SYSTEM_DEFAULT_WALLPAPERS: WallpaperRecord[] = [
     ownerType: 'SYSTEM',
     ownerId: 'system',
     name: 'Orbital Control Tower Grid',
-    assetUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="2560" height="1440" viewBox="0 0 2560 1440"><defs><radialGradient id="g1" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="%230369a1" stop-opacity="0.30"/><stop offset="100%" stop-color="%2302050a"/></radialGradient></defs><rect width="2560" height="1440" fill="%2302050a"/><rect width="2560" height="1440" fill="url(%23g1)"/></svg>',
-    thumbnailUrl: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180"><rect width="320" height="180" fill="%2302050a"/><circle cx="160" cy="90" r="70" fill="%230369a1" opacity="0.4"/></svg>',
+    assetUrl: '/orion-desktop-global-network.jpg',
+    thumbnailUrl: '/orion-desktop-global-network.jpg',
     source: 'SYSTEM',
     aiGenerated: false,
     width: 2560,
@@ -112,6 +113,7 @@ export const SYSTEM_DEFAULT_WALLPAPERS: WallpaperRecord[] = [
     mode: 'STILL',
     environment: 'DEMO',
     status: 'APPROVED',
+    isSystemDefault: true,
     createdAt: new Date(1700000000000).toISOString(),
     updatedAt: new Date(1700000000000).toISOString(),
   },
@@ -183,10 +185,24 @@ export class WallpaperRepository {
         }
         const savedCustoms = storage?.getItem('orion_custom_wallpapers') || sessionStorage?.getItem('orion_custom_wallpapers');
         if (savedCustoms) {
-          const list: WallpaperRecord[] = JSON.parse(savedCustoms);
-          for (const wp of list) {
-            this.memoryWallpapers.set(wp.wallpaperId, wp);
-          }
+          try {
+            const list: WallpaperRecord[] = JSON.parse(savedCustoms);
+            if (Array.isArray(list)) {
+              for (const wp of list) {
+                // Ensure custom wallpapers do NOT overwrite or duplicate system default assets or IDs
+                if (
+                  wp &&
+                  wp.wallpaperId &&
+                  !wp.wallpaperId.startsWith('sys-') &&
+                  wp.ownerType !== 'SYSTEM' &&
+                  !wp.isSystemDefault &&
+                  !SYSTEM_DEFAULT_WALLPAPERS.some(s => s.wallpaperId === wp.wallpaperId || s.assetUrl === wp.assetUrl)
+                ) {
+                  this.memoryWallpapers.set(wp.wallpaperId, wp);
+                }
+              }
+            }
+          } catch (e) {}
         }
       } catch (e) {}
     }
@@ -214,7 +230,9 @@ export class WallpaperRepository {
           }
         }
         
-        const customs = Array.from(this.memoryWallpapers.values()).filter(w => w.ownerType !== 'SYSTEM');
+        const customs = Array.from(this.memoryWallpapers.values()).filter(
+          w => w.ownerType !== 'SYSTEM' && !w.isSystemDefault && !w.wallpaperId.startsWith('sys-')
+        );
         localStorage?.setItem('orion_custom_wallpapers', JSON.stringify(customs));
         sessionStorage?.setItem('orion_custom_wallpapers', JSON.stringify(customs));
       } catch (e) {}
@@ -222,9 +240,14 @@ export class WallpaperRepository {
   }
 
   /**
-   * Retrieves all approved wallpapers accessible for tenant & user.
+   * Retrieves all approved wallpapers accessible for tenant, user, and target destination.
+   * Guarantees target isolation, deduplication by canonical asset reference, and system default protection.
    */
-  public async getAvailableWallpapers(tenantId: string = 'global', userId?: string): Promise<WallpaperRecord[]> {
+  public async getAvailableWallpapers(
+    tenantId: string = 'global', 
+    userId?: string,
+    target?: WallpaperTarget
+  ): Promise<WallpaperRecord[]> {
     const firestore = dbManager.getFirestore();
     const env = dbManager.getEnvironment();
 
@@ -236,7 +259,9 @@ export class WallpaperRepository {
           snapshot.forEach(docSnap => {
             const data = docSnap.data() as WallpaperRecord;
             if (data.wallpaperId && data.assetUrl) {
-              this.memoryWallpapers.set(data.wallpaperId, data);
+              if (!data.wallpaperId.startsWith('sys-') && data.ownerType !== 'SYSTEM' && !data.isSystemDefault) {
+                this.memoryWallpapers.set(data.wallpaperId, data);
+              }
             }
           });
         }
@@ -247,18 +272,48 @@ export class WallpaperRepository {
       }
     }
 
+    const seenAssets = new Set<string>();
+    const seenIds = new Set<string>();
     const results: WallpaperRecord[] = [];
-    for (const wp of this.memoryWallpapers.values()) {
-      if (wp.status !== 'APPROVED') continue;
-      if (wp.ownerType === 'SYSTEM') {
-        results.push(wp);
+
+    const normalizeUrl = (url: string) => url.trim().split('?')[0];
+
+    // 1. First pass: Add canonical system default wallpapers matching target (or all if target not specified)
+    for (const sysWp of SYSTEM_DEFAULT_WALLPAPERS) {
+      if (target && sysWp.target && sysWp.target !== target) {
         continue;
       }
-      if (wp.tenantId === tenantId || wp.tenantId === 'global') {
-        if (wp.ownerType === 'ADMIN' || !userId || wp.ownerId === userId) {
-          results.push(wp);
-        }
+      const norm = normalizeUrl(sysWp.assetUrl);
+      seenAssets.add(norm);
+      seenIds.add(sysWp.wallpaperId);
+      results.push(sysWp);
+    }
+
+    // 2. Second pass: Add custom, uploaded, or AI generated wallpapers
+    for (const wp of this.memoryWallpapers.values()) {
+      if (wp.status !== 'APPROVED') continue;
+      if (!wp.assetUrl || wp.assetUrl.trim() === '') continue;
+      if (wp.ownerType === 'SYSTEM' || wp.isSystemDefault || wp.wallpaperId.startsWith('sys-')) {
+        continue; // Already processed in system pass
       }
+
+      // Target isolation: if target is specified, only include wallpapers matching target
+      if (target && wp.target && wp.target !== target) {
+        continue;
+      }
+
+      // Tenant / Owner filtering
+      if (wp.tenantId !== tenantId && wp.tenantId !== 'global') continue;
+      if (wp.ownerType !== 'ADMIN' && userId && wp.ownerId !== userId) continue;
+
+      const norm = normalizeUrl(wp.assetUrl);
+      if (seenIds.has(wp.wallpaperId) || seenAssets.has(norm)) {
+        continue; // Prevent duplicate cards for identical asset URL or ID
+      }
+
+      seenIds.add(wp.wallpaperId);
+      seenAssets.add(norm);
+      results.push(wp);
     }
 
     return results.length > 0 ? results : SYSTEM_DEFAULT_WALLPAPERS;
@@ -509,6 +564,82 @@ export class WallpaperRepository {
   ): Promise<WallpaperRecord> {
     const defaultWp = target === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
     return this.setActiveWallpaper(defaultWp.wallpaperId, userId, target);
+  }
+
+  /**
+   * Deletes a user or admin uploaded/generated static wallpaper.
+   * Guarantees:
+   * 1. System Default Protection: Cannot delete system default wallpapers.
+   * 2. Active Wallpaper Protection: If the wallpaper being deleted is currently active,
+   *    automatically reverts the active target to its system default before deletion.
+   * 3. Target Isolation: Deleting a login wallpaper never affects desktop, and vice versa.
+   */
+  public async deleteWallpaper(
+    wallpaperId: string, 
+    userId?: string,
+    target?: WallpaperTarget
+  ): Promise<{ success: boolean; replacementWallpaper?: WallpaperRecord }> {
+    const wp = this.memoryWallpapers.get(wallpaperId);
+    if (!wp) {
+      throw new Error(`Wallpaper ID "${wallpaperId}" not found.`);
+    }
+
+    // 1. System Default Protection
+    if (wp.isSystemDefault || wp.ownerType === 'SYSTEM' || wp.wallpaperId.startsWith('sys-')) {
+      throw new Error('System default wallpapers cannot be deleted.');
+    }
+
+    let replacement: WallpaperRecord | undefined;
+    const currentTarget = target || wp.target;
+
+    // 2. Active Wallpaper Protection & Target Isolation
+    // Check LOGIN target: only modify login if this wallpaper was active on login
+    const currentLoginActive = this.memoryActiveSelections.get('global_login') || 
+                               (typeof window !== 'undefined' ? (localStorage?.getItem('orion_active_wallpaper_id_login') || sessionStorage?.getItem('orion_active_wallpaper_id_login')) : null);
+    if (currentLoginActive === wallpaperId) {
+      await this.setActiveWallpaper(DEFAULT_LOGIN_WALLPAPER.wallpaperId, undefined, 'login');
+      if (currentTarget === 'login' || !currentTarget) {
+        replacement = DEFAULT_LOGIN_WALLPAPER;
+      }
+    }
+
+    // Check DESKTOP target: only modify desktop if this wallpaper was active on desktop
+    const userKey = userId || 'global';
+    const currentDesktopActive = this.memoryActiveSelections.get(`${userKey}_desktop`) || 
+                                 this.memoryActiveSelections.get('global_desktop') ||
+                                 (typeof window !== 'undefined' ? (localStorage?.getItem(`orion_active_wallpaper_id_desktop_${userKey}`) || localStorage?.getItem('orion_active_wallpaper_id_desktop_global')) : null);
+    if (currentDesktopActive === wallpaperId) {
+      await this.setActiveWallpaper(DEFAULT_DESKTOP_WALLPAPER.wallpaperId, userId, 'desktop');
+      if (currentTarget === 'desktop' || !currentTarget) {
+        replacement = DEFAULT_DESKTOP_WALLPAPER;
+      }
+    }
+
+    // 3. Delete from Firestore if configured
+    const firestore = dbManager.getFirestore();
+    if (firestore) {
+      try {
+        const docRef = doc(firestore, WALLPAPERS_COLLECTION, wallpaperId);
+        await deleteDoc(docRef);
+      } catch (err) {
+        console.warn('[WALLPAPER-REPO] Firestore delete error:', err);
+      }
+    }
+
+    // 4. Remove from Memory
+    this.memoryWallpapers.delete(wallpaperId);
+
+    // 5. Update Cache
+    this.persistCache(userId, currentTarget);
+
+    // 6. Notify OS listeners
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('orion-wallpaper-deleted', { 
+        detail: { wallpaperId, target: currentTarget, replacement } 
+      }));
+    }
+
+    return { success: true, replacementWallpaper: replacement };
   }
 }
 

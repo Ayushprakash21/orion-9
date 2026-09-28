@@ -132,7 +132,23 @@ export const ControlTowerWorkspace: React.FC = () => {
 
   useEffect(() => {
     loadControlTowerData();
-  }, [tenantId, exceptions.length]);
+
+    const handleRealtimeUpdate = () => {
+      loadControlTowerData();
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('orion:realtime-domain-updated', handleRealtimeUpdate);
+      window.addEventListener('orion:synthetic-batch-generated', handleRealtimeUpdate);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('orion:realtime-domain-updated', handleRealtimeUpdate);
+        window.removeEventListener('orion:synthetic-batch-generated', handleRealtimeUpdate);
+      }
+    };
+  }, [tenantId, exceptions, shipments, purchaseOrders]);
 
   const selectedWorkbenchItem = useMemo(() => {
     return workbenchItems.find((w) => w.id === selectedItemId) || workbenchItems[0];

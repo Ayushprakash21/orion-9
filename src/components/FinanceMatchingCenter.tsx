@@ -226,30 +226,30 @@ export const FinanceMatchingCenter: React.FC = () => {
   return (
     <div className="flex flex-col h-full bg-[#0D1117] text-white overflow-hidden font-sans">
       {/* App Header & KPI Bar */}
-      <div className="px-6 py-4 border-b border-white/10 bg-[#161B22]/80 backdrop-blur-md flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-white/10 bg-[#161B22]/80 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 min-w-0 max-w-full">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
               <DollarSign size={18} />
             </div>
-            <div>
-              <h1 className="text-lg font-semibold tracking-tight text-white flex items-center gap-2">
-                Invoice & 3-Way Matching Center
-                <span className="text-[11px] font-normal px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-semibold tracking-tight text-white flex flex-wrap items-center gap-2">
+                <span className="truncate">Invoice & 3-Way Matching</span>
+                <span className="text-[10px] sm:text-[11px] font-normal px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 shrink-0">
                   Finance AP & Matching
                 </span>
               </h1>
-              <p className="text-xs text-white/50">
+              <p className="text-xs text-white/50 truncate">
                 Automated 3-Way Reconciliation (PO ↔ GRN ↔ Invoice), Price/Quantity Drift & AP Release
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             onClick={() => handleRunThreeWayMatch(selected)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition shadow-sm"
+            className="flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition shadow-sm w-full sm:w-auto"
           >
             <GitCompare size={14} />
             <span>Execute 3-Way Match</span>
@@ -258,49 +258,49 @@ export const FinanceMatchingCenter: React.FC = () => {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 px-6 py-3 border-b border-white/5 bg-[#12161D]">
-        <div className="p-3 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">Total Invoices</span>
-            <div className="text-xl font-bold text-white mt-0.5">{invoices.length} Bills</div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 px-3 sm:px-6 py-2.5 sm:py-3 border-b border-white/5 bg-[#12161D] shrink-0 min-w-0">
+        <div className="p-2.5 sm:p-3 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-between min-w-0">
+          <div className="min-w-0">
+            <span className="text-[10px] sm:text-[11px] font-medium text-white/50 uppercase tracking-wider block truncate">Total Invoices</span>
+            <div className="text-lg sm:text-xl font-bold text-white mt-0.5">{invoices.length} Bills</div>
           </div>
-          <FileText size={20} className="text-blue-400 opacity-60" />
+          <FileText size={18} className="text-blue-400 opacity-60 shrink-0 ml-1" />
         </div>
-        <div className="p-3 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">Matched & Cleared</span>
-            <div className="text-xl font-bold text-emerald-400 mt-0.5">
+        <div className="p-2.5 sm:p-3 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-between min-w-0">
+          <div className="min-w-0">
+            <span className="text-[10px] sm:text-[11px] font-medium text-white/50 uppercase tracking-wider block truncate">Matched</span>
+            <div className="text-lg sm:text-xl font-bold text-emerald-400 mt-0.5 truncate">
               {invoices.filter(i => i.status === 'MATCHED' || i.status === 'APPROVED' || i.status === 'PAID').length}
             </div>
           </div>
-          <CheckCircle2 size={20} className="text-emerald-400 opacity-60" />
+          <CheckCircle2 size={18} className="text-emerald-400 opacity-60 shrink-0 ml-1" />
         </div>
-        <div className="p-3 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">Active Mismatches</span>
-            <div className="text-xl font-bold text-rose-400 mt-0.5">
+        <div className="p-2.5 sm:p-3 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-between min-w-0">
+          <div className="min-w-0">
+            <span className="text-[10px] sm:text-[11px] font-medium text-white/50 uppercase tracking-wider block truncate">Mismatches</span>
+            <div className="text-lg sm:text-xl font-bold text-rose-400 mt-0.5 truncate">
               {invoices.filter(i => i.status === 'MISMATCH').length} Blocked
             </div>
           </div>
-          <AlertTriangle size={20} className="text-rose-400 opacity-60" />
+          <AlertTriangle size={18} className="text-rose-400 opacity-60 shrink-0 ml-1" />
         </div>
-        <div className="p-3 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider">Pending AP Approval</span>
-            <div className="text-xl font-bold text-amber-400 mt-0.5">
+        <div className="p-2.5 sm:p-3 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-between min-w-0">
+          <div className="min-w-0">
+            <span className="text-[10px] sm:text-[11px] font-medium text-white/50 uppercase tracking-wider block truncate">Pending AP</span>
+            <div className="text-lg sm:text-xl font-bold text-amber-400 mt-0.5 truncate">
               {invoices.filter(i => i.status === 'PENDING_APPROVAL').length}
             </div>
           </div>
-          <Clock size={20} className="text-amber-400 opacity-60" />
+          <Clock size={18} className="text-amber-400 opacity-60 shrink-0 ml-1" />
         </div>
       </div>
 
       {/* Main Split Pane */}
-      <div className="flex-1 flex overflow-hidden divide-x divide-white/10">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden md:divide-x divide-y md:divide-y-0 divide-white/10 min-w-0 max-w-full">
         {/* Left List Pane */}
-        <div className="w-1/3 min-w-[340px] max-w-[440px] h-full flex flex-col bg-[#12161D]">
+        <div className="w-full md:w-1/3 md:min-w-[300px] md:max-w-[400px] max-h-[35vh] md:max-h-none md:h-full flex flex-col bg-[#12161D] shrink-0 min-w-0">
           {/* Filter search */}
-          <div className="p-3 border-b border-white/10 space-y-2">
+          <div className="p-2.5 sm:p-3 border-b border-white/10 space-y-2 shrink-0">
             <div className="relative">
               <Search size={13} className="absolute left-2.5 top-2.5 text-white/40" />
               <input
@@ -331,21 +331,21 @@ export const FinanceMatchingCenter: React.FC = () => {
           </div>
 
           {/* Invoices List */}
-          <div className="flex-1 overflow-y-auto divide-y divide-white/5">
+          <div className="flex-1 overflow-y-auto divide-y divide-white/5 min-w-0">
             {filteredInvoices.map(item => {
               const isSelected = item.id === selected?.id;
               return (
                 <div
                   key={item.id}
                   onClick={() => setSelectedInvoiceId(item.id)}
-                  className={`p-3.5 cursor-pointer transition flex flex-col gap-1.5 ${
+                  className={`p-3 sm:p-3.5 cursor-pointer transition flex flex-col gap-1.5 min-w-0 ${
                     isSelected ? 'bg-emerald-600/15 border-l-2 border-emerald-400' : 'hover:bg-white/[0.02]'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono font-semibold text-white/90">{item.invoiceNumber}</span>
+                  <div className="flex items-center justify-between gap-2 min-w-0">
+                    <span className="text-xs font-mono font-semibold text-white/90 truncate">{item.invoiceNumber}</span>
                     <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0 ${
                         item.status === 'MATCHED' || item.status === 'APPROVED' || item.status === 'PAID'
                           ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                           : item.status === 'MISMATCH'
@@ -357,7 +357,7 @@ export const FinanceMatchingCenter: React.FC = () => {
                     </span>
                   </div>
 
-                  <div className="text-xs font-medium text-white/80">{item.supplierName}</div>
+                  <div className="text-xs font-medium text-white/80 truncate">{item.supplierName}</div>
                   <div className="flex items-center justify-between text-[11px] text-white/40 pt-1">
                     <span className="font-semibold text-white/90">${item.totalAmount.toLocaleString()}</span>
                     <span className="font-mono text-[10px]">{item.poId}</span>
@@ -369,28 +369,28 @@ export const FinanceMatchingCenter: React.FC = () => {
         </div>
 
         {/* Right Detail Pane */}
-        <div className="flex-1 h-full overflow-y-auto p-6 bg-[#0D1117] space-y-6">
+        <div className="flex-1 h-full overflow-y-auto p-4 sm:p-6 bg-[#0D1117] space-y-4 sm:space-y-6 min-w-0 max-w-full">
           {selected ? (
             <>
               {/* Header Overview Card */}
-              <div className="p-5 rounded-xl bg-white/[0.02] border border-white/10 space-y-4">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
+              <div className="p-4 sm:p-5 rounded-xl bg-white/[0.02] border border-white/10 space-y-4 min-w-0">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 min-w-0">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-mono text-emerald-400 font-semibold">{selected.id}</span>
                       <span className="text-[11px] px-2 py-0.5 rounded bg-white/10 text-white/70">
                         {selected.invoiceNumber}
                       </span>
                     </div>
-                    <h2 className="text-xl font-bold text-white mt-1">Invoice from {selected.supplierName}</h2>
-                    <div className="text-xs text-white/50 mt-0.5">
-                      Matched to PO: <span className="font-mono text-indigo-300">{selected.poId}</span> • Linked GRN:{' '}
-                      <span className="font-mono text-emerald-300">{selected.grnId}</span>
+                    <h2 className="text-lg sm:text-xl font-bold text-white mt-1 break-words">Invoice from {selected.supplierName}</h2>
+                    <div className="text-xs text-white/50 mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+                      <span>Matched to PO: <span className="font-mono text-indigo-300">{selected.poId}</span></span>
+                      <span>• Linked GRN: <span className="font-mono text-emerald-300">{selected.grnId}</span></span>
                     </div>
                   </div>
 
-                  <div className="text-right">
-                    <div className="text-xl font-bold text-white">${selected.totalAmount.toLocaleString()}</div>
+                  <div className="sm:text-right shrink-0 bg-white/[0.02] sm:bg-transparent p-2.5 sm:p-0 rounded-lg sm:rounded-none border sm:border-0 border-white/5">
+                    <div className="text-lg sm:text-xl font-bold text-white">${selected.totalAmount.toLocaleString()}</div>
                     <div className="text-[11px] text-white/40">Includes ${selected.taxAmount.toLocaleString()} tax</div>
                   </div>
                 </div>
@@ -443,47 +443,47 @@ export const FinanceMatchingCenter: React.FC = () => {
 
               {/* Mismatch Alert Box if Mismatch */}
               {selected.status === 'MISMATCH' && selected.mismatchReason && (
-                <div className="p-5 rounded-xl bg-rose-500/10 border border-rose-500/20 space-y-2">
+                <div className="p-4 sm:p-5 rounded-xl bg-rose-500/10 border border-rose-500/20 space-y-2 min-w-0">
                   <div className="flex items-center gap-2 text-rose-300 font-semibold text-xs">
-                    <AlertTriangle size={16} />
+                    <AlertTriangle size={16} className="shrink-0" />
                     <span>3-Way Matching Tolerance Breach Detected</span>
                   </div>
-                  <p className="text-xs text-white/80">{selected.mismatchReason}</p>
+                  <p className="text-xs text-white/80 break-words">{selected.mismatchReason}</p>
                 </div>
               )}
 
-              {/* 3-Way Line Matching Table */}
-              <div className="p-5 rounded-xl bg-white/[0.02] border border-white/10 space-y-3">
+              {/* 3-Way Line Matching Table with Responsive Scroll Wrap */}
+              <div className="p-4 sm:p-5 rounded-xl bg-white/[0.02] border border-white/10 space-y-3 min-w-0 max-w-full">
                 <h3 className="text-xs font-semibold text-white/70 uppercase tracking-wider">
                   3-Way Line Item Comparison (PO vs GRN vs Invoice)
                 </h3>
-                <div className="rounded-lg border border-white/5 overflow-hidden text-xs">
-                  <div className="grid grid-cols-6 p-2.5 bg-white/5 font-semibold text-white/60 text-[11px] uppercase">
-                    <div>Product Item</div>
-                    <div>PO Qty</div>
-                    <div>GRN Qty</div>
-                    <div>Billed Qty</div>
-                    <div>PO Rate vs Invoiced</div>
-                    <div>Line Total</div>
-                  </div>
-                  <div className="divide-y divide-white/5 bg-black/20">
-                    {selected.lines.map((line, idx) => (
-                      <div key={idx} className="grid grid-cols-6 p-2.5 text-white/80 items-center">
-                        <div className="font-medium text-white truncate">{line.productName}</div>
-                        <div className="font-mono text-white/60">{line.poQuantity}</div>
-                        <div className="font-mono text-emerald-400">{line.grnQuantity}</div>
-                        <div className={`font-mono ${line.hasQuantityVariance ? 'text-rose-400 font-bold' : 'text-white/80'}`}>
-                          {line.invoicedQuantity}
+                <div className="rounded-lg border border-white/5 overflow-x-auto text-xs min-w-0 max-w-full">
+                  <div className="min-w-[540px]">
+                    <div className="grid grid-cols-6 p-2.5 bg-white/5 font-semibold text-white/60 text-[11px] uppercase">
+                      <div className="col-span-2">Product Item</div>
+                      <div>PO Qty</div>
+                      <div>GRN Qty</div>
+                      <div>Billed Qty</div>
+                      <div className="text-right">Line Total</div>
+                    </div>
+                    <div className="divide-y divide-white/5 bg-black/20">
+                      {selected.lines.map((line, idx) => (
+                        <div key={idx} className="grid grid-cols-6 p-2.5 text-white/80 items-center">
+                          <div className="col-span-2 font-medium text-white pr-2">
+                            <div className="truncate">{line.productName}</div>
+                            <div className="text-[10px] text-white/50 font-mono">
+                              ${line.poUnitPrice} PO → <span className={line.hasPriceVariance ? 'text-rose-400 font-bold' : 'text-emerald-400'}>${line.invoicedUnitPrice} inv</span>
+                            </div>
+                          </div>
+                          <div className="font-mono text-white/60">{line.poQuantity}</div>
+                          <div className="font-mono text-emerald-400">{line.grnQuantity}</div>
+                          <div className={`font-mono ${line.hasQuantityVariance ? 'text-rose-400 font-bold' : 'text-white/80'}`}>
+                            {line.invoicedQuantity}
+                          </div>
+                          <div className="font-mono text-white font-semibold text-right">${line.lineTotal.toLocaleString()}</div>
                         </div>
-                        <div>
-                          <span className="font-mono text-white/60">${line.poUnitPrice}</span> →{' '}
-                          <span className={`font-mono font-bold ${line.hasPriceVariance ? 'text-rose-400' : 'text-emerald-400'}`}>
-                            ${line.invoicedUnitPrice}
-                          </span>
-                        </div>
-                        <div className="font-mono text-white font-semibold">${line.lineTotal.toLocaleString()}</div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>

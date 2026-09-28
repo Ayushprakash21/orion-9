@@ -93,6 +93,7 @@ const normalizeAppId = (id: string): string => {
   if (id === 'ai-copilot') return 'orion-ai';
   if (id === 'copilot') return 'orion-ai';
   if (id === 'about-orion') return 'about';
+  if (id === 'buy' || id === 'buy-something') return 'buy-workflow';
   return id;
 };
 

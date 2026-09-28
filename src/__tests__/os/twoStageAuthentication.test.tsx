@@ -85,14 +85,23 @@ describe('ORION-9 Two-Stage Native OS Authentication Experience', () => {
     expect(code).toContain('handleBackToStage1()');
   });
 
-  it('14. Provides functional language selector dropdown', () => {
+  it('14. Provides functional world language selector', () => {
     const code = Login.toString();
-    expect(code).toContain('handleSelectLanguage');
-    expect(code).toContain('SUPPORTED_LANGUAGES');
+    expect(code).toContain('setLocale');
+    expect(code).toContain('WorldLanguagePanel');
   });
 
-  it('15. Supported languages dynamically update UI text strings (English, Hindi, Spanish, German)', () => {
-    expect(SUPPORTED_LANGUAGES.map(l => l.code)).toEqual(['en', 'hi', 'es', 'de']);
+  it('15. Supported languages dynamically update UI text strings (English, Hindi, Spanish, German, etc.)', () => {
+    const codes = SUPPORTED_LANGUAGES.map(l => l.code);
+    expect(codes).toContain('en');
+    expect(codes).toContain('hi');
+    expect(codes).toContain('es');
+    expect(codes).toContain('de');
+    expect(codes).toContain('fr');
+    expect(codes).toContain('zh');
+    expect(codes).toContain('ja');
+    expect(codes).toContain('ar');
+    expect(codes.length).toBe(40);
     expect(AUTH_TRANSLATIONS.en.signInTitle).toBe('Sign in to Orion');
     expect(AUTH_TRANSLATIONS.hi.signInTitle).toBe('Orion में साइन इन करें');
     expect(AUTH_TRANSLATIONS.es.signInTitle).toBe('Iniciar sesión en Orion');
@@ -101,8 +110,8 @@ describe('ORION-9 Two-Stage Native OS Authentication Experience', () => {
 
   it('16. Does not display unsupported languages', () => {
     const codes = SUPPORTED_LANGUAGES.map(l => l.code);
-    expect(codes).not.toContain('fr');
-    expect(codes).not.toContain('zh');
+    expect(codes).not.toContain('xx');
+    expect(codes).not.toContain('klingon');
   });
 
   it('17. Power menu toggles on bottom-left power button click', () => {

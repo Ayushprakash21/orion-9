@@ -9,6 +9,8 @@ export const AUTHORITATIVE_DEFAULT_LOGO = '/orion-9-official-logo.png';
 export interface BrandLogoProps {
   sizePreset?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'hero';
   size?: number; // legacy/fallback
+  width?: number | string;
+  height?: number | string;
   variant?: 'mark' | 'full' | 'full-descriptor';
   className?: string;
   adminBadge?: boolean;
@@ -80,6 +82,8 @@ if (typeof window !== 'undefined') {
 export const BrandLogo: React.FC<BrandLogoProps> = ({ 
   sizePreset,
   size = 28, 
+  width,
+  height,
   variant = 'full', 
   className = '',
   adminBadge = false
@@ -134,6 +138,10 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
   }, [logoSource]);
 
   const sizing = getSizing(sizePreset, size);
+  const imgWidth = width ? (typeof width === 'number' ? `${width}px` : width) : (sizing.width || 'auto');
+  const imgHeight = height ? (typeof height === 'number' ? `${height}px` : height) : (width ? 'auto' : (sizing.height || 'auto'));
+  const imgMaxWidth = width ? (typeof width === 'number' ? `${width}px` : width) : (sizing.maxWidth || '100%');
+  const imgMaxHeight = height ? (typeof height === 'number' ? `${height}px` : height) : (width ? 'none' : sizing.maxHeight);
 
   return (
     <div className={cn("flex items-center gap-3 select-none min-w-0 box-border", variant !== 'mark' && "w-full", className)}>
@@ -146,10 +154,10 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
             loading="eager"
             decoding="async"
             style={{ 
-              width: sizing.width || 'auto', 
-              height: sizing.height || 'auto',
-              maxWidth: sizing.maxWidth || '100%',
-              maxHeight: sizing.maxHeight,
+              width: imgWidth, 
+              height: imgHeight,
+              maxWidth: imgMaxWidth,
+              maxHeight: imgMaxHeight,
               objectFit: 'contain'
             }}
             className="orion-brand-image shrink-0"
@@ -157,7 +165,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
             onError={() => setImgError(true)}
           />
         ) : (
-          <OrionMark size={sizing.markSize} className="shrink-0" />
+          <OrionMark size={typeof width === 'number' ? width : sizing.markSize} className="shrink-0" />
         )}
       </div>
 

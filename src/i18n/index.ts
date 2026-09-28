@@ -7,6 +7,7 @@ import { en } from './locales/en';
 import { hi } from './locales/hi';
 import { es } from './locales/es';
 import { de } from './locales/de';
+import { WORLD_TRANSLATIONS } from './locales/worldLocales';
 import {
   SupportedLocale,
   SupportedLanguage,
@@ -20,12 +21,15 @@ import { validateAllLocales } from './validation';
 
 export * from './types';
 export * from './validation';
+export * from './languagePack';
+export * from './LanguagePackService';
 
-export const TRANSLATIONS: Record<SupportedLocale, TranslationSchema> = {
+export const TRANSLATIONS: Record<string, TranslationSchema> = {
   en,
   hi,
   es,
   de,
+  ...WORLD_TRANSLATIONS,
 };
 
 /**
@@ -47,18 +51,17 @@ export function isValidLocale(lang?: string | null): lang is SupportedLocale {
 }
 
 /**
- * Maps browser language tags (e.g., 'en-US', 'hi-IN', 'es-MX', 'de-DE')
- * to canonical SupportedLocale ('en', 'hi', 'es', 'de').
- * Unsupported browser languages map to 'en'.
+ * Maps browser language tags (e.g., 'en-US', 'hi-IN', 'es-MX', 'de-DE', 'ja-JP', 'ar-SA', etc.)
+ * to canonical SupportedLocale. Unsupported browser languages map to 'en'.
  */
 export function matchBrowserLocale(browserLang?: string | null): SupportedLocale {
   if (!browserLang || typeof browserLang !== 'string') return 'en';
   const tag = browserLang.toLowerCase().trim();
+  const primaryCode = tag.split(/[-_]/)[0];
 
-  if (tag.startsWith('en')) return 'en';
-  if (tag.startsWith('hi')) return 'hi';
-  if (tag.startsWith('es')) return 'es';
-  if (tag.startsWith('de')) return 'de';
+  if (isValidLocale(primaryCode)) {
+    return primaryCode;
+  }
 
   return 'en';
 }

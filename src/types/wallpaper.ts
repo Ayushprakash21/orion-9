@@ -34,6 +34,10 @@ export interface WallpaperRecord {
   candidateId?: string;
   width: number;
   height: number;
+  sourceWidth?: number;
+  sourceHeight?: number;
+  finalWidth?: number;
+  finalHeight?: number;
   aspectRatio: string; // '16:9'
   mode?: WallpaperMode;
   target?: WallpaperTarget;
@@ -58,6 +62,10 @@ export interface WallpaperCandidate {
   thumbnailUrl: string;
   width: number;
   height: number;
+  sourceWidth?: number;
+  sourceHeight?: number;
+  finalWidth?: number;
+  finalHeight?: number;
   prompt: string;
   style: WallpaperStyle;
   createdAt: string;

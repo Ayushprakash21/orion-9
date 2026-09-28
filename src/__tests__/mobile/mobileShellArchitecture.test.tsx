@@ -192,7 +192,7 @@ describe('Orion-9 Mobile Application Shell Rebuild Architecture', () => {
       expect(html).toContain('overflow-x-hidden');
     });
 
-    it('renders mobile-first Home command center and 2x2 KPI grid', () => {
+    it('renders mobile-first OS Home landing screen with What do you want to do and Quick Access', () => {
       const html = renderToString(
         <MemoryRouter>
           <MobileNavigationProvider>
@@ -203,8 +203,11 @@ describe('Orion-9 Mobile Application Shell Rebuild Architecture', () => {
 
       expect(html).toContain('Chief Supply Chain Officer');
       expect(html).toContain('System Operational');
+      expect(html).toContain('What do you want to do?');
       expect(html).toContain('Quick Access');
-      expect(html).toContain('Control Tower Overview');
+      expect(html).toContain('Ask ORION about your supply chain');
+      expect(html).not.toContain('Control Tower Overview');
+      expect(html).not.toContain('Telemetry Trajectories');
     });
 
     it('renders mobile Control Tower with disruption telemetry and stacked charts', () => {

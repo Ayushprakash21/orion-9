@@ -7,6 +7,8 @@ import { useBranding } from '../../store/BrandingContext';
 import { LogOut, Settings, Monitor, Activity, Lock, RefreshCw, Moon, ChevronRight, XSquare } from 'lucide-react';
 import { ORION_REGISTRY } from '../OrionApplicationRegistry';
 import { useI18n } from '../../store/LanguageContext';
+import { useSupplyChain } from '../../store/SupplyChainContext';
+import { cn } from '../../lib/utils';
 
 interface OrionSystemMenuProps {
   onClose: () => void;
@@ -16,6 +18,7 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
   const { branding } = useBranding();
   const appName = branding.appName || 'ORION-9';
   const { t } = useI18n();
+  const { settings, updateSettings } = useSupplyChain();
   
   const { logout, triggerRestart, triggerSleep, triggerLock, currentUser } = useAuth();
   const { setLauncherOpen, windows, openApplication, focusApplication, closeAllWindows } = useWindowManager();
@@ -60,19 +63,51 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
         {t('desktop.aboutOrion')}
       </button>
       
+      {/* Operating UX Mode Switcher */}
+      <div className="px-4 py-2 bg-white/[0.02] border-y border-white/[0.04]">
+        <div className="text-[10px] font-mono text-os-text-muted uppercase tracking-wider mb-1.5 flex justify-between items-center">
+          <span>Operating Mode</span>
+          <span className={cn("font-bold text-[10px]", settings.userExperienceMode === 'ADVANCED' ? "text-purple-400" : "text-emerald-400")}>
+            {settings.userExperienceMode === 'ADVANCED' ? 'ADVANCED SCM' : 'SIMPLE MODE'}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-1 p-0.5 bg-black/40 rounded-lg border border-os-border text-[11px] font-mono">
+          <button
+            type="button"
+            onClick={() => handleAction(() => updateSettings({ userExperienceMode: 'SIMPLE' }))}
+            className={cn(
+              "px-2 py-1 rounded-md transition-all cursor-pointer text-center font-medium",
+              settings.userExperienceMode !== 'ADVANCED' ? "bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30" : "text-os-text-muted hover:text-white"
+            )}
+          >
+            Simple
+          </button>
+          <button
+            type="button"
+            onClick={() => handleAction(() => updateSettings({ userExperienceMode: 'ADVANCED' }))}
+            className={cn(
+              "px-2 py-1 rounded-md transition-all cursor-pointer text-center font-medium",
+              settings.userExperienceMode === 'ADVANCED' ? "bg-purple-500/20 text-purple-400 font-bold border border-purple-500/30" : "text-os-text-muted hover:text-white"
+            )}
+          >
+            Advanced
+          </button>
+        </div>
+      </div>
+      
       <div className="h-px bg-white/[0.06] my-1.5 mx-2" />
       
       <button 
         onClick={() => handleAction(() => setLauncherOpen(true))}
         className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors flex items-center justify-between cursor-pointer"
       >
-        <span>Applications...</span>
+        <span>{t('desktop.applications')}</span>
         <kbd className="text-[10px] font-mono text-slate-500 bg-os-surface-hover px-1.5 py-0.5 rounded border border-os-border">F4</kbd>
       </button>
 
       {/* Recent Applications sub-menu */}
       <div className="relative group w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors flex items-center justify-between cursor-default">
-        <span>Recent Applications</span>
+        <span>{t('desktop.recentApplications')}</span>
         <ChevronRight className="w-3.5 h-3.5 opacity-50" />
         
         {/* Sub-menu (appears on hover) */}
@@ -89,7 +124,7 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
               </button>
             ))
           ) : (
-            <div className="px-4 py-1.5 text-slate-500 text-xs italic">No recent applications</div>
+            <div className="px-4 py-1.5 text-slate-500 text-xs italic">{t('desktop.noRecentApplications')}</div>
           )}
         </div>
       </div>

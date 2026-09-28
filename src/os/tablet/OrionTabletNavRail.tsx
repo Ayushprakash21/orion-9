@@ -7,6 +7,7 @@ import React from 'react';
 import { useTabletNavigation, TabletNavTab } from './OrionTabletNavigation';
 import { useNotifications } from '../../store/NotificationContext';
 import { useResponsiveLayout } from '../../lib/useResponsiveLayout';
+import { useI18n } from '../../store/LanguageContext';
 import { 
   Home, 
   ShieldCheck, 
@@ -26,13 +27,14 @@ interface NavItem {
 export const OrionTabletNavRail: React.FC<{ isLandscapeMode: boolean }> = ({ isLandscapeMode }) => {
   const { activeTab, navigateToTab, openOrionAI } = useTabletNavigation();
   const { unreadCount } = useNotifications();
+  const { t } = useI18n();
 
   const navItems: NavItem[] = [
-    { id: 'home', label: 'Home', icon: Home },
-    { id: 'control', label: 'Control', icon: ShieldCheck },
-    { id: 'ai', label: 'AI', icon: Sparkles, highlight: true },
-    { id: 'alerts', label: 'Alerts', icon: AlertTriangle, badge: unreadCount },
-    { id: 'apps', label: 'Apps', icon: LayoutGrid },
+    { id: 'home', label: t('navigation.home'), icon: Home },
+    { id: 'control', label: t('navigation.control'), icon: ShieldCheck },
+    { id: 'ai', label: t('navigation.ai'), icon: Sparkles, highlight: true },
+    { id: 'alerts', label: t('navigation.alerts'), icon: AlertTriangle, badge: unreadCount },
+    { id: 'apps', label: t('navigation.apps'), icon: LayoutGrid },
   ];
 
   const handleSelectTab = (tab: TabletNavTab) => {

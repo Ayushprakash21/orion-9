@@ -11,9 +11,28 @@ import { MobileRecordCard } from './MobileRecordCard';
 import { KPICard } from './ui/KPICard';
 import { PageHeader } from './ui/PageHeader';
 import { StatusBadge } from './ui/StatusBadge';
+import { useLiveChartSeries, ORION_CHART_COLORS } from '../core/visualization';
+import { dbManager } from '../core/database/DatabaseConnectionManager';
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend
+} from 'recharts';
 
 export const Inventory = () => {
   const { inventory, products, warehouses, currency, settings } = useSupplyChain();
+  const { chartData, metricValues, loading: chartsLoading } = useLiveChartSeries(
+    ['INVENTORY_ON_HAND', 'SAFETY_STOCK', 'STOCKOUT_RATE', 'INVENTORY_VALUE', 'INVENTORY_TURNS'],
+    14
+  );
+  const dbEnv = dbManager.getEnvironment();
   const { openEntity } = useEntityDrawer();
   const { openInventoryContextMenu } = useEntityContextMenu();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -154,6 +173,164 @@ export const Inventory = () => {
         <KPICard label="Low Stock" value={lowCount} status={lowCount > 0 ? "warning" : "neutral"} />
         <KPICard label="Excess Inv" value={excessCount} status={excessCount > 0 ? "warning" : "neutral"} />
         <KPICard label="Avg Days Supply" value={formatNumber(avgDaysSupply, 1)} />
+      </div>
+
+      {/* REAL-TIME INVENTORY TELEMETRY */}
+      <div className="bg-os-surface border border-os-border rounded-xl p-5 hover:border-os-border-strong transition-colors space-y-4" data-testid="realtime-inventory-telemetry">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-os-border">
+          <div>
+            <div className="flex items-center gap-2">
+              <Activity size={16} className="text-emerald-400" />
+              <h3 className="text-sm font-semibold text-os-text-primary tracking-wider uppercase">
+                Real-Time Inventory Telemetry
+              </h3>
+            </div>
+            <p className="text-xs text-os-text-muted mt-0.5">
+              Live inventory movement and health across the network
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-medium border ${
+                dbEnv === 'LIVE'
+                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
+                  : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${dbEnv === 'LIVE' ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+              {dbEnv === 'LIVE' ? 'LIVE NETWORK STREAM' : 'DEMO TELEMETRY'}
+            </span>
+            <span className="text-[10px] font-mono text-os-text-muted hidden sm:inline">
+              14-Day Window
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {/* Graph 1: Inventory Positioning vs Buffer */}
+          <div className="bg-os-surface-secondary/50 border border-os-border rounded-lg p-4 flex flex-col min-h-[260px]">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <span className="text-xs font-semibold text-os-text-primary uppercase tracking-wider block">
+                  Inventory Positioning vs Buffer
+                </span>
+                <span className="text-[10px] text-os-text-muted font-mono">
+                  Units on Hand vs Safety Stock Buffer
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-os-text-muted">units</span>
+            </div>
+
+            <div className="flex-1 min-h-[190px] w-full">
+              {chartData && chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData} margin={{ top: 5, right: 15, left: -15, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={ORION_CHART_COLORS.grid} vertical={false} />
+                    <XAxis dataKey="formattedDate" stroke={ORION_CHART_COLORS.axis} fontSize={10} tickLine={false} />
+                    <YAxis stroke={ORION_CHART_COLORS.axis} fontSize={10} tickLine={false} tickFormatter={(val) => formatNumber(val)} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#181818', borderColor: '#2A2A2A', borderRadius: 8, fontSize: 11 }}
+                      labelStyle={{ color: '#888888', marginBottom: 4, fontFamily: 'monospace' }}
+                      formatter={(val: any, name: any) => [formatNumber(val), name]}
+                    />
+                    <Legend iconSize={8} wrapperStyle={{ fontSize: 10, paddingTop: 4 }} />
+                    <Line
+                      type="monotone"
+                      dataKey="INVENTORY_ON_HAND"
+                      name="On Hand (Units)"
+                      stroke={ORION_CHART_COLORS.series1}
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 4 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="SAFETY_STOCK"
+                      name="Safety Buffer (Units)"
+                      stroke={ORION_CHART_COLORS.series5}
+                      strokeWidth={1.5}
+                      strokeDasharray="4 4"
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                  <Activity size={24} className="text-os-text-muted mb-1 opacity-50" />
+                  <span className="text-xs text-os-text-secondary">NO TELEMETRY AVAILABLE</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Graph 2: Stockout Risk Exposure & Valuation Trend */}
+          <div className="bg-os-surface-secondary/50 border border-os-border rounded-lg p-4 flex flex-col min-h-[260px]">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <span className="text-xs font-semibold text-os-text-primary uppercase tracking-wider block">
+                  Valuation Stream & Stockout Risk
+                </span>
+                <span className="text-[10px] text-os-text-muted font-mono">
+                  Network Asset Valuation & Critical Stockout Count
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-os-text-muted">USD / SKUs</span>
+            </div>
+
+            <div className="flex-1 min-h-[190px] w-full">
+              {chartData && chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={chartData} margin={{ top: 5, right: 15, left: -10, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="invValGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor={ORION_CHART_COLORS.series2} stopOpacity={0.4} />
+                        <stop offset="95%" stopColor={ORION_CHART_COLORS.series2} stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke={ORION_CHART_COLORS.grid} vertical={false} />
+                    <XAxis dataKey="formattedDate" stroke={ORION_CHART_COLORS.axis} fontSize={10} tickLine={false} />
+                    <YAxis yAxisId="left" stroke={ORION_CHART_COLORS.axis} fontSize={10} tickLine={false} tickFormatter={(val) => `$${(val / 1000).toFixed(0)}k`} />
+                    <YAxis yAxisId="right" orientation="right" stroke={ORION_CHART_COLORS.series4} fontSize={10} tickLine={false} />
+                    <Tooltip
+                      contentStyle={{ backgroundColor: '#181818', borderColor: '#2A2A2A', borderRadius: 8, fontSize: 11 }}
+                      labelStyle={{ color: '#888888', marginBottom: 4, fontFamily: 'monospace' }}
+                      formatter={(val: any, name: any) => [
+                        name.includes('Valuation') ? formatCurrency(val) : formatNumber(val),
+                        name
+                      ]}
+                    />
+                    <Legend iconSize={8} wrapperStyle={{ fontSize: 10, paddingTop: 4 }} />
+                    <Area
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="INVENTORY_VALUE"
+                      name="Valuation ($)"
+                      stroke={ORION_CHART_COLORS.series2}
+                      strokeWidth={2}
+                      fillOpacity={1}
+                      fill="url(#invValGrad)"
+                    />
+                    <Line
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="STOCKOUT_RATE"
+                      name="Stockout Risk (SKUs)"
+                      stroke={ORION_CHART_COLORS.series4}
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                  <Activity size={24} className="text-os-text-muted mb-1 opacity-50" />
+                  <span className="text-xs text-os-text-secondary">NO TELEMETRY AVAILABLE</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

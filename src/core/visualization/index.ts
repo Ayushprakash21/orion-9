@@ -5,3 +5,4 @@ export * from './TimeSeriesEngine';
 export * from './ChartDataAdapter';
 export * from './useLiveMetric';
 export * from './useLiveChartSeries';
+export * from './RealtimeGraphFabric';

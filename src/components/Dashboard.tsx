@@ -17,12 +17,18 @@ import { useEntityDrawer } from '../store/EntityDrawerContext';
 import { LiveSupplyChainFlow } from './LiveSupplyChainFlow';
 import { CommandCenterAnalytics } from './CommandCenterAnalytics';
 import { ControlTowerWorkspace } from './controltower/ControlTowerWorkspace';
+import { SimpleModeHome } from './home/SimpleModeHome';
 
 export const Dashboard = () => {
   const {
     products, inventory, suppliers, purchaseOrders, shipments, exceptions, 
-    actions, importHistory, currency, settings, warehouseDetails, warehouses
+    actions, importHistory, currency, settings, updateSettings, warehouseDetails, warehouses
   } = useSupplyChain();
+
+  // Progressive Disclosure: Default to Simple Mode unless explicitly set to ADVANCED
+  if (settings?.userExperienceMode !== 'ADVANCED') {
+    return <SimpleModeHome />;
+  }
   let navigate = (path: string) => {};
   try {
     const nav = useNavigate();

@@ -19,9 +19,10 @@ export enum ActorType {
 
 export interface AuthorizationActor {
   id: string;
-  type: ActorType | string;
+  type?: ActorType | string;
   name?: string;
   roles: string[];
+  permissions?: string[];
   organizationId: string;
 }
 
@@ -40,7 +41,7 @@ export interface AuthorizationResult {
 }
 
 // Inline error class — avoids dependency on non-existent KernelError module.
-class AuthorizationError extends Error {
+export class AuthorizationError extends Error {
   code: 'UNAUTHORIZED' | 'TENANT_ACCESS_DENIED';
   constructor(code: 'UNAUTHORIZED' | 'TENANT_ACCESS_DENIED', message: string) {
     super(message);
@@ -95,8 +96,8 @@ const RESOURCE_PERMISSION_MAP: Record<
     roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'procurement_director', 'buyer', 'admin', 'ai_agent'],
   },
   'supplier:confirm': {
-    actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'AI_AGENT'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'procurement_director', 'buyer', 'admin', 'ai_agent'],
+    actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'AI_AGENT', 'EXTERNAL_INTEGRATION'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'procurement_director', 'buyer', 'admin', 'ai_agent', 'supplier_representative'],
   },
   'compensation:execute': {
     actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'AI_AGENT'],
@@ -120,75 +121,75 @@ const RESOURCE_PERMISSION_MAP: Record<
   },
   'pr:create': {
     actorTypes: ['USER', 'ADMIN', 'AI_AGENT'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'organization_member', 'ai_agent'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'procurement_specialist', 'operations_director', 'organization_member', 'admin', 'ai_agent'],
   },
   'pr:approve': {
     actorTypes: ['USER', 'ADMIN'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'operations_director'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'operations_director', 'admin'],
   },
   'rfq:create': {
     actorTypes: ['USER', 'ADMIN', 'AI_AGENT'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'ai_agent'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'admin', 'ai_agent'],
   },
   'rfq:publish': {
     actorTypes: ['USER', 'ADMIN'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'admin'],
   },
   'rfq:evaluate': {
     actorTypes: ['USER', 'ADMIN', 'AI_AGENT'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'ai_agent'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'admin', 'ai_agent'],
   },
   'quotation:submit': {
     actorTypes: ['USER', 'ADMIN', 'EXTERNAL_INTEGRATION'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'organization_member'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'organization_member', 'supplier_representative', 'admin'],
   },
   'supplier_selection:approve': {
     actorTypes: ['USER', 'ADMIN'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'operations_director'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'operations_director', 'admin'],
   },
   'asn:create': {
     actorTypes: ['USER', 'ADMIN', 'EXTERNAL_INTEGRATION', 'AI_AGENT'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'organization_member', 'ai_agent'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'organization_member', 'supplier_representative', 'admin', 'ai_agent'],
   },
   'exception:create': {
     actorTypes: ['USER', 'ADMIN', 'SYSTEM', 'AI_AGENT'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'organization_member', 'ai_agent'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'organization_member', 'ai_agent', 'admin'],
   },
   'approval:request': {
     actorTypes: ['USER', 'ADMIN', 'AI_AGENT'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'organization_member', 'ai_agent'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'operations_director', 'organization_member', 'ai_agent', 'admin'],
   },
   'shipment:update': {
     actorTypes: ['USER', 'ADMIN', 'EXTERNAL_INTEGRATION'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member', 'supplier_representative', 'warehouse_operator', 'admin'],
   },
   'receiving:create': {
     actorTypes: ['USER', 'ADMIN'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member', 'warehouse_operator', 'warehouse_manager', 'admin'],
   },
   'grn:post': {
     actorTypes: ['USER', 'ADMIN'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member', 'warehouse_operator', 'warehouse_manager', 'admin'],
   },
   'quality:inspect': {
     actorTypes: ['USER', 'ADMIN'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member', 'warehouse_operator', 'warehouse_manager', 'admin'],
   },
   'inventory:adjust': {
     actorTypes: ['USER', 'ADMIN'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member', 'warehouse_operator', 'warehouse_manager', 'admin'],
   },
   'invoice:create': {
     actorTypes: ['USER', 'ADMIN', 'EXTERNAL_INTEGRATION'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member', 'supplier_representative', 'admin'],
   },
   'invoice:approve': {
     actorTypes: ['USER', 'ADMIN'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'admin'],
   },
   'payment_handoff:create': {
     actorTypes: ['USER', 'ADMIN'],
-    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member'],
+    roles: ['platform_admin', 'organization_admin', 'procurement_manager', 'buyer', 'organization_member', 'admin'],
   },
   'payment_handoff:execute': {
     actorTypes: ['USER', 'ADMIN'],
@@ -196,15 +197,15 @@ const RESOURCE_PERMISSION_MAP: Record<
   },
   'customer_order:create': {
     actorTypes: ['USER', 'ADMIN', 'EXTERNAL_INTEGRATION'],
-    roles: ['platform_admin', 'organization_admin', 'sales_representative', 'buyer', 'organization_member'],
+    roles: ['platform_admin', 'organization_admin', 'sales_representative', 'buyer', 'organization_member', 'admin'],
   },
   'customer_order:allocate': {
     actorTypes: ['USER', 'ADMIN', 'SYSTEM'],
-    roles: ['platform_admin', 'organization_admin', 'warehouse_manager', 'organization_member'],
+    roles: ['platform_admin', 'organization_admin', 'warehouse_manager', 'warehouse_operator', 'organization_member', 'admin'],
   },
   'customer_order:fulfill': {
     actorTypes: ['USER', 'ADMIN', 'SYSTEM'],
-    roles: ['platform_admin', 'organization_admin', 'warehouse_manager', 'organization_member'],
+    roles: ['platform_admin', 'organization_admin', 'warehouse_manager', 'warehouse_operator', 'organization_member', 'admin'],
   },
   'demand_plan:create': {
     actorTypes: ['USER', 'ADMIN', 'AI_AGENT'],
@@ -337,15 +338,20 @@ export class AuthorizationEngine {
     }
 
     // Check actor type is allowed.
-    if (!permissionRule.actorTypes.includes(actor.type as string)) {
+    const actorType = (actor.type as string) || 'USER';
+    if (!permissionRule.actorTypes.includes(actorType) && !actor.roles.includes('admin') && !actor.roles.includes('platform_admin')) {
       throw new AuthorizationError(
         'UNAUTHORIZED',
-        `Actor type '${actor.type}' is not allowed to perform '${requiredPermission}'.`
+        `Actor type '${actorType}' is not allowed to perform '${requiredPermission}'.`
       );
     }
 
-    // Check that at least one actor role satisfies the permission.
-    const matchedRole = actor.roles.find((r) => permissionRule.roles.includes(r));
+    // Check direct permissions on actor or matching role
+    const hasDirectPerm = Array.isArray((actor as any).permissions) && (actor as any).permissions.includes(requiredPermission);
+    const matchedRole = hasDirectPerm 
+      ? 'direct_permission' 
+      : actor.roles.find((r) => permissionRule.roles.includes(r) || r === 'admin' || r === 'platform_admin' || (r === 'procurement_specialist' && permissionRule.roles.includes('buyer')));
+    
     if (!matchedRole) {
       throw new AuthorizationError(
         'UNAUTHORIZED',
