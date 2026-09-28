@@ -597,10 +597,8 @@ describe('ORION-9 — TRACK 5 ENTERPRISE CERTIFICATION SUITE', () => {
         },
         tenantId: 'TENANT_CORP',
         action: 'APPROVE_PURCHASE_ORDER',
-        resource: {
-          type: 'purchase_order',
-          id: 'PO-2026-991'
-        },
+        entityType: 'purchase_order',
+        entityId: 'PO-2026-991',
         classification: 'INTERNAL',
         correlationId: 'req-corr-9921',
         details: { value: 24500 }

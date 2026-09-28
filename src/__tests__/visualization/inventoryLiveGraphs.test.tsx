@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Inventory } from '../../components/Inventory';
 import { SupplyChainProvider } from '../../store/SupplyChainContext';
@@ -7,17 +7,24 @@ import { AuthProvider } from '../../store/AuthContext';
 import { ToastProvider } from '../../store/ToastContext';
 import { OrionSearchProvider } from '../../os/OrionSearchContext';
 import { EntityDrawerProvider } from '../../store/EntityDrawerContext';
+import { OrionContextMenuProvider } from '../../os/contextMenu/OrionContextMenuContext';
 import { MemoryRouter } from 'react-router-dom';
 import * as visualizationModule from '../../core/visualization/useLiveChartSeries';
 
-// Mock Recharts ResponsiveContainer & charts for jsdom environment
+// Mock Recharts ResponsiveContainer & charts for server-rendering environment
 vi.mock('recharts', async () => {
   const original = await vi.importActual('recharts');
   return {
     ...original,
-    ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container" style={{ width: 500, height: 300 }}>{children}</div>,
+    ResponsiveContainer: ({ children }: any) => <div data-testid="responsive-container">{children}</div>,
   };
 });
+
+vi.mock('../../os/contextMenu/useEntityContextMenu', () => ({
+  useEntityContextMenu: () => ({
+    openInventoryContextMenu: vi.fn(),
+  }),
+}));
 
 describe('Inventory Real-Time Live Graphs', () => {
   beforeEach(() => {
@@ -27,16 +34,18 @@ describe('Inventory Real-Time Live Graphs', () => {
   it('renders Real-Time Inventory Telemetry section and consumes useLiveChartSeries', () => {
     const spy = vi.spyOn(visualizationModule, 'useLiveChartSeries');
 
-    render(
+    const html = renderToString(
       <MemoryRouter>
         <AuthProvider>
           <SupplyChainProvider>
             <ToastProvider>
-              <OrionSearchProvider>
-                <EntityDrawerProvider>
-                  <Inventory />
-                </EntityDrawerProvider>
-              </OrionSearchProvider>
+              <OrionContextMenuProvider>
+                <OrionSearchProvider>
+                  <EntityDrawerProvider>
+                    <Inventory />
+                  </EntityDrawerProvider>
+                </OrionSearchProvider>
+              </OrionContextMenuProvider>
             </ToastProvider>
           </SupplyChainProvider>
         </AuthProvider>
@@ -50,12 +59,12 @@ describe('Inventory Real-Time Live Graphs', () => {
     );
 
     // Verify Telemetry Section rendered
-    expect(screen.getByTestId('realtime-inventory-telemetry')).toBeInTheDocument();
-    expect(screen.getByText(/REAL-TIME INVENTORY TELEMETRY/i)).toBeInTheDocument();
-    expect(screen.getByText(/Live inventory movement and health across the network/i)).toBeInTheDocument();
+    expect(html).toContain('data-testid="realtime-inventory-telemetry"');
+    expect(html).toContain('Real-Time Inventory Telemetry');
+    expect(html).toContain('Live inventory movement and health across the network');
 
     // Verify Graph headings
-    expect(screen.getByText(/Inventory Positioning vs Buffer/i)).toBeInTheDocument();
-    expect(screen.getByText(/Valuation Stream & Stockout Risk/i)).toBeInTheDocument();
+    expect(html).toContain('Inventory Positioning vs Buffer');
+    expect(html).toContain('Valuation Stream &amp; Stockout Risk');
   });
 });
