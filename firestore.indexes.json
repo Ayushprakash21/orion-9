@@ -228,6 +228,22 @@
         { "fieldPath": "tenantId", "order": "ASCENDING" },
         { "fieldPath": "calculatedAt", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "control_policies",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "control_policies",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tenantId", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

@@ -111,18 +111,31 @@ service cloud.firestore {
     }
 
     // Wave 12 Enterprise Control Policies & Proposals
+    // Wave 12 Enterprise Control Policies & Governance Policies
     match /control_policies/{policyId} {
       allow read: if isAuthenticated() && (
         isOrgMember(resource.data.organizationId) || 
         isOrgMember(resource.data.tenantId) || 
         isAdmin()
       );
-      allow create, update: if isAdmin() && (
+      allow create: if isAdmin() && (
         isOrgMember(request.resource.data.organizationId) || 
         isOrgMember(request.resource.data.tenantId) || 
         isAdmin()
       );
-      allow delete: if isAdmin();
+      allow update: if isAdmin() && (
+        isOrgMember(resource.data.organizationId) || 
+        isOrgMember(resource.data.tenantId) || 
+        isAdmin()
+      ) && (
+        // Immutability of tenant and organization ownership
+        request.resource.data.tenantId == resource.data.tenantId &&
+        (!('organizationId' in resource.data) || request.resource.data.organizationId == resource.data.organizationId) &&
+        // Monotonically increasing version requirement
+        request.resource.data.version >= resource.data.version
+      );
+      // Historical governance policies are retained and immutable
+      allow delete: if false;
     }
 
     match /control_proposals/{proposalId} {

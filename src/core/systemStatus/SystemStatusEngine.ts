@@ -21,6 +21,7 @@ import {
   AutomationSubsystemStatus,
   FRESHNESS_THRESHOLDS,
   AuthSubsystemState,
+  GovernanceSubsystemStatus,
 } from './SystemStatusTypes';
 import { systemStatusRegistry } from './SystemStatusRegistry';
 import { dbManager } from '../database/DatabaseConnectionManager';
@@ -29,6 +30,7 @@ import { realtimeSubscriptionManager, RealtimeDomain, getTruthfulConnectionState
 import { realtimeStateStore } from '../visualization/RealtimeStateStore';
 import { workflowObservability } from '../../workflows/WorkflowObservability';
 import { WorkflowApprovalEngine } from '../../workflows/WorkflowApprovalEngine';
+import { governancePolicyRepository } from '../governance/GovernancePolicyRepository';
 
 /**
  * Strips secrets, tokens, credentials, stack traces, and internal Firestore paths
@@ -128,6 +130,8 @@ export class SystemStatusEngine {
       automation
     );
 
+    const governance = governancePolicyRepository.getGovernanceTelemetry();
+
     return {
       overallStatus,
       generatedAt: now,
@@ -141,6 +145,7 @@ export class SystemStatusEngine {
       freshness,
       graphs,
       automation,
+      governance,
     };
   }
 

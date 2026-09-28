@@ -627,6 +627,8 @@ export type PolicyLifecycleStatus =
   | 'VALIDATING'
   | 'PENDING_APPROVAL'
   | 'ACTIVE'
+  | 'SUSPENDED'
+  | 'EXPIRED'
   | 'MONITORING'
   | 'RETIRED';
 
@@ -643,25 +645,30 @@ export interface PolicyConflictRecord {
 }
 
 export interface GovernancePolicyRecord {
+  id?: string;
   policyId: string;
   tenantId: string;
   organizationId: string;
+  environment?: 'LIVE' | 'DEMO';
   domain: EnterpriseGovernanceDomain;
   name: string;
   version: number;
   status: PolicyLifecycleStatus;
   executionScope: 'CAPABILITY' | 'DOMAIN' | 'ENTERPRISE';
   humanApprovalRequired: boolean;
+  enabled?: boolean;
   riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
   allowedRoles: string[];
   aiOperatingMode: 'MANUAL' | 'AI_COPILOT' | 'AI_AUTOPILOT';
   effectiveFrom: string;
   effectiveUntil?: string;
   createdBy: string;
+  updatedBy?: string;
   approvedBy?: string;
   createdAt: string;
   updatedAt: string;
   auditToken: string;
+  policyDefinition?: Record<string, any>;
 }
 
 export interface PolicySimulationImpact {

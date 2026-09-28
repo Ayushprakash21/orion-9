@@ -29,6 +29,8 @@ export interface PolicyEvaluationOutcome {
   result: PolicyEvaluationResult;
   ruleId?: string;
   ruleName?: string;
+  policyVersion?: number | string;
+  tenantId?: string;
   reason: string;
   requiresApproval: boolean;
   approvalRole?: string;
@@ -61,7 +63,7 @@ export class KernelPolicyEngine {
       description: 'Operations involving financial exposure greater than $50,000 require human manager approval.',
       enabled: true,
       version: '1.0',
-      targetActions: ['APPROVE_PO', 'RELEASE_PO', 'APPROVE_INVOICE', 'EXECUTE_ACTION'],
+      targetActions: ['APPROVE_PO', 'APPROVE_PURCHASE_ORDER', 'RELEASE_PO', 'RELEASE_PURCHASE_ORDER', 'APPROVE_INVOICE', 'EXECUTE_ACTION'],
       targetEntities: ['purchase_order', 'invoice', 'action'],
       conditions: {
         maxMonetaryAmount: 50000,
@@ -77,7 +79,7 @@ export class KernelPolicyEngine {
       description: 'Operations exceeding $250,000 must escalate to platform director or organization admin.',
       enabled: true,
       version: '1.0',
-      targetActions: ['APPROVE_PO', 'RELEASE_PO', 'APPROVE_INVOICE'],
+      targetActions: ['APPROVE_PO', 'APPROVE_PURCHASE_ORDER', 'RELEASE_PO', 'RELEASE_PURCHASE_ORDER', 'APPROVE_INVOICE'],
       targetEntities: ['purchase_order', 'invoice'],
       conditions: {
         maxMonetaryAmount: 250000,
@@ -107,7 +109,7 @@ export class KernelPolicyEngine {
       description: 'Purchase orders placed with high-risk suppliers (risk score > 75) require risk review.',
       enabled: true,
       version: '1.0',
-      targetActions: ['APPROVE_PO', 'RELEASE_PO'],
+      targetActions: ['APPROVE_PO', 'APPROVE_PURCHASE_ORDER', 'RELEASE_PO', 'RELEASE_PURCHASE_ORDER'],
       targetEntities: ['purchase_order', 'supplier'],
       conditions: {
         supplierRiskThreshold: 75,
@@ -284,6 +286,8 @@ export class KernelPolicyEngine {
           result: policy.outcome,
           ruleId: policy.id,
           ruleName: policy.name,
+          policyVersion: policy.version || 1,
+          tenantId: context.tenantId,
           reason: policy.reason,
           requiresApproval: policy.outcome === 'REQUIRE_APPROVAL' || policy.outcome === 'ESCALATE',
           approvalRole: policy.outcome === 'ESCALATE' ? 'platform_admin' : 'supply_chain_manager',
@@ -301,6 +305,8 @@ export class KernelPolicyEngine {
           result: policy.outcome,
           ruleId: policy.id,
           ruleName: policy.name,
+          policyVersion: policy.version || 1,
+          tenantId: context.tenantId,
           reason: policy.reason,
           requiresApproval: policy.outcome === 'REQUIRE_APPROVAL',
           approvalRole: 'supply_chain_manager',
@@ -322,6 +328,8 @@ export class KernelPolicyEngine {
             result: policy.outcome,
             ruleId: policy.id,
             ruleName: policy.name,
+            policyVersion: policy.version || 1,
+            tenantId: context.tenantId,
             reason: policy.reason,
             requiresApproval: false,
             evaluatedAt,

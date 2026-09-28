@@ -51,6 +51,7 @@ export interface EventEnvelope<T = any> {
   tenant?: {
     organizationId: string;
     organizationName?: string;
+    tenantId?: string;
   };
   source?: string;
   correlationId?: string;
@@ -82,6 +83,7 @@ export interface CommandEnvelope<T = any> {
   tenant: {
     organizationId: string;
     organizationName?: string;
+    tenantId?: string;
   };
   entityId?: string;
   entityType?: string;
@@ -215,6 +217,9 @@ export interface ApprovalRecord {
     role: string;
   };
   policyId?: string;
+  policyVersion?: number | string;
+  tenantId?: string;
+  organizationId?: string;
   entityType: string;
   entityId: string;
   action: string;

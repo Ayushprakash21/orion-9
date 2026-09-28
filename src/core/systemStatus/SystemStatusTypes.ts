@@ -114,6 +114,22 @@ export interface AutomationSubsystemStatus extends BaseSubsystemStatus {
   lastExecutionAt: number | null;
 }
 
+export interface GovernanceSubsystemStatus extends BaseSubsystemStatus {
+  status: GovernanceHealthStatus;
+  authoritativeStoreAvailable: boolean;
+  lastSuccessfulLoadAt: number | null;
+  lastPolicyUpdateAt: number | null;
+  cacheState: 'EMPTY' | 'WARM' | 'STALE' | 'BYPASSED';
+  activePoliciesCount: number;
+}
+
+export type GovernanceHealthStatus =
+  | 'GOVERNANCE_HEALTHY'
+  | 'GOVERNANCE_DEGRADED'
+  | 'GOVERNANCE_UNAVAILABLE'
+  | 'GOVERNANCE_ERROR'
+  | 'GOVERNANCE_UNKNOWN';
+
 export interface SystemStatusSnapshot {
   overallStatus: OverallSystemStatus;
   generatedAt: number;
@@ -139,6 +155,7 @@ export interface SystemStatusSnapshot {
   };
   graphs: GraphSubsystemStatus;
   automation: AutomationSubsystemStatus;
+  governance?: GovernanceSubsystemStatus;
 }
 
 /**
