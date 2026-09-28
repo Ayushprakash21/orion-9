@@ -75,6 +75,7 @@ export class TimeSeriesEngine {
 
     const points: TimeSeriesPoint[] = [];
     const now = new Date();
+    now.setSeconds(0, 0);
 
     // Check if we have recorded historical snapshots
     const key = `${tenantId}:${environment}:${metricId}`;
@@ -108,7 +109,7 @@ export class TimeSeriesEngine {
     const baseValue = currentMetric.value;
     for (let i = days - 1; i >= 0; i--) {
       const date = subDays(now, i);
-      const dayFactor = ((i % 5) - 2) * (baseValue * 0.02); // Deterministic variance (+/- 4%)
+      const dayFactor = i === 0 ? 0 : ((i % 5) - 2) * (baseValue * 0.02); // Deterministic variance (+/- 4%), 0 for today
       const value = Math.max(0, Math.round(baseValue + dayFactor));
 
       points.push({

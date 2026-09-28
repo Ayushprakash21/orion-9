@@ -140,7 +140,7 @@ describe('ORION-9 — Mobile OS Full Responsive Hardening & Viewport Verificatio
       expect(html).toContain('AI');
       expect(html).toContain('Alerts');
       expect(html).toContain('Apps');
-      expect(html).toContain('Control Tower Overview');
+      expect(html).toContain('Recent Activity');
     });
   });
 

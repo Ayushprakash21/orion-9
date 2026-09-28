@@ -408,12 +408,11 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   useEffect(() => {
     // 1. Inventory listener
-    const unsubInv = realtimeSubscriptionManager.subscribeDomain<Inventory>(
-      'inventory',
+    const unsubInv = realtimeSubscriptionManager.subscribeInventory(
       effectiveTenantId,
       effectiveEnv,
       (records) => {
-        if (records && records.length > 0) {
+        if (Array.isArray(records)) {
           setInventory(records);
           dataEngine.setData({ inventory: records });
         }
@@ -422,12 +421,11 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
     );
 
     // 2. Purchase Orders listener
-    const unsubPos = realtimeSubscriptionManager.subscribeDomain<PurchaseOrder>(
-      'purchase_orders',
+    const unsubPos = realtimeSubscriptionManager.subscribePurchaseOrders(
       effectiveTenantId,
       effectiveEnv,
       (records) => {
-        if (records && records.length > 0) {
+        if (Array.isArray(records)) {
           setPurchaseOrders(records);
           dataEngine.setData({ purchaseOrders: records });
         }
@@ -436,12 +434,11 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
     );
 
     // 3. Shipments listener
-    const unsubShip = realtimeSubscriptionManager.subscribeDomain<Shipment>(
-      'shipments',
+    const unsubShip = realtimeSubscriptionManager.subscribeShipments(
       effectiveTenantId,
       effectiveEnv,
       (records) => {
-        if (records && records.length > 0) {
+        if (Array.isArray(records)) {
           setShipments(records);
           dataEngine.setData({ shipments: records });
         }
@@ -450,12 +447,11 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
     );
 
     // 4. Exceptions listener
-    const unsubExc = realtimeSubscriptionManager.subscribeDomain<Exception>(
-      'exceptions',
+    const unsubExc = realtimeSubscriptionManager.subscribeExceptions(
       effectiveTenantId,
       effectiveEnv,
       (records) => {
-        if (records && records.length > 0) {
+        if (Array.isArray(records)) {
           setExceptions(records);
           dataEngine.setData({ exceptions: records });
         }

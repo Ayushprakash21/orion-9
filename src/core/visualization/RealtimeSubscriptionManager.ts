@@ -35,6 +35,8 @@ import {
   DocumentData,
   DocumentChange
 } from 'firebase/firestore';
+import { Inventory, PurchaseOrder, Shipment, Exception } from '../../types';
+import { GovernedKpiRecord, SlaMonitorRecord, OperationalSnapshot } from '../../services/controltower/types';
 
 export type RealtimeDomain =
   | 'inventory'
@@ -60,6 +62,53 @@ export const CANONICAL_REALTIME_DOMAINS: RealtimeDomain[] = [
 ];
 
 export type SubscriptionStatus = 'CONNECTING' | 'LIVE' | 'DEGRADED' | 'ERROR' | 'STOPPED';
+
+export type TruthfulConnectionState =
+  | 'LOADING'
+  | 'CONNECTED'
+  | 'STALE'
+  | 'ERROR'
+  | 'EMPTY'
+  | 'OFFLINE'
+  | 'STOPPED';
+
+export interface ControlTowerRealtimeState {
+  tenantId: string;
+  environment: DatabaseEnvironmentMode;
+  inventory: Inventory[];
+  purchaseOrders: PurchaseOrder[];
+  shipments: Shipment[];
+  exceptions: Exception[];
+  kpis: GovernedKpiRecord[];
+  slas: SlaMonitorRecord[];
+  snapshot: OperationalSnapshot | null;
+  summary: {
+    totalInventoryOnHand: number;
+    inventoryValue: number;
+    committedPoSpend: number;
+    activeShipmentsCount: number;
+    activeExceptionsCount: number;
+    criticalRisksCount: number;
+    networkHealthIndex: number;
+  };
+  connectionStatus: TruthfulConnectionState;
+  lastUpdated: string;
+}
+
+export function getTruthfulConnectionState(state: RealtimeSubscriptionState | null): TruthfulConnectionState {
+  if (!state) return 'OFFLINE';
+  if (state.status === 'ERROR') return 'ERROR';
+  if (state.status === 'STOPPED') return 'STOPPED';
+  if (state.status === 'DEGRADED') return 'OFFLINE';
+  if (state.status === 'CONNECTING') return 'LOADING';
+  if (state.lastSnapshotAt) {
+    const elapsedMinutes = (Date.now() - new Date(state.lastSnapshotAt).getTime()) / (1000 * 60);
+    if (elapsedMinutes > 30) return 'STALE';
+  }
+  if (state.documentCount === 0) return 'EMPTY';
+  if (state.status === 'LIVE') return 'CONNECTED';
+  return 'LOADING';
+}
 
 export interface RealtimeSubscriptionState {
   domain: RealtimeDomain;
@@ -384,6 +433,250 @@ export class RealtimeSubscriptionManager {
           this.domainSubscriptions.delete(key);
         }
       }
+    };
+  }
+
+  /**
+   * Strongly-typed Inventory Realtime Listener (Section 3)
+   */
+  public subscribeInventory(
+    tenantId: string,
+    environment: DatabaseEnvironmentMode,
+    callback: (items: Inventory[], state: RealtimeSubscriptionState) => void,
+    organizationId: string = 'ORG_GLOBAL'
+  ): () => void {
+    return this.subscribeDomain<Inventory>('inventory', tenantId, environment, callback, organizationId);
+  }
+
+  /**
+   * Strongly-typed Purchase Orders Realtime Listener (Section 4)
+   */
+  public subscribePurchaseOrders(
+    tenantId: string,
+    environment: DatabaseEnvironmentMode,
+    callback: (orders: PurchaseOrder[], state: RealtimeSubscriptionState) => void,
+    organizationId: string = 'ORG_GLOBAL'
+  ): () => void {
+    return this.subscribeDomain<PurchaseOrder>('purchase_orders', tenantId, environment, callback, organizationId);
+  }
+
+  /**
+   * Strongly-typed Shipments Realtime Listener (Section 5)
+   */
+  public subscribeShipments(
+    tenantId: string,
+    environment: DatabaseEnvironmentMode,
+    callback: (shipments: Shipment[], state: RealtimeSubscriptionState) => void,
+    organizationId: string = 'ORG_GLOBAL'
+  ): () => void {
+    return this.subscribeDomain<Shipment>('shipments', tenantId, environment, callback, organizationId);
+  }
+
+  /**
+   * Strongly-typed Exceptions Realtime Listener (Section 6)
+   */
+  public subscribeExceptions(
+    tenantId: string,
+    environment: DatabaseEnvironmentMode,
+    callback: (exceptions: Exception[], state: RealtimeSubscriptionState) => void,
+    organizationId: string = 'ORG_GLOBAL'
+  ): () => void {
+    return this.subscribeDomain<Exception>('exceptions', tenantId, environment, callback, organizationId);
+  }
+
+  /**
+   * Central Control Tower Realtime Aggregation Listener (Section 7)
+   * Consumes live state from Inventory, POs, Shipments, and Exceptions
+   * without independently querying each domain repeatedly.
+   */
+  public subscribeControlTower(
+    tenantId: string,
+    environment: DatabaseEnvironmentMode,
+    callback: (state: ControlTowerRealtimeState) => void,
+    organizationId: string = 'ORG_GLOBAL'
+  ): () => void {
+    const cleanTenant = tenantId || 'default-tenant';
+    const env = (environment || dbManager.getEnvironment()).toUpperCase() as DatabaseEnvironmentMode;
+
+    let currentInv: Inventory[] = this.getDomainData<Inventory>('inventory', cleanTenant, env);
+    let currentPos: PurchaseOrder[] = this.getDomainData<PurchaseOrder>('purchase_orders', cleanTenant, env);
+    let currentShip: Shipment[] = this.getDomainData<Shipment>('shipments', cleanTenant, env);
+    let currentExc: Exception[] = this.getDomainData<Exception>('exceptions', cleanTenant, env);
+
+    const recomputeAndNotify = () => {
+      const now = new Date().toISOString();
+      const totalInvOnHand = currentInv.reduce((sum, i) => sum + (i.onHand || 0), 0);
+      const totalInvValue = currentInv.reduce((sum, i) => sum + ((i.onHand || 0) * (i.unitCost || 0)), 0);
+      const totalPoSpend = currentPos.reduce((sum, p) => sum + (p.totalValue || (p as any).amount || 0), 0);
+      const activeShipments = currentShip.filter(s => s.status !== 'Delivered' && s.status !== 'Cancelled');
+      const activeExceptions = currentExc.filter(e => e.status !== 'Dismissed');
+      const criticalExceptions = activeExceptions.filter(e => e.severity === 'Critical');
+
+      const invState = this.getSubscriptionState('inventory', cleanTenant, env);
+      const poState = this.getSubscriptionState('purchase_orders', cleanTenant, env);
+      const shipState = this.getSubscriptionState('shipments', cleanTenant, env);
+      const excState = this.getSubscriptionState('exceptions', cleanTenant, env);
+
+      const hasError = [invState, poState, shipState, excState].some(s => s?.status === 'ERROR');
+      const isConnecting = [invState, poState, shipState, excState].some(s => s?.status === 'CONNECTING');
+      const hasLive = [invState, poState, shipState, excState].some(s => s?.status === 'LIVE');
+
+      let connectionStatus: TruthfulConnectionState = 'OFFLINE';
+      if (hasError) connectionStatus = 'ERROR';
+      else if (isConnecting && !hasLive) connectionStatus = 'LOADING';
+      else if (hasLive) {
+        if (currentInv.length === 0 && currentPos.length === 0 && currentShip.length === 0 && currentExc.length === 0) {
+          connectionStatus = 'EMPTY';
+        } else {
+          connectionStatus = 'CONNECTED';
+        }
+      }
+
+      // Generate governed KPIs
+      const kpis: GovernedKpiRecord[] = [
+        {
+          kpiId: `kpi-inv-onhand-${cleanTenant}`,
+          tenantId: cleanTenant,
+          domain: 'inventory',
+          name: 'Total Inventory On Hand',
+          code: 'INVENTORY_ON_HAND',
+          targetValue: 50000,
+          currentValue: totalInvOnHand,
+          unit: 'units',
+          status: totalInvOnHand > 0 ? 'ON_TARGET' : 'CRITICAL',
+          trend: 'STABLE',
+          formulaDescription: 'Sum of all warehouse on-hand SKU units',
+          calculatedAt: now,
+          entityCount: currentInv.length,
+        },
+        {
+          kpiId: `kpi-po-spend-${cleanTenant}`,
+          tenantId: cleanTenant,
+          domain: 'procurement',
+          name: 'Committed Purchase Order Spend',
+          code: 'PO_COMMITTED_SPEND',
+          targetValue: totalPoSpend,
+          currentValue: Math.round(totalPoSpend),
+          unit: 'USD',
+          status: 'ON_TARGET',
+          trend: 'STABLE',
+          formulaDescription: 'Sum of all purchase order line amounts',
+          calculatedAt: now,
+          entityCount: currentPos.length,
+        },
+        {
+          kpiId: `kpi-active-shipments-${cleanTenant}`,
+          tenantId: cleanTenant,
+          domain: 'logistics',
+          name: 'In-Transit Logistics Volume',
+          code: 'SHIPMENT_VOLUME',
+          targetValue: activeShipments.length,
+          currentValue: activeShipments.length,
+          unit: 'shipments',
+          status: 'ON_TARGET',
+          trend: 'STABLE',
+          formulaDescription: 'Count of non-delivered active consignments',
+          calculatedAt: now,
+          entityCount: currentShip.length,
+        },
+        {
+          kpiId: `kpi-active-exceptions-${cleanTenant}`,
+          tenantId: cleanTenant,
+          domain: 'exceptions',
+          name: 'Active Operational Disruptions',
+          code: 'CONTROL_TOWER_EXCEPTIONS',
+          targetValue: 0,
+          currentValue: activeExceptions.length,
+          unit: 'incidents',
+          status: activeExceptions.length === 0 ? 'ON_TARGET' : (criticalExceptions.length > 0 ? 'CRITICAL' : 'WATCH'),
+          trend: activeExceptions.length === 0 ? 'STABLE' : 'DEGRADING',
+          formulaDescription: 'Unresolved exceptions count',
+          calculatedAt: now,
+          entityCount: currentExc.length,
+        },
+      ];
+
+      const healthScore = Math.max(20, Math.min(100, Math.round(100 - (criticalExceptions.length * 20) - (activeExceptions.length * 5))));
+      const overallHealthStatus: 'Healthy' | 'Watch' | 'Critical' =
+        healthScore >= 80 ? 'Healthy' : healthScore >= 60 ? 'Watch' : 'Critical';
+
+      const snapshot: OperationalSnapshot = {
+        snapshotId: `snap-${cleanTenant}-${Date.now()}`,
+        tenantId: cleanTenant,
+        timestamp: now,
+        healthScore,
+        executiveSummary: {
+          overallStatus: overallHealthStatus,
+          activeExceptionsCount: activeExceptions.length,
+          criticalRisksCount: criticalExceptions.length,
+          pendingDecisionsCount: 0,
+          totalCapitalAtRisk: activeExceptions.length * 25000,
+          slaBreachCount: criticalExceptions.length,
+        },
+        domainSummaries: {} as any,
+        recentSignals: [],
+        topExceptions: [],
+      };
+
+      const ctState: ControlTowerRealtimeState = {
+        tenantId: cleanTenant,
+        environment: env,
+        inventory: currentInv,
+        purchaseOrders: currentPos,
+        shipments: currentShip,
+        exceptions: currentExc,
+        kpis,
+        slas: [],
+        snapshot,
+        summary: {
+          totalInventoryOnHand: totalInvOnHand,
+          inventoryValue: totalInvValue,
+          committedPoSpend: totalPoSpend,
+          activeShipmentsCount: activeShipments.length,
+          activeExceptionsCount: activeExceptions.length,
+          criticalRisksCount: criticalExceptions.length,
+          networkHealthIndex: healthScore,
+        },
+        connectionStatus,
+        lastUpdated: now,
+      };
+
+      try {
+        callback(ctState);
+      } catch (err) {
+        console.error('[RealtimeSubscriptionManager] Control Tower callback error:', err);
+      }
+    };
+
+    // Subscribe to all 4 domains sharing the underlying listeners
+    const unsubInv = this.subscribeDomain<Inventory>('inventory', cleanTenant, env, (records) => {
+      currentInv = records;
+      recomputeAndNotify();
+    }, organizationId);
+
+    const unsubPos = this.subscribeDomain<PurchaseOrder>('purchase_orders', cleanTenant, env, (records) => {
+      currentPos = records;
+      recomputeAndNotify();
+    }, organizationId);
+
+    const unsubShip = this.subscribeDomain<Shipment>('shipments', cleanTenant, env, (records) => {
+      currentShip = records;
+      recomputeAndNotify();
+    }, organizationId);
+
+    const unsubExc = this.subscribeDomain<Exception>('exceptions', cleanTenant, env, (records) => {
+      currentExc = records;
+      recomputeAndNotify();
+    }, organizationId);
+
+    // Initial broadcast
+    recomputeAndNotify();
+
+    return () => {
+      unsubInv();
+      unsubPos();
+      unsubShip();
+      unsubExc();
     };
   }
 
@@ -843,6 +1136,24 @@ export class RealtimeSubscriptionManager {
 
     this.sharedDomainStore.set(key, new Map(entry.records));
     this.broadcastDomainUpdate(entry);
+  }
+
+  /**
+   * Clean up all active listeners on user logout or tenant teardown
+   */
+  public cleanupUserSubscriptions(): void {
+    for (const entry of Array.from(this.domainSubscriptions.values())) {
+      if (entry.unsubscribeFirestore) {
+        try {
+          entry.unsubscribeFirestore();
+        } catch (e) {}
+        entry.unsubscribeFirestore = null;
+      }
+      dbManager.unregisterListener(`realtime:${entry.environment}:${entry.tenantId}:${entry.domain}`);
+    }
+    this.domainSubscriptions.clear();
+    this.metricSubscriptions.clear();
+    this.sharedDomainStore.clear();
   }
 }
 
