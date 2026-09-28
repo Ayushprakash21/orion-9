@@ -18,10 +18,11 @@
  * 12. changing client-side role/session data cannot escalate user → admin
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { authService } from '../../services/authService';
 import { userService } from '../../services/userService';
 import { privilegedSessionManager } from '../../kernel/security/privilegedSession';
+import { dbManager } from '../../core/database/DatabaseConnectionManager';
 
 // Simple in-memory localStorage polyfill for Node test runner
 class LocalStorageMock {
@@ -43,7 +44,12 @@ describe('Orion-9 Demo / Local Authentication Engine', () => {
 
   beforeEach(() => {
     localStorage.clear();
+    dbManager.setEnvironment('DEMO');
     privilegedSessionManager.revoke('Test setup clean');
+  });
+
+  afterEach(() => {
+    dbManager.setEnvironment('LIVE');
   });
 
   // 1. user/user → PASS

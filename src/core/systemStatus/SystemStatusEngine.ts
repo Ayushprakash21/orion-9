@@ -20,6 +20,7 @@ import {
   GraphSubsystemStatus,
   AutomationSubsystemStatus,
   FRESHNESS_THRESHOLDS,
+  AuthSubsystemState,
 } from './SystemStatusTypes';
 import { systemStatusRegistry } from './SystemStatusRegistry';
 import { dbManager } from '../database/DatabaseConnectionManager';
@@ -155,6 +156,30 @@ export class SystemStatusEngine {
       : true;
     const appInit = typeof window !== 'undefined' || typeof process !== 'undefined';
 
+    // Truthfully evaluate authentication status without exposing secrets or credentials
+    let authState: AuthSubsystemState = 'AUTHENTICATION_REQUIRED';
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        const sessionStr = localStorage.getItem('orion_auth_session');
+        if (sessionStr) {
+          const details = JSON.parse(sessionStr);
+          if (details.expiresAt && new Date(details.expiresAt).getTime() <= now) {
+            authState = 'SESSION_EXPIRED';
+          } else if (environment === 'LIVE' && details.environment !== 'LIVE') {
+            authState = 'AUTHENTICATION_REQUIRED';
+          } else if (!details.organization || !details.organization.id) {
+            authState = 'TENANT_UNRESOLVED';
+          } else if (!details.role || !details.permissions || details.permissions.length === 0) {
+            authState = 'RBAC_UNRESOLVED';
+          } else {
+            authState = 'AUTHENTICATED';
+          }
+        }
+      }
+    } catch (e) {
+      authState = 'AUTHENTICATION_ERROR';
+    }
+
     const base: RuntimeSubsystemStatus = {
       status: !isOnline ? 'OFFLINE' : (appInit ? 'HEALTHY' : 'UNKNOWN'),
       message: !isOnline
@@ -168,6 +193,7 @@ export class SystemStatusEngine {
       kernelInitialized: appInit,
       authInitialized: appInit,
       isOnline,
+      authState,
     };
 
     return override ? { ...base, ...override } : base;

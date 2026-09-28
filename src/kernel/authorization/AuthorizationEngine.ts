@@ -6,6 +6,8 @@
  * permission rules; currently relies on the actor's role list.
  */
 
+import { dbManager } from '../../core/database/DatabaseConnectionManager';
+
 // Actor types (mirrors CommandEnvelope actor.type in types.ts, extended for kernel).
 export enum ActorType {
   USER = 'USER',
@@ -306,6 +308,23 @@ export class AuthorizationEngine {
     // AI agents still go through policy & approval downstream.
     if (actor.type === 'SYSTEM' && actor.id === 'orion-kernel') {
       return { authorized: true, reason: 'Internal system actor', matchedRole: 'SYSTEM' };
+    }
+
+    // In LIVE environment, DEMO identities are strictly prohibited from kernel operations
+    const currentEnv = dbManager.getEnvironment();
+    if (currentEnv === 'LIVE') {
+      const isDemoIdentity = 
+        actor.id === 'local-admin' || 
+        actor.id === 'local-user' || 
+        actor.id === 'admin' || 
+        actor.id === 'user' || 
+        (actor as any).environment === 'DEMO';
+      if (isDemoIdentity) {
+        throw new AuthorizationError(
+          'UNAUTHORIZED',
+          'DEMO identity cannot execute kernel operations in the LIVE environment.'
+        );
+      }
     }
 
     // Tenant isolation: actor must belong to the same organization when specified.

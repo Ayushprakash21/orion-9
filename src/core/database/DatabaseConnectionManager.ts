@@ -69,6 +69,26 @@ export class DatabaseConnectionManager {
     return this.currentEnvironment;
   }
 
+  public setEnvironment(env: DatabaseEnvironmentMode): void {
+    this.currentEnvironment = env;
+    if (typeof window !== 'undefined' && window.localStorage) {
+      try {
+        localStorage.setItem(STORAGE_ENV_KEY, env);
+        // Incompatible auth session cleanup
+        const sessionStr = localStorage.getItem('orion_auth_session');
+        if (sessionStr) {
+          try {
+            const parsed = JSON.parse(sessionStr);
+            if (parsed.environment && parsed.environment !== env) {
+              localStorage.removeItem('orion_auth_session');
+            }
+          } catch (e) {}
+        }
+      } catch (e) {}
+    }
+    this.initDatabaseProvider();
+  }
+
   public getConfig(): DatabaseEnvironmentConfig {
     return this.currentEnvironment === 'LIVE' ? LIVE_DATABASE_CONFIG : DEMO_DATABASE_CONFIG;
   }
@@ -238,6 +258,16 @@ export class DatabaseConnectionManager {
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
         localStorage.setItem(STORAGE_ENV_KEY, targetEnvironment);
+        // Clear incompatible auth session on environment switch
+        const sessionStr = localStorage.getItem('orion_auth_session');
+        if (sessionStr) {
+          try {
+            const parsed = JSON.parse(sessionStr);
+            if (parsed.environment && parsed.environment !== targetEnvironment) {
+              localStorage.removeItem('orion_auth_session');
+            }
+          } catch (e) {}
+        }
       } catch (e) {}
     }
 

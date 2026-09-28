@@ -27,12 +27,22 @@ export interface BaseSubsystemStatus {
   source: string;
 }
 
+export type AuthSubsystemState =
+  | 'AUTHENTICATED'
+  | 'AUTHENTICATION_REQUIRED'
+  | 'AUTHENTICATION_ERROR'
+  | 'TENANT_UNRESOLVED'
+  | 'RBAC_UNRESOLVED'
+  | 'PRIVILEGED_SESSION_REQUIRED'
+  | 'SESSION_EXPIRED';
+
 export interface RuntimeSubsystemStatus extends BaseSubsystemStatus {
   status: SubsystemHealthStatus;
   applicationInitialized: boolean;
   kernelInitialized: boolean;
   authInitialized: boolean;
   isOnline: boolean;
+  authState?: AuthSubsystemState;
 }
 
 export interface SchedulerSubsystemStatus extends BaseSubsystemStatus {

@@ -2,7 +2,10 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { SessionState, PermissionCode, RoleCode, UserProfile, Organization, AuthUser, PrivilegedAdminSession } from '../types/auth';
 import { authService, AuthSessionDetails } from '../services/authService';
 import { userService } from '../services/userService';
+import { organizationService } from '../services/organizationService';
 import { privilegedSessionManager } from '../kernel/security/privilegedSession';
+import { dbManager } from '../core/database/DatabaseConnectionManager';
+import { realtimeSubscriptionManager } from '../core/visualization/RealtimeSubscriptionManager';
 
 export type BootState = 
   | 'BOOTING'
@@ -113,9 +116,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (sessionStr) {
           try {
             const details = JSON.parse(sessionStr) as AuthSessionDetails;
+            const activeEnv = dbManager.getEnvironment();
+            // In LIVE mode: DEMO or mismatched sessions cannot boot into READY
+            if (activeEnv === 'LIVE' && details.environment !== 'LIVE') {
+              return 'LOGIN_REQUIRED';
+            }
             if (details?.user?.id && (!details.expiresAt || new Date(details.expiresAt).getTime() > Date.now())) {
               const verifiedUser = userService.getUserById(details.user.id);
               if (verifiedUser && verifiedUser.status !== 'inactive' && verifiedUser.status !== 'suspended') {
+                if (activeEnv === 'LIVE' && verifiedUser.organizationId) {
+                  const org = organizationService.getOrganizationById(verifiedUser.organizationId);
+                  if (!org || org.status !== 'active') return 'LOGIN_REQUIRED';
+                }
                 return 'READY';
               }
             }
@@ -134,9 +146,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (powerState === 'ON' && sessionStr) {
         try {
           const details = JSON.parse(sessionStr) as AuthSessionDetails;
+          const activeEnv = dbManager.getEnvironment();
+          if (activeEnv === 'LIVE' && details.environment !== 'LIVE') {
+            return defaultState;
+          }
           if (details?.user?.id && (!details.expiresAt || new Date(details.expiresAt).getTime() > Date.now())) {
             const verifiedUser = userService.getUserById(details.user.id);
             if (verifiedUser && verifiedUser.status !== 'inactive' && verifiedUser.status !== 'suspended') {
+              if (activeEnv === 'LIVE' && verifiedUser.organizationId) {
+                const org = organizationService.getOrganizationById(verifiedUser.organizationId);
+                if (!org || org.status !== 'active') return defaultState;
+              }
               return {
                 user: details.user,
                 profile: verifiedUser,
@@ -145,6 +165,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 isAuthenticated: true,
                 isLoading: false,
                 error: null,
+                environment: details.environment,
               };
             }
           }
@@ -161,6 +182,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (powerState === 'ON' && sessionStr) {
         try {
           const details = JSON.parse(sessionStr) as AuthSessionDetails;
+          const activeEnv = dbManager.getEnvironment();
+          if (activeEnv === 'LIVE' && details.environment !== 'LIVE') {
+            return null;
+          }
           if (details?.user?.id) {
             const verifiedUser = userService.getUserById(details.user.id);
             if (verifiedUser && verifiedUser.status !== 'inactive' && verifiedUser.status !== 'suspended') {
@@ -261,6 +286,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           return;
         }
 
+        const activeEnv = dbManager.getEnvironment();
+        if (activeEnv === 'LIVE' && session.environment !== 'LIVE') {
+          if (active) {
+            clearSessionState();
+            setBootState('LOGIN_REQUIRED');
+          }
+          return;
+        }
+
         const verifiedUser = userService.getUserById(session.user.id);
         if (!verifiedUser || verifiedUser.status === 'inactive' || verifiedUser.status === 'suspended') {
           if (active) {
@@ -268,6 +302,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setBootState('LOGIN_REQUIRED');
           }
           return;
+        }
+
+        if (activeEnv === 'LIVE' && verifiedUser.organizationId) {
+          const org = organizationService.getOrganizationById(verifiedUser.organizationId);
+          if (!org || org.status !== 'active') {
+            if (active) {
+              clearSessionState();
+              setBootState('LOGIN_REQUIRED');
+            }
+            return;
+          }
         }
 
         const details = await authService.loadFullSession(verifiedUser.id, session.user.email);
@@ -376,6 +421,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setState(prev => ({ ...prev, isLoading: true }));
     try {
       await authService.logout();
+      realtimeSubscriptionManager.cleanupUserSubscriptions();
     } finally {
       clearSessionState();
       setBootState('LOGIN_REQUIRED');

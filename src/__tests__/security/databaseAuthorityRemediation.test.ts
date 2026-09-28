@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { authService } from '../../services/authService';
 import { userService } from '../../services/userService';
 import { scmPersistenceService } from '../../services/scm/ScmPersistenceService';
@@ -6,6 +6,7 @@ import { firebaseDbService } from '../../services/firebaseDbService';
 import { privilegedSessionManager } from '../../kernel/security/privilegedSession';
 import { auditService } from '../../services/AuditService';
 import { outboxSyncEngine } from '../../core/data/OutboxSyncEngine';
+import { dbManager } from '../../core/database/DatabaseConnectionManager';
 
 describe('ORION-9 P0 DATABASE AUTHORITY & IDENTITY REALITY TEST SUITE', () => {
   beforeEach(() => {
@@ -14,6 +15,11 @@ describe('ORION-9 P0 DATABASE AUTHORITY & IDENTITY REALITY TEST SUITE', () => {
     if (typeof localStorage !== 'undefined') {
       localStorage.clear();
     }
+    dbManager.setEnvironment('DEMO');
+  });
+
+  afterEach(() => {
+    dbManager.setEnvironment('LIVE');
   });
 
   describe('1. Identity & Authentication Authority', () => {

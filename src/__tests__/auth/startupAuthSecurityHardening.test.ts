@@ -24,7 +24,7 @@
  * 20. Authoritative Firebase / backend authority remains single source of truth.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import { BrandLogo, preloadLogoImage, AUTHORITATIVE_DEFAULT_LOGO } from '../../components/brand/BrandLogo';
@@ -34,6 +34,7 @@ import { authService } from '../../services/authService';
 import { userService } from '../../services/userService';
 import { privilegedSessionManager } from '../../kernel/security/privilegedSession';
 import { brandingRepository } from '../../repositories/BrandingRepository';
+import { dbManager } from '../../core/database/DatabaseConnectionManager';
 
 // Mock browser storage
 class StorageMock {
@@ -59,8 +60,13 @@ describe('Orion-9 Startup & Authentication Security Hardening Suite', () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
+    dbManager.setEnvironment('DEMO');
     privilegedSessionManager.revoke('Test setup');
     brandingRepository.resetBranding().catch(() => {});
+  });
+
+  afterEach(() => {
+    dbManager.setEnvironment('LIVE');
   });
 
   // 1. One-Shot Complete Logo Rendering

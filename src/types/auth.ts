@@ -83,6 +83,7 @@ export interface SessionState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  environment?: 'DEMO' | 'LIVE';
 }
 
 export interface BrandingConfig {
@@ -131,4 +132,5 @@ export interface PrivilegedAdminSession {
   expiresAt: string;
   authenticationMethod: 'step_up_password' | 'mfa_totp' | 'enterprise_sso';
   correlationId: string;
+  environment?: 'DEMO' | 'LIVE';
 }

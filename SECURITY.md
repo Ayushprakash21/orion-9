@@ -55,6 +55,32 @@ All human operators, enterprise accounts, and platform administrators authentica
   - Ephemeral tokens and user profile metadata are verified on system boot.
   - Physical power-on sequences require explicit re-authentication (`LOGIN_REQUIRED`) before mounting operational command centers.
 
+### 2.2 Strict DEMO vs. LIVE Trust Boundary
+The platform maintains an absolute, non-interchangeable separation between the DEMO and LIVE operational environments:
+- **Quarantined DEMO Credentials**: The default demo identities (`admin/admin`, `user/user`, `local-admin`, `local-user`) are strictly quarantined to the DEMO sandbox. Any attempt to supply demo credentials in the LIVE environment is rejected immediately with an explicit audit log (`DEMO_AUTH_REJECTED_IN_LIVE`) and will never touch Firebase Auth, Firestore, or Kernel execution.
+- **Fail-Closed LIVE Authentication**: In the LIVE environment, Firebase Authentication is mandatory. If Firebase Auth returns an error, the system immediately fails closed and returns a generic error. The platform never falls back to demo credentials, mock profiles, or local users.
+- **Client-Side Storage Untrusted**: The client-side cache (`localStorage.getItem('orion_auth_session')`) is strictly non-authoritative. In LIVE mode, any cached session is validated against the active environment, and the user identity is cross-referenced with authoritative records (`userService`, `organizationService`). Manipulated roles or organization IDs in local storage are ignored and rejected.
+- **Session & Subscription Teardown**: Executing a user logout or switching environments instantly revokes any active privileged admin session, wipes local session storage, and terminates all active realtime Firestore snapshot listeners (`realtimeSubscriptionManager.cleanupUserSubscriptions`).
+
+### 2.3 Authoritative Tenant Resolution & Identity Lifecycle
+- **Tenant Verification**: In LIVE mode, identity resolution requires an assigned, active organization (`organizationService.getOrganizationById(profile.organizationId)`). Users without a valid active tenant are rejected with `UNAUTHORIZED_TENANT_ACCESS`.
+- **Identity Deprovisioning & Suspension**: Inactive, suspended, or deprovisioned accounts (`status !== 'active'`) are immediately blocked from logging in, having privileged sessions issued, or executing kernel operations. Any existing privileged session is automatically revoked upon detection of disabled account status.
+
+### 2.4 Enterprise SSO, SCIM 2.0 & MFA Status (Truthful Capability Registry)
+Orion-9 provides interfaces and architectural support for enterprise identity federation, governed via `EnterpriseIdentityService`:
+- **Single Sign-On (SSO - SAML 2.0 / OIDC)**:
+  - *Architecture*: Supported.
+  - *Current Status*: `NOT_CONFIGURED`.
+  - *Truthful Boundary*: SAML 2.0 and OIDC protocols are architecturally supported. No external customer Identity Provider (IdP) is currently connected out-of-the-box. Full SSO federation is customer/environment-dependent and requires production IdP credentials.
+- **SCIM 2.0 Identity Lifecycle Management**:
+  - *Architecture*: Supported.
+  - *Current Status*: `NOT_OPERATIONAL`.
+  - *Truthful Boundary*: SCIM 2.0 user schemas are modeled. Automated inbound provisioning endpoints require deployment of an enterprise tenant gateway and are not operational out-of-the-box.
+- **Multi-Factor Authentication (MFA) & Step-Up**:
+  - *Architecture*: Supported (`STEP_UP_PASSWORD`, `TOTP`).
+  - *Current Status*: `ENVIRONMENT_DEPENDENT`.
+  - *Truthful Boundary*: Operational in-app step-up password verification is enforced for administrative privileged sessions (15-minute TTL). Production-grade hardware token / WebAuthn MFA is customer-managed via Google Cloud / Firebase Identity Platform.
+
 ---
 
 ## 3. Cloud Firestore Security Rules (v2)

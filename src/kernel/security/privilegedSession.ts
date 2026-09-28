@@ -10,6 +10,8 @@
 
 import { PrivilegedAdminSession, RoleCode, PermissionCode } from '../../types/auth';
 import { generateCorrelationId } from './crypto';
+import { dbManager } from '../../core/database/DatabaseConnectionManager';
+import { userService } from '../../services/userService';
 
 const PRIVILEGED_TTL_MS = 15 * 60 * 1000; // Strict 15-minute TTL
 const SESSION_STORAGE_KEY = 'orion_privileged_admin_session';
@@ -29,6 +31,13 @@ class PrivilegedSessionManager {
       if (raw) {
         const session = JSON.parse(raw) as PrivilegedAdminSession;
         if (session && new Date(session.expiresAt).getTime() > Date.now()) {
+          // Verify environment boundary on restore
+          const activeEnv = dbManager.getEnvironment();
+          if (session.environment && session.environment !== activeEnv) {
+            sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            this.currentSession = null;
+            return;
+          }
           this.currentSession = session;
         } else {
           sessionStorage.removeItem(SESSION_STORAGE_KEY);
@@ -47,10 +56,24 @@ class PrivilegedSessionManager {
     userId: string,
     organizationId: string,
     role: RoleCode,
-    authMethod: 'step_up_password' | 'mfa_totp' | 'enterprise_sso' = 'step_up_password'
+    authMethod: 'step_up_password' | 'mfa_totp' | 'enterprise_sso' = 'step_up_password',
+    environment?: 'DEMO' | 'LIVE'
   ): PrivilegedAdminSession {
     if (role !== 'platform_admin' && role !== 'organization_admin') {
       throw new Error(`Forbidden: Role ${role} is not authorized for privileged administrative access.`);
+    }
+
+    const activeEnv = environment || dbManager.getEnvironment();
+
+    // RULE: DEMO identities cannot create a LIVE privileged session!
+    if (activeEnv === 'LIVE' && (userId === 'local-admin' || userId === 'admin' || userId === 'user' || userId === 'local-user')) {
+      throw new Error('Forbidden: DEMO identities cannot create a privileged session in the LIVE environment.');
+    }
+
+    // RULE: Deprovisioned/suspended identities cannot create a privileged session
+    const user = userService.getUserById(userId);
+    if (user && (user.status === 'inactive' || user.status === 'suspended')) {
+      throw new Error(`Forbidden: User ${userId} is ${user.status} and cannot be issued a privileged session.`);
     }
 
     const now = new Date();
@@ -74,6 +97,7 @@ class PrivilegedSessionManager {
       expiresAt: expiresAt.toISOString(),
       authenticationMethod: authMethod,
       correlationId: generateCorrelationId('priv-stepup'),
+      environment: activeEnv,
     };
 
     this.currentSession = session;
@@ -106,6 +130,22 @@ class PrivilegedSessionManager {
     if (expectedUserId && this.currentSession.userId !== expectedUserId) {
       this.revoke('Identity mismatch');
       return { valid: false, reason: 'Privileged session does not match the active user identity.' };
+    }
+
+    // Check environment boundary: privileged session must belong to active environment
+    const activeEnv = dbManager.getEnvironment();
+    if (this.currentSession.environment && this.currentSession.environment !== activeEnv) {
+      this.revoke('Environment mismatch');
+      return { valid: false, reason: `Privileged session belongs to ${this.currentSession.environment}, but active environment is ${activeEnv}.` };
+    }
+
+    // Check if user has become deprovisioned, inactive, or suspended
+    if (this.currentSession.userId) {
+      const user = userService.getUserById(this.currentSession.userId);
+      if (user && (user.status === 'inactive' || user.status === 'suspended')) {
+        this.revoke('User identity disabled');
+        return { valid: false, reason: 'User identity is disabled or deprovisioned.' };
+      }
     }
 
     return { valid: true, session: this.currentSession };
