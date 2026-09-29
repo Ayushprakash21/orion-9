@@ -22,6 +22,8 @@ import {
   FRESHNESS_THRESHOLDS,
   AuthSubsystemState,
   GovernanceSubsystemStatus,
+  IncidentSubsystemStatus,
+  BackupSubsystemStatus,
 } from './SystemStatusTypes';
 import { systemStatusRegistry } from './SystemStatusRegistry';
 import { dbManager } from '../database/DatabaseConnectionManager';
@@ -31,6 +33,8 @@ import { realtimeStateStore } from '../visualization/RealtimeStateStore';
 import { workflowObservability } from '../../workflows/WorkflowObservability';
 import { WorkflowApprovalEngine } from '../../workflows/WorkflowApprovalEngine';
 import { governancePolicyRepository } from '../governance/GovernancePolicyRepository';
+import { incidentRepository } from '../incidents/IncidentRepository';
+import { backupRepository } from '../backup/BackupRepository';
 
 /**
  * Strips secrets, tokens, credentials, stack traces, and internal Firestore paths
@@ -131,6 +135,41 @@ export class SystemStatusEngine {
     );
 
     const governance = governancePolicyRepository.getGovernanceTelemetry();
+    const incidentTelemetry = incidentRepository.getIncidentTelemetry();
+    const backupTelemetry = backupRepository.getBackupTelemetry();
+
+    const incidents: IncidentSubsystemStatus = {
+      status: incidentTelemetry.incidentStatus,
+      message: `Incidents operational — ${incidentTelemetry.activeIncidentCount} active incidents`,
+      lastCheckedAt: now,
+      lastHealthyAt: incidentTelemetry.incidentStoreAvailable ? now : null,
+      environment: activeEnv,
+      source: 'incident_repository',
+      incidentStoreAvailable: incidentTelemetry.incidentStoreAvailable,
+      activeIncidentCount: incidentTelemetry.activeIncidentCount,
+      incidentListenerState: incidentTelemetry.incidentListenerState,
+      incidentTimelineHealth: incidentTelemetry.incidentTimelineHealth,
+      lastIncidentAt: incidentTelemetry.lastIncidentAt,
+    };
+
+    const backup: BackupSubsystemStatus = {
+      status: backupTelemetry.status,
+      message: backupTelemetry.backupProviderConfigured
+        ? `Backup operational — provider: ${backupTelemetry.providerType}`
+        : 'Backup provider not configured for production cloud storage',
+      lastCheckedAt: now,
+      lastHealthyAt: backupTelemetry.backupProviderAvailable ? now : null,
+      environment: activeEnv,
+      source: 'backup_repository',
+      backupProviderAvailable: backupTelemetry.backupProviderAvailable,
+      backupProviderConfigured: backupTelemetry.backupProviderConfigured,
+      providerType: backupTelemetry.providerType,
+      lastSuccessfulBackup: backupTelemetry.lastSuccessfulBackup,
+      backupVerificationState: backupTelemetry.backupVerificationState,
+      retentionProtectionState: backupTelemetry.retentionProtectionState,
+      restoreDrillState: backupTelemetry.restoreDrillState,
+      lastRestoreVerification: backupTelemetry.lastRestoreVerification,
+    };
 
     return {
       overallStatus,
@@ -146,6 +185,8 @@ export class SystemStatusEngine {
       graphs,
       automation,
       governance,
+      incidents,
+      backup,
     };
   }
 

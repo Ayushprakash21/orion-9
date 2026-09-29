@@ -130,6 +130,40 @@ export type GovernanceHealthStatus =
   | 'GOVERNANCE_ERROR'
   | 'GOVERNANCE_UNKNOWN';
 
+export interface IncidentSubsystemStatus extends BaseSubsystemStatus {
+  status: IncidentHealthStatus;
+  incidentStoreAvailable: boolean;
+  activeIncidentCount: number;
+  incidentListenerState: 'ACTIVE' | 'IDLE' | 'UNINITIALIZED' | 'ERROR';
+  incidentTimelineHealth: 'HEALTHY' | 'DEGRADED' | 'UNAVAILABLE';
+  lastIncidentAt: number | null;
+}
+
+export type IncidentHealthStatus =
+  | 'INCIDENT_HEALTHY'
+  | 'INCIDENT_DEGRADED'
+  | 'INCIDENT_UNAVAILABLE'
+  | 'INCIDENT_ERROR';
+
+export interface BackupSubsystemStatus extends BaseSubsystemStatus {
+  status: BackupHealthStatus;
+  backupProviderAvailable: boolean;
+  backupProviderConfigured: boolean;
+  providerType: string;
+  lastSuccessfulBackup: string | null;
+  backupVerificationState: 'VERIFIED' | 'FAILED' | 'PENDING' | 'UNVERIFIED' | 'NOT_CONFIGURED';
+  retentionProtectionState: 'IMMUTABLE' | 'RETENTION_PROTECTED' | 'STANDARD' | 'UNKNOWN';
+  restoreDrillState: 'VERIFIED' | 'FAILED' | 'PENDING' | 'NOT_RUN';
+  lastRestoreVerification: string | null;
+}
+
+export type BackupHealthStatus =
+  | 'BACKUP_HEALTHY'
+  | 'BACKUP_DEGRADED'
+  | 'BACKUP_UNAVAILABLE'
+  | 'BACKUP_NOT_CONFIGURED'
+  | 'BACKUP_ERROR';
+
 export interface SystemStatusSnapshot {
   overallStatus: OverallSystemStatus;
   generatedAt: number;
@@ -156,6 +190,8 @@ export interface SystemStatusSnapshot {
   graphs: GraphSubsystemStatus;
   automation: AutomationSubsystemStatus;
   governance?: GovernanceSubsystemStatus;
+  incidents?: IncidentSubsystemStatus;
+  backup?: BackupSubsystemStatus;
 }
 
 /**

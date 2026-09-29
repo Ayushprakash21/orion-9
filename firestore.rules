@@ -727,8 +727,30 @@ service cloud.firestore {
 
     match /incidents/{id} {
       allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
-      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow create: if isAuthenticated() && (isOrgMember(request.resource.data.tenantId) || isAdmin())
+                    && request.resource.data.tenantId != null
+                    && request.resource.data.status != null
+                    && request.resource.data.severity != null;
+      allow update: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin())
+                    && request.resource.data.tenantId == resource.data.tenantId
+                    && (request.resource.data.organizationId == resource.data.organizationId || resource.data.organizationId == null)
+                    && (request.resource.data.version == null || resource.data.version == null || request.resource.data.version >= resource.data.version);
       allow delete: if false; // Incidents cannot be deleted
+
+      // Append-only, permanently immutable incident timeline subcollection
+      match /timeline/{eventId} {
+        allow read: if isAuthenticated() && (isOrgMember(get(/databases/$(database)/documents/incidents/$(id)).data.tenantId) || isAdmin());
+        allow create: if isAuthenticated() && (isOrgMember(get(/databases/$(database)/documents/incidents/$(id)).data.tenantId) || isAdmin())
+                      && request.resource.data.timestamp != null;
+        allow update, delete: if false; // Timeline events cannot be modified or deleted
+      }
+
+      // Evidence subcollection
+      match /evidence/{evidenceId} {
+        allow read: if isAuthenticated() && (isOrgMember(get(/databases/$(database)/documents/incidents/$(id)).data.tenantId) || isAdmin());
+        allow create: if isAuthenticated() && (isOrgMember(get(/databases/$(database)/documents/incidents/$(id)).data.tenantId) || isAdmin());
+        allow update, delete: if false; // Evidence is immutable once attached
+      }
     }
 
     match /alerts/{id} {
@@ -745,8 +767,12 @@ service cloud.firestore {
     }
 
     match /backups/{id} {
-      allow read: if isAdmin();
-      allow create, update: if isAdmin();
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create: if isAdmin()
+                    && request.resource.data.tenantId != null
+                    && request.resource.data.totalRecordCount != null;
+      allow update: if isAdmin()
+                    && request.resource.data.tenantId == resource.data.tenantId;
       allow delete: if false; // Backups cannot be deleted
     }
 

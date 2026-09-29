@@ -164,28 +164,61 @@ export interface TraceSpan {
 export type IncidentSeverity = 'SEV1' | 'SEV2' | 'SEV3' | 'SEV4';
 
 export type IncidentStatus = 
+  | 'OPEN'
   | 'DETECTED'
+  | 'ACKNOWLEDGED'
   | 'INVESTIGATING'
+  | 'MITIGATING'
   | 'MITIGATED'
   | 'RESOLVED'
   | 'CLOSED';
 
 export interface IncidentTimelineEvent {
   id: string;
+  eventId?: string;
+  incidentId?: string;
+  tenantId?: string;
   timestamp: string;
   description: string;
   actor: string;
   actionTaken?: string;
   statusChange?: IncidentStatus;
+  previousStatus?: IncidentStatus;
+  newStatus?: IncidentStatus;
+  eventType?: string;
+  action?: string;
+  reason?: string;
+  correlationId?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface IncidentEvidenceRecord {
+  evidenceId: string;
+  incidentId: string;
+  tenantId: string;
+  type: 'LOG_SNIPPET' | 'TELEMETRY_SNAPSHOT' | 'AUDIT_REF' | 'COMMUNICATION' | 'CONFIGURATION';
+  description: string;
+  capturedAt: string;
+  capturedBy: string;
+  referenceUri?: string;
+  contentHash?: string;
+  immutable: boolean;
+  metadata?: Record<string, any>;
 }
 
 export interface IncidentRecord {
   id: string;
   tenantId: string;
+  organizationId?: string;
+  environment?: 'LIVE' | 'DEMO';
   title: string;
   description: string;
   severity: IncidentSeverity;
   status: IncidentStatus;
+  version?: number;
+  assignedTo?: string;
+  acknowledgedBy?: string;
+  acknowledgedAt?: string;
   impactedTenants: string[];
   impactedModules: string[];
   blastRadiusScore: number; // 0 to 100
@@ -194,7 +227,13 @@ export interface IncidentRecord {
   declaredAt: string;
   mitigatedAt?: string;
   resolvedAt?: string;
+  closedAt?: string;
+  closedBy?: string;
   timeline: IncidentTimelineEvent[];
+  evidence?: IncidentEvidenceRecord[];
+  auditToken?: string;
+  updatedAt?: string;
+  updatedBy?: string;
 }
 
 export interface SystemAlert {
@@ -259,9 +298,21 @@ export interface BackupPlan {
   status: 'ACTIVE' | 'PAUSED' | 'FAILED';
 }
 
+export type BackupProviderType = 'MANAGED_FIRESTORE' | 'CLOUD_STORAGE' | 'DEMO_SIMULATION';
+export type BackupVerificationState = 'VERIFIED' | 'FAILED' | 'PENDING' | 'UNVERIFIED' | 'NOT_CONFIGURED';
+export type BackupImmutableState = 'IMMUTABLE' | 'RETENTION_PROTECTED' | 'STANDARD' | 'UNKNOWN';
+export type BackupHealthStatus =
+  | 'BACKUP_HEALTHY'
+  | 'BACKUP_DEGRADED'
+  | 'BACKUP_UNAVAILABLE'
+  | 'BACKUP_NOT_CONFIGURED'
+  | 'BACKUP_ERROR';
+
 export interface BackupSnapshot {
   id: string;
   tenantId: string;
+  organizationId?: string;
+  environment?: 'LIVE' | 'DEMO';
   planId?: string;
   createdAt: string;
   createdBy: string;
@@ -271,6 +322,37 @@ export interface BackupSnapshot {
   checksumSha256: string;
   verifiedIntegrity: boolean;
   storageUri: string;
+  providerType?: BackupProviderType;
+  verificationState?: BackupVerificationState;
+  immutableState?: BackupImmutableState;
+  retentionDays?: number;
+  expiresAt?: string;
+  isSimulated?: boolean;
+}
+
+export type RestoreStatus = 
+  | 'RESTORE_REQUESTED'
+  | 'RESTORING'
+  | 'RESTORE_SUCCEEDED'
+  | 'RESTORE_FAILED'
+  | 'RESTORE_VERIFIED'
+  | 'RESTORE_VERIFICATION_FAILED';
+
+export interface RestoreDrillResult {
+  drillId: string;
+  backupId: string;
+  tenantId: string;
+  environment: 'LIVE' | 'DEMO';
+  targetEnvironment: string; // e.g. "isolated-drill-target"
+  startedAt: string;
+  completedAt: string;
+  status: RestoreStatus;
+  integrityVerified: boolean;
+  expectedRecordCount: number;
+  restoredRecordCount: number;
+  discrepancies: string[];
+  evidenceUri?: string;
+  executedBy: string;
 }
 
 export interface RestoreVerification {
@@ -281,6 +363,7 @@ export interface RestoreVerification {
   targetTenantId: string;
   dryRunSimulationPassed: boolean;
   discrepancies: string[];
+  providerVerified?: boolean;
 }
 
 export interface DisasterRecoveryTier {
