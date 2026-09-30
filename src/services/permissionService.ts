@@ -1,37 +1,10 @@
-import { RoleCode, PermissionCode } from '../types/auth';
+import { RoleCode, PermissionCode, ALL_ORION_PERMISSIONS } from '../types/auth';
 
-// TEMPORARY LOCAL AUTH MODE — replace with Firebase/enterprise IdP before production.
-// admin / admin is development-only and must be replaced before production deployment.
+// DEMO / LOCAL AUTH MODE — Authoritative DEMO platform-admin permission resolver
+// Guarantees platform_admin automatically receives all current and future permissions.
 
 const DEFAULT_ROLE_PERMISSIONS: Record<RoleCode, PermissionCode[]> = {
-  platform_admin: [
-    'users.read',
-    'users.create',
-    'users.update',
-    'users.disable',
-    'users.delete',
-    'organizations.read',
-    'organizations.create',
-    'organizations.update',
-    'organizations.disable',
-    'branding.read',
-    'branding.update',
-    'roles.read',
-    'roles.manage',
-    'audit.read',
-    'settings.read',
-    'settings.manage',
-    'inventory.read',
-    'inventory.manage',
-    'procurement.read',
-    'procurement.manage',
-    'shipments.read',
-    'shipments.manage',
-    'suppliers.read',
-    'suppliers.manage',
-    'analytics.read',
-    'ai.insights'
-  ],
+  platform_admin: [...ALL_ORION_PERMISSIONS],
   organization_admin: [
     'users.read',
     'users.create',
@@ -119,9 +92,24 @@ const DEFAULT_ROLE_PERMISSIONS: Record<RoleCode, PermissionCode[]> = {
 
 export const permissionService = {
   /**
+   * Authoritative platform admin permission resolver.
+   * Dynamically yields every permission currently supported by the Orion-9 permission model.
+   */
+  getPlatformAdminPermissions: (): PermissionCode[] => {
+    return [...ALL_ORION_PERMISSIONS];
+  },
+
+  getAllPermissions: (): PermissionCode[] => {
+    return [...ALL_ORION_PERMISSIONS];
+  },
+
+  /**
    * Returns default system permissions for a given role.
    */
   getDefaultPermissionsForRole: (role: RoleCode | string): PermissionCode[] => {
+    if (role === 'platform_admin') {
+      return permissionService.getPlatformAdminPermissions();
+    }
     return DEFAULT_ROLE_PERMISSIONS[role as RoleCode] || DEFAULT_ROLE_PERMISSIONS.user;
   },
 

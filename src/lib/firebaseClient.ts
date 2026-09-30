@@ -63,7 +63,7 @@ export const getFirebaseApp = (environment: 'LIVE' | 'DEMO' = 'LIVE'): FirebaseA
     if (envKey === 'DEMO') {
       targetApp = initializeApp(targetConfig, 'DEMO_ORION9_APP');
     } else {
-      targetApp = existingApps.length === 0 ? initializeApp(targetConfig) : getApp();
+      targetApp = initializeApp(targetConfig);
     }
   }
 

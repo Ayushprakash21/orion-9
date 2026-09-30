@@ -9,18 +9,27 @@ export type RoleCode =
   | 'manager'
   | 'user';
 
-export type PermissionCode = 
-  | 'users.read' | 'users.create' | 'users.update' | 'users.disable' | 'users.delete'
-  | 'organizations.read' | 'organizations.create' | 'organizations.update' | 'organizations.disable'
-  | 'branding.read' | 'branding.update'
-  | 'roles.read' | 'roles.manage'
-  | 'audit.read'
-  | 'settings.read' | 'settings.manage'
-  | 'inventory.read' | 'inventory.manage'
-  | 'procurement.read' | 'procurement.manage'
-  | 'shipments.read' | 'shipments.manage'
-  | 'suppliers.read' | 'suppliers.manage'
-  | 'analytics.read' | 'ai.insights';
+export const ALL_ORION_PERMISSIONS = [
+  'users.read', 'users.create', 'users.update', 'users.disable', 'users.delete',
+  'organizations.read', 'organizations.create', 'organizations.update', 'organizations.disable',
+  'branding.read', 'branding.update',
+  'roles.read', 'roles.manage',
+  'audit.read',
+  'settings.read', 'settings.manage',
+  'inventory.read', 'inventory.manage',
+  'procurement.read', 'procurement.manage',
+  'shipments.read', 'shipments.manage',
+  'suppliers.read', 'suppliers.manage',
+  'analytics.read', 'ai.insights',
+  'governance.read', 'governance.manage',
+  'system_status.read', 'system_status.manage',
+  'backup.read', 'backup.manage',
+  'incidents.read', 'incidents.manage',
+  'admin.access', 'platform.controls',
+  'dashboard.read', 'control_tower.read',
+] as const;
+
+export type PermissionCode = typeof ALL_ORION_PERMISSIONS[number];
 
 export interface UserProfile {
   id: string;

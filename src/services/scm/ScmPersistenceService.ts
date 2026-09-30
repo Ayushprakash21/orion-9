@@ -75,16 +75,17 @@ export class ScmPersistenceService {
     // Sanitize payload: strip any undefined fields and reject non-serializable objects
     const sanitizedData = sanitizeFirestorePayload(data, `${collectionName}/${id}`);
 
-    const env = (data as any).environment;
-    const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore(env) || this.firestore;
-
-    if (firestoreInstance) {
-      try {
-        const ref = doc(firestoreInstance, collectionName, id);
-        await setDoc(ref, sanitizedData, { merge: true });
-      } catch (err: any) {
-        console.error(`[SCM-PERSISTENCE] Authoritative Firestore write failed for ${collectionName}/${id}:`, err);
-        throw new Error(`[SCM-AUTHORITATIVE-ERROR] Firestore persistence failed for ${collectionName}/${id}: ${err?.message || err}`);
+    const env = (data as any).environment || DatabaseConnectionManager.getInstance().getEnvironment();
+    if (env === 'LIVE') {
+      const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore('LIVE') || this.firestore;
+      if (firestoreInstance) {
+        try {
+          const ref = doc(firestoreInstance, collectionName, id);
+          await setDoc(ref, sanitizedData, { merge: true });
+        } catch (err: any) {
+          console.error(`[SCM-PERSISTENCE] Authoritative Firestore write failed for ${collectionName}/${id}:`, err);
+          throw new Error(`[SCM-AUTHORITATIVE-ERROR] Firestore persistence failed for ${collectionName}/${id}: ${err?.message || err}`);
+        }
       }
     }
 
@@ -113,7 +114,8 @@ export class ScmPersistenceService {
       }
     }
 
-    if (this.firestore) {
+    const currentEnv = DatabaseConnectionManager.getInstance().getEnvironment();
+    if (currentEnv === 'LIVE' && this.firestore) {
       try {
         const ref = doc(this.firestore, collectionName, id);
         const snap = await getDoc(ref);
@@ -141,7 +143,8 @@ export class ScmPersistenceService {
     collectionName: string,
     tenantId: string
   ): Promise<T[]> {
-    if (this.firestore) {
+    const currentEnv = DatabaseConnectionManager.getInstance().getEnvironment();
+    if (currentEnv === 'LIVE' && this.firestore) {
       try {
         const colRef = collection(this.firestore, collectionName);
         const q = query(colRef, where('tenantId', '==', tenantId));
@@ -172,7 +175,8 @@ export class ScmPersistenceService {
     tenantId: string,
     id: string
   ): Promise<boolean> {
-    if (this.firestore) {
+    const currentEnv = DatabaseConnectionManager.getInstance().getEnvironment();
+    if (currentEnv === 'LIVE' && this.firestore) {
       try {
         const ref = doc(this.firestore, collectionName, id);
         await deleteDoc(ref);

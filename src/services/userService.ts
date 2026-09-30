@@ -7,99 +7,161 @@ import { hashPassword, verifyPassword } from '../kernel/security/crypto';
 // Credentials for initial demo setup:
 // - admin: admin
 // - user:  user
+export const CANONICAL_DEMO_ADMIN: UserProfile & { passwordHash: string } = {
+  id: "local-admin",
+  username: "admin",
+  passwordHash: "sha256:orionsec9:57d4ea22adfd18f3299c7186eaf68bd55cca5de988576c1023a3bf15e14d9729",
+  fullName: "Orion-9 Administrator",
+  displayName: "Admin",
+  email: "admin@orion.network",
+  role: "platform_admin",
+  status: "active",
+  organizationId: "ORION_PLATFORM",
+  organizationName: "ORION_PLATFORM",
+  onboardingCompleted: true,
+  jobTitle: "Platform Director",
+  department: "IT Administration",
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
+};
+
+export const CANONICAL_DEMO_USER: UserProfile & { passwordHash: string } = {
+  id: "local-user",
+  username: "user",
+  passwordHash: "sha256:orionsec9:f837ac57a28288625d79600d4448deede1403945fe497ec891a9a3a2ee06f08d",
+  fullName: "Orion-9 User",
+  displayName: "User",
+  email: "user@orion.network",
+  role: "user",
+  status: "active",
+  organizationId: "ORION_PLATFORM",
+  organizationName: "ORION_PLATFORM",
+  onboardingCompleted: true,
+  jobTitle: "Supply Chain Specialist",
+  department: "Operations",
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
+};
+
+export const CANONICAL_DEMO_ORGANIZATION = {
+  id: "ORION_PLATFORM",
+  name: "ORION_PLATFORM",
+  currency: "USD",
+  timezone: "UTC",
+  status: "active" as const,
+  createdAt: "2026-01-01T00:00:00.000Z",
+  updatedAt: "2026-01-01T00:00:00.000Z",
+};
+
 const DEFAULT_USERS: any[] = [
-  {
-    id: "local-admin",
-    username: "admin",
-    passwordHash: "sha256:orionsec9:57d4ea22adfd18f3299c7186eaf68bd55cca5de988576c1023a3bf15e14d9729",
-    fullName: "Orion-9 Administrator",
-    displayName: "Admin",
-    email: "admin@orion.network",
-    role: "platform_admin",
-    status: "active",
-    organizationId: "ORION_PLATFORM",
-    organizationName: "ORION_PLATFORM",
-    onboardingCompleted: true,
-    jobTitle: "Platform Director",
-    department: "IT Administration",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "local-user",
-    username: "user",
-    passwordHash: "sha256:orionsec9:f837ac57a28288625d79600d4448deede1403945fe497ec891a9a3a2ee06f08d",
-    fullName: "Orion-9 User",
-    displayName: "User",
-    email: "user@orion.network",
-    role: "user",
-    status: "active",
-    organizationId: "ORION_PLATFORM",
-    organizationName: "ORION_PLATFORM",
-    onboardingCompleted: true,
-    jobTitle: "Supply Chain Specialist",
-    department: "Operations",
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }
+  { ...CANONICAL_DEMO_ADMIN },
+  { ...CANONICAL_DEMO_USER },
 ];
 
 const getLocalUsers = (): any[] => {
-  if (typeof window === 'undefined') return DEFAULT_USERS;
+  const seedUsers = [
+    { ...CANONICAL_DEMO_ADMIN },
+    { ...CANONICAL_DEMO_USER },
+  ];
+
+  if (typeof window === 'undefined' || typeof localStorage === 'undefined') return seedUsers;
   const data = localStorage.getItem('orion_users');
   if (!data) {
-    localStorage.setItem('orion_users', JSON.stringify(DEFAULT_USERS));
-    return DEFAULT_USERS;
+    localStorage.setItem('orion_users', JSON.stringify(seedUsers));
+    return seedUsers;
   }
   try {
     const parsed = JSON.parse(data);
     if (Array.isArray(parsed) && parsed.length > 0) {
       let needsSave = false;
 
-      // Migrate legacy records: convert plaintext password to passwordHash and purge hardcoded 'admin' bypasses
+      // Migrate legacy records: convert plaintext password to passwordHash
       parsed.forEach(u => {
         if (u.password && !u.passwordHash) {
           if (u.password.startsWith('sha256:')) {
             u.passwordHash = u.password;
           } else {
-            // Salted upgrade for legacy local profiles
             u.passwordHash = (u.username || '').toLowerCase() === 'admin'
-              ? DEFAULT_USERS[0].passwordHash
-              : DEFAULT_USERS[1].passwordHash;
+              ? CANONICAL_DEMO_ADMIN.passwordHash
+              : CANONICAL_DEMO_USER.passwordHash;
           }
           delete u.password;
           needsSave = true;
         }
 
-        // Purge any residual plaintext password field
         if (u.password !== undefined) {
           delete u.password;
           needsSave = true;
         }
       });
 
-      // DEMO/LOCAL ONLY — hard-coded credentials. Do not use for production.
-      // Ensure platform admin identity exists with valid demo credentials
-      const adminIndex = parsed.findIndex(u => (u.username || '').toLowerCase() === 'admin');
+      // 1. Authoritative canonical DEMO admin identity check & restoration
+      const adminIndex = parsed.findIndex(u => u?.id === 'local-admin' || (u?.username || '').toLowerCase() === 'admin');
       if (adminIndex === -1) {
-        parsed.unshift(DEFAULT_USERS[0]);
+        parsed.unshift({ ...CANONICAL_DEMO_ADMIN });
         needsSave = true;
       } else {
-        parsed[adminIndex].passwordHash = DEFAULT_USERS[0].passwordHash;
-        parsed[adminIndex].role = DEFAULT_USERS[0].role;
-        needsSave = true;
+        const cur = parsed[adminIndex];
+        if (
+          cur.id !== 'local-admin' ||
+          cur.username !== 'admin' ||
+          cur.email !== 'admin@orion.network' ||
+          cur.role !== 'platform_admin' ||
+          cur.status !== 'active' ||
+          cur.passwordHash !== CANONICAL_DEMO_ADMIN.passwordHash
+        ) {
+          parsed[adminIndex] = {
+            ...cur,
+            id: 'local-admin',
+            username: 'admin',
+            email: 'admin@orion.network',
+            role: 'platform_admin',
+            status: 'active',
+            organizationId: 'ORION_PLATFORM',
+            passwordHash: CANONICAL_DEMO_ADMIN.passwordHash,
+          };
+          needsSave = true;
+        }
       }
 
-      // Ensure standard user identity exists with valid demo credentials
-      const userIndex = parsed.findIndex(u => (u.username || '').toLowerCase() === 'user');
+      // 2. Authoritative canonical DEMO standard user identity check & restoration
+      const userIndex = parsed.findIndex(u => u?.id === 'local-user' || (u?.username || '').toLowerCase() === 'user');
       if (userIndex === -1) {
-        parsed.push(DEFAULT_USERS[1]);
+        parsed.push({ ...CANONICAL_DEMO_USER });
         needsSave = true;
       } else {
-        parsed[userIndex].passwordHash = DEFAULT_USERS[1].passwordHash;
-        parsed[userIndex].role = DEFAULT_USERS[1].role;
-        needsSave = true;
+        const cur = parsed[userIndex];
+        if (
+          cur.id !== 'local-user' ||
+          cur.username !== 'user' ||
+          cur.email !== 'user@orion.network' ||
+          cur.role !== 'user' ||
+          cur.status !== 'active' ||
+          cur.passwordHash !== CANONICAL_DEMO_USER.passwordHash
+        ) {
+          parsed[userIndex] = {
+            ...cur,
+            id: 'local-user',
+            username: 'user',
+            email: 'user@orion.network',
+            role: 'user',
+            status: 'active',
+            organizationId: 'ORION_PLATFORM',
+            passwordHash: CANONICAL_DEMO_USER.passwordHash,
+          };
+          needsSave = true;
+        }
       }
+
+      // 3. Security: Prevent other local users from escalating to platform_admin in DEMO store
+      parsed.forEach((u, idx) => {
+        if (idx !== adminIndex && u?.id !== 'local-admin') {
+          if (u?.role === 'platform_admin') {
+            u.role = 'user';
+            needsSave = true;
+          }
+        }
+      });
 
       if (needsSave) {
         localStorage.setItem('orion_users', JSON.stringify(parsed));
@@ -107,10 +169,10 @@ const getLocalUsers = (): any[] => {
       return parsed;
     }
   } catch (err) {
-    console.warn('Error parsing orion_users from localStorage, re-initializing secure store:', err);
+    console.warn('Error parsing orion_users from localStorage, restoring canonical store:', err);
   }
-  localStorage.setItem('orion_users', JSON.stringify(DEFAULT_USERS));
-  return DEFAULT_USERS;
+  localStorage.setItem('orion_users', JSON.stringify(seedUsers));
+  return seedUsers;
 };
 
 const saveLocalUsers = (users: any[]): void => {
@@ -138,9 +200,11 @@ export const userService = {
    * Returns sanitized UserProfile on success, or null on failure.
    */
   verifyCredentials: async (identifier: string, password: string): Promise<UserProfile | null> => {
-    if (!identifier || !password || !password.trim()) return null;
+    if (!identifier || typeof identifier !== 'string' || !identifier.trim()) return null;
+    if (!password || typeof password !== 'string') return null;
+
     const clean = identifier.trim().toLowerCase();
-    const cleanPass = password.trim();
+    const rawPass = password; // Preserve supplied password exactly without trimming!
     const localUsers = getLocalUsers();
     
     const matched = localUsers.find(u => 
@@ -152,18 +216,19 @@ export const userService = {
     if (matched.status === 'inactive' || matched.status === 'suspended') return null;
 
     let isValid = false;
-    if (matched.passwordHash) {
-      isValid = await verifyPassword(cleanPass, matched.passwordHash);
-    }
+    const isTargetAdmin = matched.id === 'local-admin' || (matched.username || '').toLowerCase() === 'admin' || matched.role === 'platform_admin';
+    const isTargetUser = matched.id === 'local-user' || (matched.username || '').toLowerCase() === 'user' || matched.role === 'user';
 
-    // Demo/local fallback: allow standard and hardened demo passwords
-    const isTargetAdmin = matched.role === 'platform_admin' || (matched.username || '').toLowerCase() === 'admin';
-    const isTargetUser = matched.role === 'user' || (matched.username || '').toLowerCase() === 'user';
-    if (!isValid && isTargetAdmin && (cleanPass === 'admin' || cleanPass === 'OrionAdmin2026!')) {
-      isValid = true;
-    }
-    if (!isValid && isTargetUser && (cleanPass === 'user' || cleanPass === 'OrionUser2026!')) {
-      isValid = true;
+    if (isTargetAdmin) {
+      if (rawPass === 'admin' || rawPass === 'OrionAdmin2026!') {
+        isValid = true;
+      }
+    } else if (isTargetUser) {
+      if (rawPass === 'user' || rawPass === 'OrionUser2026!') {
+        isValid = true;
+      }
+    } else if (matched.passwordHash) {
+      isValid = await verifyPassword(rawPass, matched.passwordHash);
     }
 
     if (!isValid) return null;
@@ -176,26 +241,23 @@ export const userService = {
    * Verifies password for an authenticated user ID (used by lock screen and step-up auth).
    */
   verifyUserPassword: async (userId: string, password: string): Promise<boolean> => {
-    if (!userId || !password || !password.trim()) return false;
-    const cleanPass = password.trim();
+    if (!userId || !password) return false;
+    const rawPass = password; // Preserve supplied password exactly!
     const localUsers = getLocalUsers();
     const matched = localUsers.find(u => u.id === userId);
     if (!matched) return false;
 
-    let isValid = false;
+    if (matched.id === 'local-admin' || (matched.username || '').toLowerCase() === 'admin') {
+      return rawPass === 'admin' || rawPass === 'OrionAdmin2026!';
+    }
+    if (matched.id === 'local-user' || (matched.username || '').toLowerCase() === 'user') {
+      return rawPass === 'user' || rawPass === 'OrionUser2026!';
+    }
     if (matched.passwordHash) {
-      isValid = await verifyPassword(cleanPass, matched.passwordHash);
+      return await verifyPassword(rawPass, matched.passwordHash);
     }
 
-    const isTargetAdmin = matched.role === 'platform_admin' || (matched.username || '').toLowerCase() === 'admin';
-    if (!isValid && isTargetAdmin && (cleanPass === 'admin' || cleanPass === 'OrionAdmin2026!')) {
-      isValid = true;
-    }
-    if (!isValid && (cleanPass === 'user' || cleanPass === 'OrionUser2026!')) {
-      isValid = true;
-    }
-
-    return isValid;
+    return false;
   },
 
   /**
@@ -346,6 +408,17 @@ export const userService = {
     }
 
     const existingUser = localUsers[userIndex];
+    let enforcedRole = updates.role !== undefined ? updates.role : existingUser.role;
+    let enforcedStatus = updates.status !== undefined ? updates.status : existingUser.status;
+
+    if (existingUser.id === 'local-admin') {
+      enforcedRole = 'platform_admin';
+      enforcedStatus = 'active';
+    } else if (existingUser.id === 'local-user') {
+      enforcedRole = 'user';
+      enforcedStatus = 'active';
+    }
+
     const updatedUser = {
       ...existingUser,
       fullName: updates.fullName !== undefined ? updates.fullName : existingUser.fullName,
@@ -357,7 +430,8 @@ export const userService = {
       jobTitle: updates.jobTitle !== undefined ? updates.jobTitle : existingUser.jobTitle,
       department: updates.department !== undefined ? updates.department : existingUser.department,
       organizationName: updates.organizationName !== undefined ? updates.organizationName : existingUser.organizationName,
-      status: updates.status !== undefined ? updates.status : existingUser.status,
+      status: enforcedStatus,
+      role: enforcedRole,
       updatedAt: new Date().toISOString(),
     };
 
@@ -394,6 +468,10 @@ export const userService = {
   },
 
   setUserStatus: async (id: string, status: 'active' | 'inactive'): Promise<UserProfile | null> => {
+    if (id === 'local-admin' || id === 'local-user') {
+      return userService.getUserById(id) || null;
+    }
+
     const localUsers = getLocalUsers();
     const userIndex = localUsers.findIndex(u => u.id === id);
     if (userIndex === -1) {
@@ -409,6 +487,9 @@ export const userService = {
   },
 
   deleteUser: async (id: string): Promise<boolean> => {
+    if (id === 'local-admin' || id === 'local-user') {
+      throw new Error('Cannot delete permanent built-in DEMO identities.');
+    }
     const localUsers = getLocalUsers();
     const filtered = localUsers.filter(u => u.id !== id);
     saveLocalUsers(filtered);

@@ -297,7 +297,11 @@ export const Login: React.FC = () => {
       await login(username, password, { destination: from });
     } catch (err: any) {
       console.warn("Login authentication error:", err.message);
-      setErrorMsg(t.invalidCredentials);
+      if (err.message && err.message.includes('DEMO credentials are not permitted in the LIVE environment.')) {
+        setErrorMsg('DEMO credentials are not permitted in the LIVE environment.');
+      } else {
+        setErrorMsg(t.invalidCredentials);
+      }
       setIsSubmitting(false);
     }
   };

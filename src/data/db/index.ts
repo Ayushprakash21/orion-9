@@ -93,6 +93,10 @@ export const db = {
   documentExpirations: createSafeInstance({ name: 'SC_DB', storeName: 'document_expirations' }),
   certificates: createSafeInstance({ name: 'SC_DB', storeName: 'certificates' }),
   tradingPartners: createSafeInstance({ name: 'SC_DB', storeName: 'trading_partners' }),
+  desktop_items: createSafeInstance({ name: 'SC_DB', storeName: 'desktop_items' }),
+  desktop_widgets: createSafeInstance({ name: 'SC_DB', storeName: 'desktop_widgets' }),
+  files: createSafeInstance({ name: 'SC_DB', storeName: 'files' }),
+  folders: createSafeInstance({ name: 'SC_DB', storeName: 'folders' }),
 };
 
 

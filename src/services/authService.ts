@@ -1,6 +1,6 @@
 import { UserProfile, Organization, RoleCode, PermissionCode, PrivilegedAdminSession } from '../types/auth';
 import { permissionService } from './permissionService';
-import { userService } from './userService';
+import { userService, CANONICAL_DEMO_ADMIN, CANONICAL_DEMO_USER, CANONICAL_DEMO_ORGANIZATION } from './userService';
 import { organizationService } from './organizationService';
 import { auditService } from './AuditService';
 import { privilegedSessionManager } from '../kernel/security/privilegedSession';
@@ -82,17 +82,9 @@ export const authService = {
   },
 
   /**
-   * Authenticates user via DEMO / LOCAL credentials.
-   *
-   * DEMO/LOCAL ONLY — hard-coded credentials. Do not use for production.
-   * Required demo credentials:
-   * Normal User: username === "user" AND password === "user"
-   * Admin:       username === "admin" AND password === "admin"
-   * Any other combination: DENY LOGIN.
-   */
-  /**
-   * Authoritative Firebase Authentication flow.
-   * Firebase Auth is the single authority for production user authentication.
+   * Authoritative Authentication Flow:
+   * - DEMO/LOCAL: Uses deterministic, offline-capable local DEMO identities. Zero Firebase dependency.
+   * - LIVE: Enforces authoritative Firebase Authentication with strict rejection of DEMO credentials.
    */
   authenticate: async (identifier: string, passwordString: string): Promise<AuthSessionDetails> => {
     const correlationId = generateCorrelationId('auth-login');
@@ -105,17 +97,18 @@ export const authService = {
     }
 
     const cleanId = identifier.trim().toLowerCase();
-    const cleanPass = passwordString.trim();
+    const rawPass = passwordString; // Preserve exact supplied password without trimming
     const activeEnv = dbManager.getEnvironment();
 
-    // Check for demo credentials (admin/admin, user/user)
-    const isDemoCredentials = 
-      (cleanId === 'admin' && cleanPass === 'admin') ||
-      (cleanId === 'user' && cleanPass === 'user');
+    // 1. Check if identifier targets DEMO identities
+    const isDemoAdminId = cleanId === 'admin' || cleanId === 'admin@orion.network';
+    const isDemoUserId = cleanId === 'user' || cleanId === 'user@orion.network';
 
-    if (isDemoCredentials) {
-      // RULE: DEMO credentials must NEVER authenticate a LIVE environment!
-      if (activeEnv === 'LIVE') {
+    // 2. LIVE ENVIRONMENT ISOLATION
+    // Under LIVE environment, DEMO credentials must NEVER authenticate
+    if (activeEnv === 'LIVE') {
+      const isDemoLiveAttempt = (cleanId === 'admin' && rawPass === 'admin') || (cleanId === 'user' && rawPass === 'user');
+      if (isDemoLiveAttempt) {
         await auditService.log({
           actorUserId: cleanId,
           actorName: cleanId,
@@ -133,43 +126,119 @@ export const authService = {
         });
         throw new Error('DEMO credentials are not permitted in the LIVE environment.');
       }
+    }
 
-      // Allowed ONLY in DEMO/LOCAL environment
-      const demoUser = userService.getUserByIdentifier(cleanId);
-      if (!demoUser) throw new Error('Demo user not found.');
-      
-      const isAdminUser = demoUser.role === 'platform_admin' || demoUser.role === 'organization_admin';
-      if (isAdminUser) {
+    // 3. DEMO ENVIRONMENT AUTHENTICATION (Deterministic, Offline-Capable, Zero Firebase Dependency)
+    if (activeEnv === 'DEMO') {
+      if (isDemoAdminId) {
+        // Enforce exact password matching
+        if (rawPass !== 'admin' && rawPass !== 'OrionAdmin2026!') {
+          throw new Error('Invalid username or password.');
+        }
+
+        const canonicalProfile: UserProfile = {
+          ...CANONICAL_DEMO_ADMIN,
+        };
+        const canonicalOrg: Organization = {
+          ...CANONICAL_DEMO_ORGANIZATION,
+        };
+        const permissions = permissionService.getPlatformAdminPermissions();
+
+        // Issue privileged admin session
         privilegedSessionManager.issuePrivilegedSession(
-          demoUser.id,
-          demoUser.organizationId || 'ORION_PLATFORM',
-          demoUser.role,
+          canonicalProfile.id,
+          canonicalProfile.organizationId || 'ORION_PLATFORM',
+          canonicalProfile.role,
           'step_up_password',
           'DEMO'
         );
-      } else {
-        privilegedSessionManager.revoke('Normal user login');
+
+        const details: AuthSessionDetails = {
+          user: {
+            id: 'local-admin',
+            email: 'admin@orion.network',
+          },
+          profile: canonicalProfile,
+          organization: canonicalOrg,
+          role: 'platform_admin',
+          permissions,
+          token: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : generateCorrelationId('sess'),
+          expiresAt: new Date(Date.now() + 8 * 3600 * 1000).toISOString(),
+          environment: 'DEMO',
+        };
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('orion_auth_session', JSON.stringify(details));
+        }
+
+        await auditService.log({
+          actorUserId: canonicalProfile.id,
+          actorName: canonicalProfile.fullName,
+          actorRole: canonicalProfile.role,
+          organizationId: canonicalProfile.organizationId,
+          action: 'LOGIN_SUCCESS',
+          operation: 'DEMO_AUTH',
+          resourceType: 'auth_session',
+          resourceId: canonicalProfile.id,
+          status: 'success',
+          correlationId,
+          metadata: { environment: 'DEMO' },
+        });
+
+        return details;
       }
 
-      const details = await authService.loadFullSession(demoUser.id, demoUser.email);
-      details.environment = 'DEMO';
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('orion_auth_session', JSON.stringify(details));
+      if (isDemoUserId) {
+        // Enforce exact password matching
+        if (rawPass !== 'user' && rawPass !== 'OrionUser2026!') {
+          throw new Error('Invalid username or password.');
+        }
+
+        const canonicalProfile: UserProfile = {
+          ...CANONICAL_DEMO_USER,
+        };
+        const canonicalOrg: Organization = {
+          ...CANONICAL_DEMO_ORGANIZATION,
+        };
+        const permissions = permissionService.getDefaultPermissionsForRole('user');
+
+        // Revoke any privileged session on standard user login
+        privilegedSessionManager.revoke('Normal user login');
+
+        const details: AuthSessionDetails = {
+          user: {
+            id: 'local-user',
+            email: 'user@orion.network',
+          },
+          profile: canonicalProfile,
+          organization: canonicalOrg,
+          role: 'user',
+          permissions,
+          token: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : generateCorrelationId('sess'),
+          expiresAt: new Date(Date.now() + 8 * 3600 * 1000).toISOString(),
+          environment: 'DEMO',
+        };
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('orion_auth_session', JSON.stringify(details));
+        }
+
+        await auditService.log({
+          actorUserId: canonicalProfile.id,
+          actorName: canonicalProfile.fullName,
+          actorRole: canonicalProfile.role,
+          organizationId: canonicalProfile.organizationId,
+          action: 'LOGIN_SUCCESS',
+          operation: 'DEMO_AUTH',
+          resourceType: 'auth_session',
+          resourceId: canonicalProfile.id,
+          status: 'success',
+          correlationId,
+          metadata: { environment: 'DEMO' },
+        });
+
+        return details;
       }
-      await auditService.log({
-        actorUserId: demoUser.id,
-        actorName: demoUser.fullName,
-        actorRole: demoUser.role,
-        organizationId: demoUser.organizationId,
-        action: 'LOGIN_SUCCESS',
-        operation: 'DEMO_AUTH',
-        resourceType: 'auth_session',
-        resourceId: demoUser.id,
-        status: 'success',
-        correlationId,
-        metadata: { environment: 'DEMO' },
-      });
-      return details;
     }
 
     // LIVE OR NON-DEMO AUTHENTICATION PATH
@@ -194,7 +263,7 @@ export const authService = {
       }
 
       try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, cleanPass);
+        const userCredential = await signInWithEmailAndPassword(auth, email, rawPass);
         if (userCredential?.user) {
           firebaseUid = userCredential.user.uid;
         } else {
@@ -221,10 +290,10 @@ export const authService = {
       // In DEMO / test environment:
       if (auth) {
         try {
-          const userCredential = await signInWithEmailAndPassword(auth, email, cleanPass).catch(async (signInErr) => {
+          const userCredential = await signInWithEmailAndPassword(auth, email, rawPass).catch(async (signInErr) => {
             if (signInErr.code === 'auth/user-not-found' || signInErr.code === 'auth/invalid-credential') {
               try {
-                return await createUserWithEmailAndPassword(auth, email, cleanPass);
+                return await createUserWithEmailAndPassword(auth, email, rawPass);
               } catch (createErr) {
                 return null;
               }
@@ -237,13 +306,18 @@ export const authService = {
           } else if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
             const testUser = userService.getUserByIdentifier(cleanId);
             const validTestPasswords = ['admin', 'user', 'test_password', 'OrionAdmin2026!', 'OrionUser2026!'];
-            if (testUser && validTestPasswords.includes(cleanPass)) {
+            if (testUser && validTestPasswords.includes(rawPass)) {
               firebaseUid = testUser.id;
             } else {
               throw new Error('Invalid username or password.');
             }
           } else {
-            throw new Error('Invalid username or password.');
+            const verified = await userService.verifyCredentials(cleanId, rawPass);
+            if (verified) {
+              firebaseUid = verified.id;
+            } else {
+              throw new Error('Invalid username or password.');
+            }
           }
         } catch (err: any) {
           if (err.message === 'Invalid username or password.') throw err;
@@ -253,13 +327,18 @@ export const authService = {
         if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
           const testUser = userService.getUserByIdentifier(cleanId);
           const validTestPasswords = ['admin', 'user', 'test_password', 'OrionAdmin2026!', 'OrionUser2026!'];
-          if (testUser && validTestPasswords.includes(cleanPass)) {
+          if (testUser && validTestPasswords.includes(rawPass)) {
             firebaseUid = testUser.id;
           } else {
             throw new Error('Invalid username or password.');
           }
         } else {
-          throw new Error('Firebase Authentication service is unavailable.');
+          const verified = await userService.verifyCredentials(cleanId, rawPass);
+          if (verified) {
+            firebaseUid = verified.id;
+          } else {
+            throw new Error('Invalid username or password.');
+          }
         }
       }
     }

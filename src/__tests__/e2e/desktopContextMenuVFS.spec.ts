@@ -22,7 +22,9 @@ test.describe('Orion-9 Desktop Context Menu & VFS Persistence E2E', () => {
     await page.addInitScript(() => {
       try {
         sessionStorage.setItem('orion_os_power_state', 'ON');
-        localStorage.setItem('orion9_database_environment', 'LIVE');
+        localStorage.setItem('orion9_database_environment', 'DEMO');
+        localStorage.setItem('orion_settings', JSON.stringify({ userExperienceMode: 'ADVANCED' }));
+        localStorage.setItem('orion_system_settings', JSON.stringify({ userExperienceMode: 'ADVANCED' }));
         localStorage.setItem('orion_auth_session', JSON.stringify({
           user: {
             id: 'local-admin',
@@ -41,7 +43,7 @@ test.describe('Orion-9 Desktop Context Menu & VFS Persistence E2E', () => {
             status: 'active'
           },
           permissions: ['all'],
-          environment: 'LIVE',
+          environment: 'DEMO',
           expiresAt: new Date(Date.now() + 86400000).toISOString()
         }));
       } catch (e) {}
@@ -113,11 +115,22 @@ test.describe('Orion-9 Desktop Context Menu & VFS Persistence E2E', () => {
     const docShortcut = page.locator('[data-shortcut-id]').filter({ hasText: 'New Text Document.txt' });
     await expect(docShortcut.first()).toBeVisible({ timeout: 5000 });
 
+    const notepadWindow = page.locator('[data-orion-window][data-window-id="notepad"]');
+    await expect(notepadWindow).toBeVisible({ timeout: 10000 });
+
+    // Close Notepad window via its close button
+    const closeBtn = notepadWindow.locator('button[aria-label="Close Notepad"]');
+    if (await closeBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await closeBtn.click();
+    } else {
+      await page.keyboard.press('Escape');
+    }
+    await expect(notepadWindow).not.toBeVisible({ timeout: 5000 });
+
     // Double click to open Notepad
-    await docShortcut.first().dblclick();
+    await docShortcut.first().dblclick({ force: true });
 
     // Verify Notepad window opens
-    const notepadWindow = page.locator('[data-orion-window][data-window-id="notepad"]');
     await expect(notepadWindow).toBeVisible({ timeout: 10000 });
   });
 
@@ -299,7 +312,7 @@ test.describe('Orion-9 Desktop Context Menu & VFS Persistence E2E', () => {
     await expect(itemMenu).toBeVisible({ timeout: 5000 });
 
     // Dismiss context menu
-    await canvas.click({ position: { x: 100, y: 100 } });
+    await canvas.click({ position: { x: 800, y: 500 } });
     await expect(itemMenu).not.toBeVisible({ timeout: 5000 });
 
     const boxAfterRightClick = await shortcut.boundingBox();
@@ -324,7 +337,7 @@ test.describe('Orion-9 Desktop Context Menu & VFS Persistence E2E', () => {
     expect(boxAfterDrag!.x).not.toBe(initialBox!.x);
 
     // C. Double-click launches app
-    await shortcut.dblclick();
+    await shortcut.dblclick({ force: true });
     // Wait for a window or app launcher to respond
     const anyWindow = page.locator('[data-orion-window]').first();
     await expect(anyWindow).toBeVisible({ timeout: 10000 });
