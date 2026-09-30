@@ -224,4 +224,109 @@ test.describe('Orion-9 Desktop Context Menu & VFS Persistence E2E', () => {
     await cancelBtn.click();
     await expect(renameModal).not.toBeVisible({ timeout: 5000 });
   });
+
+  test('7. Right click desktop -> physical mouse click directly on Widgets SVG icon -> Widget Gallery opens', async ({ page }) => {
+    const canvas = page.locator('[data-desktop-canvas="true"]');
+    await expect(canvas).toBeVisible();
+
+    await canvas.click({ button: 'right', position: { x: 500, y: 300 } });
+    const desktopMenu = page.locator('[data-testid="desktop-context-menu"]');
+    await expect(desktopMenu).toBeVisible({ timeout: 5000 });
+
+    const widgetsBtn = desktopMenu.locator('[data-action="widgets"]');
+    await expect(widgetsBtn).toBeVisible();
+
+    // Locate the SVG icon inside the Widgets button and get its bounding box
+    const icon = widgetsBtn.locator('svg');
+    const iconBox = await icon.boundingBox();
+    expect(iconBox).not.toBeNull();
+
+    // Physical mouse click on center of the icon
+    await page.mouse.click(iconBox!.x + iconBox!.width / 2, iconBox!.y + iconBox!.height / 2);
+
+    // Verify Widget Gallery opened
+    const gallery = page.locator('text=Orion Widget Gallery');
+    await expect(gallery).toBeVisible({ timeout: 5000 });
+
+    // Close gallery
+    const closeBtn = page.locator('button:has-text("Close")').last();
+    await closeBtn.click();
+    await expect(gallery).not.toBeVisible({ timeout: 5000 });
+  });
+
+  test('8. Right click desktop -> physical mouse click directly on Customize Desktop text label -> Spatial Edit Mode activates', async ({ page }) => {
+    const canvas = page.locator('[data-desktop-canvas="true"]');
+    await expect(canvas).toBeVisible();
+
+    await canvas.click({ button: 'right', position: { x: 500, y: 300 } });
+    const desktopMenu = page.locator('[data-testid="desktop-context-menu"]');
+    await expect(desktopMenu).toBeVisible({ timeout: 5000 });
+
+    const customizeBtn = desktopMenu.locator('[data-action="customize-desktop"]');
+    await expect(customizeBtn).toBeVisible();
+
+    // Locate the text label inside the Customize Desktop button and get its bounding box
+    const label = customizeBtn.locator('span');
+    const labelBox = await label.boundingBox();
+    expect(labelBox).not.toBeNull();
+
+    // Physical mouse click on center of the label
+    await page.mouse.click(labelBox!.x + labelBox!.width / 2, labelBox!.y + labelBox!.height / 2);
+
+    // Verify Spatial Edit Mode banner opened
+    const editBanner = page.locator('text=Spatial Edit Mode');
+    await expect(editBanner).toBeVisible({ timeout: 5000 });
+
+    // Exit Edit Mode via Done
+    const doneBtn = page.locator('button:has-text("Done")');
+    await doneBtn.click();
+    await expect(editBanner).not.toBeVisible({ timeout: 5000 });
+  });
+
+  test('9. Icon drag regression: right-click does NOT drag; left-drag moves icon; double-click launches app', async ({ page }) => {
+    const canvas = page.locator('[data-desktop-canvas="true"]');
+    await expect(canvas).toBeVisible();
+
+    const shortcut = page.locator('[data-shortcut-id]').first();
+    await expect(shortcut).toBeVisible({ timeout: 5000 });
+
+    const initialBox = await shortcut.boundingBox();
+    expect(initialBox).not.toBeNull();
+
+    // A. Right-click MUST NOT initiate drag
+    await shortcut.click({ button: 'right' });
+    const itemMenu = page.locator('[data-testid="desktop-item-context-menu"]');
+    await expect(itemMenu).toBeVisible({ timeout: 5000 });
+
+    // Dismiss context menu
+    await canvas.click({ position: { x: 100, y: 100 } });
+    await expect(itemMenu).not.toBeVisible({ timeout: 5000 });
+
+    const boxAfterRightClick = await shortcut.boundingBox();
+    expect(boxAfterRightClick!.x).toBeCloseTo(initialBox!.x, 0);
+    expect(boxAfterRightClick!.y).toBeCloseTo(initialBox!.y, 0);
+
+    // B. Left-drag moves the icon
+    const startX = initialBox!.x + initialBox!.width / 2;
+    const startY = initialBox!.y + initialBox!.height / 2;
+    const targetDragX = startX + 100;
+    const targetDragY = startY + 100;
+
+    await page.mouse.move(startX, startY);
+    await page.mouse.down();
+    await page.mouse.move(targetDragX, targetDragY, { steps: 5 });
+    await page.mouse.up();
+
+    // Give grid snapping a moment to commit
+    await page.waitForTimeout(300);
+    const boxAfterDrag = await shortcut.boundingBox();
+    // Icon moved from initial position
+    expect(boxAfterDrag!.x).not.toBe(initialBox!.x);
+
+    // C. Double-click launches app
+    await shortcut.dblclick();
+    // Wait for a window or app launcher to respond
+    const anyWindow = page.locator('[data-orion-window]').first();
+    await expect(anyWindow).toBeVisible({ timeout: 10000 });
+  });
 });

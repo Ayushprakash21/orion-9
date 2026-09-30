@@ -99,6 +99,19 @@ export function DesktopWorkspace() {
   const touchStartPosRef = useRef<{ x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Dedicated DOM node refs for context menus (ensures 100% accurate hit-testing)
+  const desktopMenuRef = useRef<HTMLDivElement>(null);
+  const itemMenuRef = useRef<HTMLDivElement>(null);
+  // Unified action dispatcher ensuring clean execution and menu dismissal
+  const handleMenuAction = useCallback((actionFn: () => void | Promise<void>) => {
+    try {
+      actionFn();
+    } finally {
+      setDesktopMenu(null);
+      setItemMenu(null);
+    }
+  }, []);
+
   // Desktop Widgets & Edit Mode State
   const [widgets, setWidgets] = useState<DesktopWidgetRecord[]>([]);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
@@ -235,9 +248,26 @@ export function DesktopWorkspace() {
     if (!desktopMenu && !itemMenu) return;
 
     const handleGlobalPointerDown = (e: Event) => {
-      // 1. Check composedPath first (handles SVG elements, path, text nodes, Shadow DOM, portals)
+      // 1. Direct Node containment check against active menu refs
+      const rawTarget = e.target as Node | null;
+      if (rawTarget) {
+        if (desktopMenuRef.current && (desktopMenuRef.current === rawTarget || desktopMenuRef.current.contains(rawTarget))) {
+          return;
+        }
+        if (itemMenuRef.current && (itemMenuRef.current === rawTarget || itemMenuRef.current.contains(rawTarget))) {
+          return;
+        }
+      }
+
+      // 2. Check composedPath (handles SVG child nodes, Shadow DOM, and detached elements)
       if (typeof (e as any).composedPath === 'function') {
         const path = (e as any).composedPath();
+        if (
+          (desktopMenuRef.current && path.includes(desktopMenuRef.current)) ||
+          (itemMenuRef.current && path.includes(itemMenuRef.current))
+        ) {
+          return;
+        }
         const clickedInsideMenu = path.some((el: any) => {
           if (!el || !(el instanceof Element)) return false;
           return (
@@ -251,8 +281,7 @@ export function DesktopWorkspace() {
         }
       }
 
-      // 2. Fallback check using target / parentElement
-      const rawTarget = e.target as Node | null;
+      // 3. Fallback check using target / parentElement
       const targetEl = rawTarget instanceof Element ? rawTarget : rawTarget?.parentElement;
       if (targetEl?.closest?.('[data-orion-context-menu="true"]')) {
         return;
@@ -863,6 +892,7 @@ export function DesktopWorkspace() {
       {/* Desktop Right-Click / Long-Press Context Menu (Portal to Body at z-[2147483500]) */}
       {desktopMenu && typeof document !== 'undefined' && createPortal(
         <div
+          ref={desktopMenuRef}
           data-orion-context-menu="true"
           data-testid="desktop-context-menu"
           className="fixed z-[2147483500] bg-os-surface/98 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.05)] py-1.5 w-60 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto select-none"
@@ -887,8 +917,9 @@ export function DesktopWorkspace() {
             data-action="refresh"
             onClick={(e) => {
               e.stopPropagation();
-              window.dispatchEvent(new CustomEvent('orion:desktop-refresh', { detail: { timestamp: Date.now() } }));
-              setDesktopMenu(null);
+              handleMenuAction(() => {
+                window.dispatchEvent(new CustomEvent('orion:desktop-refresh', { detail: { timestamp: Date.now() } }));
+              });
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
@@ -905,7 +936,7 @@ export function DesktopWorkspace() {
             data-action="sort-name"
             onClick={(e) => {
               e.stopPropagation();
-              handleAutoArrange('name');
+              handleMenuAction(() => handleAutoArrange('name'));
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
@@ -918,7 +949,7 @@ export function DesktopWorkspace() {
             data-action="sort-type"
             onClick={(e) => {
               e.stopPropagation();
-              handleAutoArrange('type');
+              handleMenuAction(() => handleAutoArrange('type'));
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
@@ -931,7 +962,7 @@ export function DesktopWorkspace() {
             data-action="sort-date"
             onClick={(e) => {
               e.stopPropagation();
-              handleAutoArrange('date');
+              handleMenuAction(() => handleAutoArrange('date'));
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
@@ -947,7 +978,7 @@ export function DesktopWorkspace() {
             data-action="new-folder"
             onClick={(e) => {
               e.stopPropagation();
-              handleCreateDesktopFolder();
+              handleMenuAction(() => handleCreateDesktopFolder());
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
@@ -960,7 +991,7 @@ export function DesktopWorkspace() {
             data-action="new-doc-docx"
             onClick={(e) => {
               e.stopPropagation();
-              handleCreateDesktopFile('docx');
+              handleMenuAction(() => handleCreateDesktopFile('docx'));
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
@@ -973,7 +1004,7 @@ export function DesktopWorkspace() {
             data-action="new-doc-xlsx"
             onClick={(e) => {
               e.stopPropagation();
-              handleCreateDesktopFile('xlsx');
+              handleMenuAction(() => handleCreateDesktopFile('xlsx'));
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
@@ -986,7 +1017,7 @@ export function DesktopWorkspace() {
             data-action="new-doc-pptx"
             onClick={(e) => {
               e.stopPropagation();
-              handleCreateDesktopFile('pptx');
+              handleMenuAction(() => handleCreateDesktopFile('pptx'));
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
@@ -999,7 +1030,7 @@ export function DesktopWorkspace() {
             data-action="new-doc-txt"
             onClick={(e) => {
               e.stopPropagation();
-              handleCreateDesktopFile('txt');
+              handleMenuAction(() => handleCreateDesktopFile('txt'));
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
@@ -1015,8 +1046,7 @@ export function DesktopWorkspace() {
             data-action="widgets"
             onClick={(e) => {
               e.stopPropagation();
-              setIsWidgetGalleryOpen(true);
-              setDesktopMenu(null);
+              handleMenuAction(() => setIsWidgetGalleryOpen(true));
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
@@ -1029,8 +1059,7 @@ export function DesktopWorkspace() {
             data-action="customize-desktop"
             onClick={(e) => {
               e.stopPropagation();
-              setIsEditMode(true);
-              setDesktopMenu(null);
+              handleMenuAction(() => setIsEditMode(true));
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
@@ -1043,8 +1072,7 @@ export function DesktopWorkspace() {
             data-action="personalize"
             onClick={(e) => {
               e.stopPropagation();
-              openApplication('settings');
-              setDesktopMenu(null);
+              handleMenuAction(() => openApplication('settings'));
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
@@ -1058,6 +1086,7 @@ export function DesktopWorkspace() {
       {/* Item Right-Click / Long-Press Context Menu (Portal to Body at z-[2147483500]) */}
       {itemMenu && typeof document !== 'undefined' && createPortal(
         <div
+          ref={itemMenuRef}
           data-orion-context-menu="true"
           data-testid="desktop-item-context-menu"
           className="fixed z-[2147483500] bg-os-surface/98 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.05)] py-1.5 w-56 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto select-none"
@@ -1081,8 +1110,7 @@ export function DesktopWorkspace() {
             data-action="open"
             onClick={(e) => {
               e.stopPropagation();
-              handleDoubleClick(itemMenu.shortcut);
-              setItemMenu(null);
+              handleMenuAction(() => handleDoubleClick(itemMenu.shortcut));
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left font-medium min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
@@ -1096,20 +1124,21 @@ export function DesktopWorkspace() {
               data-action="edit-file"
               onClick={(e) => {
                 e.stopPropagation();
-                const name = itemMenu.shortcut.name.toLowerCase();
-                let app = 'notepad';
-                if (name.endsWith('.docx')) app = 'orion-documents';
-                else if (name.endsWith('.xlsx')) app = 'orion-sheets';
-                else if (name.endsWith('.pptx')) app = 'orion-slides';
-                else if (name.endsWith('.pdf')) app = 'orion-pdf';
+                handleMenuAction(() => {
+                  const name = itemMenu.shortcut.name.toLowerCase();
+                  let app = 'notepad';
+                  if (name.endsWith('.docx')) app = 'orion-documents';
+                  else if (name.endsWith('.xlsx')) app = 'orion-sheets';
+                  else if (name.endsWith('.pptx')) app = 'orion-slides';
+                  else if (name.endsWith('.pdf')) app = 'orion-pdf';
 
-                openApplication(app);
-                setTimeout(() => {
-                  window.dispatchEvent(
-                    new CustomEvent('orion:open-file', { detail: { fileId: itemMenu.shortcut.targetId } })
-                  );
-                }, 150);
-                setItemMenu(null);
+                  openApplication(app);
+                  setTimeout(() => {
+                    window.dispatchEvent(
+                      new CustomEvent('orion:open-file', { detail: { fileId: itemMenu.shortcut.targetId } })
+                    );
+                  }, 150);
+                });
               }}
               className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
             >
@@ -1123,9 +1152,10 @@ export function DesktopWorkspace() {
             data-action="rename"
             onClick={(e) => {
               e.stopPropagation();
-              setRenameItem(itemMenu.shortcut);
-              setRenameValue(itemMenu.shortcut.name);
-              setItemMenu(null);
+              handleMenuAction(() => {
+                setRenameItem(itemMenu.shortcut);
+                setRenameValue(itemMenu.shortcut.name);
+              });
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
@@ -1139,7 +1169,7 @@ export function DesktopWorkspace() {
             data-action="create-shortcut"
             onClick={(e) => {
               e.stopPropagation();
-              handleDuplicateShortcut(itemMenu.shortcut);
+              handleMenuAction(() => handleDuplicateShortcut(itemMenu.shortcut));
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
@@ -1152,8 +1182,7 @@ export function DesktopWorkspace() {
             data-action="properties"
             onClick={(e) => {
               e.stopPropagation();
-              setPropertiesItem(itemMenu.shortcut);
-              setItemMenu(null);
+              handleMenuAction(() => setPropertiesItem(itemMenu.shortcut));
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
@@ -1168,7 +1197,7 @@ export function DesktopWorkspace() {
             data-action="delete"
             onClick={(e) => {
               e.stopPropagation();
-              handleDeleteShortcut(itemMenu.shortcut);
+              handleMenuAction(() => handleDeleteShortcut(itemMenu.shortcut));
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-rose-500/20 text-rose-400 text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
