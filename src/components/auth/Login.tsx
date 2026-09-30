@@ -133,7 +133,12 @@ export const Login: React.FC = () => {
 
     const handleEnvChange = () => {
       if (mounted) {
-        setDbEnv(dbManager.getEnvironment());
+        const newEnv = dbManager.getEnvironment();
+        setDbEnv(newEnv);
+        if (newEnv === 'DEMO') {
+          setUsername('admin');
+          setPassword('admin');
+        }
         runProbe();
       }
     };
@@ -253,6 +258,14 @@ export const Login: React.FC = () => {
         setResolvedUser(found);
         setStage(2);
         setErrorMsg("");
+        if (dbManager.getEnvironment() === 'DEMO') {
+          const lower = cleanId.toLowerCase();
+          if (lower === 'admin' || lower === 'admin@orion.network') {
+            if (!password) setPassword('admin');
+          } else if (lower === 'user' || lower === 'user@orion.network') {
+            if (!password) setPassword('user');
+          }
+        }
       } else {
         // Proceed to password step with user identifier for Firebase Auth verification
         const email = cleanId.includes('@') ? cleanId : `${cleanId}@orion.network`;
@@ -333,7 +346,42 @@ export const Login: React.FC = () => {
       
 
       {/* Header — Top Bar */}
-      <header className="relative z-10 w-full flex items-center justify-end px-4 sm:px-8 py-3.5 sm:py-6 pt-[calc(14px+env(safe-area-inset-top,0px))] select-none">
+      <header className="relative z-10 w-full flex items-center justify-between px-4 sm:px-8 py-3.5 sm:py-6 pt-[calc(14px+env(safe-area-inset-top,0px))] select-none">
+        {/* Environment Badge & Quick Switcher */}
+        <div className="flex items-center gap-2">
+          <div
+            data-testid="environment-badge"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border backdrop-blur-md text-xs font-semibold shadow-lg transition-all ${
+              dbEnv === 'DEMO'
+                ? 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+                : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+            }`}
+          >
+            <span className={`w-2 h-2 rounded-full ${dbEnv === 'DEMO' ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
+            <span>{dbEnv === 'DEMO' ? 'DEMO SANDBOX' : 'LIVE ENVIRONMENT'}</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              const target = dbEnv === 'DEMO' ? 'LIVE' : 'DEMO';
+              dbManager.setEnvironment(target);
+              setDbEnv(target);
+              setErrorMsg('');
+              if (target === 'DEMO') {
+                setUsername('admin');
+                setPassword('admin');
+              } else {
+                setUsername('');
+                setPassword('');
+              }
+            }}
+            className="text-[11px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-full border border-white/15 backdrop-blur-md transition-colors cursor-pointer"
+          >
+            {dbEnv === 'DEMO' ? 'Switch to LIVE' : 'Switch to DEMO'}
+          </button>
+        </div>
+
         {/* Top Right Functional Language Selector Dropdown */}
         <div className="relative" ref={langMenuRef} data-testid="language-selector">
           <button

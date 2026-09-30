@@ -21,7 +21,7 @@ const STORAGE_ENV_KEY = 'orion9_database_environment';
 
 export class DatabaseConnectionManager {
   private static instance: DatabaseConnectionManager;
-  private currentEnvironment: DatabaseEnvironmentMode = 'LIVE';
+  private currentEnvironment: DatabaseEnvironmentMode = 'DEMO';
   private firestoreInstance: Firestore | null = null;
   private activeListeners: Map<string, () => void> = new Map();
   private inMemoryCache: Map<string, any> = new Map();
@@ -48,6 +48,8 @@ export class DatabaseConnectionManager {
         const saved = localStorage.getItem(STORAGE_ENV_KEY);
         if (saved === 'DEMO' || saved === 'LIVE') {
           this.currentEnvironment = saved;
+        } else {
+          this.currentEnvironment = 'DEMO';
         }
       } catch (e) {}
     }
