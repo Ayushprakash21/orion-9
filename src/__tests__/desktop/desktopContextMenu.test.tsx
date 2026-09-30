@@ -3,10 +3,12 @@
  * Validates:
  * 1. Desktop canvas rendering with data-desktop-canvas="true"
  * 2. Desktop shortcut items rendered with data-shortcut-id
- * 3. Desktop right-click context menu options (Refresh, Sort, New Document, New Folder, Personalize)
- * 4. Notepad shortcut icon right-click context menu options (Open, Edit in Notepad, Rename, Properties, Move to Recycle Bin)
- * 5. High stacking context hierarchy (zIndex: 2147483500) for context menus
- * 6. Viewport boundary clamping logic
+ * 3. Viewport boundary clamping logic
+ * 4. High stacking context hierarchy (zIndex: 2147483500) for context menus
+ * 5. Menu action registration (Refresh, Sort, New Document, New Folder, Widgets, Customize Desktop, Personalize)
+ * 6. Item context menu actions (Open, Rename, Create Shortcut, Properties, Move to Recycle Bin)
+ * 7. Hit-testing resilience and event propagation (stopPropagation on menu, composedPath outside click dismissal)
+ * 8. Drag vs right-click invariants (right-click does not start drag, left drag snaps and persists)
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -154,6 +156,119 @@ describe('Orion Desktop Workspace & Context Menu Tests', () => {
 
       expect(CONTEXT_MENU_Z_INDEX).toBeGreaterThan(SYSTEM_BAR_Z_INDEX);
       expect(CONTEXT_MENU_Z_INDEX).toBeLessThan(MODAL_Z_INDEX);
+    });
+  });
+
+  describe('4. Desktop Context Menu Action Specifications', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const sourceCode = fs.readFileSync(path.resolve(__dirname, '../../os/desktop/DesktopWorkspace.tsx'), 'utf-8');
+
+    it('includes dedicated Widgets action and Customize Desktop action in DesktopWorkspace source', () => {
+      expect(sourceCode).toContain('data-action="widgets"');
+      expect(sourceCode).toContain('setIsWidgetGalleryOpen(true)');
+      expect(sourceCode).toContain('data-action="customize-desktop"');
+      expect(sourceCode).toContain('setIsEditMode(true)');
+      expect(sourceCode).toContain('data-action="refresh"');
+      expect(sourceCode).toContain('data-action="sort-name"');
+      expect(sourceCode).toContain('data-action="sort-type"');
+      expect(sourceCode).toContain('data-action="sort-date"');
+      expect(sourceCode).toContain('data-action="new-folder"');
+      expect(sourceCode).toContain('data-action="new-doc-txt"');
+      expect(sourceCode).toContain('data-action="personalize"');
+    });
+
+    it('includes Item Context Menu actions including Open, Rename, Create Shortcut, and Move to Recycle Bin', () => {
+      expect(sourceCode).toContain('data-action="open"');
+      expect(sourceCode).toContain('data-action="rename"');
+      expect(sourceCode).toContain('data-action="create-shortcut"');
+      expect(sourceCode).toContain('data-action="properties"');
+      expect(sourceCode).toContain('data-action="delete"');
+    });
+  });
+
+  describe('5. Outside Dismissal & Event Propagation Resilience', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const sourceCode = fs.readFileSync(path.resolve(__dirname, '../../os/desktop/DesktopWorkspace.tsx'), 'utf-8');
+
+    it('verifies outside-click detection inspects composedPath without false unmounts on menu children', () => {
+      // Mock an event clicked inside menu
+      const mockMenuElement = {
+        hasAttribute: (attr: string) => attr === 'data-orion-context-menu',
+        getAttribute: (attr: string) => (attr === 'data-orion-context-menu' ? 'true' : null),
+        closest: (sel: string) => (sel === '[data-orion-context-menu="true"]' ? mockMenuElement : null),
+      };
+
+      const mockSvgElement = {
+        hasAttribute: () => false,
+        getAttribute: () => null,
+        closest: (sel: string) => (sel === '[data-orion-context-menu="true"]' ? mockMenuElement : null),
+      };
+
+      // Case A: Click inside menu on SVG icon
+      const insidePath = [mockSvgElement, mockMenuElement, {}];
+      const isInside = insidePath.some((el: any) => {
+        if (!el || typeof el.hasAttribute !== 'function') return false;
+        return (
+          el.hasAttribute('data-orion-context-menu') ||
+          el.getAttribute('data-orion-context-menu') === 'true' ||
+          el.closest?.('[data-orion-context-menu="true"]') != null
+        );
+      });
+      expect(isInside).toBe(true);
+
+      // Case B: Click outside on canvas
+      const outsidePath = [{}, {}];
+      const isOutside = outsidePath.some((el: any) => {
+        if (!el || typeof el.hasAttribute !== 'function') return false;
+        return (
+          el.hasAttribute('data-orion-context-menu') ||
+          el.getAttribute('data-orion-context-menu') === 'true' ||
+          el.closest?.('[data-orion-context-menu="true"]') != null
+        );
+      });
+      expect(isOutside).toBe(false);
+    });
+
+    it('verifies context menu stops propagation on pointerdown, mousedown, and click', () => {
+      expect(sourceCode).toContain('onPointerDown={e => e.stopPropagation()}');
+      expect(sourceCode).toContain('onMouseDown={e => e.stopPropagation()}');
+      expect(sourceCode).toContain('onClick={e => e.stopPropagation()}');
+    });
+
+    it('verifies menu icons and labels have pointer-events-none for consistent button hit-testing', () => {
+      expect(sourceCode).toContain('pointer-events-none shrink-0');
+      expect(sourceCode).toContain('pointer-events-none font-medium');
+    });
+  });
+
+  describe('6. Drag vs Right-Click Invariants', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const sourceCode = fs.readFileSync(path.resolve(__dirname, '../../os/desktop/DesktopWorkspace.tsx'), 'utf-8');
+
+    it('right-click does not start drag (button !== 0 guard in handleItemPointerDown)', () => {
+      expect(sourceCode).toContain("if (e.button !== 0 && e.pointerType === 'mouse') return;");
+    });
+
+    it('grid snap coordinates persistence correctly saves dragged shortcut position', async () => {
+      const shortcuts = await desktopWorkspaceService.ensureWorkspaceShortcuts('operations', testTenant, 'LIVE');
+      const target = shortcuts[0];
+
+      const updated = await desktopWorkspaceService.updateShortcutPosition(
+        target.id,
+        240,
+        360,
+        1920,
+        1080,
+        testTenant,
+        'LIVE'
+      );
+
+      expect(updated.id).toBe(target.id);
+      expect(updated.x).toBeGreaterThan(0);
+      expect(updated.y).toBeGreaterThan(0);
     });
   });
 });

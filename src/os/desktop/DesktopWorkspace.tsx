@@ -234,11 +234,30 @@ export function DesktopWorkspace() {
   useEffect(() => {
     if (!desktopMenu && !itemMenu) return;
 
-    const handleGlobalPointerDown = (e: MouseEvent | TouchEvent) => {
-      const target = e.target as HTMLElement;
-      if (target?.closest('[data-orion-context-menu="true"]')) {
+    const handleGlobalPointerDown = (e: Event) => {
+      // 1. Check composedPath first (handles SVG elements, path, text nodes, Shadow DOM, portals)
+      if (typeof (e as any).composedPath === 'function') {
+        const path = (e as any).composedPath();
+        const clickedInsideMenu = path.some((el: any) => {
+          if (!el || !(el instanceof Element)) return false;
+          return (
+            el.hasAttribute('data-orion-context-menu') ||
+            el.getAttribute('data-orion-context-menu') === 'true' ||
+            el.closest?.('[data-orion-context-menu="true"]') != null
+          );
+        });
+        if (clickedInsideMenu) {
+          return;
+        }
+      }
+
+      // 2. Fallback check using target / parentElement
+      const rawTarget = e.target as Node | null;
+      const targetEl = rawTarget instanceof Element ? rawTarget : rawTarget?.parentElement;
+      if (targetEl?.closest?.('[data-orion-context-menu="true"]')) {
         return;
       }
+
       setDesktopMenu(null);
       setItemMenu(null);
     };
@@ -600,6 +619,29 @@ export function DesktopWorkspace() {
     }
   };
 
+  // Duplicate / Create Shortcut for Item
+  const handleDuplicateShortcut = async (shortcut: DesktopShortcut) => {
+    try {
+      await desktopWorkspaceService.addShortcut({
+        targetType: shortcut.targetType,
+        targetId: shortcut.targetId,
+        name: `${shortcut.name} - Shortcut`,
+        iconId: shortcut.iconId || shortcut.targetId,
+        isDirectory: shortcut.isDirectory,
+        path: shortcut.path,
+        mimeType: shortcut.mimeType,
+        size: shortcut.size,
+        workspaceId: activeWorkspaceId,
+      });
+      await loadShortcuts();
+      setItemMenu(null);
+      showToast(`Created shortcut for ${shortcut.name}`, 'success', 'Desktop');
+    } catch (e: any) {
+      console.error('Failed to duplicate shortcut', e);
+      showToast(`Couldn't create shortcut: ${e?.message || 'Error'}`, 'error', 'Desktop');
+    }
+  };
+
   // Delete Desktop Item
   const handleDeleteShortcut = async (shortcut: DesktopShortcut) => {
     try {
@@ -823,12 +865,16 @@ export function DesktopWorkspace() {
         <div
           data-orion-context-menu="true"
           data-testid="desktop-context-menu"
-          className="fixed z-[2147483500] bg-os-surface/98 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.05)] py-1.5 w-60 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto"
+          className="fixed z-[2147483500] bg-os-surface/98 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.05)] py-1.5 w-60 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto select-none"
           style={{
             top: `${clampedDesktopPos.y}px`,
             left: `${clampedDesktopPos.x}px`,
             zIndex: 2147483500,
           }}
+          onPointerDown={e => e.stopPropagation()}
+          onMouseDown={e => e.stopPropagation()}
+          onPointerUp={e => e.stopPropagation()}
+          onMouseUp={e => e.stopPropagation()}
           onClick={e => e.stopPropagation()}
         >
           <div className="px-3 py-1.5 text-[10px] font-bold text-os-text-muted uppercase tracking-wider flex items-center justify-between border-b border-os-border/40 mb-0.5">
@@ -838,15 +884,17 @@ export function DesktopWorkspace() {
 
           <button
             type="button"
-            onClick={() => {
+            data-action="refresh"
+            onClick={(e) => {
+              e.stopPropagation();
               window.dispatchEvent(new CustomEvent('orion:desktop-refresh', { detail: { timestamp: Date.now() } }));
               setDesktopMenu(null);
             }}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <RefreshCw size={14} className="text-os-accent" />
-            <span>Refresh Desktop</span>
-            <span className="ml-auto text-[10px] font-mono text-os-text-muted bg-white/[0.05] px-1.5 py-0.5 rounded border border-os-border/50">F5</span>
+            <RefreshCw size={14} className="text-os-accent pointer-events-none shrink-0" />
+            <span className="pointer-events-none">Refresh Desktop</span>
+            <span className="ml-auto text-[10px] font-mono text-os-text-muted bg-white/[0.05] px-1.5 py-0.5 rounded border border-os-border/50 pointer-events-none">F5</span>
           </button>
 
           <div className="h-px bg-os-border/50 my-1 mx-2" />
@@ -854,29 +902,41 @@ export function DesktopWorkspace() {
           {/* Sort Actions */}
           <button
             type="button"
-            onClick={() => handleAutoArrange('name')}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
+            data-action="sort-name"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAutoArrange('name');
+            }}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <ArrowUpDown size={14} className="text-cyan-400" />
-            <span>Sort by Name</span>
+            <ArrowUpDown size={14} className="text-cyan-400 pointer-events-none shrink-0" />
+            <span className="pointer-events-none">Sort by Name</span>
           </button>
 
           <button
             type="button"
-            onClick={() => handleAutoArrange('type')}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
+            data-action="sort-type"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAutoArrange('type');
+            }}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Layers size={14} className="text-amber-400" />
-            <span>Sort by Item Type</span>
+            <Layers size={14} className="text-amber-400 pointer-events-none shrink-0" />
+            <span className="pointer-events-none">Sort by Item Type</span>
           </button>
 
           <button
             type="button"
-            onClick={() => handleAutoArrange('date')}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
+            data-action="sort-date"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleAutoArrange('date');
+            }}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Sliders size={14} className="text-purple-400" />
-            <span>Sort by Date Modified</span>
+            <Sliders size={14} className="text-purple-400 pointer-events-none shrink-0" />
+            <span className="pointer-events-none">Sort by Date Modified</span>
           </button>
 
           <div className="h-px bg-os-border/50 my-1 mx-2" />
@@ -884,73 +944,112 @@ export function DesktopWorkspace() {
           {/* New Folder & Documents */}
           <button
             type="button"
-            onClick={handleCreateDesktopFolder}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
+            data-action="new-folder"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCreateDesktopFolder();
+            }}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Plus size={14} className="text-amber-400" />
-            <span>New Folder</span>
+            <Plus size={14} className="text-amber-400 pointer-events-none shrink-0" />
+            <span className="pointer-events-none">New Folder</span>
           </button>
 
           <button
             type="button"
-            onClick={() => handleCreateDesktopFile('docx')}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
+            data-action="new-doc-docx"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCreateDesktopFile('docx');
+            }}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Plus size={14} className="text-blue-400" />
-            <span>New Document (.docx)</span>
+            <Plus size={14} className="text-blue-400 pointer-events-none shrink-0" />
+            <span className="pointer-events-none">New Document (.docx)</span>
           </button>
 
           <button
             type="button"
-            onClick={() => handleCreateDesktopFile('xlsx')}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
+            data-action="new-doc-xlsx"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCreateDesktopFile('xlsx');
+            }}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Plus size={14} className="text-emerald-400" />
-            <span>New Spreadsheet (.xlsx)</span>
+            <Plus size={14} className="text-emerald-400 pointer-events-none shrink-0" />
+            <span className="pointer-events-none">New Spreadsheet (.xlsx)</span>
           </button>
 
           <button
             type="button"
-            onClick={() => handleCreateDesktopFile('pptx')}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
+            data-action="new-doc-pptx"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCreateDesktopFile('pptx');
+            }}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Plus size={14} className="text-amber-500" />
-            <span>New Presentation (.pptx)</span>
+            <Plus size={14} className="text-amber-500 pointer-events-none shrink-0" />
+            <span className="pointer-events-none">New Presentation (.pptx)</span>
           </button>
 
           <button
             type="button"
-            onClick={() => handleCreateDesktopFile('txt')}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
+            data-action="new-doc-txt"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleCreateDesktopFile('txt');
+            }}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Plus size={14} className="text-cyan-400" />
-            <span>New Text Document (.txt)</span>
+            <Plus size={14} className="text-cyan-400 pointer-events-none shrink-0" />
+            <span className="pointer-events-none">New Text Document (.txt)</span>
           </button>
 
           <div className="h-px bg-os-border/50 my-1 mx-2" />
 
+          {/* Widgets & Customization */}
           <button
             type="button"
-            onClick={() => {
-              setIsEditMode(true);
+            data-action="widgets"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsWidgetGalleryOpen(true);
               setDesktopMenu(null);
             }}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left font-semibold min-h-[36px] transition-colors rounded-lg mx-1"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <LayoutGrid size={14} className="text-cyan-400" />
-            <span>Customize Desktop & Widgets...</span>
+            <LayoutGrid size={14} className="text-cyan-400 pointer-events-none shrink-0" />
+            <span className="pointer-events-none font-medium">Widgets</span>
           </button>
 
           <button
             type="button"
-            onClick={() => {
+            data-action="customize-desktop"
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsEditMode(true);
+              setDesktopMenu(null);
+            }}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
+          >
+            <Sliders size={14} className="text-purple-400 pointer-events-none shrink-0" />
+            <span className="pointer-events-none font-medium">Customize Desktop</span>
+          </button>
+
+          <button
+            type="button"
+            data-action="personalize"
+            onClick={(e) => {
+              e.stopPropagation();
               openApplication('settings');
               setDesktopMenu(null);
             }}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Sparkles size={14} className="text-os-accent" />
-            <span>Personalize Desktop...</span>
+            <Sparkles size={14} className="text-os-accent pointer-events-none shrink-0" />
+            <span className="pointer-events-none">Personalize Desktop...</span>
           </button>
         </div>,
         document.body
@@ -961,12 +1060,16 @@ export function DesktopWorkspace() {
         <div
           data-orion-context-menu="true"
           data-testid="desktop-item-context-menu"
-          className="fixed z-[2147483500] bg-os-surface/98 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.05)] py-1.5 w-56 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto"
+          className="fixed z-[2147483500] bg-os-surface/98 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.05)] py-1.5 w-56 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto select-none"
           style={{
             top: `${clampedItemPos.y}px`,
             left: `${clampedItemPos.x}px`,
             zIndex: 2147483500,
           }}
+          onPointerDown={e => e.stopPropagation()}
+          onMouseDown={e => e.stopPropagation()}
+          onPointerUp={e => e.stopPropagation()}
+          onMouseUp={e => e.stopPropagation()}
           onClick={e => e.stopPropagation()}
         >
           <div className="px-3 py-1.5 text-[10px] font-bold text-os-text-muted uppercase tracking-wider flex items-center justify-between border-b border-os-border/40 mb-0.5 truncate">
@@ -975,20 +1078,24 @@ export function DesktopWorkspace() {
 
           <button
             type="button"
-            onClick={() => {
+            data-action="open"
+            onClick={(e) => {
+              e.stopPropagation();
               handleDoubleClick(itemMenu.shortcut);
               setItemMenu(null);
             }}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left font-medium min-h-[36px] transition-colors rounded-lg mx-1"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left font-medium min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <ExternalLink size={14} className="text-os-accent" />
-            <span>Open</span>
+            <ExternalLink size={14} className="text-os-accent pointer-events-none shrink-0" />
+            <span className="pointer-events-none">Open</span>
           </button>
 
           {itemMenu.shortcut.targetType === 'file' && (
             <button
               type="button"
-              onClick={() => {
+              data-action="edit-file"
+              onClick={(e) => {
+                e.stopPropagation();
                 const name = itemMenu.shortcut.name.toLowerCase();
                 let app = 'notepad';
                 if (name.endsWith('.docx')) app = 'orion-documents';
@@ -1004,49 +1111,70 @@ export function DesktopWorkspace() {
                 }, 150);
                 setItemMenu(null);
               }}
-              className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
+              className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
             >
-              <FileText size={14} className="text-cyan-400" />
-              <span>Edit / View Content</span>
+              <FileText size={14} className="text-cyan-400 pointer-events-none shrink-0" />
+              <span className="pointer-events-none">Edit / View Content</span>
             </button>
           )}
 
           <button
             type="button"
-            onClick={() => {
+            data-action="rename"
+            onClick={(e) => {
+              e.stopPropagation();
               setRenameItem(itemMenu.shortcut);
               setRenameValue(itemMenu.shortcut.name);
               setItemMenu(null);
             }}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Edit2 size={14} />
-            <span>Rename</span>
-            <span className="ml-auto text-[10px] font-mono text-os-text-muted bg-white/[0.05] px-1.5 py-0.5 rounded border border-os-border/50">F2</span>
+            <Edit2 size={14} className="pointer-events-none shrink-0" />
+            <span className="pointer-events-none">Rename</span>
+            <span className="ml-auto text-[10px] font-mono text-os-text-muted bg-white/[0.05] px-1.5 py-0.5 rounded border border-os-border/50 pointer-events-none">F2</span>
           </button>
 
           <button
             type="button"
-            onClick={() => {
+            data-action="create-shortcut"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDuplicateShortcut(itemMenu.shortcut);
+            }}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
+          >
+            <Copy size={14} className="text-cyan-400 pointer-events-none shrink-0" />
+            <span className="pointer-events-none">Create Shortcut</span>
+          </button>
+
+          <button
+            type="button"
+            data-action="properties"
+            onClick={(e) => {
+              e.stopPropagation();
               setPropertiesItem(itemMenu.shortcut);
               setItemMenu(null);
             }}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1"
+            className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Info size={14} />
-            <span>Properties</span>
+            <Info size={14} className="pointer-events-none shrink-0" />
+            <span className="pointer-events-none">Properties</span>
           </button>
 
           <div className="h-px bg-os-border/50 my-1 mx-2" />
 
           <button
             type="button"
-            onClick={() => handleDeleteShortcut(itemMenu.shortcut)}
-            className="flex items-center gap-2 px-3 py-2 hover:bg-rose-500/20 text-rose-400 text-left min-h-[36px] transition-colors rounded-lg mx-1"
+            data-action="delete"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteShortcut(itemMenu.shortcut);
+            }}
+            className="flex items-center gap-2 px-3 py-2 hover:bg-rose-500/20 text-rose-400 text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Trash2 size={14} />
-            <span>Move to Recycle Bin</span>
-            <span className="ml-auto text-[10px] font-mono text-rose-400/80 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20">Del</span>
+            <Trash2 size={14} className="pointer-events-none shrink-0" />
+            <span className="pointer-events-none">Move to Recycle Bin</span>
+            <span className="ml-auto text-[10px] font-mono text-rose-400/80 bg-rose-500/10 px-1.5 py-0.5 rounded border border-rose-500/20 pointer-events-none">Del</span>
           </button>
         </div>,
         document.body
