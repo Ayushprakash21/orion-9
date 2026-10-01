@@ -118,20 +118,24 @@ describe('Track 1 — SCM Authority & Data Foundation', () => {
   describe('3. DEMO vs. LIVE Environment Isolation', () => {
     it('generates namespaced cache keys separating DEMO and LIVE data', () => {
       const dbMgr = DatabaseConnectionManager.getInstance();
+      dbMgr.setEnvironment('LIVE');
       const keyLive = dbMgr.getCacheKey(TENANT_A, 'products', 'PRD-01');
       expect(keyLive).toContain('live');
       expect(keyLive).toContain(TENANT_A);
       expect(keyLive).toContain('PRD-01');
+      dbMgr.setEnvironment('DEMO');
     });
 
     it('blocks cross-environment outbox payload replay', () => {
       const dbMgr = DatabaseConnectionManager.getInstance();
+      dbMgr.setEnvironment('LIVE');
       // Active environment is LIVE
       const validLivePayload = { environment: 'LIVE', tenantId: TENANT_A };
       const invalidDemoPayload = { environment: 'DEMO', tenantId: TENANT_A };
 
       expect(dbMgr.validateOutboxPayload(validLivePayload)).toBe(true);
       expect(dbMgr.validateOutboxPayload(invalidDemoPayload)).toBe(false);
+      dbMgr.setEnvironment('DEMO');
     });
   });
 

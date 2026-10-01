@@ -15,8 +15,8 @@ describe('ORION-9 Login Screen — Surgical UI Cleanup Verification', () => {
 
     // No top-left branding block or subtitle
     expect(html).not.toContain('SUPPLY CHAIN OPERATING SYSTEM');
-    // Header should be justify-end with no left branding container
-    expect(html).toContain('justify-end');
+    // Header should be justify-between with environment badge on left and no left branding container
+    expect(html).toContain('justify-between');
   });
 
   it('2. ORION-9 branding inside the login card remains completely intact', () => {

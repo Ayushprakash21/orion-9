@@ -286,4 +286,120 @@ test.describe('Orion-9 Desktop 15-Objective Complete E2E Suite', () => {
     const persistedNotesWidget = page.locator('[data-testid="desktop-widget"][data-widget-type="notes"]');
     await expect(persistedNotesWidget).toBeVisible({ timeout: 10000 });
   });
+
+  test('Phase 16 & 19: Physical mouse drag by 150px, hit target validation, and refresh persistence', async ({ page }) => {
+    const canvas = page.locator('[data-desktop-canvas="true"]');
+    await expect(canvas).toBeVisible();
+
+    const shortcut = page.locator('[data-shortcut-id]').filter({ hasText: 'Inventory' }).first();
+    await expect(shortcut).toBeVisible({ timeout: 5000 });
+
+    // Phase 19: Hit target validation via elementFromPoint and elementsFromPoint
+    const initialBox = await shortcut.boundingBox();
+    expect(initialBox).not.toBeNull();
+    const centerX = initialBox!.x + initialBox!.width / 2;
+    const centerY = initialBox!.y + initialBox!.height / 2;
+
+    const hitTargetInfo = await page.evaluate(({ x, y }) => {
+      const topEl = document.elementFromPoint(x, y);
+      const allEls = document.elementsFromPoint(x, y).slice(0, 5).map(el => ({
+        tag: el.tagName,
+        shortcutId: el.getAttribute('data-shortcut-id') || el.closest('[data-shortcut-id]')?.getAttribute('data-shortcut-id'),
+        className: el.className,
+      }));
+      return {
+        topTag: topEl?.tagName,
+        topShortcutId: topEl?.getAttribute('data-shortcut-id') || topEl?.closest('[data-shortcut-id]')?.getAttribute('data-shortcut-id'),
+        allEls,
+      };
+    }, { x: centerX, y: centerY });
+
+    // Assert the top hit element belongs to the shortcut
+    expect(hitTargetInfo.topShortcutId).toContain('inventory');
+
+    // Right-click with movement must NOT drag the shortcut
+    await page.mouse.move(centerX, centerY);
+    await page.mouse.down({ button: 'right' });
+    await page.mouse.move(centerX + 80, centerY + 80, { steps: 5 });
+    await page.mouse.up({ button: 'right' });
+
+    // Dismiss any menu that opened
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+
+    const boxAfterRightClick = await shortcut.boundingBox();
+    expect(boxAfterRightClick!.x).toBeCloseTo(initialBox!.x, 0);
+    expect(boxAfterRightClick!.y).toBeCloseTo(initialBox!.y, 0);
+
+    // Physical mouse left-drag by at least 150px
+    const targetX = initialBox!.x + 200;
+    const targetY = initialBox!.y + 150;
+
+    await page.mouse.move(centerX, centerY);
+    await page.mouse.down({ button: 'left' });
+    await page.mouse.move(targetX, targetY, { steps: 10 });
+    await page.mouse.up({ button: 'left' });
+
+    // Give grid snapping and persistence a moment
+    await page.waitForTimeout(500);
+
+    const movedBox = await shortcut.boundingBox();
+    expect(movedBox).not.toBeNull();
+    expect(Math.abs(movedBox!.x - initialBox!.x) > 50 || Math.abs(movedBox!.y - initialBox!.y) > 50).toBe(true);
+
+    // Refresh page and assert new position persisted
+    await page.reload();
+    await expect(page.locator('[data-desktop-canvas="true"]')).toBeVisible({ timeout: 15000 });
+
+    const reloadedShortcut = page.locator('[data-shortcut-id]').filter({ hasText: 'Inventory' }).first();
+    await expect(reloadedShortcut).toBeVisible({ timeout: 10000 });
+
+    const reloadedBox = await reloadedShortcut.boundingBox();
+    expect(reloadedBox).not.toBeNull();
+    expect(reloadedBox!.x).toBeCloseTo(movedBox!.x, 0);
+    expect(reloadedBox!.y).toBeCloseTo(movedBox!.y, 0);
+  });
+
+  test('Phase 17: Long shortcut name displays full name without truncation, line-clamp, or ellipsis', async ({ page }) => {
+    const longName = 'International Supply Chain Operations Planning Document';
+
+    // Inject a shortcut with the long name directly into persistence
+    await page.evaluate(async (name) => {
+      const { desktopWorkspaceService } = await import('../../src/core/filesystem/DesktopWorkspaceService');
+      await desktopWorkspaceService.addShortcut({
+        targetType: 'file',
+        targetId: 'doc_long_name_test',
+        name,
+        iconId: 'notepad',
+        isDirectory: false,
+        path: `/Desktop/${name}`,
+        workspaceId: 'operations',
+      });
+      window.dispatchEvent(new CustomEvent('orion:desktop-refresh'));
+    }, longName);
+
+    const longShortcut = page.locator('[data-shortcut-id]').filter({ hasText: longName }).first();
+    await expect(longShortcut).toBeVisible({ timeout: 10000 });
+
+    const label = longShortcut.locator(`div[title="${longName}"]`);
+    await expect(label).toBeVisible();
+
+    // Verify label styling and text content
+    const labelProps = await label.evaluate((el) => {
+      const style = window.getComputedStyle(el);
+      return {
+        text: el.textContent?.trim(),
+        title: el.getAttribute('title'),
+        webkitLineClamp: style.webkitLineClamp,
+        textOverflow: style.textOverflow,
+        whiteSpace: style.whiteSpace,
+      };
+    });
+
+    expect(labelProps.text).toBe(longName);
+    expect(labelProps.title).toBe(longName);
+    expect(labelProps.webkitLineClamp).not.toBe('2');
+    expect(labelProps.webkitLineClamp).not.toBe('1');
+    expect(labelProps.textOverflow).not.toBe('ellipsis');
+  });
 });

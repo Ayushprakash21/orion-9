@@ -425,7 +425,7 @@ export class ManufacturingMrpEngine {
     return record;
   }
 
-  public completeProductionOrder(orderId: string, tenantId: string, actor: string): ProductionOrderRecord {
+  public completeProductionOrder(orderId: string, tenantId: string, actor: string): ProductionOrderRecord & Promise<ProductionOrderRecord> {
     const order = this.productionOrders.get(orderId);
     if (!order || order.tenantId !== tenantId) {
       throw new Error(`Production order [${orderId}] not found`);
@@ -438,7 +438,7 @@ export class ManufacturingMrpEngine {
     order.updatedAt = new Date().toISOString();
 
     // Authoritative finished goods inventory increment
-    scmPersistenceService.adjustInventory({
+    const invPromise = scmPersistenceService.adjustInventory({
       tenantId,
       productId: order.productId,
       warehouseId: order.warehouseId,
@@ -464,7 +464,8 @@ export class ManufacturingMrpEngine {
       context: { orderId, completedQuantity: order.completedQuantity }
     });
 
-    return order;
+    const promise = invPromise.then(() => order);
+    return Object.assign(promise, order) as ProductionOrderRecord & Promise<ProductionOrderRecord>;
   }
 
   public listProductionOrders(tenantId?: string): ProductionOrderRecord[] {
