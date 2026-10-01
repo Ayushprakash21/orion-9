@@ -92,8 +92,12 @@ export class ScmPersistenceService {
     const key = this.getCacheKey(collectionName, data.tenantId, id);
     this.memoryCache.set(key, sanitizedData);
 
-    // Offline cache sync (read cache only)
-    this.syncToOfflineCache(collectionName, data.tenantId).catch(() => {});
+    // Offline cache sync (read cache & local persistence)
+    try {
+      await this.syncToOfflineCache(collectionName, data.tenantId);
+    } catch {
+      // Local cache silent fallback
+    }
 
     return sanitizedData as T;
   }
@@ -133,6 +137,23 @@ export class ScmPersistenceService {
       }
     }
 
+    // Hydrate single record from offline LocalForage store if available
+    const store = (db as any)[collectionName];
+    if (store) {
+      try {
+        const offlineRecords = await loadData<T>(store);
+        if (Array.isArray(offlineRecords)) {
+          const match = offlineRecords.find(item => item && item.tenantId === tenantId && ((item as any).id === id || (item as any).targetId === id));
+          if (match) {
+            this.memoryCache.set(key, match);
+            return match;
+          }
+        }
+      } catch {
+        // Fall back
+      }
+    }
+
     return null;
   }
 
@@ -164,7 +185,34 @@ export class ScmPersistenceService {
       }
     }
 
-    return this.listCachedRecords<T>(collectionName, tenantId);
+    const cached = this.listCachedRecords<T>(collectionName, tenantId);
+    if (cached.length > 0) {
+      return cached;
+    }
+
+    // Hydrate from LocalForage offline storage when memory cache is empty (e.g. after page refresh)
+    const store = (db as any)[collectionName];
+    if (store) {
+      try {
+        const offlineRecords = await loadData<T>(store);
+        if (Array.isArray(offlineRecords) && offlineRecords.length > 0) {
+          for (const item of offlineRecords) {
+            if (item && item.tenantId === tenantId) {
+              const itemId = (item as any).id || (item as any)[Object.keys(item)[0]];
+              if (itemId) {
+                const key = this.getCacheKey(collectionName, tenantId, itemId);
+                this.memoryCache.set(key, item);
+              }
+            }
+          }
+          return this.listCachedRecords<T>(collectionName, tenantId);
+        }
+      } catch (err) {
+        console.warn(`[SCM-PERSISTENCE] Offline hydration failed for ${collectionName}:`, err);
+      }
+    }
+
+    return [];
   }
 
   /**
@@ -187,7 +235,11 @@ export class ScmPersistenceService {
 
     const key = this.getCacheKey(collectionName, tenantId, id);
     this.memoryCache.delete(key);
-    this.syncToOfflineCache(collectionName, tenantId).catch(() => {});
+    try {
+      await this.syncToOfflineCache(collectionName, tenantId);
+    } catch {
+      // Local cache silent fallback
+    }
     return true;
   }
 
@@ -320,11 +372,23 @@ export class ScmPersistenceService {
    */
   private async syncToOfflineCache(collectionName: string, tenantId: string): Promise<void> {
     try {
-      const records = this.listCachedRecords(collectionName, tenantId);
       const store = (db as any)[collectionName];
-      if (store) {
-        await saveData(store, records);
+      if (!store) return;
+
+      const currentTenantRecords = this.listCachedRecords(collectionName, tenantId);
+      let existingRecords: any[] = [];
+      try {
+        existingRecords = await loadData(store);
+      } catch {
+        existingRecords = [];
       }
+
+      const otherTenantRecords = Array.isArray(existingRecords)
+        ? existingRecords.filter((r: any) => r && r.tenantId !== tenantId)
+        : [];
+
+      const merged = [...otherTenantRecords, ...currentTenantRecords];
+      await saveData(store, merged);
     } catch {
       // Local cache silent fallback
     }

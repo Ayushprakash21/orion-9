@@ -174,6 +174,7 @@ export function DesktopWorkspace() {
       const finalY = Math.max(52, Math.min(window.innerHeight - widget.height - 84, initY + dy));
 
       const updated = { ...widget, x: finalX, y: finalY };
+      setWidgets((prev) => prev.map((w) => (w.id === widget.id ? updated : w)));
       await desktopWorkspaceService.saveWidget(updated);
     };
 
@@ -234,6 +235,7 @@ export function DesktopWorkspace() {
   useEffect(() => {
     const handleRefresh = () => {
       loadShortcuts();
+      loadWidgets();
     };
     window.addEventListener('orion:desktop-refresh', handleRefresh);
     window.addEventListener('orion:filesystem-change', handleRefresh);
@@ -241,7 +243,7 @@ export function DesktopWorkspace() {
       window.removeEventListener('orion:desktop-refresh', handleRefresh);
       window.removeEventListener('orion:filesystem-change', handleRefresh);
     };
-  }, [loadShortcuts]);
+  }, [loadShortcuts, loadWidgets]);
 
   // Global Pointerdown / ESC Dismissal Listener for Context Menus
   useEffect(() => {
@@ -823,16 +825,23 @@ export function DesktopWorkspace() {
       )}
 
       {/* Spatial Widgets Canvas */}
-      {widgets.map((widget) => (
-        <DesktopWidgetSystem
-          key={widget.id}
-          widget={widget}
-          isEditMode={isEditMode}
-          onRemove={handleRemoveWidget}
-          onResize={handleResizeWidget}
-          onMoveStart={handleWidgetMoveStart}
-        />
-      ))}
+      {widgets.map((widget) => {
+        const maxX = typeof window !== 'undefined' ? Math.max(16, window.innerWidth - widget.width - 16) : widget.x;
+        const clampedWidget = {
+          ...widget,
+          x: Math.min(widget.x, maxX),
+        };
+        return (
+          <DesktopWidgetSystem
+            key={widget.id}
+            widget={clampedWidget}
+            isEditMode={isEditMode}
+            onRemove={handleRemoveWidget}
+            onResize={handleResizeWidget}
+            onMoveStart={handleWidgetMoveStart}
+          />
+        );
+      })}
 
       {/* Desktop Shortcuts Canvas */}
       {shortcuts.map(shortcut => {

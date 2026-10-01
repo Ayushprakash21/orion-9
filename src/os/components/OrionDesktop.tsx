@@ -245,10 +245,20 @@ export function OrionDesktop() {
   return (
     <div className="orion-desktop-shell bg-transparent text-os-text-primary font-sans select-none">
       
-      {/* OS Layer 0.5: Interactive Desktop Backdrop Surface for right-click & touch */}
+      {/* OS Layer 0: Premium Desktop Background & Live Supply Chain Network (Wallpaper) */}
+      <div className="orion-desktop-wallpaper-layer absolute inset-0 z-0 pointer-events-none">
+        <OrionLiveWallpaper 
+          hasOpenWindows={currentWorkspaceWindows.some(w => w.state !== 'minimized')}
+          target="desktop"
+          userId={currentUser?.id}
+          tenantId={currentUser?.organizationId || organization?.id || 'global'}
+        />
+      </div>
+
+      {/* OS Layer 1: Interactive Desktop Surface for right-click, shortcuts & spatial widgets */}
       <div
         data-desktop-surface="true"
-        className="orion-desktop-backdrop absolute inset-0 z-0 pointer-events-auto"
+        className="orion-desktop-backdrop absolute inset-0 z-10 pointer-events-auto"
         onClick={() => setSelectedDesktopApp(null)}
         {...(!showDesktopIcons ? desktopTriggerProps : {})}
       >
@@ -260,25 +270,8 @@ export function OrionDesktop() {
         {showDesktopIcons && <DesktopWorkspace />}
       </div>
 
-      {/* OS Layer 1: Top System Bar (PERSISTENT DESKTOP SHELL CHROME) */}
-      <OrionSystemBar />
-
       {/* OS Layer 2: Desktop Window Manager Stage (Workspace Below Top Bar) */}
-      <div data-orion-workspace="true" className="orion-app-viewport z-10 min-h-0 pointer-events-none">
-
-      {/* OS Layer 0: Premium Desktop Background & Live Supply Chain Network */}
-      <div className="orion-desktop-wallpaper-layer absolute inset-0 z-0 pointer-events-none">
-        {/* Live Supply Chain Network Canvas — HOME DESKTOP ONLY */}
-        <OrionLiveWallpaper 
-          hasOpenWindows={currentWorkspaceWindows.some(w => w.state !== 'minimized')}
-          target="desktop"
-          userId={currentUser?.id}
-          tenantId={currentUser?.organizationId || organization?.id || 'global'}
-        />
-        
-      </div>
-
-        
+      <div data-orion-workspace="true" className="orion-app-viewport z-20 min-h-0 pointer-events-none">
         {/* Render open windows in desktop multi-window mode */}
         <AnimatePresence>
           {currentWorkspaceWindows.map(win => (
@@ -289,10 +282,12 @@ export function OrionDesktop() {
             />
           ))}
         </AnimatePresence>
-
       </div>
 
-      {/* OS Layer 3: Taskbar / Navigation */}
+      {/* OS Layer 3: Top System Bar */}
+      <OrionSystemBar />
+
+      {/* OS Layer 4: Taskbar / Navigation */}
       <OrionDock />
 
       {/* OS Layer 4: Floating Transient Overlays */}

@@ -395,6 +395,9 @@ export function DesktopWidgetSystem({
 
   return (
     <div
+      data-testid="desktop-widget"
+      data-widget-id={widget.id}
+      data-widget-type={widget.widgetType}
       style={{
         position: 'absolute',
         left: `${widget.x}px`,

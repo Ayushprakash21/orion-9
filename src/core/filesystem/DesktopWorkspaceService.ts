@@ -540,13 +540,16 @@ export class DesktopWorkspaceService {
     if (existing.length > 0) return existing;
 
     const now = new Date().toISOString();
+    const vWidth = typeof window !== 'undefined' ? window.innerWidth : 1440;
+    const calcX = (wWidth: number) => Math.max(16, vWidth - wWidth - 24);
+
     const defaults: import('./types').DesktopWidgetRecord[] = [
       {
         id: `widget_${workspaceId}_clock_${activeTenant}`,
         widgetType: 'clock',
         title: 'System Clock',
         size: 'MEDIUM',
-        x: 1200,
+        x: calcX(340),
         y: 52,
         width: 340,
         height: 150,
@@ -565,7 +568,7 @@ export class DesktopWorkspaceService {
         widgetType: 'control_tower',
         title: 'Control Tower Radar',
         size: 'LARGE',
-        x: 1200,
+        x: calcX(440),
         y: 218,
         width: 440,
         height: 250,
@@ -584,7 +587,7 @@ export class DesktopWorkspaceService {
         widgetType: 'supply_chain_pulse',
         title: 'Supply Chain Pulse',
         size: 'MEDIUM',
-        x: 1200,
+        x: calcX(440),
         y: 484,
         width: 440,
         height: 180,

@@ -127,10 +127,14 @@ export function DesktopWidgetGalleryModal({
 
   return createPortal(
     <div
+      data-testid="widget-gallery-backdrop"
       style={{ zIndex: 2147483640 }}
       className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 pointer-events-auto select-none"
     >
-      <div className="bg-[#091322] border border-cyan-500/30 rounded-2xl shadow-[0_0_60px_rgba(0,0,0,0.85)] w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95">
+      <div
+        data-testid="widget-gallery"
+        className="bg-[#091322] border border-cyan-500/30 rounded-2xl shadow-[0_0_60px_rgba(0,0,0,0.85)] w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95"
+      >
         {/* Header */}
         <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-white/5">
           <div className="flex items-center gap-2.5">
@@ -144,6 +148,7 @@ export function DesktopWidgetGalleryModal({
           </div>
           <button
             type="button"
+            data-action="close-gallery"
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 text-white/70 hover:text-white flex items-center justify-center transition-colors"
           >
@@ -156,6 +161,7 @@ export function DesktopWidgetGalleryModal({
           {WIDGET_GALLERY_CATALOG.map((item) => (
             <div
               key={item.type}
+              data-gallery-item={item.type}
               className="bg-white/5 border border-white/10 hover:border-cyan-500/40 rounded-xl p-4 flex flex-col justify-between gap-3 transition-all duration-200 hover:bg-white/10 group"
             >
               <div className="flex items-start gap-3">
@@ -176,6 +182,7 @@ export function DesktopWidgetGalleryModal({
                 </span>
                 <button
                   type="button"
+                  data-action="add-widget"
                   onClick={() => {
                     onAddWidget(item);
                     onClose();

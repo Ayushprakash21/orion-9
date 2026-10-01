@@ -577,9 +577,8 @@ html, body, #root {
   isolation: isolate !important;
 }
 
-/* The backdrop belongs to the workspace row. It can never receive layout
-   geometry in the 48px chrome row. */
-.orion-desktop-shell > .orion-desktop-backdrop {
+/* OS Layer 0: Wallpaper background */
+.orion-desktop-shell > .orion-desktop-wallpaper-layer {
   grid-row: 2 !important;
   grid-column: 1 !important;
   position: absolute !important;
@@ -588,6 +587,19 @@ html, body, #root {
   height: 100% !important;
   overflow: hidden !important;
   z-index: 0 !important;
+  pointer-events: none !important;
+}
+
+/* OS Layer 1: The interactive backdrop / DesktopWorkspace */
+.orion-desktop-shell > .orion-desktop-backdrop {
+  grid-row: 2 !important;
+  grid-column: 1 !important;
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  z-index: 10 !important;
 }
 
 .orion-desktop-shell > .orion-global-topbar {
@@ -607,6 +619,7 @@ html, body, #root {
   z-index: 2147483000 !important;
 }
 
+/* OS Layer 2: Application Viewport for windows */
 .orion-desktop-shell > .orion-app-viewport {
   grid-row: 2 !important;
   grid-column: 1 !important;
@@ -623,7 +636,8 @@ html, body, #root {
   overflow: hidden !important;
   clip-path: inset(0) !important;
   contain: layout paint size !important;
-  z-index: 10 !important;
+  z-index: 20 !important;
+  pointer-events: none !important;
 }
 
 /* Every window is clipped by the workspace. Maximized means 100% of the
