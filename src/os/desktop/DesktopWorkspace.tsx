@@ -83,8 +83,7 @@ export function DesktopWorkspace() {
 
   const [shortcuts, setShortcuts] = useState<DesktopShortcut[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [draggedItem, setDraggedItem] = useState<{ id: string; startX: number; startY: number; curX: number; curY: number } | null>(null);
+  const [activeDraggingId, setActiveDraggingId] = useState<string | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
 
   // Modals / Dialogs / Context Menus
@@ -105,10 +104,13 @@ export function DesktopWorkspace() {
     startPointerY: number;
     startX: number;
     startY: number;
+    currentX: number;
+    currentY: number;
     moved: boolean;
     element: HTMLElement | null;
   } | null>(null);
   const hasDraggedRef = useRef<boolean>(false);
+  const lastClickRef = useRef<{ id: string; time: number } | null>(null);
   const windowListenersRef = useRef<{
     move: (e: PointerEvent) => void;
     up: (e: PointerEvent) => void;
@@ -414,24 +416,28 @@ export function DesktopWorkspace() {
     setDesktopMenu(null);
     setItemMenu(null);
 
-    const clientX = e.clientX;
-    const clientY = e.clientY;
-    touchStartPosRef.current = { x: clientX, y: clientY };
-
-    // Start 600ms long press timer for touch
     cancelLongPress();
-    longPressTimerRef.current = setTimeout(() => {
-      setDesktopMenu({ x: clientX, y: clientY });
-      cancelLongPress();
-    }, 600);
+    // Long press context menu is strictly for touch devices
+    if (e.pointerType === 'touch') {
+      const clientX = e.clientX;
+      const clientY = e.clientY;
+      touchStartPosRef.current = { x: clientX, y: clientY };
+      longPressTimerRef.current = setTimeout(() => {
+        setDesktopMenu({ x: clientX, y: clientY });
+        cancelLongPress();
+      }, 600);
+    }
   };
 
   // Cleanup Window Drag Listeners
   const cleanupDragListeners = useCallback(() => {
     if (windowListenersRef.current) {
-      window.removeEventListener('pointermove', windowListenersRef.current.move);
-      window.removeEventListener('pointerup', windowListenersRef.current.up);
-      window.removeEventListener('pointercancel', windowListenersRef.current.cancel);
+      window.removeEventListener('pointermove', windowListenersRef.current.move, true);
+      window.removeEventListener('pointerup', windowListenersRef.current.up, true);
+      window.removeEventListener('pointercancel', windowListenersRef.current.cancel, true);
+      document.removeEventListener('pointermove', windowListenersRef.current.move, true);
+      document.removeEventListener('pointerup', windowListenersRef.current.up, true);
+      document.removeEventListener('pointercancel', windowListenersRef.current.cancel, true);
       windowListenersRef.current = null;
     }
   }, []);
@@ -451,12 +457,16 @@ export function DesktopWorkspace() {
     const dx = e.clientX - session.startPointerX;
     const dy = e.clientY - session.startPointerY;
 
-    // Movement threshold: 6px
+    // Movement threshold: 5px
     if (!session.moved) {
-      if (Math.hypot(dx, dy) >= 6) {
+      if (Math.hypot(dx, dy) >= 5) {
         session.moved = true;
         cancelLongPress();
-        setIsDragging(true);
+        if (session.element) {
+          session.element.classList.add('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-2', 'ring-cyan-400');
+          session.element.classList.remove('cursor-grab');
+        }
+        setActiveDraggingId(session.shortcutId);
       } else {
         return;
       }
@@ -473,19 +483,17 @@ export function DesktopWorkspace() {
       Math.min(vHeight - DEFAULT_GRID_CONFIG.cellHeight - DEFAULT_GRID_CONFIG.bottomPadding, session.startY + dy)
     );
 
-    // Direct synchronous DOM update for zero-latency 60/120fps tracking
+    session.currentX = clampedX;
+    session.currentY = clampedY;
+
+    // Active drag: prevent native gesture scrolling and text selection during drag
+    e.preventDefault();
+
+    // Direct synchronous DOM update for zero-latency 60/120fps tracking without React re-render lag
     if (session.element) {
       session.element.style.transform = `translate3d(${clampedX}px, ${clampedY}px, 0)`;
       session.element.style.zIndex = '1000';
     }
-
-    setDraggedItem({
-      id: session.shortcutId,
-      startX: session.startPointerX - session.startX,
-      startY: session.startPointerY - session.startY,
-      curX: clampedX,
-      curY: clampedY,
-    });
 
     // Detect drop targets under pointer (e.g. folder or Recycle Bin) using elementsFromPoint
     const elements = document.elementsFromPoint(e.clientX, e.clientY);
@@ -494,21 +502,38 @@ export function DesktopWorkspace() {
       return scEl && scEl.getAttribute('data-shortcut-id') !== session.shortcutId;
     })?.closest('[data-shortcut-id]');
 
-    const targetShortcutId = targetShortcutEl?.getAttribute('data-shortcut-id');
+    const targetShortcutId = targetShortcutEl?.getAttribute('data-shortcut-id') || null;
+    let validDropTargetId: string | null = null;
+
     if (targetShortcutId) {
       const targetShortcut = shortcutsRef.current.find(s => s.id === targetShortcutId);
       if (targetShortcut && (targetShortcut.targetType === 'folder' || targetShortcut.targetId === 'recycle-bin')) {
-        setDropTargetId(targetShortcut.id);
-        dropTargetIdRef.current = targetShortcut.id;
-      } else {
-        setDropTargetId(null);
-        dropTargetIdRef.current = null;
+        validDropTargetId = targetShortcut.id;
       }
-    } else {
-      setDropTargetId(null);
-      dropTargetIdRef.current = null;
+    }
+
+    if (dropTargetIdRef.current !== validDropTargetId) {
+      dropTargetIdRef.current = validDropTargetId;
+      setDropTargetId(validDropTargetId);
     }
   }, []);
+
+  // Launch item on double-click or tap
+  const handleDoubleClick = useCallback((shortcut: DesktopShortcut) => {
+    if (hasDraggedRef.current || (dragRef.current && dragRef.current.moved)) {
+      return;
+    }
+    if (shortcut.targetType === 'application' || shortcut.targetType === 'system') {
+      openApplication(shortcut.targetId, activeWorkspaceId);
+    } else if (shortcut.targetType === 'file') {
+      openApplication('notepad', activeWorkspaceId);
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('orion:open-file', { detail: { fileId: shortcut.targetId } }));
+      }, 150);
+    } else if (shortcut.targetType === 'folder') {
+      openApplication('file-manager', activeWorkspaceId);
+    }
+  }, [openApplication, activeWorkspaceId]);
 
   // Window-level Pointer Up: Finishes drag, snaps to grid and persists
   const handleWindowPointerUp = useCallback(async (e: PointerEvent) => {
@@ -524,6 +549,8 @@ export function DesktopWorkspace() {
             session.element.releasePointerCapture(session.pointerId);
           }
         } catch (err) {}
+        session.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-2', 'ring-cyan-400');
+        session.element.classList.add('cursor-grab');
       }
 
       if (session.moved) {
@@ -532,16 +559,17 @@ export function DesktopWorkspace() {
           hasDraggedRef.current = false;
         }, 300);
 
-        const dx = e.clientX - session.startPointerX;
-        const dy = e.clientY - session.startPointerY;
-        const finalRawX = session.startX + dx;
-        const finalRawY = session.startY + dy;
-
         const vWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
         const vHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
+        const finalX = session.currentX;
+        const finalY = session.currentY;
 
         const currentDropTargetId = dropTargetIdRef.current;
         if (currentDropTargetId) {
+          if (session.element) {
+            session.element.style.transform = `translate3d(${session.startX}px, ${session.startY}px, 0)`;
+            session.element.style.zIndex = '';
+          }
           const target = shortcutsRef.current.find(s => s.id === currentDropTargetId);
           const source = shortcutsRef.current.find(s => s.id === session.shortcutId);
 
@@ -561,32 +589,50 @@ export function DesktopWorkspace() {
           try {
             const updated = await desktopWorkspaceService.updateShortcutPosition(
               session.shortcutId,
-              finalRawX,
-              finalRawY,
+              finalX,
+              finalY,
               vWidth,
               vHeight
             );
+            if (session.element) {
+              session.element.style.transform = `translate3d(${updated.x}px, ${updated.y}px, 0)`;
+              session.element.style.zIndex = '';
+            }
             setShortcuts(prev => prev.map(s => (s.id === updated.id ? updated : s)));
           } catch (err) {
             console.error('Failed to save icon position', err);
+            if (session.element) {
+              session.element.style.transform = `translate3d(${session.startX}px, ${session.startY}px, 0)`;
+              session.element.style.zIndex = '';
+            }
           }
         }
       } else {
-        // If not moved (click), reset any inline transform that might have been applied
+        // If not moved (pure click), do not wipe out transform which positions the shortcut!
         if (session.element) {
-          session.element.style.transform = `translate3d(${session.startX}px, ${session.startY}px, 0)`;
           session.element.style.zIndex = '';
+        }
+
+        // Fast double click detection across touch and mouse
+        const now = Date.now();
+        if (lastClickRef.current && lastClickRef.current.id === session.shortcutId && now - lastClickRef.current.time < 400) {
+          lastClickRef.current = null;
+          const targetSc = shortcutsRef.current.find(s => s.id === session.shortcutId);
+          if (targetSc) {
+            handleDoubleClick(targetSc);
+          }
+        } else {
+          lastClickRef.current = { id: session.shortcutId, time: now };
         }
       }
 
       dragRef.current = null;
     }
 
-    setDraggedItem(null);
-    setIsDragging(false);
+    setActiveDraggingId(null);
     setDropTargetId(null);
     dropTargetIdRef.current = null;
-  }, [cleanupDragListeners, handleDeleteShortcut, showToast]);
+  }, [cleanupDragListeners, handleDoubleClick, handleDeleteShortcut, showToast]);
 
   // Window-level Pointer Cancel: Safely aborts drag session
   const handleWindowPointerCancel = useCallback((e: PointerEvent) => {
@@ -600,26 +646,26 @@ export function DesktopWorkspace() {
             session.element.releasePointerCapture(session.pointerId);
           }
         } catch (err) {}
-        session.element.style.transform = `translate3d(${session.startX}px, ${session.startY}px, 0)`;
+        session.element.style.transform = '';
         session.element.style.zIndex = '';
+        session.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-2', 'ring-cyan-400');
+        session.element.classList.add('cursor-grab');
       }
       dragRef.current = null;
     }
-    setDraggedItem(null);
-    setIsDragging(false);
+    setActiveDraggingId(null);
     setDropTargetId(null);
     dropTargetIdRef.current = null;
   }, [cleanupDragListeners]);
 
-  // Shortcut Pointer Down: establishes drag session and registers window listeners
+  // Shortcut Pointer Down: establishes drag session and registers window/document listeners
   const handleShortcutPointerDown = (e: React.PointerEvent<HTMLElement>, shortcut: DesktopShortcut) => {
     // If pointer is mouse, only button 0 (left-click) starts drag. Button 2 (right-click) MUST NEVER start drag.
     if (e.pointerType === 'mouse' && e.button !== 0) {
       return;
     }
 
-    // Prevent default browser ghost-image drag and selection
-    e.preventDefault();
+    // Stop propagation to prevent desktop canvas from deselecting
     e.stopPropagation();
 
     // Multi-selection with Ctrl / Shift
@@ -645,25 +691,25 @@ export function DesktopWorkspace() {
       startPointerY: clientY,
       startX: shortcut.x,
       startY: shortcut.y,
+      currentX: shortcut.x,
+      currentY: shortcut.y,
       moved: false,
       element: targetElement,
     };
 
-    // Optionally acquire pointer capture on the shortcut element
-    try {
-      targetElement.setPointerCapture(e.pointerId);
-    } catch (err) {}
-
-    // Register window-level pointermove, pointerup, pointercancel
+    // Register capture-phase window and document pointermove, pointerup, pointercancel
     cleanupDragListeners();
     const onMove = (evt: PointerEvent) => handleWindowPointerMove(evt);
     const onUp = (evt: PointerEvent) => handleWindowPointerUp(evt);
     const onCancel = (evt: PointerEvent) => handleWindowPointerCancel(evt);
 
     windowListenersRef.current = { move: onMove, up: onUp, cancel: onCancel };
-    window.addEventListener('pointermove', onMove, { passive: false });
-    window.addEventListener('pointerup', onUp, { passive: false });
-    window.addEventListener('pointercancel', onCancel, { passive: false });
+    window.addEventListener('pointermove', onMove, { passive: false, capture: true });
+    window.addEventListener('pointerup', onUp, { passive: false, capture: true });
+    window.addEventListener('pointercancel', onCancel, { passive: false, capture: true });
+    document.addEventListener('pointermove', onMove, { passive: false, capture: true });
+    document.addEventListener('pointerup', onUp, { passive: false, capture: true });
+    document.addEventListener('pointercancel', onCancel, { passive: false, capture: true });
 
     // For touch devices: preserve touch long-press context menu if not moved
     if (e.pointerType === 'touch') {
@@ -675,23 +721,6 @@ export function DesktopWorkspace() {
           cancelLongPress();
         }
       }, 600);
-    }
-  };
-
-  // Launch item on double-click or tap
-  const handleDoubleClick = (shortcut: DesktopShortcut) => {
-    if (hasDraggedRef.current || (dragRef.current && dragRef.current.moved)) {
-      return;
-    }
-    if (shortcut.targetType === 'application' || shortcut.targetType === 'system') {
-      openApplication(shortcut.targetId);
-    } else if (shortcut.targetType === 'file') {
-      openApplication('notepad');
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('orion:open-file', { detail: { fileId: shortcut.targetId } }));
-      }, 150);
-    } else if (shortcut.targetType === 'folder') {
-      openApplication('file-manager');
     }
   };
 
@@ -914,6 +943,7 @@ export function DesktopWorkspace() {
       data-desktop-canvas="true"
       className="absolute inset-0 z-0 pointer-events-auto overflow-hidden select-none touch-manipulation"
       onPointerDown={handleCanvasPointerDown}
+      onPointerUp={cancelLongPress}
       onPointerCancel={cancelLongPress}
       onContextMenu={e => {
         e.preventDefault();
@@ -997,23 +1027,22 @@ export function DesktopWorkspace() {
 
       {/* Desktop Shortcuts Canvas */}
       {shortcuts.map(shortcut => {
-        const isBeingDragged = draggedItem?.id === shortcut.id;
         const isSelected = selectedIds.has(shortcut.id);
         const isDropTarget = dropTargetId === shortcut.id;
-        const displayX = isBeingDragged ? draggedItem.curX : shortcut.x;
-        const displayY = isBeingDragged ? draggedItem.curY : shortcut.y;
+        const isBeingDragged = activeDraggingId === shortcut.id;
 
         return (
           <div
             key={shortcut.id}
             data-shortcut-id={shortcut.id}
             style={{
-              transform: `translate3d(${displayX}px, ${displayY}px, 0)`,
+              transform: `translate3d(${shortcut.x}px, ${shortcut.y}px, 0)`,
               width: `${DEFAULT_GRID_CONFIG.cellWidth}px`,
               minHeight: `${DEFAULT_GRID_CONFIG.cellHeight}px`,
               zIndex: isBeingDragged ? 1000 : (isSelected ? 25 : 20),
             }}
             onPointerDown={e => handleShortcutPointerDown(e, shortcut)}
+            onDragStart={e => e.preventDefault()}
             onDoubleClick={e => {
               e.stopPropagation();
               handleDoubleClick(shortcut);
@@ -1029,10 +1058,13 @@ export function DesktopWorkspace() {
                     dragRef.current.element.releasePointerCapture(dragRef.current.pointerId);
                   }
                 } catch {}
+                dragRef.current.element.style.transform = '';
+                dragRef.current.element.style.zIndex = '';
+                dragRef.current.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-2', 'ring-cyan-400');
+                dragRef.current.element.classList.add('cursor-grab');
               }
               dragRef.current = null;
-              setDraggedItem(null);
-              setIsDragging(false);
+              setActiveDraggingId(null);
               setDropTargetId(null);
               dropTargetIdRef.current = null;
               setSelectedIds(new Set([shortcut.id]));
@@ -1040,8 +1072,8 @@ export function DesktopWorkspace() {
               setItemMenu({ x: e.clientX, y: e.clientY, shortcut });
             }}
             className={cn(
-              "absolute top-0 left-0 flex flex-col items-center justify-start p-2 rounded-xl transition-shadow select-none group touch-none min-h-[44px] min-w-[44px]",
-              isBeingDragged ? "cursor-grabbing z-[1000] opacity-90 scale-105 shadow-2xl ring-2 ring-os-accent" : "cursor-grab z-20",
+              "absolute top-0 left-0 flex flex-col items-center justify-start p-2 rounded-xl transition-shadow select-none group touch-none min-h-[44px] min-w-[44px] cursor-grab",
+              isBeingDragged && "cursor-grabbing z-[1000] opacity-90 scale-105 shadow-2xl ring-2 ring-cyan-400",
               isDropTarget && "bg-cyan-500/30 ring-2 ring-cyan-400 scale-110",
               isSelected && !isBeingDragged
                 ? "bg-os-accent/20 border border-os-accent/50 shadow-md backdrop-blur-xs z-25"

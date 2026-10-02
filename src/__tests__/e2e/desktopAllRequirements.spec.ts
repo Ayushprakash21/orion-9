@@ -176,30 +176,69 @@ test.describe('Orion-9 Desktop 15-Objective Complete E2E Suite', () => {
     await page.mouse.click(500, 500);
     await expect(itemMenu).not.toBeVisible();
 
+    // Verify wallpaper is alive and hasn't crashed
+    const wallpaperContainer = page.locator('[data-testid="orion-live-wallpaper-container"]');
+    await expect(wallpaperContainer).toBeVisible({ timeout: 5000 });
+
     // 7. Left-click + drag shortcut to empty space -> moves and persists
     const initialBox = await notepadShortcut.boundingBox();
     expect(initialBox).not.toBeNull();
 
+    let movedBox: { x: number; y: number; width: number; height: number } | null = null;
     if (initialBox) {
-      // Drag into empty canvas column (e.g. +300px to the right)
-      await page.mouse.move(initialBox.x + initialBox.width / 2, initialBox.y + initialBox.height / 2);
-      await page.mouse.down({ button: 'left' });
-      await page.mouse.move(initialBox.x + 300, initialBox.y + 100, { steps: 5 });
-      await page.mouse.up({ button: 'left' });
+      const startX = initialBox.x + initialBox.width / 2;
+      const startY = initialBox.y + initialBox.height / 2;
 
-      await page.waitForTimeout(500);
-      const movedBox = await notepadShortcut.boundingBox();
+      // Move to icon and press left mouse button down
+      await page.mouse.move(startX, startY);
+      await page.mouse.down({ button: 'left' });
+
+      // Move mouse significantly to the right and down (+240px, +120px)
+      await page.mouse.move(startX + 240, startY + 120, { steps: 10 });
+
+      // MID-DRAG ASSERTION: verify while mouse is STILL DOWN, the icon has visually followed
+      const midDragBox = await notepadShortcut.boundingBox();
+      expect(midDragBox).not.toBeNull();
+      if (midDragBox) {
+        expect(Math.abs(midDragBox.x - initialBox.x)).toBeGreaterThan(40);
+        expect(Math.abs(midDragBox.y - initialBox.y)).toBeGreaterThan(20);
+      }
+
+      // Release mouse
+      await page.mouse.up({ button: 'left' });
+      await page.waitForTimeout(600);
+
+      movedBox = await notepadShortcut.boundingBox();
       expect(movedBox).not.toBeNull();
       if (movedBox) {
-        // Assert it shifted
         expect(Math.abs(movedBox.x - initialBox.x) > 20 || Math.abs(movedBox.y - initialBox.y) > 20).toBe(true);
       }
     }
 
     // 8. Double-click desktop shortcut -> application launches
-    await notepadShortcut.dblclick({ force: true });
+    await notepadShortcut.dblclick();
     const notepadWindow = page.locator('[data-orion-window][data-window-id="notepad"]');
     await expect(notepadWindow).toBeVisible({ timeout: 10000 });
+
+    // Close Notepad
+    const closeBtn = notepadWindow.locator('button[aria-label="Close Notepad"]');
+    if (await closeBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await closeBtn.click();
+    } else {
+      await page.keyboard.press('Escape');
+    }
+
+    // Verify persistence across page reload
+    await page.reload();
+    await expect(page.locator('[data-desktop-canvas="true"]')).toBeVisible({ timeout: 15000 });
+    const reloadedShortcut = page.locator('[data-shortcut-id]').filter({ hasText: 'Notepad' }).first();
+    await expect(reloadedShortcut).toBeVisible({ timeout: 10000 });
+    const reloadedBox = await reloadedShortcut.boundingBox();
+    expect(reloadedBox).not.toBeNull();
+    if (reloadedBox && movedBox) {
+      expect(Math.abs(reloadedBox.x - movedBox.x)).toBeLessThan(5);
+      expect(Math.abs(reloadedBox.y - movedBox.y)).toBeLessThan(5);
+    }
   });
 
   test('Objectives 9, 10, 11, 12, 13: Widgets are visible, interactive, movable in edit mode, gallery adds widget & persists', async ({ page }) => {

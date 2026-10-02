@@ -292,13 +292,42 @@ export class DesktopWorkspaceService {
     environment?: 'DEMO' | 'LIVE'
   ): Promise<DesktopShortcut> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
-    const existing = await scmPersistenceService.getRecord<DesktopShortcut>('desktop_items', activeTenant, shortcutId);
+    let existing = await scmPersistenceService.getRecord<DesktopShortcut>('desktop_items', activeTenant, shortcutId);
     if (!existing) {
-      throw new Error(`Shortcut ${shortcutId} not found`);
+      const all = await this.listShortcuts(undefined, activeTenant, activeEnv);
+      existing = all.find(s => s.id === shortcutId) || null;
+    }
+
+    const snapped = this.snapToGrid(x, y, DEFAULT_GRID_CONFIG, viewportWidth, viewportHeight);
+
+    if (!existing) {
+      const fallbackShortcut: DesktopShortcut = {
+        id: shortcutId,
+        type: 'application',
+        targetType: 'application',
+        targetId: shortcutId,
+        name: 'Shortcut',
+        iconId: 'system',
+        isDirectory: false,
+        parentId: null,
+        path: `/Desktop/${shortcutId}`,
+        mimeType: null,
+        size: 0,
+        x: snapped.x,
+        y: snapped.y,
+        workspaceId: 'operations',
+        ownerId: 'system',
+        tenantId: activeTenant,
+        organizationId: activeTenant,
+        environment: activeEnv,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await scmPersistenceService.saveRecord('desktop_items', shortcutId, fallbackShortcut);
+      return fallbackShortcut;
     }
 
     const normalized = this.normalizeShortcut(existing);
-    const snapped = this.snapToGrid(x, y, DEFAULT_GRID_CONFIG, viewportWidth, viewportHeight);
     const updated: DesktopShortcut = {
       ...normalized,
       x: snapped.x,
