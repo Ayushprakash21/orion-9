@@ -109,6 +109,12 @@ export function DesktopWorkspace() {
     element: HTMLElement | null;
   } | null>(null);
   const hasDraggedRef = useRef<boolean>(false);
+  const windowListenersRef = useRef<{
+    move: (e: PointerEvent) => void;
+    up: (e: PointerEvent) => void;
+    cancel: (e: PointerEvent) => void;
+  } | null>(null);
+  const dropTargetIdRef = useRef<string | null>(null);
 
   // Dedicated DOM node refs for context menus (ensures 100% accurate hit-testing)
   const desktopMenuRef = useRef<HTMLDivElement>(null);
@@ -138,6 +144,28 @@ export function DesktopWorkspace() {
       console.error('Failed to load desktop shortcuts', e);
     }
   }, [activeWorkspaceId]);
+
+  // Keep shortcutsRef synchronized for asynchronous window pointer callbacks
+  const shortcutsRef = useRef<DesktopShortcut[]>(shortcuts);
+  useEffect(() => {
+    shortcutsRef.current = shortcuts;
+  }, [shortcuts]);
+
+  // Delete Desktop Item
+  const handleDeleteShortcut = useCallback(async (shortcut: DesktopShortcut) => {
+    try {
+      if (shortcut.targetType === 'file') {
+        await orionFileSystemService.deleteFile(shortcut.targetId);
+      } else if (shortcut.targetType === 'folder') {
+        await orionFileSystemService.deleteFolder(shortcut.targetId);
+      }
+      await loadShortcuts();
+      setItemMenu(null);
+      showToast(`Moved ${shortcut.name} to Recycle Bin`, 'info', 'Desktop');
+    } catch (e: any) {
+      showToast(`Delete failed: ${e?.message || 'Error'}`, 'error', 'Desktop');
+    }
+  }, [loadShortcuts, showToast]);
 
   // Load widgets for active workspace
   const loadWidgets = useCallback(async () => {
@@ -398,7 +426,192 @@ export function DesktopWorkspace() {
     }, 600);
   };
 
-  // Shortcut Pointer Down: establishes pointer capture for drag
+  // Cleanup Window Drag Listeners
+  const cleanupDragListeners = useCallback(() => {
+    if (windowListenersRef.current) {
+      window.removeEventListener('pointermove', windowListenersRef.current.move);
+      window.removeEventListener('pointerup', windowListenersRef.current.up);
+      window.removeEventListener('pointercancel', windowListenersRef.current.cancel);
+      windowListenersRef.current = null;
+    }
+  }, []);
+
+  // Ensure window drag listeners are cleaned up if component unmounts during drag
+  useEffect(() => {
+    return () => {
+      cleanupDragListeners();
+    };
+  }, [cleanupDragListeners]);
+
+  // Window-level Pointer Move: Continuously tracks icon position anywhere on screen
+  const handleWindowPointerMove = useCallback((e: PointerEvent) => {
+    const session = dragRef.current;
+    if (!session || session.pointerId !== e.pointerId) return;
+
+    const dx = e.clientX - session.startPointerX;
+    const dy = e.clientY - session.startPointerY;
+
+    // Movement threshold: 6px
+    if (!session.moved) {
+      if (Math.hypot(dx, dy) >= 6) {
+        session.moved = true;
+        cancelLongPress();
+        setIsDragging(true);
+      } else {
+        return;
+      }
+    }
+
+    const vWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
+    const vHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
+    const clampedX = Math.max(
+      DEFAULT_GRID_CONFIG.paddingX,
+      Math.min(vWidth - DEFAULT_GRID_CONFIG.cellWidth - DEFAULT_GRID_CONFIG.paddingX, session.startX + dx)
+    );
+    const clampedY = Math.max(
+      DEFAULT_GRID_CONFIG.paddingY,
+      Math.min(vHeight - DEFAULT_GRID_CONFIG.cellHeight - DEFAULT_GRID_CONFIG.bottomPadding, session.startY + dy)
+    );
+
+    // Direct synchronous DOM update for zero-latency 60/120fps tracking
+    if (session.element) {
+      session.element.style.transform = `translate3d(${clampedX}px, ${clampedY}px, 0)`;
+      session.element.style.zIndex = '1000';
+    }
+
+    setDraggedItem({
+      id: session.shortcutId,
+      startX: session.startPointerX - session.startX,
+      startY: session.startPointerY - session.startY,
+      curX: clampedX,
+      curY: clampedY,
+    });
+
+    // Detect drop targets under pointer (e.g. folder or Recycle Bin) using elementsFromPoint
+    const elements = document.elementsFromPoint(e.clientX, e.clientY);
+    const targetShortcutEl = elements.find(el => {
+      const scEl = el.closest('[data-shortcut-id]');
+      return scEl && scEl.getAttribute('data-shortcut-id') !== session.shortcutId;
+    })?.closest('[data-shortcut-id]');
+
+    const targetShortcutId = targetShortcutEl?.getAttribute('data-shortcut-id');
+    if (targetShortcutId) {
+      const targetShortcut = shortcutsRef.current.find(s => s.id === targetShortcutId);
+      if (targetShortcut && (targetShortcut.targetType === 'folder' || targetShortcut.targetId === 'recycle-bin')) {
+        setDropTargetId(targetShortcut.id);
+        dropTargetIdRef.current = targetShortcut.id;
+      } else {
+        setDropTargetId(null);
+        dropTargetIdRef.current = null;
+      }
+    } else {
+      setDropTargetId(null);
+      dropTargetIdRef.current = null;
+    }
+  }, []);
+
+  // Window-level Pointer Up: Finishes drag, snaps to grid and persists
+  const handleWindowPointerUp = useCallback(async (e: PointerEvent) => {
+    // 1. Remove window listeners FIRST
+    cleanupDragListeners();
+    cancelLongPress();
+    const session = dragRef.current;
+
+    if (session && session.pointerId === e.pointerId) {
+      if (session.element) {
+        try {
+          if (session.element.hasPointerCapture(session.pointerId)) {
+            session.element.releasePointerCapture(session.pointerId);
+          }
+        } catch (err) {}
+      }
+
+      if (session.moved) {
+        hasDraggedRef.current = true;
+        setTimeout(() => {
+          hasDraggedRef.current = false;
+        }, 300);
+
+        const dx = e.clientX - session.startPointerX;
+        const dy = e.clientY - session.startPointerY;
+        const finalRawX = session.startX + dx;
+        const finalRawY = session.startY + dy;
+
+        const vWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
+        const vHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
+
+        const currentDropTargetId = dropTargetIdRef.current;
+        if (currentDropTargetId) {
+          const target = shortcutsRef.current.find(s => s.id === currentDropTargetId);
+          const source = shortcutsRef.current.find(s => s.id === session.shortcutId);
+
+          if (target && source) {
+            if (target.targetId === 'recycle-bin') {
+              await handleDeleteShortcut(source);
+              showToast(`Moved ${source.name} to Recycle Bin`, 'info', 'Desktop');
+            } else if (target.targetType === 'folder') {
+              if (source.targetType === 'file') {
+                await orionFileSystemService.moveFile(source.targetId, target.targetId);
+                showToast(`Moved ${source.name} to ${target.name}`, 'success', 'Desktop');
+              }
+            }
+          }
+        } else {
+          // Normal drop: Snap to Grid with boundary clamping & persist
+          try {
+            const updated = await desktopWorkspaceService.updateShortcutPosition(
+              session.shortcutId,
+              finalRawX,
+              finalRawY,
+              vWidth,
+              vHeight
+            );
+            setShortcuts(prev => prev.map(s => (s.id === updated.id ? updated : s)));
+          } catch (err) {
+            console.error('Failed to save icon position', err);
+          }
+        }
+      } else {
+        // If not moved (click), reset any inline transform that might have been applied
+        if (session.element) {
+          session.element.style.transform = `translate3d(${session.startX}px, ${session.startY}px, 0)`;
+          session.element.style.zIndex = '';
+        }
+      }
+
+      dragRef.current = null;
+    }
+
+    setDraggedItem(null);
+    setIsDragging(false);
+    setDropTargetId(null);
+    dropTargetIdRef.current = null;
+  }, [cleanupDragListeners, handleDeleteShortcut, showToast]);
+
+  // Window-level Pointer Cancel: Safely aborts drag session
+  const handleWindowPointerCancel = useCallback((e: PointerEvent) => {
+    cleanupDragListeners();
+    cancelLongPress();
+    const session = dragRef.current;
+    if (session && session.pointerId === e.pointerId) {
+      if (session.element) {
+        try {
+          if (session.element.hasPointerCapture(session.pointerId)) {
+            session.element.releasePointerCapture(session.pointerId);
+          }
+        } catch (err) {}
+        session.element.style.transform = `translate3d(${session.startX}px, ${session.startY}px, 0)`;
+        session.element.style.zIndex = '';
+      }
+      dragRef.current = null;
+    }
+    setDraggedItem(null);
+    setIsDragging(false);
+    setDropTargetId(null);
+    dropTargetIdRef.current = null;
+  }, [cleanupDragListeners]);
+
+  // Shortcut Pointer Down: establishes drag session and registers window listeners
   const handleShortcutPointerDown = (e: React.PointerEvent<HTMLElement>, shortcut: DesktopShortcut) => {
     // If pointer is mouse, only button 0 (left-click) starts drag. Button 2 (right-click) MUST NEVER start drag.
     if (e.pointerType === 'mouse' && e.button !== 0) {
@@ -436,10 +649,21 @@ export function DesktopWorkspace() {
       element: targetElement,
     };
 
-    // Acquire pointer capture on the shortcut element
+    // Optionally acquire pointer capture on the shortcut element
     try {
       targetElement.setPointerCapture(e.pointerId);
     } catch (err) {}
+
+    // Register window-level pointermove, pointerup, pointercancel
+    cleanupDragListeners();
+    const onMove = (evt: PointerEvent) => handleWindowPointerMove(evt);
+    const onUp = (evt: PointerEvent) => handleWindowPointerUp(evt);
+    const onCancel = (evt: PointerEvent) => handleWindowPointerCancel(evt);
+
+    windowListenersRef.current = { move: onMove, up: onUp, cancel: onCancel };
+    window.addEventListener('pointermove', onMove, { passive: false });
+    window.addEventListener('pointerup', onUp, { passive: false });
+    window.addEventListener('pointercancel', onCancel, { passive: false });
 
     // For touch devices: preserve touch long-press context menu if not moved
     if (e.pointerType === 'touch') {
@@ -452,148 +676,6 @@ export function DesktopWorkspace() {
         }
       }, 600);
     }
-  };
-
-  const handleShortcutPointerMove = (e: React.PointerEvent<HTMLElement>) => {
-    const session = dragRef.current;
-    if (!session || session.pointerId !== e.pointerId) return;
-
-    const dx = e.clientX - session.startPointerX;
-    const dy = e.clientY - session.startPointerY;
-
-    // Movement threshold: 6px
-    if (!session.moved) {
-      if (Math.hypot(dx, dy) >= 6) {
-        session.moved = true;
-        cancelLongPress();
-        setIsDragging(true);
-
-        const vWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
-        const vHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
-        const clampedX = Math.max(DEFAULT_GRID_CONFIG.paddingX, Math.min(vWidth - DEFAULT_GRID_CONFIG.cellWidth - DEFAULT_GRID_CONFIG.paddingX, session.startX + dx));
-        const clampedY = Math.max(DEFAULT_GRID_CONFIG.paddingY, Math.min(vHeight - DEFAULT_GRID_CONFIG.cellHeight - DEFAULT_GRID_CONFIG.bottomPadding, session.startY + dy));
-
-        setDraggedItem({
-          id: session.shortcutId,
-          startX: session.startPointerX - session.startX,
-          startY: session.startPointerY - session.startY,
-          curX: clampedX,
-          curY: clampedY,
-        });
-      }
-    } else {
-      const vWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
-      const vHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
-      const clampedX = Math.max(DEFAULT_GRID_CONFIG.paddingX, Math.min(vWidth - DEFAULT_GRID_CONFIG.cellWidth - DEFAULT_GRID_CONFIG.paddingX, session.startX + dx));
-      const clampedY = Math.max(DEFAULT_GRID_CONFIG.paddingY, Math.min(vHeight - DEFAULT_GRID_CONFIG.cellHeight - DEFAULT_GRID_CONFIG.bottomPadding, session.startY + dy));
-
-      setDraggedItem(prev => (prev ? { ...prev, curX: clampedX, curY: clampedY } : null));
-
-      // Detect drop targets under pointer (e.g. folder or Recycle Bin) using elementsFromPoint
-      const elements = document.elementsFromPoint(e.clientX, e.clientY);
-      const targetShortcutEl = elements.find(el => {
-        const scEl = el.closest('[data-shortcut-id]');
-        return scEl && scEl.getAttribute('data-shortcut-id') !== session.shortcutId;
-      })?.closest('[data-shortcut-id]');
-
-      const targetShortcutId = targetShortcutEl?.getAttribute('data-shortcut-id');
-      if (targetShortcutId) {
-        const targetShortcut = shortcuts.find(s => s.id === targetShortcutId);
-        if (targetShortcut && (targetShortcut.targetType === 'folder' || targetShortcut.targetId === 'recycle-bin')) {
-          setDropTargetId(targetShortcut.id);
-        } else {
-          setDropTargetId(null);
-        }
-      } else {
-        setDropTargetId(null);
-      }
-    }
-  };
-
-  const handleShortcutPointerUp = async (e: React.PointerEvent<HTMLElement>) => {
-    cancelLongPress();
-    const session = dragRef.current;
-
-    if (session && session.pointerId === e.pointerId) {
-      if (session.element) {
-        try {
-          if (session.element.hasPointerCapture(session.pointerId)) {
-            session.element.releasePointerCapture(session.pointerId);
-          }
-        } catch (err) {}
-      }
-
-      if (session.moved) {
-        hasDraggedRef.current = true;
-        setTimeout(() => {
-          hasDraggedRef.current = false;
-        }, 300);
-
-        const dx = e.clientX - session.startPointerX;
-        const dy = e.clientY - session.startPointerY;
-        const finalRawX = session.startX + dx;
-        const finalRawY = session.startY + dy;
-
-        const vWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
-        const vHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
-
-        // 1. Check if dropped onto a folder or Recycle Bin
-        if (dropTargetId) {
-          const target = shortcuts.find(s => s.id === dropTargetId);
-          const source = shortcuts.find(s => s.id === session.shortcutId);
-
-          if (target && source) {
-            if (target.targetId === 'recycle-bin') {
-              await handleDeleteShortcut(source);
-              showToast(`Moved ${source.name} to Recycle Bin`, 'info', 'Desktop');
-            } else if (target.targetType === 'folder') {
-              if (source.targetType === 'file') {
-                await orionFileSystemService.moveFile(source.targetId, target.targetId);
-                showToast(`Moved ${source.name} to ${target.name}`, 'success', 'Desktop');
-              }
-            }
-          }
-        } else {
-          // 2. Normal drop: Snap to Grid with boundary clamping & persist
-          try {
-            const updated = await desktopWorkspaceService.updateShortcutPosition(
-              session.shortcutId,
-              finalRawX,
-              finalRawY,
-              vWidth,
-              vHeight
-            );
-            setShortcuts(prev => prev.map(s => (s.id === updated.id ? updated : s)));
-          } catch (err) {
-            console.error('Failed to save icon position', err);
-          }
-        }
-      }
-
-      dragRef.current = null;
-    }
-
-    setDraggedItem(null);
-    setIsDragging(false);
-    setDropTargetId(null);
-  };
-
-  const handleShortcutPointerCancel = (e: React.PointerEvent<HTMLElement>) => {
-    cancelLongPress();
-    const session = dragRef.current;
-    if (session && session.pointerId === e.pointerId) {
-      if (session.element) {
-        try {
-          if (session.element.hasPointerCapture(session.pointerId)) {
-            session.element.releasePointerCapture(session.pointerId);
-          }
-        } catch (err) {}
-      }
-      dragRef.current = null;
-    }
-    setDraggedItem(null);
-    setIsDragging(false);
-    setDropTargetId(null);
   };
 
   // Launch item on double-click or tap
@@ -761,22 +843,6 @@ export function DesktopWorkspace() {
     }
   };
 
-  // Delete Desktop Item
-  const handleDeleteShortcut = async (shortcut: DesktopShortcut) => {
-    try {
-      if (shortcut.targetType === 'file') {
-        await orionFileSystemService.deleteFile(shortcut.targetId);
-      } else if (shortcut.targetType === 'folder') {
-        await orionFileSystemService.deleteFolder(shortcut.targetId);
-      }
-      await loadShortcuts();
-      setItemMenu(null);
-      showToast(`Moved ${shortcut.name} to Recycle Bin`, 'info', 'Desktop');
-    } catch (e: any) {
-      showToast(`Delete failed: ${e?.message || 'Error'}`, 'error', 'Desktop');
-    }
-  };
-
   // Rename Shortcut
   const handleExecuteRename = async () => {
     if (!renameItem || !renameValue.trim()) return;
@@ -931,7 +997,7 @@ export function DesktopWorkspace() {
 
       {/* Desktop Shortcuts Canvas */}
       {shortcuts.map(shortcut => {
-        const isBeingDragged = draggedItem?.id === shortcut.id && isDragging;
+        const isBeingDragged = draggedItem?.id === shortcut.id;
         const isSelected = selectedIds.has(shortcut.id);
         const isDropTarget = dropTargetId === shortcut.id;
         const displayX = isBeingDragged ? draggedItem.curX : shortcut.x;
@@ -948,9 +1014,6 @@ export function DesktopWorkspace() {
               zIndex: isBeingDragged ? 1000 : (isSelected ? 25 : 20),
             }}
             onPointerDown={e => handleShortcutPointerDown(e, shortcut)}
-            onPointerMove={handleShortcutPointerMove}
-            onPointerUp={handleShortcutPointerUp}
-            onPointerCancel={handleShortcutPointerCancel}
             onDoubleClick={e => {
               e.stopPropagation();
               handleDoubleClick(shortcut);
@@ -959,6 +1022,7 @@ export function DesktopWorkspace() {
               e.preventDefault();
               e.stopPropagation();
               cancelLongPress();
+              cleanupDragListeners();
               if (dragRef.current?.element) {
                 try {
                   if (dragRef.current.element.hasPointerCapture(dragRef.current.pointerId)) {
@@ -970,6 +1034,7 @@ export function DesktopWorkspace() {
               setDraggedItem(null);
               setIsDragging(false);
               setDropTargetId(null);
+              dropTargetIdRef.current = null;
               setSelectedIds(new Set([shortcut.id]));
               setDesktopMenu(null);
               setItemMenu({ x: e.clientX, y: e.clientY, shortcut });
@@ -988,7 +1053,7 @@ export function DesktopWorkspace() {
             </div>
             <div
               className={cn(
-                "mt-1.5 w-full max-w-[140px] px-1 text-center text-[11px] font-medium leading-[15px] whitespace-normal break-words overflow-visible transition-colors drop-shadow-md",
+                "mt-1.5 w-full max-w-[140px] px-1 text-center text-[11px] font-medium leading-[15px] whitespace-normal break-words overflow-visible transition-colors drop-shadow-md pointer-events-none",
                 isSelected
                   ? "text-os-accent font-semibold bg-black/40 rounded"
                   : "text-os-text-primary group-hover:text-os-text-primary"

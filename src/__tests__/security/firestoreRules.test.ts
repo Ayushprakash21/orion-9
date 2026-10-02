@@ -163,4 +163,41 @@ describe('Orion-9 Security & Tenant Isolation Suite', () => {
     expect(result.authorized).toBe(true);
     expect(result.matchedRole).toBe('organization_admin');
   });
+
+  // ── 6. TENANT HOPPING & CROSS-TENANT MUTATION BLOCKING ─────────────────────
+
+  it('blocks user from modifying resources across tenant boundaries', () => {
+    expect(() => {
+      authEngine.authorize({
+        actor: TENANT_A_USER,
+        resourceType: 'purchase_order',
+        requiredPermission: 'purchase_order:update',
+        organizationId: 'org-tenant-b', // Attempt to hop to Tenant B
+      });
+    }).toThrow(/does not match command organization/);
+  });
+
+  it('blocks user from creating documents in an unauthorized foreign tenant', () => {
+    expect(() => {
+      authEngine.authorize({
+        actor: TENANT_B_USER,
+        resourceType: 'documents',
+        requiredPermission: 'documents:create',
+        organizationId: 'org-tenant-a', // Attempt cross-tenant write
+      });
+    }).toThrow(/does not match command organization/);
+  });
+
+  // ── 7. AUDIT LOG & REPLAY RECORD IMMUTABILITY ──────────────────────────────
+
+  it('blocks non-admin actors from modifying or deleting audit trails', () => {
+    expect(() => {
+      authEngine.authorize({
+        actor: TENANT_A_USER,
+        resourceType: 'audit_logs',
+        requiredPermission: 'audit:delete',
+        organizationId: 'org-tenant-a',
+      });
+    }).toThrow(/Denied by default|requires one of/);
+  });
 });

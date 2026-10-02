@@ -133,6 +133,57 @@ export class DataResidencyPolicyEngine {
   }
 
   /**
+   * Determine whether a payload or entity is sensitive based on explicit classification,
+   * flags, known sensitive entity patterns, or restricted field content.
+   */
+  public isSensitiveRecord(params: {
+    entityType: string;
+    payload: any;
+    dataClassification?: string;
+    isSensitive?: boolean;
+  }): boolean {
+    if (params.isSensitive === true) return true;
+    if (params.isSensitive === false) return false;
+
+    const classification = params.dataClassification || params.payload?.classification || params.payload?.dataClassification;
+    if (classification) {
+      const upper = String(classification).toUpperCase();
+      if (['RESTRICTED', 'CONFIDENTIAL', 'SECRET', 'TOP_SECRET'].includes(upper)) {
+        return true;
+      }
+      if (['PUBLIC'].includes(upper)) {
+        return false;
+      }
+    }
+
+    if (params.payload?.isSensitive === true || params.payload?.sensitive === true) {
+      return true;
+    }
+
+    const sensitivePatterns = [
+      'PII', 'GDPR', 'ITAR', 'CONFIDENTIAL', 'RESTRICTED', 'SECRET', 'PAYMENT', 
+      'BANK', 'IBAN', 'PASSPORT', 'CREDENTIAL', 'HEALTH', 'DEFENSE', 'MUNITIONS',
+      'CUSTOMER_PII', 'PAYMENT_DETAILS', 'EMPLOYEE_RECORD', 'ITAR_ASSEMBLY', 'DEFENSE_CONTRACT', 'MUNITIONS_BOM'
+    ];
+    const upperEntity = (params.entityType || '').toUpperCase();
+    if (sensitivePatterns.some(pattern => upperEntity.includes(pattern))) {
+      return true;
+    }
+
+    // Inspect payload keys for sensitive fields like iban, passport, ssn, taxId, etc.
+    if (params.payload && typeof params.payload === 'object') {
+      const sensitiveKeys = ['iban', 'taxId', 'passportNumber', 'ssn', 'creditCard', 'cadDrawingUrl', 'clearanceLevel'];
+      for (const key of sensitiveKeys) {
+        if (key in params.payload && params.payload[key] !== undefined && params.payload[key] !== null) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Evaluate a cross-region data transfer payload against active residency policies
    */
   public evaluateTransfer(params: {
@@ -141,6 +192,8 @@ export class DataResidencyPolicyEngine {
     sourceRegionId: string;
     destinationRegionId: string;
     payload: any;
+    dataClassification?: string;
+    isSensitive?: boolean;
   }): ResidencyEvaluationResult {
     const { tenantId, entityType, sourceRegionId, destinationRegionId, payload } = params;
     const now = new Date().toISOString();
@@ -168,8 +221,40 @@ export class DataResidencyPolicyEngine {
       p => p.isActive && (p.applicableEntities.includes(entityType) || p.applicableEntities.includes('*'))
     );
 
-    // If no explicit policy matches, fail-closed by default for sensitive records
+    // If no explicit policy matches, fail-closed by default for sensitive or unknown records
     if (applicable.length === 0) {
+      const isSensitive = this.isSensitiveRecord({
+        entityType,
+        payload,
+        dataClassification: params.dataClassification,
+        isSensitive: params.isSensitive
+      });
+
+      const rawClassification = params.dataClassification || payload?.classification || payload?.dataClassification;
+      const isUnknownClassification = rawClassification !== undefined && !['PUBLIC', 'INTERNAL', 'CONFIDENTIAL', 'RESTRICTED', 'GLOBAL', 'GLOBAL_REPLICATED'].includes(String(rawClassification).toUpperCase());
+
+      if (isSensitive || isUnknownClassification) {
+        const violationReason = isUnknownClassification
+          ? `Cross-border transfer blocked: Entity ${entityType} has unknown/unsupported classification [${rawClassification}]. Failing closed by default.`
+          : `Cross-border transfer blocked: Entity ${entityType} is classified as sensitive (classification: ${rawClassification || 'SENSITIVE_INFERRED'}) and no explicit residency policy matches. Failing closed by default.`;
+
+        return {
+          allowed: false,
+          policyId: 'DEFAULT_FAIL_CLOSED_NO_POLICY',
+          boundaryType: 'STRICT_SOVEREIGN',
+          requiresRedaction: false,
+          redactedFields: [],
+          violationReason,
+          auditRecord: {
+            sourceRegionId,
+            destinationRegionId,
+            evaluatedAt: now,
+            tenantId
+          }
+        };
+      }
+
+      // Non-sensitive data without explicit restriction falls back to global replication
       return {
         allowed: true,
         policyId: 'DEFAULT_OPEN_BORDER',
@@ -247,10 +332,11 @@ export class DataResidencyPolicyEngine {
     }
 
     // Passed all policies
+    const primaryPolicy = applicable[0];
     return {
       allowed: true,
-      policyId: 'MULTI_POLICY_SATISFIED',
-      boundaryType: 'GLOBAL_REPLICATED',
+      policyId: primaryPolicy ? primaryPolicy.policyId : 'MULTI_POLICY_SATISFIED',
+      boundaryType: primaryPolicy ? primaryPolicy.boundaryType : 'GLOBAL_REPLICATED',
       requiresRedaction: false,
       redactedFields: [],
       sanitizedPayload: payload,

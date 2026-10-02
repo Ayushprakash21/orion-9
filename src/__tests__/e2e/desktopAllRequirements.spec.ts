@@ -331,12 +331,22 @@ test.describe('Orion-9 Desktop 15-Objective Complete E2E Suite', () => {
     expect(boxAfterRightClick!.x).toBeCloseTo(initialBox!.x, 0);
     expect(boxAfterRightClick!.y).toBeCloseTo(initialBox!.y, 0);
 
-    // Physical mouse left-drag by at least 150px
+    // Physical mouse left-drag: press down, move partially, verify mid-drag movement WHILE STILL DOWN
     const targetX = initialBox!.x + 200;
     const targetY = initialBox!.y + 150;
 
     await page.mouse.move(centerX, centerY);
     await page.mouse.down({ button: 'left' });
+    await page.mouse.move(centerX + 100, centerY + 80, { steps: 10 });
+
+    // CRITICAL REQUIREMENT: Verify movement and transform WHILE MOUSE IS STILL DOWN
+    const midDragBox = await shortcut.boundingBox();
+    expect(midDragBox).not.toBeNull();
+    const midDragTransform = await shortcut.evaluate((el) => el.style.transform);
+    expect(midDragTransform).toContain('translate3d');
+    expect(Math.abs(midDragBox!.x - initialBox!.x) > 30 || Math.abs(midDragBox!.y - initialBox!.y) > 30).toBe(true);
+
+    // Continue moving to target destination and release
     await page.mouse.move(targetX, targetY, { steps: 10 });
     await page.mouse.up({ button: 'left' });
 

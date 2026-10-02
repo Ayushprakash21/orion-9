@@ -184,4 +184,188 @@ describe('Wave 11: Multi-Region Runtime Architecture & Sovereign Residency', () 
     expect(evalResult.allowed).toBe(true);
     expect(evalResult.sanitizedPayload.internalCostMargin).toBe(0.5);
   });
+
+  describe('10-Point Data Residency Verification Matrix', () => {
+    it('Point 1: Sensitive + explicit allow policy → allowed: true', () => {
+      const itarPayload = {
+        assemblyId: 'ITAR-774',
+        cadDrawingUrl: 'https://vault.internal/cad/774.dwg',
+        clearanceLevel: 'TOP_SECRET'
+      };
+      // pol-itar-defense allows reg-us-east and reg-us-west-dr
+      const result = dataResidencyPolicyEngine.evaluateTransfer({
+        tenantId,
+        entityType: 'ITAR_ASSEMBLY',
+        sourceRegionId: 'reg-us-east',
+        destinationRegionId: 'reg-us-west-dr',
+        payload: itarPayload,
+        dataClassification: 'RESTRICTED'
+      });
+      expect(result.allowed).toBe(true);
+      expect(result.policyId).toBe('pol-itar-defense');
+      expect(result.boundaryType).toBe('STRICT_SOVEREIGN');
+    });
+
+    it('Point 2: Sensitive + explicit deny policy → allowed: false (STRICT_SOVEREIGN)', () => {
+      const piiPayload = {
+        customerId: 'CUST-001',
+        iban: 'DE1234567890',
+        passportNumber: 'N1234567'
+      };
+      // pol-gdpr-strict only allows reg-eu-central
+      const result = dataResidencyPolicyEngine.evaluateTransfer({
+        tenantId,
+        entityType: 'CUSTOMER_PII',
+        sourceRegionId: 'reg-eu-central',
+        destinationRegionId: 'reg-us-east',
+        payload: piiPayload,
+        dataClassification: 'CONFIDENTIAL'
+      });
+      expect(result.allowed).toBe(false);
+      expect(result.boundaryType).toBe('STRICT_SOVEREIGN');
+      expect(result.policyId).toBe('pol-gdpr-strict');
+      expect(result.violationReason).toContain('Cross-border transfer blocked');
+    });
+
+    it('Point 3: Sensitive + conditional policy passing → allowed: true, redacted', () => {
+      const sensitiveOrder = {
+        orderId: 'PO-301',
+        internalCostMargin: 0.42,
+        supplierRebatePercentage: 0.15,
+        publicPartNumber: 'PART-99'
+      };
+      const result = dataResidencyPolicyEngine.evaluateTransfer({
+        tenantId,
+        entityType: 'PURCHASE_ORDER',
+        sourceRegionId: 'reg-us-east',
+        destinationRegionId: 'reg-eu-central',
+        payload: sensitiveOrder
+      });
+      expect(result.allowed).toBe(true);
+      expect(result.requiresRedaction).toBe(true);
+      expect(result.sanitizedPayload.internalCostMargin).toBe('[REDACTED_BY_SOVEREIGN_RESIDENCY_POLICY]');
+      expect(result.sanitizedPayload.supplierRebatePercentage).toBe('[REDACTED_BY_SOVEREIGN_RESIDENCY_POLICY]');
+      expect(result.sanitizedPayload.publicPartNumber).toBe('PART-99');
+    });
+
+    it('Point 4: Sensitive + conditional policy failing → allowed: false', () => {
+      // Register conditional policy with restricted allowed destinations
+      dataResidencyPolicyEngine.registerPolicy({
+        policyId: 'pol-conditional-sg-only',
+        tenantId,
+        name: 'Singapore Only Conditional Policy',
+        boundaryType: 'CONDITIONAL_TRANSFER',
+        sovereignJurisdiction: 'APAC_SG',
+        applicableEntities: ['RESTRICTED_TELEMETRY'],
+        restrictedFields: ['tokenSecret'],
+        allowedDestinationRegions: ['reg-apac-sg'],
+        enforceFailClosed: true,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+
+      const result = dataResidencyPolicyEngine.evaluateTransfer({
+        tenantId,
+        entityType: 'RESTRICTED_TELEMETRY',
+        sourceRegionId: 'reg-us-east',
+        destinationRegionId: 'reg-eu-central', // Not in allowed destination regions
+        payload: { tokenSecret: 'xyz123' },
+        isSensitive: true
+      });
+      expect(result.allowed).toBe(false);
+      expect(result.violationReason).toContain('not approved for conditional transfer');
+    });
+
+    it('Point 5: Sensitive + NO matching policy → allowed: false (DEFAULT_FAIL_CLOSED_NO_POLICY)', () => {
+      const result = dataResidencyPolicyEngine.evaluateTransfer({
+        tenantId,
+        entityType: 'UNKNOWN_SECRET_CONTRACT_V1',
+        sourceRegionId: 'reg-us-east',
+        destinationRegionId: 'reg-eu-central',
+        payload: { secretContent: 'classified' },
+        dataClassification: 'RESTRICTED'
+      });
+      expect(result.allowed).toBe(false);
+      expect(result.policyId).toBe('DEFAULT_FAIL_CLOSED_NO_POLICY');
+      expect(result.boundaryType).toBe('STRICT_SOVEREIGN');
+      expect(result.violationReason).toContain('Failing closed by default');
+    });
+
+    it('Point 6: Non-sensitive + explicit global policy → allowed: true', () => {
+      dataResidencyPolicyEngine.registerPolicy({
+        policyId: 'pol-global-catalog',
+        tenantId,
+        name: 'Public Product Catalog Replication',
+        boundaryType: 'GLOBAL_REPLICATED',
+        sovereignJurisdiction: 'GLOBAL',
+        applicableEntities: ['PUBLIC_CATALOG_ITEM'],
+        restrictedFields: [],
+        allowedDestinationRegions: ['reg-us-east', 'reg-eu-central', 'reg-apac-sg', 'reg-us-west-dr'],
+        enforceFailClosed: false,
+        isActive: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+
+      const result = dataResidencyPolicyEngine.evaluateTransfer({
+        tenantId,
+        entityType: 'PUBLIC_CATALOG_ITEM',
+        sourceRegionId: 'reg-us-east',
+        destinationRegionId: 'reg-eu-central',
+        payload: { sku: 'SKU-001', name: 'Bolt M8' },
+        dataClassification: 'PUBLIC'
+      });
+      expect(result.allowed).toBe(true);
+      expect(result.policyId).toBe('pol-global-catalog');
+      expect(result.boundaryType).toBe('GLOBAL_REPLICATED');
+    });
+
+    it('Point 7: Explicit sovereign-region policy → preserved', () => {
+      const gdprPolicy = dataResidencyPolicyEngine.getPolicy(tenantId, 'pol-gdpr-strict');
+      expect(gdprPolicy).toBeDefined();
+      expect(gdprPolicy?.boundaryType).toBe('STRICT_SOVEREIGN');
+      expect(gdprPolicy?.sovereignJurisdiction).toBe('EU_GDPR');
+      expect(gdprPolicy?.allowedDestinationRegions).toEqual(['reg-eu-central']);
+    });
+
+    it('Point 8: Explicit redaction-required transfer → preserved', () => {
+      const commPolicy = dataResidencyPolicyEngine.getPolicy(tenantId, 'pol-commercial-order-sync');
+      expect(commPolicy).toBeDefined();
+      expect(commPolicy?.boundaryType).toBe('CONDITIONAL_TRANSFER');
+      expect(commPolicy?.restrictedFields).toContain('internalCostMargin');
+      expect(commPolicy?.restrictedFields).toContain('supplierRebatePercentage');
+    });
+
+    it('Point 9: Explicitly configured global replication → preserved', () => {
+      // Non-sensitive data without explicit policy falls back to DEFAULT_OPEN_BORDER
+      const result = dataResidencyPolicyEngine.evaluateTransfer({
+        tenantId,
+        entityType: 'PUBLIC_CURRENCY_EXCHANGE_RATE',
+        sourceRegionId: 'reg-us-east',
+        destinationRegionId: 'reg-eu-central',
+        payload: { pair: 'USD/EUR', rate: 0.92 },
+        dataClassification: 'PUBLIC'
+      });
+      expect(result.allowed).toBe(true);
+      expect(result.boundaryType).toBe('GLOBAL_REPLICATED');
+      expect(result.policyId).toBe('DEFAULT_OPEN_BORDER');
+    });
+
+    it('Point 10: Unknown/unsupported classification → allowed: false (DEFAULT_FAIL_CLOSED_NO_POLICY)', () => {
+      const result = dataResidencyPolicyEngine.evaluateTransfer({
+        tenantId,
+        entityType: 'CORRUPTED_RECORD_TYPE',
+        sourceRegionId: 'reg-us-east',
+        destinationRegionId: 'reg-eu-central',
+        payload: { someData: 123 },
+        dataClassification: 'INVALID_ALIEN_CLASSIFICATION'
+      });
+      expect(result.allowed).toBe(false);
+      expect(result.policyId).toBe('DEFAULT_FAIL_CLOSED_NO_POLICY');
+      expect(result.boundaryType).toBe('STRICT_SOVEREIGN');
+      expect(result.violationReason).toContain('unknown/unsupported classification');
+      expect(result.violationReason).toContain('Failing closed by default');
+    });
+  });
 });
