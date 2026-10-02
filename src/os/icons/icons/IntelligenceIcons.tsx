@@ -4,35 +4,41 @@ import { OrionSquircleBase } from '../OrionIconRegistry';
 // 27. World Model
 export const IconWorldModel: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
   <OrionSquircleBase gradientId="icon-world-model" from="#0E7490" to="#083344" {...props}>
-    {/* Omniscient Planetary Geodesic Simulation Sphere */}
-    <circle cx="64" cy="64" r="34" stroke="#22D3EE" strokeWidth="2.5" fill="none" opacity="0.6" />
-    <ellipse cx="64" cy="64" rx="34" ry="14" stroke="#67E8F9" strokeWidth="2" fill="none" />
-    <ellipse cx="64" cy="64" rx="14" ry="34" stroke="#67E8F9" strokeWidth="2" fill="none" />
-    <circle cx="64" cy="64" r="8" fill="#A5F3FC" />
-    <circle cx="82" cy="54" r="3" fill="#FFFFFF" />
-    <circle cx="48" cy="74" r="3" fill="#FFFFFF" />
+    {/* Enterprise Global Simulation Sphere */}
+    <circle cx="64" cy="64" r="34" stroke="#22D3EE" strokeWidth="2" fill="none" />
+    <ellipse cx="64" cy="64" rx="34" ry="14" stroke="#67E8F9" strokeWidth="1.5" fill="none" />
+    <line x1="30" y1="64" x2="98" y2="64" stroke="#67E8F9" strokeWidth="1.5" />
+    <line x1="64" y1="30" x2="64" y2="98" stroke="#67E8F9" strokeWidth="1.5" />
+    <circle cx="64" cy="64" r="6" fill="#A5F3FC" />
   </OrionSquircleBase>
 );
 
-// 28. Orion AI (Neural Core)
+// 28. Orion AI (Intelligent Assistant)
 export const IconOrionAi: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
-  <OrionSquircleBase gradientId="icon-orion-ai" from="#7E22CE" to="#3B0764" {...props}>
-    {/* Cognitive Intelligence Core Spark & Neural Nodes */}
-    <circle cx="64" cy="64" r="28" stroke="#D8B4FE" strokeWidth="2" strokeDasharray="6 4" fill="none" />
-    {/* Four-point Radiant Star */}
-    <path d="M 64 28 Q 64 64 28 64 Q 64 64 64 100 Q 64 64 100 64 Q 64 64 64 28 Z" fill="#C084FC" stroke="#FFFFFF" strokeWidth="2" />
-    <circle cx="64" cy="64" r="6" fill="#FFFFFF" />
+  <OrionSquircleBase gradientId="icon-orion-ai" from="#4338CA" to="#1E1B4B" {...props}>
+    {/* Sovereign Celestial Diamond Assistant Mark */}
+    <path
+      d="M 64 24 C 64 48 48 64 24 64 C 48 64 64 80 64 104 C 64 80 80 64 104 64 C 80 64 64 48 64 24 Z"
+      fill="#FFFFFF"
+    />
+    <circle cx="64" cy="64" r="6" fill="#818CF8" />
+    <path
+      d="M 88 32 C 88 40 82 44 74 44 C 82 44 88 48 88 56 C 88 48 94 44 102 44 C 94 44 88 40 88 32 Z"
+      fill="#C7D2FE"
+    />
   </OrionSquircleBase>
 );
 
 // 29. Predictions
 export const IconPredictions: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
-  <OrionSquircleBase gradientId="icon-predictions" from="#8B5CF6" to="#4C1D95" {...props}>
-    {/* Horizon Projection Arc & Confidence Interval Fan */}
-    <path d="M 28 88 L 52 70 L 74 76 L 100 38" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-    {/* Prediction Cone */}
-    <path d="M 74 76 L 102 26 L 102 58 Z" fill="#DDD6FE" opacity="0.3" />
-    <circle cx="100" cy="38" r="5" fill="#FDE047" stroke="#FFFFFF" strokeWidth="2" />
+  <OrionSquircleBase gradientId="icon-predictions" from="#4C1D95" to="#1E1B4B" {...props}>
+    {/* Statistical Horizon Projection Chart */}
+    <line x1="28" y1="92" x2="100" y2="92" stroke="#6D28D9" strokeWidth="2" strokeLinecap="round" />
+    <line x1="28" y1="28" x2="28" y2="92" stroke="#6D28D9" strokeWidth="2" strokeLinecap="round" />
+    <path d="M 32 80 L 54 64 L 72 70 L 96 36" stroke="#DDD6FE" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    {/* Projected Confidence Fan */}
+    <path d="M 72 70 L 98 28 L 98 48 Z" fill="#A78BFA" opacity="0.35" />
+    <circle cx="96" cy="36" r="4.5" fill="#F59E0B" stroke="#FFFFFF" strokeWidth="1.5" />
   </OrionSquircleBase>
 );
 

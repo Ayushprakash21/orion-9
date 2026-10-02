@@ -16,6 +16,14 @@ import { DesktopWidgetSystem } from './DesktopWidgetSystem';
 import { DesktopWidgetGalleryModal, WidgetGalleryItem } from './DesktopWidgetGalleryModal';
 import { ORION_REGISTRY } from '../OrionApplicationRegistry';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
+import {
+  IconDesktopFolder,
+  IconDocumentsFolder,
+  IconDownloadsFolder,
+  IconProjectsFolder,
+  IconReportsFolder,
+  IconDesktopFileTxt
+} from '../icons/OrionSystemIcons';
 import { useOrionDeviceMode } from '../../lib/useOrionDeviceMode';
 import { useToast } from '../../store/ToastContext';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
@@ -897,19 +905,19 @@ export function DesktopWorkspace() {
     const iconId = shortcut.iconId || shortcut.icon || shortcut.targetId;
 
     if (shortcut.targetId === 'documents-folder') {
-      return <FileText size={iconSize} className="text-blue-400 drop-shadow" />;
+      return <IconDocumentsFolder size={iconSize} active={isSelected} />;
     }
     if (shortcut.targetId === 'downloads-folder') {
-      return <Folder size={iconSize} className="text-emerald-400 drop-shadow" />;
+      return <IconDownloadsFolder size={iconSize} active={isSelected} />;
     }
     if (shortcut.targetId === 'projects-folder') {
-      return <Folder size={iconSize} className="text-purple-400 drop-shadow" />;
+      return <IconProjectsFolder size={iconSize} active={isSelected} />;
     }
     if (shortcut.targetId === 'reports-folder') {
-      return <Folder size={iconSize} className="text-amber-400 drop-shadow" />;
+      return <IconReportsFolder size={iconSize} active={isSelected} />;
     }
     if (shortcut.targetType === 'folder' || shortcut.isDirectory || iconId === 'folder') {
-      return <Folder size={iconSize} className="text-amber-400 drop-shadow" />;
+      return <IconDesktopFolder size={iconSize} active={isSelected} />;
     }
     if (shortcut.targetType === 'file') {
       const name = shortcut.name.toLowerCase();
@@ -925,7 +933,7 @@ export function DesktopWorkspace() {
       if (name.endsWith('.pdf') || shortcut.mimeType?.includes('pdf')) {
         return <OrionAppIcon app="orion-pdf" size={iconSize} active={isSelected} />;
       }
-      return <FileText size={iconSize} className="text-cyan-400 drop-shadow" />;
+      return <IconDesktopFileTxt size={iconSize} active={isSelected} />;
     }
     if (shortcut.targetType === 'application' || shortcut.targetType === 'system') {
       return <OrionAppIcon app={shortcut.targetId} size={iconSize} active={isSelected} />;

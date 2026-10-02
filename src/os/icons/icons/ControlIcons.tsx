@@ -3,21 +3,38 @@ import { OrionSquircleBase } from '../OrionIconRegistry';
 
 // 59. Exceptions
 export const IconExceptions: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
-  <OrionSquircleBase gradientId="icon-exceptions" from="#DC2626" to="#7F1D1D" {...props}>
-    {/* Alert Warning Shield / Exclamation Delta */}
-    <polygon points="64,24 102,88 26,88" fill="#EF4444" stroke="#FEE2E2" strokeWidth="3" />
-    <line x1="64" y1="46" x2="64" y2="68" stroke="#FFFFFF" strokeWidth="4.5" strokeLinecap="round" />
-    <circle cx="64" cy="78" r="3" fill="#FFFFFF" />
+  <OrionSquircleBase gradientId="icon-exceptions" from="#D97706" to="#78350F" {...props}>
+    {/* Highway Amber Alert Hazard Triangle */}
+    <path
+      d="M 64 22 C 67 22 70 24 72 28 L 105 82 C 107 86 105 90 101 90 L 27 90 C 23 90 21 86 23 82 L 56 28 C 58 24 61 22 64 22 Z"
+      fill="#F59E0B"
+      stroke="#FEF3C7"
+      strokeWidth="2.5"
+    />
+    {/* Inner Hazard Outline */}
+    <path
+      d="M 64 30 L 96 82 L 32 82 Z"
+      stroke="#78350F"
+      strokeWidth="2"
+      fill="none"
+      opacity="0.4"
+    />
+    {/* Exclamation Pillar & Dot */}
+    <line x1="64" y1="46" x2="64" y2="66" stroke="#1E293B" strokeWidth="5" strokeLinecap="round" />
+    <circle cx="64" cy="76" r="3.5" fill="#1E293B" />
   </OrionSquircleBase>
 );
 
 // 60. Approval Center
 export const IconApprovalCenter: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
-  <OrionSquircleBase gradientId="icon-approvals" from="#0284C7" to="#082F49" {...props}>
-    {/* Dual-key Governance Stamp & Certified Shield */}
-    <circle cx="64" cy="64" r="32" stroke="#BAE6FD" strokeWidth="2.5" fill="none" />
-    <path d="M 44 64 L 58 78 L 84 50" stroke="#00F2FE" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-    <circle cx="64" cy="64" r="38" stroke="#00F2FE" strokeWidth="1.5" strokeDasharray="6 4" fill="none" />
+  <OrionSquircleBase gradientId="icon-approvals" from="#047857" to="#064E3B" {...props}>
+    {/* Executive Authorization Certification Crest */}
+    <circle cx="64" cy="64" r="34" stroke="#6EE7B7" strokeWidth="2.5" fill="none" />
+    <circle cx="64" cy="64" r="26" fill="#10B981" />
+    <path d="M 48 64 L 59 75 L 80 53" stroke="#FFFFFF" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    {/* Ribbon Seals */}
+    <polygon points="54,86 46,102 58,98 64,102 64,88" fill="#065F46" />
+    <polygon points="74,86 82,102 70,98 64,102 64,88" fill="#047857" />
   </OrionSquircleBase>
 );
 
@@ -120,13 +137,15 @@ export const IconConstraints: React.FC<{ size?: number; className?: string; acti
 
 // 70. Policies
 export const IconPolicies: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
-  <OrionSquircleBase gradientId="icon-policies" from="#1D4ED8" to="#172554" {...props}>
-    {/* Rulebook Scroll & Authority Shield */}
-    <rect x="34" y="28" width="60" height="72" rx="6" fill="#93C5FD" />
-    <line x1="44" y1="42" x2="84" y2="42" stroke="#1D4ED8" strokeWidth="2.5" strokeLinecap="round" />
-    <line x1="44" y1="54" x2="84" y2="54" stroke="#1D4ED8" strokeWidth="2.5" strokeLinecap="round" />
-    <circle cx="64" cy="74" r="10" fill="#2563EB" stroke="#FFFFFF" strokeWidth="2" />
-    <path d="M 60 74 L 63 77 L 69 71" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" fill="none" />
+  <OrionSquircleBase gradientId="icon-policies" from="#1E3A8A" to="#0F172A" {...props}>
+    {/* Governance Charter Document & Security Shield */}
+    <rect x="32" y="24" width="64" height="80" rx="6" fill="#F8FAFC" stroke="#93C5FD" strokeWidth="1.2" />
+    <line x1="42" y1="36" x2="70" y2="36" stroke="#1E3A8A" strokeWidth="3" strokeLinecap="round" />
+    <line x1="42" y1="46" x2="86" y2="46" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" />
+    <line x1="42" y1="56" x2="86" y2="56" stroke="#CBD5E1" strokeWidth="1.5" strokeLinecap="round" />
+    {/* Blue Security Shield */}
+    <path d="M 64 62 L 78 68 L 78 82 C 78 92 64 98 64 98 C 64 98 50 92 50 82 L 50 68 Z" fill="#2563EB" stroke="#93C5FD" strokeWidth="1.5" />
+    <path d="M 58 80 L 62 84 L 70 76" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
   </OrionSquircleBase>
 );
 
