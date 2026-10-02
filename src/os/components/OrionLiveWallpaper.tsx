@@ -177,7 +177,6 @@ export function OrionLiveWallpaper({
         data-target={target}
         className={cn(
           "orion-static-wallpaper absolute inset-0 overflow-hidden pointer-events-none select-none z-0 bg-[#02050a]",
-          "transition-all duration-700 ease-out",
           className
         )}
         aria-hidden="true"
@@ -188,23 +187,13 @@ export function OrionLiveWallpaper({
             src={imgSrc}
             alt={activeWallpaper?.name || `${target} Wallpaper`}
             onError={handleImageError}
-            className={cn(
-              "orion-static-wallpaper-img absolute inset-0 w-full h-full object-cover object-center",
-              "transition-all duration-700 ease-out",
-              hasOpenWindows 
-                ? "scale-[1.02] filter blur-[3px] brightness-[0.70] contrast-[1.05]" 
-                : "scale-100 filter blur-0 brightness-100 contrast-100"
-            )}
+            className="orion-static-wallpaper-img absolute inset-0 w-full h-full object-cover object-center scale-100 filter-none"
           />
         )}
 
         {/* 2. Pure Static Vignette & Cinematic Darkening */}
         <div 
-          className={cn(
-            "absolute inset-0 transition-opacity duration-700 pointer-events-none",
-            "bg-gradient-to-t from-black/60 via-transparent to-black/30",
-            hasOpenWindows ? "opacity-90" : "opacity-40"
-          )} 
+          className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/60 via-transparent to-black/30 opacity-50"
         />
 
         {/* 3. Radial Vignette for Depth */}

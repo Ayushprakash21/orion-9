@@ -400,24 +400,58 @@ export class DesktopWorkspaceService {
     organizationId?: string;
     environment?: 'DEMO' | 'LIVE';
     viewportHeight?: number;
+    viewportWidth?: number;
     isDirectory?: boolean;
     parentId?: string | null;
     path?: string;
     mimeType?: string | null;
     size?: number;
+    x?: number;
+    y?: number;
   }): Promise<DesktopShortcut> {
     const { activeTenant, activeEnv } = this.getContext(params.tenantId, params.environment);
     const existing = await this.listShortcuts(params.workspaceId, activeTenant, activeEnv);
-    const count = existing.length;
 
-    const effectiveHeight = DEFAULT_GRID_CONFIG.cellHeight + DEFAULT_GRID_CONFIG.gapY;
-    const effectiveWidth = DEFAULT_GRID_CONFIG.cellWidth + DEFAULT_GRID_CONFIG.gapX;
-    const maxRows = Math.max(1, Math.floor(((params.viewportHeight || 900) - DEFAULT_GRID_CONFIG.paddingY - DEFAULT_GRID_CONFIG.bottomPadding) / effectiveHeight));
+    // Duplicate prevention: if target already has a shortcut in this workspace
+    const already = existing.find(s => s.targetId === params.targetId && s.workspaceId === params.workspaceId);
+    if (already) {
+      if (params.x !== undefined && params.y !== undefined) {
+        return await this.updateShortcutPosition(
+          already.id,
+          params.x,
+          params.y,
+          params.viewportWidth || 1920,
+          params.viewportHeight || (params.viewportHeight || 900),
+          activeTenant,
+          activeEnv
+        );
+      }
+      return already;
+    }
 
-    const col = Math.floor(count / maxRows);
-    const row = count % maxRows;
-    const x = DEFAULT_GRID_CONFIG.paddingX + col * effectiveWidth;
-    const y = DEFAULT_GRID_CONFIG.paddingY + row * effectiveHeight;
+    let x: number;
+    let y: number;
+    if (params.x !== undefined && params.y !== undefined) {
+      const snapped = this.snapToGrid(
+        params.x,
+        params.y,
+        DEFAULT_GRID_CONFIG,
+        params.viewportWidth || 1920,
+        params.viewportHeight || (params.viewportHeight || 900)
+      );
+      x = snapped.x;
+      y = snapped.y;
+    } else {
+      const count = existing.length;
+      const effectiveHeight = DEFAULT_GRID_CONFIG.cellHeight + DEFAULT_GRID_CONFIG.gapY;
+      const effectiveWidth = DEFAULT_GRID_CONFIG.cellWidth + DEFAULT_GRID_CONFIG.gapX;
+      const maxRows = Math.max(1, Math.floor(((params.viewportHeight || 900) - DEFAULT_GRID_CONFIG.paddingY - DEFAULT_GRID_CONFIG.bottomPadding) / effectiveHeight));
+
+      const col = Math.floor(count / maxRows);
+      const row = count % maxRows;
+      x = DEFAULT_GRID_CONFIG.paddingX + col * effectiveWidth;
+      y = DEFAULT_GRID_CONFIG.paddingY + row * effectiveHeight;
+    }
 
     const isDirectory = params.isDirectory !== undefined ? Boolean(params.isDirectory) : (params.targetType === 'folder');
     
@@ -443,7 +477,7 @@ export class DesktopWorkspaceService {
     const now = new Date().toISOString();
 
     const shortcut: DesktopShortcut = {
-      id: `shortcut_${params.workspaceId}_${params.targetType}_${params.targetId}_${activeTenant}`,
+      id: `shortcut_${params.workspaceId}_${params.targetId}_${activeTenant}`,
       type: params.targetType,
       targetType: params.targetType,
       targetId: params.targetId,

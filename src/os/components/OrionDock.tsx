@@ -502,6 +502,7 @@ export function OrionDock() {
         {/* WINDOWS TASKBAR: START / LAUNCHER BUTTON */}
         <button
           type="button"
+          data-testid="dock-start-menu-button"
           aria-label={`${t('desktop.startMenu')} (All Applications)`}
           tabIndex={0}
           onClick={(e) => {

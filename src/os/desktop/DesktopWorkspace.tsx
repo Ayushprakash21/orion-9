@@ -1043,6 +1043,8 @@ export function DesktopWorkspace() {
           <div
             key={shortcut.id}
             data-shortcut-id={shortcut.id}
+            data-target-id={shortcut.targetId}
+            data-testid={`desktop-shortcut-${shortcut.targetId}`}
             style={{
               transform: `translate3d(${shortcut.x}px, ${shortcut.y}px, 0)`,
               width: `${DEFAULT_GRID_CONFIG.cellWidth}px`,
