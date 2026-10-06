@@ -109,6 +109,15 @@ export const OrionTabletAICopilot: React.FC = () => {
 
   const getLocalDataTools = () => {
     return {
+      getDashboardMetrics: () => ({
+        healthScore,
+        activeExceptionsCount: exceptions.length,
+        criticalExceptionsCount: criticalExceptions.length,
+        delayedShipmentsCount: delayedShipments.length,
+        totalInventoryUnits: totalOnHandUnits,
+        environment,
+        timestamp: new Date().toISOString()
+      }),
       getInventory: () => inventory.map(i => ({
         id: i.id,
         productId: i.productId,
@@ -117,6 +126,15 @@ export const OrionTabletAICopilot: React.FC = () => {
         safetyStock: i.safetyStock || 500,
         averageDailyDemand: i.averageDailyDemand || 25
       })),
+      getInventoryRisks: () => inventory.filter(i => (i.onHand || 0) <= (i.safetyStock || 500)).map(i => ({
+        productId: i.productId,
+        sku: i.productId,
+        onHand: i.onHand,
+        safetyStock: i.safetyStock || 500,
+        dailyDemand: i.averageDailyDemand || 25,
+        warehouseId: i.warehouseId
+      })),
+      getInventoryOptimization: () => [],
       getSuppliers: () => suppliers.map(s => ({
         id: s.id,
         name: s.name,
@@ -124,10 +142,22 @@ export const OrionTabletAICopilot: React.FC = () => {
         riskScore: s.score || 22,
         leadTimeDays: s.leadTime || 14
       })),
+      getSupplierPerformance: () => suppliers.map(s => ({
+        id: s.id,
+        name: s.name,
+        otif: s.otif || 94.2,
+        defectRate: s.defectRate || 0.012
+      })),
       getPurchaseOrders: () => purchaseOrders.map(po => ({
         id: po.id,
         supplierId: po.supplierId,
         status: po.status,
+        totalAmount: po.totalValue,
+        expectedDelivery: po.expectedDelivery
+      })),
+      getOverduePOs: () => purchaseOrders.filter(po => po.status === 'Overdue' || (po.expectedDelivery && new Date(po.expectedDelivery) < new Date() && po.status !== 'Received' && po.status !== 'Cancelled')).map(po => ({
+        id: po.id,
+        supplierId: po.supplierId,
         totalAmount: po.totalValue,
         expectedDelivery: po.expectedDelivery
       })),
@@ -138,6 +168,13 @@ export const OrionTabletAICopilot: React.FC = () => {
         status: s.status,
         delayDays: s.delayDays,
         origin: s.origin,
+        destination: s.destination
+      })),
+      getDelayedShipments: () => shipments.filter(s => s.status === 'Delayed' || s.delayDays > 0).map(s => ({
+        id: s.id,
+        trackingNumber: s.trackingNumber,
+        carrier: s.carrier,
+        delayDays: s.delayDays || 3,
         destination: s.destination
       })),
       getExceptions: () => exceptions.map(e => ({
@@ -154,7 +191,15 @@ export const OrionTabletAICopilot: React.FC = () => {
         status: d.status,
         category: d.sourceModule,
         confidence: d.confidence
-      }))
+      })),
+      getPendingDecisions: () => decisions.filter(d => d.status === 'DETECTED' || d.status === 'ANALYZING' || d.status === 'READY_FOR_REVIEW').map(d => ({
+        id: d.id,
+        title: d.title,
+        status: d.status
+      })),
+      getDemandForecasts: () => [],
+      getContracts: () => [],
+      getTransportationPlans: () => []
     };
   };
 

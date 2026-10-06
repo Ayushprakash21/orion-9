@@ -32,7 +32,7 @@ describe('ORION-9 Copilot Cognitive Loop Audit & Repair', () => {
       await agentMemoryManager.storeMemory({
         tenantId: 'tenant-alpha',
         agentId: 'copilot-agent',
-        type: 'OBSERVATION',
+        type: 'TASK',
         source: 'test',
         contentReference: { note: 'Supplier Acme OTIF dropped below 80%' },
         retentionPolicy: '30_DAYS',
@@ -41,7 +41,7 @@ describe('ORION-9 Copilot Cognitive Loop Audit & Repair', () => {
       await agentMemoryManager.storeMemory({
         tenantId: 'tenant-beta',
         agentId: 'copilot-agent',
-        type: 'OBSERVATION',
+        type: 'TASK',
         source: 'test',
         contentReference: { note: 'Supplier Zenith high OTIF' },
         retentionPolicy: '30_DAYS',

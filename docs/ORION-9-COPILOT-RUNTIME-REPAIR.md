@@ -122,7 +122,7 @@ orionAI.chooseTools(prompt) → /api/ai/choose-tools
     ↓  (falls back to deterministic local router if server unavailable)
 orionAI.generateInsight({ prompt, dataContext, specializedMode })
     ↓  (src/services/ai/AIProvider.ts)
-fetch('/api/ai/generate') → Gemini Enterprise
+fetch('/api/ai/insight') → Gemini Enterprise
     ↓  (fallback: deterministic SCM reasoning engine)
 Response → AICopilot message list
 ```
