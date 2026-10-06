@@ -189,11 +189,12 @@ export function OrionLiveWallpaper({
         <img
           src={imgSrc}
           alt={activeWallpaper?.name || `${target} Wallpaper`}
+          data-orion-wallpaper-image="true"
           onError={handleImageError}
           draggable={false}
           loading="eager"
           decoding="async"
-          className="orion-static-wallpaper-img absolute inset-0 w-full h-full object-cover object-center scale-100 filter-none select-none pointer-events-none"
+          className="orion-desktop-wallpaper-image orion-static-wallpaper-img absolute inset-0 w-full h-full object-cover object-center scale-100 filter-none select-none pointer-events-none"
         />
 
         {/* 2. Pure Static Vignette & Cinematic Darkening */}

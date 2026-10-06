@@ -252,7 +252,10 @@ export function OrionDesktop() {
     >
       
       {/* OS Layer 0: Premium Desktop Background & Live Supply Chain Network (Wallpaper) */}
-      <div className="orion-desktop-wallpaper-layer absolute inset-0 z-0 pointer-events-none">
+      <div 
+        data-orion-wallpaper-layer="true" 
+        className="orion-desktop-wallpaper-layer absolute inset-0 z-0 pointer-events-none"
+      >
         <OrionLiveWallpaper 
           hasOpenWindows={currentWorkspaceWindows.some(w => w.state !== 'minimized')}
           target="desktop"
