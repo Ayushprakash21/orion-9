@@ -70,9 +70,9 @@ describe('ORION-9 Wallpaper Target Save Inversion & Strict Isolation Suite', () 
     expect(DEFAULT_LOGIN_WALLPAPER.target).toBe('login');
     expect(DEFAULT_LOGIN_WALLPAPER.name).toBe('Dark Cinematic Earth Horizon');
 
-    expect(DEFAULT_DESKTOP_WALLPAPER.assetUrl).toBe('/wallpaper/orion9-desktop-minimal-graphite.png');
+    expect(DEFAULT_DESKTOP_WALLPAPER.assetUrl).toBe('/wallpaper/orion9-desktop-horizon-moon.png');
     expect(DEFAULT_DESKTOP_WALLPAPER.target).toBe('desktop');
-    expect(DEFAULT_DESKTOP_WALLPAPER.name).toBe('Orion Graphite Minimal');
+    expect(DEFAULT_DESKTOP_WALLPAPER.name).toBe("Earth's Luminous Cosmic Horizon");
   });
 
   it('TEST 2: Saving and applying to LOGIN target updates LOGIN and leaves DESKTOP untouched', async () => {

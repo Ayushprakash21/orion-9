@@ -1,18 +1,36 @@
+/**
+ * ORION-9 CANONICAL OS SHUTDOWN SCREEN
+ * Controlled power teardown with restrained red accents, process termination status,
+ * and clean system halt.
+ */
+
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { BrandLogo } from '../../components/brand/BrandLogo';
 import { shutdownVariants } from '../motion/OrionMotionVariants';
-import { useIsReducedMotion } from '../motion/OrionMotion';
+import { useIsReducedMotion, ORION_EASE } from '../motion/OrionMotion';
+import { OrionLifecycleBackdrop } from '../lifecycle/OrionLifecycleBackdrop';
+import { OrionLifecycleCore } from '../lifecycle/OrionLifecycleCore';
+import { OrionLifecycleStatusList, LifecycleStatusItem } from '../lifecycle/OrionLifecycleStatusList';
+import { OrionLifecycleProgress } from '../lifecycle/OrionLifecycleProgress';
 
 interface OrionShutdownScreenProps {
   onComplete?: () => void;
 }
 
+const SHUTDOWN_SERVICES = [
+  { id: 'processes', code: '01', label: 'Stopping active processes', readyMs: 400 },
+  { id: 'telemetry', code: '02', label: 'Disconnecting telemetry', readyMs: 900 },
+  { id: 'state', code: '03', label: 'Saving system state', readyMs: 1400 },
+  { id: 'fabric', code: '04', label: 'Closing event fabric', readyMs: 1800 },
+  { id: 'runtime', code: '05', label: 'Releasing runtime', readyMs: 2100 },
+  { id: 'power', code: '06', label: 'Power state', readyMs: 2300 },
+];
+
 export const OrionShutdownScreen: React.FC<OrionShutdownScreenProps> = ({ onComplete }) => {
   const isReduced = useIsReducedMotion();
 
   const [phase, setPhase] = useState<'initial' | 'processes' | 'telemetry' | 'state' | 'closing' | 'terminated'>('initial');
-  const [progress, setProgress] = useState(10);
+  const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
     if (isReduced) {
@@ -23,22 +41,18 @@ export const OrionShutdownScreen: React.FC<OrionShutdownScreenProps> = ({ onComp
 
     const t1 = setTimeout(() => {
       setPhase('processes');
-      setProgress(35);
     }, 400);
 
     const t2 = setTimeout(() => {
       setPhase('telemetry');
-      setProgress(65);
     }, 900);
 
     const t3 = setTimeout(() => {
       setPhase('state');
-      setProgress(90);
     }, 1400);
 
     const t4 = setTimeout(() => {
       setPhase('closing');
-      setProgress(100);
     }, 1900);
 
     const t5 = setTimeout(() => {
@@ -46,16 +60,24 @@ export const OrionShutdownScreen: React.FC<OrionShutdownScreenProps> = ({ onComp
       if (onComplete) onComplete();
     }, 2400);
 
+    const interval = setInterval(() => {
+      setElapsed(prev => prev + 100);
+    }, 100);
+
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);
       clearTimeout(t4);
       clearTimeout(t5);
+      clearInterval(interval);
     };
   }, [onComplete, isReduced]);
 
-  const getStatusText = () => {
+  const pct = Math.min(100, Math.floor((elapsed / 2200) * 100));
+  const isHalted = phase === 'closing' || phase === 'terminated';
+
+  const getStatusSubtitle = () => {
     switch (phase) {
       case 'initial':
       case 'processes':
@@ -72,34 +94,46 @@ export const OrionShutdownScreen: React.FC<OrionShutdownScreenProps> = ({ onComp
     }
   };
 
+  const statusItems: LifecycleStatusItem[] = SHUTDOWN_SERVICES.map(svc => {
+    const isReady = elapsed >= svc.readyMs;
+    return {
+      id: svc.id,
+      code: svc.code,
+      label: svc.label,
+      status: isReady ? (svc.id === 'power' ? 'OFFLINE' : 'HALTED') : 'CLOSING',
+      isReady,
+      isVisible: true,
+    };
+  });
+
   return (
     <motion.main
       variants={shutdownVariants}
       initial="initial"
       animate={phase === 'terminated' || phase === 'closing' ? 'closing' : 'initial'}
-      className="fixed inset-0 w-screen h-[100dvh] bg-[#07090D] z-[999999] flex flex-col items-center justify-center font-sans overflow-hidden select-none"
+      transition={{ duration: isReduced ? 0.1 : 0.4, ease: ORION_EASE }}
+      className="fixed inset-0 w-screen h-[100dvh] z-[999999] flex flex-col items-center justify-center font-sans overflow-hidden select-none"
       role="status"
       aria-live="polite"
     >
+      {/* Unified Atmospheric OS Backdrop with Shutdown Accent */}
+      <OrionLifecycleBackdrop variant="shutdown" />
+
       <div className="relative z-10 w-full max-w-sm flex flex-col items-center text-center px-6 pointer-events-none">
-        {/* Centered Authoritative Hero Logo */}
+        {/* Central Rotating Power Core with Subdued Red Shutdown Highlight */}
         <motion.div
           animate={{ opacity: phase === 'terminated' ? 0 : 1 }}
           transition={{ duration: 0.6 }}
-          className="relative mb-6"
+          className="mb-4"
         >
-          <BrandLogo
-            sizePreset="xl"
-            variant="mark"
-            className="justify-center h-24 sm:h-28"
-          />
+          <OrionLifecycleCore status="shutdown" size="md" />
         </motion.div>
 
         {/* Primary Subdued Red System Title */}
         <motion.h2
           animate={{ opacity: phase === 'terminated' ? 0 : 1 }}
           transition={{ duration: 0.6 }}
-          className="text-xs sm:text-sm font-semibold tracking-[0.25em] text-red-400 uppercase mb-2"
+          className="text-sm sm:text-base font-semibold tracking-[0.25em] text-red-400 uppercase mb-1"
         >
           System Shutdown
         </motion.h2>
@@ -108,33 +142,33 @@ export const OrionShutdownScreen: React.FC<OrionShutdownScreenProps> = ({ onComp
         <motion.p
           animate={{ opacity: phase === 'terminated' ? 0 : 1 }}
           transition={{ duration: 0.6 }}
-          className="text-xs text-neutral-400 font-normal tracking-wide mb-8 h-5 flex items-center justify-center"
+          className="text-xs text-neutral-400 font-normal mb-6 h-5 flex items-center justify-center"
         >
-          {getStatusText()}
+          {getStatusSubtitle()}
         </motion.p>
 
-        {/* Subtle Horizontal Progress Line */}
+        {/* Structured Shutdown Services */}
+        <div className="w-full max-w-[300px] mb-6">
+          <OrionLifecycleStatusList
+            title="SYSTEM SHUTDOWN"
+            items={statusItems}
+            allReady={isHalted}
+          />
+        </div>
+
+        {/* Restrained Red Progress Bar */}
         <motion.div
           animate={{ opacity: phase === 'terminated' ? 0 : 1 }}
           transition={{ duration: 0.6 }}
-          className="w-full max-w-[260px] h-1 bg-white/10 rounded-full overflow-hidden mb-3"
+          className="w-full max-w-[280px]"
         >
-          <motion.div
-            className="h-full bg-red-500 rounded-full"
-            initial={{ width: '10%' }}
-            animate={{ width: `${progress}%` }}
-            transition={{ ease: 'easeOut', duration: 0.3 }}
+          <OrionLifecycleProgress
+            progress={pct}
+            label="POWER BUS OFFLINE"
+            readyLabel="SYSTEM OFFLINE"
+            variant="red"
           />
         </motion.div>
-
-        {/* Restrained Percentage */}
-        <motion.span
-          animate={{ opacity: phase === 'terminated' ? 0 : 1 }}
-          transition={{ duration: 0.6 }}
-          className="font-mono text-[10px] text-neutral-500 tracking-widest uppercase"
-        >
-          {progress}%
-        </motion.span>
       </div>
     </motion.main>
   );

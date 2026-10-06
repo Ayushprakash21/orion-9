@@ -13,6 +13,12 @@ import {
   DEFAULT_DESKTOP_WALLPAPER 
 } from '../../repositories/WallpaperRepository';
 import { WallpaperRecord } from '../../types/wallpaper';
+import { preloadCoreSystemAssets } from '../wallpaper/wallpaperPreload';
+
+// Ensure system wallpapers are eagerly preloaded
+if (typeof window !== 'undefined') {
+  preloadCoreSystemAssets();
+}
 
 /**
  * Wallpaper Error Boundary:

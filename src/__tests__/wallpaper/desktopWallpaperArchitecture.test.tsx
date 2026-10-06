@@ -10,9 +10,9 @@ import {
 } from '../../repositories/WallpaperRepository';
 
 describe('ORION-9 Desktop Wallpaper Architectural Contract', () => {
-  it('1. DEFAULT_DESKTOP_WALLPAPER has target="desktop" and canonical minimal graphite asset', () => {
+  it('1. DEFAULT_DESKTOP_WALLPAPER has target="desktop" and canonical horizon moon asset', () => {
     expect(DEFAULT_DESKTOP_WALLPAPER.target).toBe('desktop');
-    expect(DEFAULT_DESKTOP_WALLPAPER.assetUrl).toBe('/wallpaper/orion9-desktop-minimal-graphite.png');
+    expect(DEFAULT_DESKTOP_WALLPAPER.assetUrl).toBe('/wallpaper/orion9-desktop-horizon-moon.png');
     expect(DEFAULT_DESKTOP_WALLPAPER.isSystemDefault).toBe(true);
   });
 
@@ -41,7 +41,7 @@ describe('ORION-9 Desktop Wallpaper Architectural Contract', () => {
     expect(html).toContain('inset-0');
 
     // Must resolve to default desktop asset URL
-    expect(html).toContain('/wallpaper/orion9-desktop-minimal-graphite.png');
+    expect(html).toContain('/wallpaper/orion9-desktop-horizon-moon.png');
   });
 
   it('3. Target isolation: getActiveWallpaper("desktop") does not return login wallpaper', async () => {

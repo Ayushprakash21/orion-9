@@ -24,16 +24,16 @@ const SELECTIONS_COLLECTION = 'wallpaperSelections';
 
 /**
  * DEFAULT HOME / DESKTOP WALLPAPER:
- * "Orion Graphite Minimal" (Target: HOME / DESKTOP)
+ * "Earth's Luminous Cosmic Horizon" (Target: HOME / DESKTOP)
  */
 export const DEFAULT_DESKTOP_WALLPAPER: WallpaperRecord = {
-  wallpaperId: 'sys-orion-graphite-minimal',
+  wallpaperId: 'sys-orion-desktop-default',
   tenantId: 'global',
   ownerType: 'SYSTEM',
   ownerId: 'system',
-  name: 'Orion Graphite Minimal',
-  assetUrl: '/wallpaper/orion9-desktop-minimal-graphite.png',
-  thumbnailUrl: '/wallpaper/orion9-desktop-minimal-graphite.png',
+  name: "Earth's Luminous Cosmic Horizon",
+  assetUrl: '/wallpaper/orion9-desktop-horizon-moon.png',
+  thumbnailUrl: '/wallpaper/orion9-desktop-horizon-moon.png',
   source: 'SYSTEM',
   target: 'desktop',
   aiGenerated: false,

@@ -65,7 +65,7 @@ describe('ORION-9 Wallpaper Studio & Live Wallpaper Engine', () => {
 
       await wallpaperRepository.resetToSystemDefault('user-test');
       active = await wallpaperRepository.getActiveWallpaper('user-test');
-      expect(active.wallpaperId).toBe('sys-orion-graphite-minimal');
+      expect(active.wallpaperId).toBe('sys-orion-desktop-default');
     });
   });
 

@@ -73,12 +73,13 @@ describe('ORION-9 Single Authoritative Environment & Wallpaper Invariants', () =
     }
   });
 
-  it('5. verifies primary system default wallpaper is Orion Graphite Minimal (no gold SCM world map)', () => {
+  it('5. verifies primary system default wallpaper is Earth Luminous Cosmic Horizon (no gold SCM world map)', () => {
     const primaryDefault = SYSTEM_DEFAULT_WALLPAPERS[0];
-    expect(primaryDefault.wallpaperId).toBe('sys-orion-graphite-minimal');
-    expect(primaryDefault.name).toMatch(/Orion Graphite Minimal/);
+    expect(primaryDefault.wallpaperId).toBe('sys-orion-desktop-default');
+    expect(primaryDefault.name).toMatch(/Earth's Luminous Cosmic Horizon/);
     expect(primaryDefault.name).not.toContain('SCM Global Logistics Network');
     expect(primaryDefault.assetUrl).not.toContain('global-network.jpg');
+    expect(primaryDefault.assetUrl).toBe('/wallpaper/orion9-desktop-horizon-moon.png');
   });
 
   it('6. verifies wallpaper repository persists and retrieves active selection', async () => {
