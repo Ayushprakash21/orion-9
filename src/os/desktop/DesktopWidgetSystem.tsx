@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { DesktopWidgetRecord, DesktopWidgetType, WidgetSize } from '../../core/filesystem/types';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { HealthService } from '../../operations/HealthService';
@@ -33,7 +34,11 @@ import {
   Minimize2,
   Settings,
   GripHorizontal,
-  Plus
+  Plus,
+  MoreHorizontal,
+  Trash2,
+  ExternalLink,
+  Sliders,
 } from 'lucide-react';
 
 export interface WidgetComponentProps {
@@ -55,7 +60,6 @@ export function DesktopWidgetSystem({
   const { showToast } = useToast();
   const [dbEnv, setDbEnv] = useState<'DEMO' | 'LIVE'>(() => dbManager.getEnvironment());
 
-  // Real data states
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [healthData, setHealthData] = useState<{ liveness: boolean; readiness: boolean; latency: number }>({
     liveness: true,
@@ -65,6 +69,59 @@ export function DesktopWidgetSystem({
   const [noteText, setNoteText] = useState<string>(() => widget.config?.noteText || 'Strategic Objective: Q3 Global Supply Chain Optimization');
   const [copilotInput, setCopilotInput] = useState<string>('');
   const [recentFileCount, setRecentFileCount] = useState<number>(0);
+  const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close context menu on outside click or escape
+  useEffect(() => {
+    if (!menuPos) return;
+    const handleDown = (e: MouseEvent | TouchEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuPos(null);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuPos(null);
+    };
+    window.addEventListener('mousedown', handleDown);
+    window.addEventListener('touchstart', handleDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('mousedown', handleDown);
+      window.removeEventListener('touchstart', handleDown);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [menuPos]);
+
+  const getTargetAppId = (): string | null => {
+    switch (widget.widgetType) {
+      case 'control_tower':
+        return 'control-tower';
+      case 'supply_chain_pulse':
+        return 'command-center';
+      case 'inventory_health':
+        return 'inventory';
+      case 'ai_copilot':
+        return 'orion-copilot';
+      case 'notes':
+        return 'notepad';
+      case 'system_health':
+      case 'clock':
+      case 'calendar':
+        return 'settings';
+      default:
+        return null;
+    }
+  };
+
+  const handleSafeRemove = (e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+    setMenuPos(null);
+    onRemove(widget.id);
+  };
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -393,54 +450,172 @@ export function DesktopWidgetSystem({
     }
   };
 
-  return (
-    <div
-      data-testid="desktop-widget"
-      data-widget-id={widget.id}
-      data-widget-type={widget.widgetType}
-      style={{
-        position: 'absolute',
-        left: `${widget.x}px`,
-        top: `${widget.y}px`,
-        width: `${widget.width}px`,
-        height: `${widget.height}px`,
-        zIndex: widget.zIndex || 10,
-      }}
-      className={`rounded-2xl backdrop-blur-2xl bg-[#12151a]/90 border transition-all duration-200 p-3.5 flex flex-col justify-between shadow-2xl select-none group ${
-        isEditMode
-          ? 'border-sky-500/60 ring-1 ring-sky-500/40 shadow-xl'
-          : 'border-white/[0.08] hover:border-white/[0.16]'
-      }`}
-    >
-      {/* Widget Drag Header */}
-      {isEditMode && (
-        <div
-          onPointerDown={(e) => onMoveStart(e, widget)}
-          className="absolute -top-3 left-1/2 -translate-x-1/2 bg-sky-600 text-white px-3 py-0.5 rounded-full text-[10px] font-semibold tracking-wider flex items-center gap-1 cursor-grab active:cursor-grabbing z-30 shadow-md"
-        >
-          <GripHorizontal className="w-3 h-3" />
-          <span>DRAG</span>
-        </div>
-      )}
+  const targetApp = getTargetAppId();
 
-      {/* Edit Mode Remove & Controls */}
-      {isEditMode && (
-        <div className="absolute -top-2 -right-2 z-30 flex items-center gap-1">
+  return (
+    <>
+      <div
+        data-testid="desktop-widget"
+        data-widget-id={widget.id}
+        data-widget-type={widget.widgetType}
+        style={{
+          position: 'absolute',
+          left: `${widget.x}px`,
+          top: `${widget.y}px`,
+          width: `${widget.width}px`,
+          height: `${widget.height}px`,
+          zIndex: widget.zIndex || 10,
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setMenuPos({
+            x: Math.min(e.clientX, typeof window !== 'undefined' ? window.innerWidth - 200 : e.clientX),
+            y: Math.min(e.clientY, typeof window !== 'undefined' ? window.innerHeight - 200 : e.clientY),
+          });
+        }}
+        className={`rounded-2xl backdrop-blur-2xl bg-[#12151a]/90 border transition-all duration-200 p-3.5 flex flex-col justify-between shadow-2xl select-none group ${
+          isEditMode
+            ? 'border-sky-500/60 ring-1 ring-sky-500/40 shadow-xl'
+            : 'border-white/[0.08] hover:border-white/[0.16]'
+        }`}
+      >
+        {/* Widget Drag Header in Edit Mode */}
+        {isEditMode && (
+          <div
+            onPointerDown={(e) => onMoveStart(e, widget)}
+            className="absolute -top-3 left-1/2 -translate-x-1/2 bg-sky-600 text-white px-3 py-0.5 rounded-full text-[10px] font-semibold tracking-wider flex items-center gap-1 cursor-grab active:cursor-grabbing z-30 shadow-md"
+          >
+            <GripHorizontal className="w-3 h-3" />
+            <span>DRAG</span>
+          </div>
+        )}
+
+        {/* Edit Mode Remove Control */}
+        {isEditMode && (
+          <div className="absolute -top-2 -right-2 z-30 flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handleSafeRemove}
+              className="w-6 h-6 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-110 cursor-pointer"
+              title="Remove Widget"
+              aria-label="Remove Widget"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Normal Mode Hover / Focus Controls */}
+        {!isEditMode && (
+          <div
+            className="absolute top-2 right-2 z-30 flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150 pointer-events-auto"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              data-action="widget-options"
+              onClick={(e) => {
+                e.stopPropagation();
+                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                setMenuPos({ x: Math.max(16, rect.left - 160), y: rect.bottom + 4 });
+              }}
+              className="w-6 h-6 rounded-lg bg-white/[0.08] hover:bg-white/[0.16] text-white/70 hover:text-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
+              title="Widget Options"
+              aria-label="Widget Options"
+            >
+              <MoreHorizontal className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              data-action="remove-widget"
+              onClick={handleSafeRemove}
+              className="w-6 h-6 rounded-lg bg-white/[0.08] hover:bg-rose-500/80 text-white/70 hover:text-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
+              title="Remove Widget"
+              aria-label="Remove Widget"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Main Widget Card Content */}
+        <div className="w-full h-full relative z-10 overflow-hidden">
+          {renderWidgetContent()}
+        </div>
+      </div>
+
+      {/* Widget Context Menu */}
+      {menuPos && typeof document !== 'undefined' && createPortal(
+        <div
+          ref={menuRef}
+          data-testid="widget-context-menu"
+          style={{
+            position: 'fixed',
+            left: `${menuPos.x}px`,
+            top: `${menuPos.y}px`,
+            zIndex: 2147483600,
+          }}
+          className="bg-[#14171d]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl p-1 w-48 text-xs text-white select-none animate-in fade-in zoom-in-95 pointer-events-auto"
+          onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <div className="px-3 py-1.5 text-[10px] font-bold text-white/50 uppercase tracking-wider border-b border-white/10 mb-1">
+            {widget.title}
+          </div>
+
+          {targetApp && (
+            <button
+              type="button"
+              onClick={() => {
+                setMenuPos(null);
+                openApplication(targetApp);
+              }}
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-white text-left transition-colors cursor-pointer"
+            >
+              <ExternalLink className="w-3.5 h-3.5 text-sky-400" />
+              <span>Open in Application</span>
+            </button>
+          )}
+
+          <div className="px-2.5 py-1 text-[10px] text-white/40 font-semibold uppercase tracking-wider">
+            Resize
+          </div>
+          <div className="grid grid-cols-3 gap-1 px-1 mb-1">
+            {(['SMALL', 'MEDIUM', 'LARGE'] as WidgetSize[]).map((sz) => (
+              <button
+                key={sz}
+                type="button"
+                onClick={() => {
+                  setMenuPos(null);
+                  onResize(widget.id, sz);
+                }}
+                className={`py-1 text-center rounded text-[10px] font-medium transition-colors ${
+                  widget.size === sz
+                    ? 'bg-sky-600 text-white font-bold'
+                    : 'bg-white/5 hover:bg-white/10 text-white/70'
+                }`}
+              >
+                {sz[0]}
+              </button>
+            ))}
+          </div>
+
+          <div className="h-px bg-white/10 my-1 mx-1" />
+
           <button
             type="button"
-            onClick={() => onRemove(widget.id)}
-            className="w-6 h-6 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-110"
-            title="Remove Widget"
+            data-action="menu-remove-widget"
+            onClick={handleSafeRemove}
+            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400 text-left transition-colors cursor-pointer"
           >
-            <X className="w-3.5 h-3.5" />
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Remove Widget</span>
           </button>
-        </div>
+        </div>,
+        document.body
       )}
-
-      {/* Main Widget Card Content */}
-      <div className="w-full h-full relative z-10 overflow-hidden">
-        {renderWidgetContent()}
-      </div>
-    </div>
+    </>
   );
 }

@@ -591,7 +591,8 @@ export class DesktopWorkspaceService {
   }
 
   /**
-   * Ensure baseline default desktop widgets exist for workspace.
+   * Ensure baseline default desktop widgets exist for workspace on first initialization.
+   * If widgets were previously initialized and then removed by the user, they will NOT be auto-recreated.
    */
   public async ensureDefaultWidgets(
     workspaceId: WorkspaceId = 'operations',
@@ -600,8 +601,40 @@ export class DesktopWorkspaceService {
   ): Promise<import('./types').DesktopWidgetRecord[]> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const existing = await this.listWidgets(workspaceId, activeTenant, activeEnv);
-    if (existing.length > 0) return existing;
+    
+    // Check if defaults have already been initialized for this workspace
+    const initMarkerId = `init_${workspaceId}_${activeEnv}`;
+    const initMarker = await scmPersistenceService.getRecord<{ id: string; initialized: boolean; tenantId: string }>(
+      'desktop_widget_state',
+      activeTenant,
+      initMarkerId
+    );
 
+    if (initMarker || existing.length > 0) {
+      if (!initMarker) {
+        // Mark as initialized if existing widgets were present
+        await scmPersistenceService.saveRecord('desktop_widget_state', initMarkerId, {
+          id: initMarkerId,
+          initialized: true,
+          tenantId: activeTenant,
+          environment: activeEnv,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      return existing;
+    }
+
+    return await this.seedDefaultWidgets(workspaceId, activeTenant, activeEnv);
+  }
+
+  /**
+   * Helper to seed standard default widgets for workspace.
+   */
+  private async seedDefaultWidgets(
+    workspaceId: WorkspaceId,
+    activeTenant: string,
+    activeEnv: 'DEMO' | 'LIVE'
+  ): Promise<import('./types').DesktopWidgetRecord[]> {
     const now = new Date().toISOString();
     const vWidth = typeof window !== 'undefined' ? window.innerWidth : 1440;
     const calcX = (wWidth: number) => Math.max(16, vWidth - wWidth - 24);
@@ -669,7 +702,37 @@ export class DesktopWorkspaceService {
     for (const w of defaults) {
       await scmPersistenceService.saveRecord('desktop_widgets', w.id, w);
     }
+
+    const initMarkerId = `init_${workspaceId}_${activeEnv}`;
+    await scmPersistenceService.saveRecord('desktop_widget_state', initMarkerId, {
+      id: initMarkerId,
+      initialized: true,
+      tenantId: activeTenant,
+      environment: activeEnv,
+      updatedAt: now,
+    });
+
     return defaults;
+  }
+
+  /**
+   * Explicitly restore default widgets for workspace (user action).
+   */
+  public async restoreDefaultWidgets(
+    workspaceId: WorkspaceId = 'operations',
+    tenantId?: string,
+    environment?: 'DEMO' | 'LIVE'
+  ): Promise<import('./types').DesktopWidgetRecord[]> {
+    const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
+    
+    // Remove existing widgets for this workspace
+    const existing = await this.listWidgets(workspaceId, activeTenant, activeEnv);
+    for (const w of existing) {
+      await scmPersistenceService.deleteRecord('desktop_widgets', activeTenant, w.id);
+    }
+
+    // Re-seed defaults
+    return await this.seedDefaultWidgets(workspaceId, activeTenant, activeEnv);
   }
 }
 

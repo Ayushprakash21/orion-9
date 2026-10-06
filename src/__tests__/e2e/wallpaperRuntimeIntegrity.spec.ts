@@ -154,7 +154,7 @@ test.describe('ORION-9 Wallpaper Runtime Integrity & Target Isolation E2E Suite'
     await expect(desktopContainer).toBeVisible();
 
     const desktopSrc = await desktopContainer.locator('.orion-static-wallpaper-img').getAttribute('src');
-    expect(desktopSrc).toContain('orion9-desktop-horizon-moon.png');
+    expect(desktopSrc).toContain('orion9-desktop-minimal-graphite.png');
 
     // Trigger an active wallpaper change event on 'login' target
     await page.evaluate(() => {

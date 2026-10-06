@@ -25,7 +25,8 @@ import {
   StickyNote,
   Zap,
   X,
-  Plus
+  Plus,
+  RotateCcw
 } from 'lucide-react';
 
 export interface WidgetGalleryItem {
@@ -116,16 +117,18 @@ export interface DesktopWidgetGalleryModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddWidget: (item: WidgetGalleryItem) => void;
+  onRestoreDefaults?: () => void;
 }
 
 export function DesktopWidgetGalleryModal({
   isOpen,
   onClose,
   onAddWidget,
+  onRestoreDefaults,
 }: DesktopWidgetGalleryModalProps) {
-  if (!isOpen || typeof document === 'undefined') return null;
+  if (!isOpen) return null;
 
-  return createPortal(
+  const content = (
     <div
       data-testid="widget-gallery-backdrop"
       style={{ zIndex: 2147483640 }}
@@ -198,7 +201,21 @@ export function DesktopWidgetGalleryModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-white/10 bg-white/[0.02] flex justify-end">
+        <div className="px-6 py-3.5 border-t border-white/10 bg-white/[0.02] flex items-center justify-between">
+          {onRestoreDefaults ? (
+            <button
+              type="button"
+              data-action="restore-default-widgets"
+              onClick={() => {
+                onRestoreDefaults();
+                onClose();
+              }}
+              className="px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-os-text-secondary hover:text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer border border-white/[0.08]"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Restore Default Widgets</span>
+            </button>
+          ) : <div />}
           <button
             type="button"
             onClick={onClose}
@@ -208,7 +225,8 @@ export function DesktopWidgetGalleryModal({
           </button>
         </div>
       </div>
-    </div>,
-    document.body
+    </div>
   );
+
+  return typeof document !== 'undefined' ? createPortal(content, document.body) : content;
 }

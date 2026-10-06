@@ -46,6 +46,7 @@ import {
   FolderInput,
   LayoutGrid,
   Check,
+  RotateCcw,
 } from 'lucide-react';
 
 /**
@@ -278,6 +279,16 @@ export function DesktopWorkspace() {
     await desktopWorkspaceService.saveWidget(newWidget);
     setWidgets((prev) => [...prev, newWidget]);
     showToast(`Added ${item.title} to desktop`, 'success');
+  };
+
+  const handleRestoreDefaults = async () => {
+    try {
+      const restored = await desktopWorkspaceService.restoreDefaultWidgets(activeWorkspaceId);
+      setWidgets(restored);
+      showToast('Default widgets restored', 'success', 'Desktop');
+    } catch (e: any) {
+      showToast(`Failed to restore defaults: ${e?.message || 'Error'}`, 'error', 'Desktop');
+    }
   };
 
   // Listen for refresh event
@@ -1001,6 +1012,16 @@ export function DesktopWorkspace() {
               <Plus className="w-3.5 h-3.5 text-emerald-400" />
               <span>New Document</span>
             </button>
+            <button
+              type="button"
+              data-action="banner-restore-defaults"
+              onClick={handleRestoreDefaults}
+              className="px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] text-os-text-secondary hover:text-white font-medium text-xs flex items-center gap-1.5 transition-all cursor-pointer border border-white/[0.08]"
+              title="Restore Default Widgets"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Restore Defaults</span>
+            </button>
           </div>
           <div className="h-4 w-px bg-white/20" />
           <button
@@ -1556,6 +1577,7 @@ export function DesktopWorkspace() {
         isOpen={isWidgetGalleryOpen}
         onClose={() => setIsWidgetGalleryOpen(false)}
         onAddWidget={handleAddWidgetFromGallery}
+        onRestoreDefaults={handleRestoreDefaults}
       />
     </div>
   );
