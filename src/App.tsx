@@ -324,6 +324,15 @@ function AppBootstrap() {
 
   
   const renderContent = () => {
+    // Development / Diagnostic Preview Mode:
+    if (typeof window !== 'undefined') {
+      const preview = new URLSearchParams(window.location.search).get('preview');
+      if (preview === 'shutdown') return <OrionShutdownScreen onComplete={() => {}} />;
+      if (preview === 'logout') return <OrionLogoutScreen onComplete={() => {}} />;
+      if (preview === 'world-entry') return <OrionWorldEntrySequence onComplete={() => {}} />;
+      if (preview === 'restart') return <OrionRestartScreen onComplete={() => {}} />;
+    }
+
     // 1. SYSTEM HALTED / SHUT DOWN:
     if (bootState === 'SHUTTING_DOWN') {
       return (
