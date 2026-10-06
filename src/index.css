@@ -49,6 +49,8 @@
 
 :root, :root.dark {
   --orion-dock-safe-height: 76px;
+  --orion-mobile-nav-height: 56px;
+  --orion-mobile-header-height: 54px;
   /* DARK MODE (Orion Aurora Deep Charcoal/Graphite) */
   --os-bg: #0c0e11;
   --os-surface: #12151a;
@@ -106,6 +108,8 @@
 
 :root.light {
   --orion-dock-safe-height: 76px;
+  --orion-mobile-nav-height: 56px;
+  --orion-mobile-header-height: 54px;
   /* LIGHT MODE (Orion Aurora Warm Clean Porcelain/Slate) */
   --os-bg: #F8FAFC;
   --os-surface: #FFFFFF;

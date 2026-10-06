@@ -17,7 +17,7 @@ const OrionMobileContentRouter: React.FC = () => {
 
   return (
     <main
-      className={`flex-1 w-full max-w-full overflow-y-auto overflow-x-hidden pb-[calc(60px+env(safe-area-inset-bottom,8px))] overscroll-contain ${isAppView ? '' : 'px-3.5 pt-3'}`}
+      className={`flex-1 w-full max-w-full overflow-y-auto overflow-x-hidden pb-[calc(var(--orion-mobile-nav-height,56px)+env(safe-area-inset-bottom,8px))] overscroll-contain ${isAppView ? '' : 'px-3.5 pt-3'}`}
     >
       {activeTab === 'home' && <OrionMobileHome />}
       {activeTab === 'control' && <OrionMobileControlTower />}
@@ -41,7 +41,7 @@ export const OrionMobileShell: React.FC = () => {
           className="fixed inset-0 pointer-events-none z-0 opacity-10 overflow-hidden"
           aria-hidden="true"
         >
-          <OrionLiveWallpaper hasOpenWindows={false} showLogo={false} />
+          <OrionLiveWallpaper target="desktop" hasOpenWindows={false} showLogo={false} />
         </div>
 
         {/* Mobile Header (Fixed/Sticky Top - Layer 30) */}

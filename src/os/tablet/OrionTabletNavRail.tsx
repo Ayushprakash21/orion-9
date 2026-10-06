@@ -46,11 +46,11 @@ export const OrionTabletNavRail: React.FC<{ isLandscapeMode: boolean }> = ({ isL
   };
 
   if (isLandscapeMode) {
-    // Left Navigation Rail for Tablet Landscape (68px wide)
+    // Left Navigation Rail for Tablet Landscape (76px wide, ergonomic)
     return (
       <nav 
         data-orion-tablet-nav="rail"
-        className="w-[68px] bg-os-surface/95 backdrop-blur-md border-r border-os-border flex flex-col items-center justify-between py-4 shrink-0 select-none z-30"
+        className="w-[76px] bg-os-surface/95 backdrop-blur-md border-r border-os-border flex flex-col items-center justify-between py-4 shrink-0 select-none z-40 relative pointer-events-auto"
         aria-label="Tablet Landscape Navigation"
       >
         <div className="flex flex-col items-center gap-3 w-full">
@@ -63,7 +63,7 @@ export const OrionTabletNavRail: React.FC<{ isLandscapeMode: boolean }> = ({ isL
                 type="button"
                 role="button"
                 onClick={() => handleSelectTab(item.id)}
-                className={`relative w-12 h-12 rounded-2xl flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all cursor-pointer min-h-[48px] min-w-[48px] ${
+                className={`relative w-14 h-14 rounded-2xl flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all cursor-pointer min-h-[48px] min-w-[48px] ${
                   isActive
                     ? 'bg-white/[0.12] text-white border border-white/[0.1] shadow-xs'
                     : item.highlight
@@ -106,7 +106,7 @@ export const OrionTabletNavRail: React.FC<{ isLandscapeMode: boolean }> = ({ isL
   return (
     <nav 
       data-orion-tablet-nav="bottom"
-      className="bg-os-surface/95 backdrop-blur-md border-t border-os-border h-[60px] px-6 flex items-center justify-around shrink-0 select-none z-30 pb-[env(safe-area-inset-bottom,0px)]"
+      className="bg-os-surface/95 backdrop-blur-md border-t border-os-border h-[60px] px-6 flex items-center justify-around shrink-0 select-none z-40 relative pointer-events-auto pb-[env(safe-area-inset-bottom,0px)]"
       aria-label="Tablet Portrait Navigation"
     >
       {navItems.map(item => {

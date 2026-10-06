@@ -8,10 +8,9 @@ import { TabletNavigationProvider } from './OrionTabletNavigation';
 import { OrionTabletHeader } from './OrionTabletHeader';
 import { OrionTabletNavRail } from './OrionTabletNavRail';
 import { OrionTabletContentRouter } from './OrionTabletContentRouter';
+import { OrionLiveWallpaper } from '../components/OrionLiveWallpaper';
 import { useResponsiveLayout } from '../../lib/useResponsiveLayout';
 import { useAuth } from '../../store/AuthContext';
-
-const WALLPAPER_IMAGE = '/orion-desktop-global-network.jpg';
 
 function TabletShellLayout() {
   const { isLandscape } = useResponsiveLayout();
@@ -19,42 +18,38 @@ function TabletShellLayout() {
   return (
     <div 
       data-orion-tablet-shell="true"
-      className="h-[100dvh] min-h-[100dvh] max-h-[100dvh] overflow-hidden bg-[#07090e] text-os-text-primary flex flex-col select-none relative"
-      style={{
-        paddingLeft: 'env(safe-area-inset-left, 0px)',
-        paddingRight: 'env(safe-area-inset-right, 0px)',
-      }}
+      className="relative h-[100dvh] min-h-[100dvh] max-h-[100dvh] w-full max-w-full overflow-hidden bg-[#07090e] text-os-text-primary flex flex-col select-none pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]"
     >
-      {/* 1. SUBDUED CINEMATIC TABLET BACKGROUND */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
-        <img
-          src={WALLPAPER_IMAGE}
-          alt=""
-          className="w-full h-full object-cover object-center opacity-25 filter brightness-90 saturate-90"
+      {/* 1. SUBDUED AUTHORITATIVE ORION LIVE WALLPAPER */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0 opacity-25" aria-hidden="true">
+        <OrionLiveWallpaper
+          target="desktop"
+          showLogo={false}
+          hasOpenWindows={false}
         />
         <div 
-          className="absolute inset-0"
+          className="absolute inset-0 pointer-events-none"
           style={{
             background: 'radial-gradient(ellipse at 50% 50%, rgba(8, 12, 22, 0.4) 0%, rgba(6, 8, 14, 0.85) 75%, rgba(3, 4, 8, 0.98) 100%)'
           }}
         />
       </div>
 
-      {/* 2. TABLET SYSTEM BAR (PERSISTENT TOP CHROME) */}
+      {/* 2. TABLET SYSTEM BAR (PERSISTENT TOP CHROME - LAYER 30) */}
       <OrionTabletHeader />
 
-      {/* 3. MAIN ADAPTIVE WORKSPACE */}
-      <div className="flex-1 flex overflow-hidden relative z-10 min-h-0">
+      {/* 3. MAIN ADAPTIVE WORKSPACE (LAYER 20) */}
+      <div className="relative z-20 flex-1 flex overflow-hidden min-h-0 w-full max-w-full">
         {/* If Landscape: Render Left Rail Navigation */}
         {isLandscape && <OrionTabletNavRail isLandscapeMode={true} />}
 
         {/* Central Tablet Application Stage */}
-        <main className="flex-1 flex flex-col overflow-hidden min-h-0 relative">
+        <main className="flex-1 flex flex-col overflow-hidden min-h-0 relative w-full max-w-full">
           <OrionTabletContentRouter />
         </main>
       </div>
 
-      {/* 4. If Portrait: Render Bottom Navigation Bar */}
+      {/* 4. If Portrait: Render Bottom Navigation Bar (LAYER 50) */}
       {!isLandscape && <OrionTabletNavRail isLandscapeMode={false} />}
     </div>
   );

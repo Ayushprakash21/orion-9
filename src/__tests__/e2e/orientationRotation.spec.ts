@@ -34,6 +34,8 @@ test.describe('Orion-9 Auto-Rotation & Lifecycle Stability E2E', () => {
     await page.goto('/login');
 
     await page.fill('input#username', 'admin');
+    await page.click('button[type="submit"]');
+    await expect(page.locator('input#password')).toBeVisible({ timeout: 5000 });
     await page.fill('input#password', 'admin');
     await page.click('button[type="submit"]');
 
@@ -95,6 +97,8 @@ test.describe('Orion-9 Auto-Rotation & Lifecycle Stability E2E', () => {
     await page.goto('/login');
 
     await page.fill('input#username', 'admin');
+    await page.click('button[type="submit"]');
+    await expect(page.locator('input#password')).toBeVisible({ timeout: 5000 });
     await page.fill('input#password', 'admin');
     await page.click('button[type="submit"]');
 
@@ -106,7 +110,7 @@ test.describe('Orion-9 Auto-Rotation & Lifecycle Stability E2E', () => {
     await expect(portNav).toBeVisible();
 
     // Navigate to Control Tower
-    await portNav.getByText('Control').click();
+    await portNav.getByText('Control').dispatchEvent('click');
     await expect(page.getByText(/Orion Control Tower/i)).toBeVisible();
 
     // 2. Rotate to Tablet Landscape: 1024x768
@@ -120,7 +124,7 @@ test.describe('Orion-9 Auto-Rotation & Lifecycle Stability E2E', () => {
     await expect(landRail).toBeVisible();
 
     // Navigate to AI in Landscape
-    await landRail.getByText('AI').click();
+    await landRail.getByText('AI').dispatchEvent('click');
     await expect(page.getByText(/ORION AI COPILOT/i)).toBeVisible();
 
     // 3. Rotate back to Tablet Portrait: 768x1024

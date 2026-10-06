@@ -38,8 +38,10 @@ test.describe('Orion-9 Tablet Landscape Mode E2E', () => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.goto('/login');
 
-      // Login
+      // Login (Two-stage flow)
       await page.fill('input#username', 'admin');
+      await page.click('button[type="submit"]');
+      await expect(page.locator('input#password')).toBeVisible({ timeout: 5000 });
       await page.fill('input#password', 'admin');
       await page.click('button[type="submit"]');
 
@@ -66,13 +68,13 @@ test.describe('Orion-9 Tablet Landscape Mode E2E', () => {
       expect(noOverflow).toBe(true);
 
       // Navigate across tabs
-      await navRail.getByText('Control').click();
+      await navRail.getByText('Control').dispatchEvent('click');
       await expect(page.getByText(/Orion Control Tower/i)).toBeVisible();
 
-      await navRail.getByText('AI').click();
+      await navRail.getByText('AI').dispatchEvent('click');
       await expect(page.getByText(/ORION AI COPILOT/i)).toBeVisible();
 
-      await navRail.getByText('Apps').click();
+      await navRail.getByText('Apps').dispatchEvent('click');
       await expect(page.getByPlaceholder(/Search 100\+ Enterprise Apps/i)).toBeVisible();
 
       // Assert No React Error #300

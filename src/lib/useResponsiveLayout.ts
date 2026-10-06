@@ -112,18 +112,19 @@ export function getResponsiveLayoutSnapshot(): ResponsiveLayoutState {
     deviceClass = 'phone';
   }
   // 2. DESKTOP DETERMINATION:
-  // Standard desktop workstation, laptop, or ultrawide screen (non-touch or fine pointer >= 1025px).
+  // Standard desktop workstation, laptop, or ultrawide screen (non-touch or fine pointer >= 1025px, with minDimension > 500 and maxDimension > 1200, or non-touch width >= 1366).
   else if (
-    (width >= 1025 && (!isTouch || canHover) && !isTabletUA) ||
+    (width >= 1200 && (!isTouch || canHover) && !isTabletUA && maxDimension > 1200) ||
     (width >= 1366 && !isTouch)
   ) {
     deviceClass = 'desktop';
   }
   // 3. TABLET DETERMINATION:
-  // A tablet has minDimension > 500px and maxDimension <= 1366px, with touch or viewport width 600-1024.
-  // Examples: iPad (768x1024 / 1024x768), iPad Air (820x1180 / 1180x820), iPad Mini (744x1133 / 1133x744).
+  // A tablet has minDimension > 500px and maxDimension <= 1200px (e.g., 768x1024, 820x1180, 834x1194, 1024x768, 1180x820),
+  // or explicit tablet UA / touch tablet dimensions.
   else if (
     isTabletUA ||
+    (minDimension > 500 && maxDimension <= 1200) ||
     (isTouch && minDimension >= 500 && minDimension <= 1000) ||
     (width >= 600 && width <= 1024)
   ) {

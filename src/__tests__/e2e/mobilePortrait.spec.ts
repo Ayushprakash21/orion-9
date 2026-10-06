@@ -39,8 +39,10 @@ test.describe('Orion-9 Phone Portrait Mode E2E', () => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.goto('/login');
 
-      // Login
+      // Login (Two-stage flow)
       await page.fill('input#username', 'admin');
+      await page.click('button[type="submit"]');
+      await expect(page.locator('input#password')).toBeVisible({ timeout: 5000 });
       await page.fill('input#password', 'admin');
       await page.click('button[type="submit"]');
 
