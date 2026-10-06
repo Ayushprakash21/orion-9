@@ -319,9 +319,9 @@ export const OrionMobileAICopilot: React.FC = () => {
   const isGeminiLive = providerStatus.configured && providerStatus.provider === 'gemini';
 
   return (
-    <div 
+    <div
       data-orion-ai-surface="true"
-      className="flex flex-col h-[calc(100dvh-130px)] max-w-full pb-2 select-none"
+      className="flex flex-col flex-1 min-h-0 w-full max-w-full overflow-hidden pb-2 select-none"
     >
       {/* 1. ORION AI STATUS HEADER */}
       <div className="bg-os-surface border border-os-border rounded-2xl p-3.5 mb-2.5 shrink-0 flex items-center justify-between shadow-xs">
@@ -392,7 +392,7 @@ export const OrionMobileAICopilot: React.FC = () => {
       </div>
 
       {/* 3. CONVERSATION MESSAGE LIST */}
-      <div className="flex-1 overflow-y-auto space-y-3.5 pr-0.5 overscroll-contain">
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-3.5 pr-0.5 overscroll-contain">
         {messages.map(msg => (
           <div 
             key={msg.id}
