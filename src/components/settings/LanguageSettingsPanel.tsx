@@ -1,8 +1,8 @@
 /**
- * ORION-9 OS LANGUAGE SERVICES & LANGUAGE PACK MANAGER
+ * ORION-9 OS LANGUAGE & REGION PANEL
  * 
- * Comprehensive management interface for OS-level language packs, offline package installation,
- * catalog downloads, dynamic RTL switching, and organization language policies.
+ * Clean, OS-style Settings panel for Interface Language, Regional Locales, Formats,
+ * Installed Language Packs, and Air-Gapped Offline Packages.
  */
 
 import React, { useState, useRef } from 'react';
@@ -14,50 +14,65 @@ import {
   RefreshCw,
   Upload,
   ShieldCheck,
-  Sparkles,
-  AlertTriangle,
-  Info,
   Layers,
-  FileCode,
-  HardDrive,
-  FileDown
+  FileDown,
+  Search,
+  ChevronRight,
+  ChevronDown,
+  Calendar,
+  Clock,
+  DollarSign,
+  ChevronUp,
+  X
 } from 'lucide-react';
-import { useI18n, useLanguage } from '../../store/LanguageContext';
+import { useI18n } from '../../store/LanguageContext';
 import { useToast } from '../../store/ToastContext';
 import { useAuth } from '../../store/AuthContext';
-import { formatNumber } from '../../lib/formatters';
-import { SUPPORTED_LOCALES } from '../../i18n';
+import { useSupplyChain } from '../../store/SupplyChainContext';
+import { SUPPORTED_LOCALES, SUPPORTED_LOCALE_CODES } from '../../i18n';
 import { languageService } from '../../i18n/LanguagePackService';
+import { SearchableDropdown } from '../ui/SearchableDropdown';
+import { locales } from '../../lib/timezones';
+import { cn } from '../../lib/utils';
 
 export const LanguageSettingsPanel: React.FC = () => {
   const {
     locale,
-    setLocale,
     setUserPreferredLanguage,
     installedLanguages,
     availableLanguages,
     activeLanguagePack,
     installLanguagePack,
     uninstallLanguagePack,
-    updateLanguagePack,
     installLanguagePackFromFile,
     organizationPolicy,
     setOrganizationPolicy,
-    t,
+    languages,
     dir,
   } = useI18n();
 
+  const { settings, updateSettings } = useSupplyChain();
   const { showToast } = useToast();
   const { profile, hasRole } = useAuth();
   const isAdmin = hasRole(['platform_admin', 'organization_admin']) ||
                   profile?.role === 'platform_admin' ||
                   profile?.role === 'organization_admin';
 
+  // UI State
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [isInstalling, setIsInstalling] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [showAdvancedOffline, setShowAdvancedOffline] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Formatting state synced with system settings
+  const [dateFormat, setDateFormat] = useState<string>(settings?.dateFormat || 'DD/MM/YYYY');
+  const [timeFormat, setTimeFormat] = useState<'12h' | '24h'>(settings?.timeFormat === '12h' ? '12h' : '24h');
+  const [numberFormat, setNumberFormat] = useState<string>(settings?.numberFormat || '1,23,456.78');
+  const [firstDayOfWeek, setFirstDayOfWeek] = useState<'Monday' | 'Sunday'>((settings?.firstDayOfWeek as 'Monday' | 'Sunday') || 'Monday');
+  const [selectedRegion, setSelectedRegion] = useState<string>(settings?.region || 'India');
 
   const activeLocaleInfo = SUPPORTED_LOCALES[locale] || {
     code: locale,
@@ -71,6 +86,7 @@ export const LanguageSettingsPanel: React.FC = () => {
     try {
       await setUserPreferredLanguage(code as any, profile?.id);
       showToast(`Active language set to ${SUPPORTED_LOCALES[code]?.nativeName || code}.`, 'success', 'Language Updated');
+      setIsPickerOpen(false);
     } catch (err: any) {
       showToast(err.message || 'Failed to switch language.', 'error', 'Language Error');
     }
@@ -149,308 +165,359 @@ export const LanguageSettingsPanel: React.FC = () => {
     showToast(`Exported ${code}.orionlang for air-gapped deployment.`, 'success', 'Package Exported');
   };
 
+  const filteredLanguages = languages.filter(lang => 
+    lang.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    lang.nativeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    lang.code.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="space-y-6 min-w-0 max-w-full font-sans text-white">
-      {/* 1. CURRENT ACTIVE LANGUAGE HERO CARD */}
-      <div className="p-5 rounded-2xl bg-gradient-to-r from-sky-950/40 via-[#12151a] to-[#12151a] border border-sky-500/30 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+    <div className="space-y-5 font-sans text-white max-w-full">
+      {/* SECTION 1 — INTERFACE LANGUAGE */}
+      <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-400 shrink-0 shadow-[0_0_15px_rgba(56,189,248,0.2)]">
-              <Globe size={20} />
+            <div className="w-9 h-9 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 shrink-0">
+              <Globe size={18} />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white tracking-tight">
-                  {activeLocaleInfo.nativeName}
-                </h3>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 border border-sky-500/30 font-semibold uppercase">
-                  Active OS Language
-                </span>
-                {dir === 'rtl' && (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-bold uppercase">
-                    RTL Layout
-                  </span>
-                )}
-              </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                {activeLocaleInfo.name} • BCP-47: <span className="font-mono text-sky-300">{activeLocaleInfo.bcp47}</span>
-              </p>
+              <h3 className="text-xs font-semibold text-white uppercase tracking-wider">Interface Language</h3>
+              <p className="text-[11px] text-slate-400">Select the display language for Orion-9 OS applications.</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => handleExportPack(locale)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-slate-300 hover:text-white transition"
-              title="Export active package as .orionlang"
-            >
-              <FileDown size={13} />
-              <span>Export .orionlang</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Active Pack Metadata Strip */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-3 border-t border-white/[0.08] text-[11px] font-mono text-slate-400">
-          <div className="bg-white/[0.02] p-2 rounded-lg border border-white/[0.04]">
-            <span className="text-slate-500 block text-[9px] uppercase">Translation Coverage</span>
-            <span className="font-bold text-emerald-400">{activeLanguagePack?.manifest.coverage || 100}%</span>
-          </div>
-          <div className="bg-white/[0.02] p-2 rounded-lg border border-white/[0.04]">
-            <span className="text-slate-500 block text-[9px] uppercase">Pack Version</span>
-            <span className="font-bold text-white">{activeLanguagePack?.manifest.version || '9.0.0'}</span>
-          </div>
-          <div className="bg-white/[0.02] p-2 rounded-lg border border-white/[0.04]">
-            <span className="text-slate-500 block text-[9px] uppercase">Text Direction</span>
-            <span className="font-bold text-sky-400 uppercase">{dir}</span>
-          </div>
-          <div className="bg-white/[0.02] p-2 rounded-lg border border-white/[0.04]">
-            <span className="text-slate-500 block text-[9px] uppercase">Package Type</span>
-            <span className="font-bold text-white">{languageService.isBuiltIn(locale) ? 'Built-In Bundle' : 'Dynamic Pack'}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. INSTALLED LANGUAGE PACKS SECTION */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-              <Layers size={14} className="text-sky-400" />
-              <span>Installed Language Packs ({installedLanguages.length})</span>
-            </h4>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              Locally cached translation packages ready for instantaneous OS switching.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-          {installedLanguages.map((pack) => {
-            const isActive = locale === pack.locale;
-            return (
-              <div
-                key={pack.locale}
-                className={`p-3.5 rounded-xl border transition-all flex flex-col justify-between gap-3 ${
-                  isActive
-                    ? 'bg-sky-950/20 border-sky-500/40 shadow-xs'
-                    : 'bg-[#12151a] border-white/[0.08] hover:border-white/[0.15]'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs text-white truncate">{pack.nativeName}</span>
-                      <span className="text-[10px] font-mono text-slate-400 truncate">({pack.name})</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 mt-1">
-                      <span className="px-1.5 py-0.2 rounded bg-white/5 border border-white/10 uppercase">{pack.locale}</span>
-                      <span>•</span>
-                      <span>v{pack.version || '1.0.0'}</span>
-                      <span>•</span>
-                      <span className="uppercase">{pack.direction}</span>
-                    </div>
-                  </div>
-
-                  <span
-                    className={`text-[9px] font-mono px-2 py-0.5 rounded-full uppercase font-bold border shrink-0 ${
-                      isActive
-                        ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                        : pack.isBuiltIn
-                        ? 'bg-slate-500/10 text-slate-400 border-slate-500/20'
-                        : 'bg-sky-500/10 text-sky-400 border-sky-500/20'
-                    }`}
-                  >
-                    {isActive ? 'ACTIVE' : pack.isBuiltIn ? 'BUILT-IN' : 'INSTALLED'}
-                  </span>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center justify-between pt-2.5 border-t border-white/[0.06] text-xs">
-                  <div className="flex items-center gap-1.5">
-                    {!isActive && (
-                      <button
-                        onClick={() => handleActivate(pack.locale)}
-                        className="px-2.5 py-1 rounded-lg bg-sky-500 hover:bg-sky-400 text-black font-semibold text-[11px] font-mono transition cursor-pointer"
-                      >
-                        Set Active
-                      </button>
-                    )}
-                    <button
-                      onClick={() => handleExportPack(pack.locale)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition"
-                      title="Export package (.orionlang)"
-                    >
-                      <FileDown size={14} />
-                    </button>
-                  </div>
-
-                  {!pack.isBuiltIn && (
-                    <button
-                      onClick={() => handleUninstall(pack.locale)}
-                      className="text-rose-400 hover:text-rose-300 p-1 rounded hover:bg-rose-500/10 transition text-[11px] font-mono flex items-center gap-1 cursor-pointer"
-                      title="Uninstall Language Pack"
-                    >
-                      <Trash2 size={12} />
-                      <span>Remove</span>
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 3. AIR-GAPPED / OFFLINE PACKAGE INSTALLATION */}
-      <div className="p-4 rounded-2xl bg-[#12151a] border border-white/[0.08] space-y-3">
-        <div className="flex items-center justify-between">
-          <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-              <Upload size={14} className="text-emerald-400" />
-              <span>Offline / Air-Gapped Package Installation (.orionlang)</span>
-            </h4>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              Upload enterprise-certified data-only language packs for completely air-gapped environments.
-            </p>
-          </div>
-        </div>
-
-        <div className="p-4 rounded-xl border border-dashed border-white/20 bg-white/[0.01] hover:bg-white/[0.03] transition text-center space-y-2">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".orionlang,.json"
-            onChange={handleFileUpload}
-            disabled={isUploading || !organizationPolicy.allowOfflineUpload}
-            className="hidden"
-            id="orionlang-file-input"
-          />
-          <label
-            htmlFor="orionlang-file-input"
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-xs font-mono text-white cursor-pointer transition active:scale-95 ${
-              !organizationPolicy.allowOfflineUpload ? 'opacity-50 pointer-events-none' : ''
-            }`}
+          <button
+            type="button"
+            onClick={() => setIsPickerOpen(!isPickerOpen)}
+            className="px-3 py-1.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-black font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 shadow-sm"
           >
-            <Upload size={14} className="text-emerald-400" />
-            <span>Select .orionlang Package File</span>
-          </label>
-          <p className="text-[10px] text-slate-500 font-mono">
-            Pure structured JSON format • Maximum 5MB • Validated before registration
-          </p>
-
-          {uploadError && (
-            <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] font-mono text-left">
-              {uploadError}
-            </div>
-          )}
+            <span>Change Language</span>
+            <ChevronDown size={14} className={cn("transition-transform", isPickerOpen && "rotate-180")} />
+          </button>
         </div>
+
+        {/* Current Selected Language Summary Row */}
+        <div className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.06] flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-white">{activeLocaleInfo.nativeName}</span>
+            <span className="text-slate-400 font-mono text-[11px]">• {activeLocaleInfo.name} ({activeLocaleInfo.bcp47})</span>
+            {dir === 'rtl' && (
+              <span className="px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-300 text-[9px] font-mono font-bold uppercase border border-amber-500/30">
+                RTL
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] font-mono text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20 font-bold uppercase">
+            ACTIVE
+          </span>
+        </div>
+
+        {/* Compact Searchable Language Picker Popover Modal */}
+        {isPickerOpen && (
+          <div className="p-3 rounded-xl bg-[#0d1015] border border-sky-500/30 space-y-2 animate-in fade-in duration-150 shadow-xl">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2">
+              <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <Search size={14} className="text-sky-400" /> Search Languages ({languages.length})
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsPickerOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded transition"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <input
+              type="text"
+              placeholder="Search languages by name or code..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white/[0.05] border border-white/[0.1] rounded-lg px-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500/50 font-sans"
+              autoFocus
+            />
+
+            <div className="max-h-60 overflow-y-auto custom-scrollbar divide-y divide-white/[0.04]">
+              {filteredLanguages.map((lang) => {
+                const isSelected = locale === lang.code;
+                return (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    onClick={() => handleActivate(lang.code)}
+                    className={cn(
+                      "w-full px-3 py-2 text-left text-xs transition flex items-center justify-between cursor-pointer",
+                      isSelected
+                        ? "bg-sky-500/15 text-sky-300 font-semibold"
+                        : "hover:bg-white/[0.05] text-slate-300"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>{lang.nativeName}</span>
+                      <span className="text-[11px] text-slate-400 font-mono">({lang.name})</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase bg-white/5 px-1.5 py-0.5 rounded">
+                        {lang.code}
+                      </span>
+                      {isSelected && <Check size={14} className="text-sky-400" />}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* 4. AVAILABLE LANGUAGE PACKS CATALOG */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
+      {/* SECTION 2 — REGION & LOCALE */}
+      <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3">
+        <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Region & Locale</h4>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-              <Download size={14} className="text-sky-400" />
-              <span>Official Language Catalog</span>
-            </h4>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              Pre-validated language packages ready for internal 1-click installation.
-            </p>
+            <label className="block text-[10px] uppercase font-semibold text-slate-400 mb-1">Region</label>
+            <SearchableDropdown
+              value={selectedRegion}
+              options={[
+                { value: 'India', label: 'India' },
+                { value: 'United States', label: 'United States' },
+                { value: 'United Kingdom', label: 'United Kingdom' },
+                { value: 'Germany', label: 'Germany' },
+                { value: 'France', label: 'France' },
+                { value: 'Japan', label: 'Japan' },
+                { value: 'Singapore', label: 'Singapore' },
+                { value: 'Australia', label: 'Australia' }
+              ]}
+              onChange={(val) => {
+                setSelectedRegion(val);
+                updateSettings({ region: val });
+              }}
+            />
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-          {availableLanguages.map((manifest) => {
-            const isInstallingThis = isInstalling === manifest.bcp47.split('-')[0];
-            return (
-              <div
-                key={manifest.id}
-                className="p-3 rounded-xl bg-[#12151a] border border-white/[0.08] hover:border-white/[0.15] flex items-center justify-between gap-2 transition"
-              >
-                <div className="min-w-0">
-                  <div className="font-semibold text-xs text-white truncate">{manifest.nativeName}</div>
-                  <div className="text-[10px] font-mono text-slate-400 truncate">
-                    {manifest.name} • <span className="uppercase">{manifest.direction}</span>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => handleInstallFromCatalog(manifest.bcp47.split('-')[0])}
-                  disabled={Boolean(isInstalling)}
-                  className="px-2.5 py-1 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 text-sky-300 text-xs font-mono font-medium transition flex items-center gap-1 shrink-0 cursor-pointer disabled:opacity-50"
-                >
-                  {isInstallingThis ? (
-                    <RefreshCw size={12} className="animate-spin" />
-                  ) : (
-                    <Download size={12} />
-                  )}
-                  <span>Install</span>
-                </button>
-              </div>
-            );
-          })}
+          <div>
+            <label className="block text-[10px] uppercase font-semibold text-slate-400 mb-1">Locale Configuration</label>
+            <SearchableDropdown
+              value={settings?.locale || 'en-IN'}
+              options={locales}
+              onChange={(val) => updateSettings({ locale: val })}
+            />
+          </div>
         </div>
       </div>
 
-      {/* 5. ORGANIZATION LANGUAGE POLICY (ADMIN CONTROL) */}
-      {isAdmin && (
-        <div className="p-4 rounded-2xl bg-[#12151a] border border-white/[0.08] space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-amber-300 flex items-center gap-2">
-                <ShieldCheck size={14} className="text-amber-400" />
-                <span>Enterprise Language Policy & Governance</span>
-              </h4>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Configure corporate defaults and language distribution security boundaries.
-              </p>
-            </div>
-            <span className="text-[9px] font-mono uppercase px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/20 font-bold">
-              Admin Only
-            </span>
+      {/* SECTION 3 — FORMATS */}
+      <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3">
+        <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Regional Formats</h4>
+
+        <div className="divide-y divide-white/[0.06] text-xs">
+          <div className="py-2.5 flex items-center justify-between">
+            <span className="text-slate-300 font-medium">Date Format</span>
+            <select
+              value={dateFormat}
+              onChange={(e) => {
+                setDateFormat(e.target.value);
+                updateSettings({ dateFormat: e.target.value });
+              }}
+              className="bg-white/[0.05] border border-white/[0.1] rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-sky-500/50 font-mono"
+            >
+              <option value="DD/MM/YYYY" className="bg-[#12151a]">DD/MM/YYYY (26/10/2026)</option>
+              <option value="MM/DD/YYYY" className="bg-[#12151a]">MM/DD/YYYY (10/26/2026)</option>
+              <option value="YYYY-MM-DD" className="bg-[#12151a]">YYYY-MM-DD (2026-10-26)</option>
+            </select>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-            <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-1">
-              <span className="text-[11px] font-medium text-white block">User Language Downloads</span>
-              <p className="text-[10px] text-slate-400">Allow regular operators to download language packs from catalog.</p>
+          <div className="py-2.5 flex items-center justify-between">
+            <span className="text-slate-300 font-medium">Time Format</span>
+            <div className="flex gap-1.5">
               <button
                 type="button"
-                onClick={() => setOrganizationPolicy({ allowUserDownloads: !organizationPolicy.allowUserDownloads })}
-                className={`mt-2 px-2.5 py-1 rounded text-[11px] font-mono font-semibold transition ${
-                  organizationPolicy.allowUserDownloads ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
-                }`}
+                onClick={() => {
+                  setTimeFormat('24h');
+                  updateSettings({ timeFormat: '24h' });
+                }}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition cursor-pointer border",
+                  timeFormat === '24h' ? "bg-sky-500/20 border-sky-500/40 text-sky-400" : "bg-white/[0.03] border-white/10 text-slate-400"
+                )}
               >
-                {organizationPolicy.allowUserDownloads ? 'Enabled' : 'Disabled'}
+                24-Hour (19:44)
               </button>
-            </div>
-
-            <div className="p-3 rounded-xl bg-white/[0.02] border border-white/[0.06] space-y-1">
-              <span className="text-[11px] font-medium text-white block">Offline Package Ingestion</span>
-              <p className="text-[10px] text-slate-400">Permit uploading uncataloged .orionlang packages.</p>
               <button
                 type="button"
-                onClick={() => setOrganizationPolicy({ allowOfflineUpload: !organizationPolicy.allowOfflineUpload })}
-                className={`mt-2 px-2.5 py-1 rounded text-[11px] font-mono font-semibold transition ${
-                  organizationPolicy.allowOfflineUpload ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-500/20 text-slate-400 border border-slate-500/30'
-                }`}
+                onClick={() => {
+                  setTimeFormat('12h');
+                  updateSettings({ timeFormat: '12h' });
+                }}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-mono font-medium transition cursor-pointer border",
+                  timeFormat === '12h' ? "bg-sky-500/20 border-sky-500/40 text-sky-400" : "bg-white/[0.03] border-white/10 text-slate-400"
+                )}
               >
-                {organizationPolicy.allowOfflineUpload ? 'Enabled' : 'Disabled'}
+                12-Hour (7:44 PM)
               </button>
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2 text-emerald-300">
-              <ShieldCheck size={16} className="shrink-0" />
-              <span>External & Browser Translation Isolation: Active (Zero Data Egress)</span>
-            </div>
-            <span className="text-[10px] font-mono text-emerald-400 uppercase font-bold">Enforced</span>
+          <div className="py-2.5 flex items-center justify-between">
+            <span className="text-slate-300 font-medium">Number Format</span>
+            <select
+              value={numberFormat}
+              onChange={(e) => {
+                setNumberFormat(e.target.value);
+                updateSettings({ numberFormat: e.target.value });
+              }}
+              className="bg-white/[0.05] border border-white/[0.1] rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-sky-500/50 font-mono"
+            >
+              <option value="1,23,456.78" className="bg-[#12151a]">1,23,456.78 (South Asian)</option>
+              <option value="123,456.78" className="bg-[#12151a]">123,456.78 (Standard)</option>
+              <option value="123.456,78" className="bg-[#12151a]">123.456,78 (European)</option>
+            </select>
+          </div>
+
+          <div className="py-2.5 flex items-center justify-between">
+            <span className="text-slate-300 font-medium">Currency</span>
+            <span className="font-mono text-sky-400">{settings?.currency || 'INR'} — Indian Rupee</span>
+          </div>
+
+          <div className="py-2.5 flex items-center justify-between">
+            <span className="text-slate-300 font-medium">First Day of Week</span>
+            <select
+              value={firstDayOfWeek}
+              onChange={(e) => {
+                const val = e.target.value as 'Monday' | 'Sunday';
+                setFirstDayOfWeek(val);
+                updateSettings({ firstDayOfWeek: val });
+              }}
+              className="bg-white/[0.05] border border-white/[0.1] rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-sky-500/50"
+            >
+              <option value="Monday" className="bg-[#12151a]">Monday</option>
+              <option value="Sunday" className="bg-[#12151a]">Sunday</option>
+            </select>
           </div>
         </div>
-      )}
+      </div>
+
+      {/* SECTION 4 — INSTALLED LANGUAGE PACKS */}
+      <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3">
+        <div className="flex items-center justify-between">
+          <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+            <Layers size={14} className="text-sky-400" />
+            <span>Installed Language Packs ({installedLanguages.length})</span>
+          </h4>
+        </div>
+
+        <div className="overflow-x-auto border border-white/[0.06] rounded-lg">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="bg-white/[0.03] border-b border-white/[0.08] text-[10px] uppercase font-mono text-slate-400">
+                <th className="py-2 px-3">Language</th>
+                <th className="py-2 px-3">Version</th>
+                <th className="py-2 px-3">Coverage</th>
+                <th className="py-2 px-3">Status</th>
+                <th className="py-2 px-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/[0.04]">
+              {installedLanguages.map((pack) => {
+                const isActive = locale === pack.locale;
+                return (
+                  <tr key={pack.locale} className="hover:bg-white/[0.02] transition">
+                    <td className="py-2.5 px-3">
+                      <div className="font-semibold text-white">{pack.nativeName}</div>
+                      <div className="text-[10px] text-slate-400 font-mono">{pack.name} ({pack.locale})</div>
+                    </td>
+                    <td className="py-2.5 px-3 font-mono text-slate-300">v{pack.version || '9.0.0'}</td>
+                    <td className="py-2.5 px-3 font-mono text-emerald-400 font-bold">{pack.coverage || 100}%</td>
+                    <td className="py-2.5 px-3">
+                      <span className={cn(
+                        "text-[9px] font-mono px-2 py-0.5 rounded-full uppercase font-bold border",
+                        isActive ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" : "bg-slate-500/10 text-slate-400 border-slate-500/20"
+                      )}>
+                        {isActive ? 'Active' : 'Installed'}
+                      </span>
+                    </td>
+                    <td className="py-2.5 px-3 text-right">
+                      {!isActive ? (
+                        <button
+                          type="button"
+                          onClick={() => handleActivate(pack.locale)}
+                          className="px-2.5 py-1 rounded bg-sky-500 hover:bg-sky-400 text-black font-semibold text-[11px] font-mono transition cursor-pointer"
+                        >
+                          Set Active
+                        </button>
+                      ) : (
+                        <span className="text-[11px] font-mono text-slate-500">Default</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* SECTION 5 — OFFLINE LANGUAGE PACKS (EXPANDABLE) */}
+      <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3">
+        <button
+          type="button"
+          onClick={() => setShowAdvancedOffline(!showAdvancedOffline)}
+          className="w-full flex items-center justify-between text-xs font-semibold text-slate-300 uppercase tracking-wider cursor-pointer"
+        >
+          <span className="flex items-center gap-2">
+            <Upload size={14} className="text-emerald-400" />
+            <span>Advanced / Offline Language Packages (.orionlang)</span>
+          </span>
+          <ChevronDown size={14} className={cn("transition-transform", showAdvancedOffline && "rotate-180")} />
+        </button>
+
+        {showAdvancedOffline && (
+          <div className="pt-2 space-y-3 animate-in fade-in duration-150">
+            <div className="p-4 rounded-xl border border-dashed border-white/20 bg-white/[0.01] hover:bg-white/[0.03] transition text-center space-y-2">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".orionlang,.json"
+                onChange={handleFileUpload}
+                disabled={isUploading || !organizationPolicy.allowOfflineUpload}
+                className="hidden"
+                id="orionlang-file-input"
+              />
+              <label
+                htmlFor="orionlang-file-input"
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/15 text-xs font-mono text-white cursor-pointer transition active:scale-95 ${
+                  !organizationPolicy.allowOfflineUpload ? 'opacity-50 pointer-events-none' : ''
+                }`}
+              >
+                <Upload size={14} className="text-emerald-400" />
+                <span>Select .orionlang Package File</span>
+              </label>
+              <p className="text-[10px] text-slate-500 font-mono">
+                Pure structured JSON format • Air-Gapped Package Import
+              </p>
+
+              {uploadError && (
+                <div className="p-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] font-mono text-left">
+                  {uploadError}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => handleExportPack(locale)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-slate-300 hover:text-white transition cursor-pointer"
+              >
+                <FileDown size={13} />
+                <span>Export Active .orionlang Package</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

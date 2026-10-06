@@ -29,7 +29,8 @@ describe('ORION-9 Native OS Settings Application', () => {
       'organization',
       'appearance',
       'desktop',
-      'time_region',
+      'language_region',
+      'time_date',
       'notifications',
       'privacy_security',
       'ai_automation',
@@ -39,7 +40,7 @@ describe('ORION-9 Native OS Settings Application', () => {
     ];
     // Check component exports
     expect(Settings).toBeDefined();
-    expect(requiredSections.length).toBe(11);
+    expect(requiredSections.length).toBe(12);
   });
 
   it('5. Zero Supabase dependencies exist in Settings', () => {

@@ -44,12 +44,16 @@ export interface SystemSettings {
   // Demand & Forecast
   demandSpikeThreshold: number;
 
-  // Localization
+  // Localization & Regional Formats
   currency: string;
   dateFormat: string;
+  timeFormat?: string;
   timezone: string;
   locale: string;
   numberFormat: string;
+  firstDayOfWeek?: string;
+  region?: string;
+  autoTime?: boolean;
   applicationName: string;
   applicationTagline: string;
 }

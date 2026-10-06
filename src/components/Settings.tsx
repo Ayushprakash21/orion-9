@@ -23,6 +23,7 @@ import { OrionSettingsSplitLayout } from './settings/OrionSettingsSplitLayout';
 import { GlobalNetworkTimeMatrix } from './time/GlobalNetworkTimeMatrix';
 import { useI18n } from '../store/LanguageContext';
 import { LanguageSettingsPanel } from './settings/LanguageSettingsPanel';
+import { TimeDateSettingsPanel } from './settings/TimeDateSettingsPanel';
 
 // Admin Components
 import { AdminOverview } from './admin/AdminOverview';
@@ -47,6 +48,8 @@ export type SettingsSection =
   | 'appearance'
   | 'wallpaper_studio'
   | 'desktop'
+  | 'language_region'
+  | 'time_date'
   | 'time_region'
   | 'notifications'
   | 'privacy_security'
@@ -269,7 +272,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
     setPrivilegedUntil(null);
   };
 
-  const { locale, setLocale, setUserPreferredLanguage, t, languages } = useI18n();
+  const { locale, setLocale, setUserPreferredLanguage, t, languages, dir, installedLanguages } = useI18n();
 
   // Main Sidebar Item List Definitions
   const navigationSections = [
@@ -278,7 +281,8 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
     { id: 'appearance', label: t('navigation.appearance'), icon: Eye, group: 'system' },
     { id: 'wallpaper_studio', label: t('navigation.wallpaperStudio'), icon: SparklesIcon, group: 'system' },
     { id: 'desktop', label: t('navigation.desktopWindows'), icon: Monitor, group: 'system' },
-    { id: 'time_region', label: t('navigation.timeRegion'), icon: Clock, group: 'system' },
+    { id: 'language_region', label: 'Language & Region', icon: Globe, group: 'system' },
+    { id: 'time_date', label: 'Time & Date', icon: Clock, group: 'system' },
     { id: 'notifications', label: t('navigation.notifications'), icon: Volume2, group: 'system' },
     { id: 'privacy_security', label: t('navigation.privacySecurity'), icon: Shield, group: 'system' },
     { id: 'ai_automation', label: t('navigation.aiAutomation'), icon: BrainCircuit, group: 'system' },
@@ -452,54 +456,6 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                       </button>
                     </div>
                   )}
-                </div>
-
-                {/* Preferred Language Card */}
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3 min-w-0 max-w-full overflow-hidden">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                    <div>
-                      <h4 className="text-xs font-semibold text-white flex items-center gap-2">
-                        <Globe size={14} className="text-sky-400 shrink-0" />
-                        <span>{t('settings.languageLabel')}</span>
-                      </h4>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        {t('settings.languageDescription')}
-                      </p>
-                    </div>
-                    <span className="text-[10px] font-mono text-sky-400 uppercase tracking-wider shrink-0 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
-                      {languages.find(l => l.code === locale)?.nativeName || 'English'} ({locale.toUpperCase()})
-                    </span>
-                  </div>
-
-                  <div className="min-w-0 max-w-full overflow-hidden bg-white/[0.02] p-2 rounded-xl border border-white/[0.06]">
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-3 2xl:grid-cols-4 gap-1.5 max-h-56 overflow-y-auto custom-scrollbar p-0.5 min-w-0">
-                      {languages.map((lang) => {
-                        const isSelected = locale === lang.code;
-                        return (
-                          <button
-                            key={lang.code}
-                            type="button"
-                            onClick={() => setUserPreferredLanguage(lang.code, profile?.id)}
-                            title={`${lang.name} (${lang.nativeName})`}
-                            className={cn(
-                              "px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center justify-between gap-1.5 min-w-0 border text-left",
-                              isSelected
-                                ? "bg-sky-500 text-black font-semibold border-sky-400 shadow-xs"
-                                : "bg-white/[0.03] border-white/[0.06] text-slate-300 hover:text-white hover:bg-white/[0.08] hover:border-white/[0.12]"
-                            )}
-                          >
-                            <span className="truncate text-[11px] leading-tight">{lang.nativeName}</span>
-                            <span className={cn(
-                              "text-[9px] font-mono shrink-0 px-1 py-0.2 rounded uppercase",
-                              isSelected ? "bg-black/20 text-black font-bold" : "bg-white/10 text-slate-400"
-                            )}>
-                              {lang.code}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
                 </div>
 
                 {/* Profile Form Fields */}
@@ -883,76 +839,45 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
           />
         );
 
-      case 'time_region':
+      case 'language_region':
         return (
           <OrionSettingsSplitLayout
-            title="Time & Region"
-            subtitle="Live Operating Clock, Localization & Global Matrix"
-            badge="CHRONO"
-            primary={
-              <div className="space-y-4">
-                {/* Live Clock Card */}
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] flex items-center justify-between">
-                  <div>
-                    <span className="text-[10px] uppercase font-mono tracking-widest text-slate-500">Live Operating Clock</span>
-                    <h3 className="text-xl font-mono font-bold text-sky-400 tracking-tight mt-0.5">{currentTimeStr || '12:00:00'}</h3>
-                    <p className="text-[11px] text-slate-400 font-mono mt-0.5">{localSettings.timezone || 'Asia/Kolkata'}</p>
+            title="Language & Region"
+            subtitle="Configure Orion-9's interface language, regional formats, and language packages."
+            badge="LOCALIZATION"
+            primary={<LanguageSettingsPanel />}
+            secondary={
+              <div className="space-y-4 text-xs font-sans">
+                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
+                  SYSTEM LOCALIZATION
+                </span>
+                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3">
+                  <div className="flex justify-between border-b border-white/[0.06] pb-2">
+                    <span className="text-[10px] text-slate-400 uppercase font-mono">Active BCP-47</span>
+                    <span className="text-sky-400 font-bold font-mono">{locale}</span>
                   </div>
-                  <div className="text-right text-xs">
-                    <span className="text-slate-300 font-medium">Locale</span>
-                    <p className="text-slate-400 font-mono text-[11px] mt-0.5">{localSettings.locale || 'en-IN'}</p>
+                  <div className="flex justify-between border-b border-white/[0.06] pb-2">
+                    <span className="text-[10px] text-slate-400 uppercase font-mono">Text Direction</span>
+                    <span className="text-emerald-400 font-bold uppercase font-mono">{dir}</span>
                   </div>
-                </div>
-
-                {/* OS Language Services & Language Pack Manager */}
-                <LanguageSettingsPanel />
-
-                {/* Localization Form Controls */}
-                <div className="bg-[#12151a] border border-white/[0.08] rounded-xl p-4 space-y-3.5">
-                  <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Localization Parameters</h4>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[10px] uppercase font-semibold text-slate-400 mb-1">Currency</label>
-                      <SearchableDropdown 
-                        value={localSettings.currency || 'INR'} 
-                        options={currencyOptions} 
-                        onChange={(val) => setLocalSettings(prev => ({...prev, currency: val}))} 
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] uppercase font-semibold text-slate-400 mb-1">Timezone</label>
-                      <SearchableDropdown 
-                        value={localSettings.timezone || 'Asia/Kolkata'} 
-                        options={timezones} 
-                        onChange={(val) => setLocalSettings(prev => ({...prev, timezone: val}))} 
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] uppercase font-semibold text-slate-400 mb-1">Language & Locale</label>
-                      <SearchableDropdown 
-                        value={localSettings.locale || 'en-IN'} 
-                        options={locales} 
-                        onChange={(val) => setLocalSettings(prev => ({...prev, locale: val}))} 
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[10px] uppercase font-semibold text-slate-400 mb-1">Date Format</label>
-                      <div className="p-2.5 bg-white/[0.04] border border-white/[0.08] rounded-xl text-xs font-mono text-slate-300">
-                        DD/MM/YYYY (26/09/2026)
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-white/[0.06]">
-                    <SettingsCurrencyConverter currencyOptions={currencyOptions} defaultCurrency={localSettings.currency} />
+                  <div className="flex justify-between">
+                    <span className="text-[10px] text-slate-400 uppercase font-mono">Installed Packs</span>
+                    <span className="text-white font-bold font-mono">{installedLanguages.length} Cached</span>
                   </div>
                 </div>
               </div>
             }
+          />
+        );
+
+      case 'time_date':
+      case 'time_region':
+        return (
+          <OrionSettingsSplitLayout
+            title="Time & Date"
+            subtitle="Configure Orion-9's clock, timezone and date/time preferences."
+            badge="CHRONO"
+            primary={<TimeDateSettingsPanel />}
             secondary={<GlobalNetworkTimeMatrix />}
           />
         );
