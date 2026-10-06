@@ -1,22 +1,19 @@
 /**
- * ORION-9 OS CINEMATIC LOGOUT SCREEN
- * Controlled Framer Motion sequence displaying secure session teardown.
+ * ORION-9 OS LOGOUT SCREEN
+ * Clean, centered session teardown screen aligned with the minimal enterprise OS design system.
  */
 
 import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { BrandLogo } from '../../components/brand/BrandLogo';
-import { logoutCoreVariants } from '../motion/OrionMotionVariants';
-import { isReducedMotionPreferred } from '../motion/OrionMotion';
-import { useSupplyChain } from '../../store/SupplyChainContext';
+import { useIsReducedMotion } from '../motion/OrionMotion';
 
 interface OrionLogoutScreenProps {
   onComplete: () => void;
 }
 
 export const OrionLogoutScreen: React.FC<OrionLogoutScreenProps> = ({ onComplete }) => {
-  const supplyChain = useSupplyChain();
-  const isReduced = isReducedMotionPreferred(supplyChain?.settings?.reducedMotion);
+  const isReduced = useIsReducedMotion();
 
   const [progress, setProgress] = useState(0);
 
@@ -54,54 +51,42 @@ export const OrionLogoutScreen: React.FC<OrionLogoutScreenProps> = ({ onComplete
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: isReduced ? 0.1 : 0.4 }}
-      className="fixed inset-0 w-screen h-screen min-h-screen bg-[#03060E] z-[999999] flex flex-col items-center justify-center font-sans overflow-hidden select-none"
+      className="fixed inset-0 w-screen h-[100dvh] bg-[#07090D] z-[999999] flex flex-col items-center justify-center font-sans overflow-hidden select-none"
       role="status"
       aria-live="polite"
     >
-      {/* Background ambient lighting */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,242,254,0.04),transparent_70%)] pointer-events-none" />
-
-      <div className="relative z-10 max-w-md w-full flex flex-col items-center justify-center text-center p-6">
-        {/* Central Core Contraction */}
-        <motion.div
-          variants={logoutCoreVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          className="relative mb-8"
-        >
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
-            className="absolute -inset-6 rounded-full border border-[#00F2FE]/20 shadow-[0_0_30px_rgba(0,242,254,0.15)] pointer-events-none"
-          />
+      <div className="relative z-10 w-full max-w-sm flex flex-col items-center text-center px-6 pointer-events-none">
+        {/* Centered Authoritative Hero Logo */}
+        <div className="relative mb-6">
           <BrandLogo
             sizePreset="xl"
             variant="mark"
-            className="relative justify-center drop-shadow-[0_0_20px_rgba(0,242,254,0.35)]"
-          />
-        </motion.div>
-
-        {/* Header Label */}
-        <h2 className="font-mono text-os-text-primary text-sm sm:text-base tracking-[0.25em] uppercase font-semibold mb-2">
-          CLOSING SECURE SESSION
-        </h2>
-        <p className="font-mono text-os-text-muted text-xs tracking-[0.2em] uppercase mb-8">
-          TEARDOWN & CRYPTOGRAPHIC CLEARANCE
-        </p>
-
-        {/* Progress Line */}
-        <div className="w-full max-w-[280px] bg-white/10 h-1 rounded-full overflow-hidden mb-4 p-[1px]">
-          <motion.div
-            className="h-full bg-gradient-to-r from-[#00F2FE] to-emerald-400 rounded-full"
-            initial={{ width: '0%' }}
-            animate={{ width: `${progress}%` }}
-            transition={{ ease: 'easeOut', duration: 0.1 }}
+            className="justify-center h-24 sm:h-28"
           />
         </div>
 
-        <span className="font-mono text-[10px] text-emerald-400 tracking-widest uppercase">
-          {progress < 100 ? `TERMINATING SESSION (${progress}%)` : 'SESSION CLOSED'}
+        {/* Calm Heading */}
+        <h2 className="text-sm sm:text-base font-semibold tracking-tight text-white mb-1.5">
+          Signing Out
+        </h2>
+
+        {/* Clear Subtitle / Status */}
+        <p className="text-xs text-neutral-400 font-normal mb-8 h-5 flex items-center justify-center">
+          {progress < 100 ? 'Closing secure session and clearing credentials' : 'Session closed'}
+        </p>
+
+        {/* Restrained Horizontal Progress Line */}
+        <div className="w-full max-w-[260px] h-1 bg-white/10 rounded-full overflow-hidden mb-3">
+          <motion.div
+            className="h-full bg-sky-500 rounded-full"
+            style={{ width: `${progress}%` }}
+            transition={{ ease: 'linear', duration: 0.1 }}
+          />
+        </div>
+
+        {/* Subtle Percentage */}
+        <span className="font-mono text-[10px] text-neutral-500 tracking-widest uppercase">
+          {progress}%
         </span>
       </div>
     </motion.main>

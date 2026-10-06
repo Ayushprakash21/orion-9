@@ -1,16 +1,13 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { BrandLogo } from '../../components/brand/BrandLogo';
-import { worldEntryContainerVariants, worldEntryItemVariants } from '../motion/OrionMotionVariants';
+import { worldEntryContainerVariants } from '../motion/OrionMotionVariants';
 import { useIsReducedMotion } from '../motion/OrionMotion';
 
 interface Props {
   onComplete: () => void;
   isAdmin?: boolean;
 }
-
-const USER = ['IDENTITY', 'WORKSPACE', 'EVENTS', 'WORLD MODEL', 'DECISIONS', 'ACTIONS'];
-const ADMIN = ['IDENTITY', 'PRIVILEGE', 'GOVERNANCE', 'AUDIT', 'CONTROL PLANE', 'POLICY'];
 
 export const OrionWorldEntrySequence: React.FC<Props> = ({ onComplete, isAdmin = false }) => {
   const isReduced = useIsReducedMotion();
@@ -48,17 +45,14 @@ export const OrionWorldEntrySequence: React.FC<Props> = ({ onComplete, isAdmin =
     return () => cancelAnimationFrame(raf);
   }, [onComplete, isReduced]);
 
-  const systems = isAdmin ? ADMIN : USER;
-  const nodes = useMemo(
-    () =>
-      Array.from({ length: 18 }, (_, i) => {
-        const a = (i / 18) * Math.PI * 2;
-        return { x: 50 + Math.cos(a) * (30 + (i % 3) * 4), y: 50 + Math.sin(a) * (25 + (i % 2) * 5) };
-      }),
-    []
-  );
+  const pct = Math.min(100, Math.floor((elapsed / 1500) * 100));
 
-  const accepted = elapsed > 150, field = elapsed > 350, map = elapsed > 550, live = elapsed > 850, handoff = elapsed > 1250;
+  const getStatusText = () => {
+    if (pct < 30) return 'Restoring secure session';
+    if (pct < 70) return isAdmin ? 'Mounting governance space' : 'Preparing operational workspace';
+    if (pct < 95) return 'Finalizing environment';
+    return 'System ready';
+  };
 
   return (
     <motion.main
@@ -66,69 +60,43 @@ export const OrionWorldEntrySequence: React.FC<Props> = ({ onComplete, isAdmin =
       initial="hidden"
       animate="show"
       exit="exit"
-      className={`orion-cinematic orion-world-v3 ${isAdmin ? 'admin' : 'user'}`}
+      className="fixed inset-0 w-screen h-[100dvh] bg-[#07090D] z-[100000] flex flex-col items-center justify-center font-sans overflow-hidden select-none"
       role="status"
       aria-live="polite"
     >
-      <div className="ow3-depth" />
-      <div className="ow3-constellation">
-        {nodes.map((n, i) => (
-          <i key={i} style={{ left: `${n.x}%`, top: `${n.y}%`, animationDelay: `${i * 70}ms` }} />
-        ))}
-      </div>
-
-      <svg className={`ow3-lines ${map ? 'on' : ''}`} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M4 62 C24 20 35 82 50 48 S77 20 96 58" />
-        <path d="M8 32 C30 72 42 18 57 50 S78 82 94 28" />
-        <path d="M14 84 C33 42 44 70 61 44 S80 34 90 74" />
-      </svg>
-
-      <motion.div
-        variants={worldEntryItemVariants}
-        className={`ow3-core ${accepted ? 'on' : ''}`}
-      >
-        <div className="ow3-core-shell" />
-        <div className="ow3-core-light" />
-        <BrandLogo sizePreset="hero" variant="full" className="ow3-center-logo" />
-      </motion.div>
-
-      <header className={`ow3-header ${accepted ? 'on' : ''}`}>
-        <span className="ow3-dot" />
-        <span>{isAdmin ? 'PRIVILEGED CHANNEL' : 'SECURE SESSION'} / IDENTITY ACCEPTED</span>
-      </header>
-
-      <section className={`ow3-center-label ${field ? 'on' : ''}`} aria-hidden="true">
-        <span>{isAdmin ? 'CONTROL INTELLIGENCE' : 'ORION INTELLIGENCE'}</span>
-        <b>{isAdmin ? 'GOVERNANCE SPACE' : 'OPERATIONAL SPACE'}</b>
-      </section>
-
-      <section className={`ow3-system-map ${live ? 'on' : ''}`}>
-        <div className="ow3-map-head">
-          <span>SESSION FABRIC</span>
-          <b>{Math.min(100, Math.floor((elapsed / 1500) * 100))}%</b>
+      <div className="relative z-10 w-full max-w-sm flex flex-col items-center text-center px-6 pointer-events-none">
+        {/* Centered Authoritative Hero Logo */}
+        <div className="relative mb-6">
+          <BrandLogo
+            sizePreset="xl"
+            variant="full"
+            className="justify-center h-20 sm:h-24"
+          />
         </div>
-        {systems.map((s, i) => (
+
+        {/* Calm Primary Heading */}
+        <h2 className="text-sm sm:text-base font-semibold tracking-tight text-white mb-1.5">
+          {isAdmin ? 'Entering Control Center' : 'Starting Orion'}
+        </h2>
+
+        {/* Clear Subtitle / Status */}
+        <p className="text-xs text-neutral-400 font-normal mb-8 h-5 flex items-center justify-center">
+          {getStatusText()}
+        </p>
+
+        {/* Restrained Horizontal Progress Line */}
+        <div className="w-full max-w-[260px] h-1 bg-white/10 rounded-full overflow-hidden mb-3">
           <motion.div
-            key={s}
-            variants={worldEntryItemVariants}
-            className="ow3-row"
-            style={{ animationDelay: `${i * 140}ms` }}
-          >
-            <span>{String(i + 1).padStart(2, '0')}</span>
-            <b>{s}</b>
-            <em>BOUND</em>
-          </motion.div>
-        ))}
-      </section>
+            className="h-full bg-sky-500 rounded-full"
+            style={{ width: `${pct}%` }}
+            transition={{ ease: 'linear', duration: 0.1 }}
+          />
+        </div>
 
-      <div className="ow3-side">
-        <span>{isAdmin ? 'CONTROL PLANE' : 'WORLD MODEL'}</span>
-        <b>{handoff ? 'ACTIVE' : live ? 'SYNCHRONIZING' : 'ASSEMBLING'}</b>
-      </div>
-
-      <div className={`ow3-handoff ${handoff ? 'on' : ''}`}>
-        <i />
-        <span>ENTERING ORION WORLD</span>
+        {/* Subtle Percentage */}
+        <span className="font-mono text-[10px] text-neutral-500 tracking-widest uppercase">
+          {pct}%
+        </span>
       </div>
     </motion.main>
   );
