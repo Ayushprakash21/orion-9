@@ -11,7 +11,7 @@ export interface OrionLifecycleProgressProps {
   progress: number;
   label?: string;
   readyLabel?: string;
-  variant?: 'sky' | 'emerald' | 'red';
+  variant?: 'neutral' | 'emerald' | 'red';
   className?: string;
 }
 
@@ -19,7 +19,7 @@ export const OrionLifecycleProgress: React.FC<OrionLifecycleProgressProps> = ({
   progress,
   label = 'SYSTEM ASSEMBLY',
   readyLabel = 'SYSTEM READY',
-  variant = 'sky',
+  variant = 'neutral',
   className = '',
 }) => {
   const isComplete = progress >= 100;
@@ -28,8 +28,8 @@ export const OrionLifecycleProgress: React.FC<OrionLifecycleProgressProps> = ({
     variant === 'red'
       ? 'bg-red-500'
       : variant === 'emerald'
-      ? 'bg-emerald-400'
-      : 'bg-sky-500';
+      ? 'bg-[#5FAF8A]'
+      : 'bg-white/60';
 
   return (
     <div className={cn("w-full max-w-[280px] font-sans select-none", className)}>

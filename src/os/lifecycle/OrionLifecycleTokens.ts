@@ -12,17 +12,17 @@ export const ORION_LIFECYCLE_COLORS = {
   surfaceActive: 'rgba(255, 255, 255, 0.09)',
   border: 'rgba(255, 255, 255, 0.12)',
   borderHighlight: 'rgba(255, 255, 255, 0.25)',
-  primary: '#FFFFFF',
+  primary: '#F5F5F3',
   secondary: 'rgba(255, 255, 255, 0.72)',
   muted: 'rgba(255, 255, 255, 0.42)',
-  faint: 'rgba(255, 255, 255, 0.18)',
-  accent: '#38BDF8', // sky-400
-  accentMuted: 'rgba(56, 189, 248, 0.25)',
-  accentGlow: 'rgba(56, 189, 248, 0.12)',
-  ready: '#34D399', // emerald-400
-  readyGlow: 'rgba(52, 211, 153, 0.25)',
-  shutdown: '#F87171', // red-400
-  shutdownGlow: 'rgba(248, 113, 113, 0.25)',
+  faint: 'rgba(255, 255, 255, 0.16)',
+  accent: '#D8DDE3',
+  accentMuted: 'rgba(216, 221, 227, 0.18)',
+  accentGlow: 'rgba(216, 221, 227, 0.08)',
+  ready: '#5FAF8A',
+  readyGlow: 'rgba(95, 175, 138, 0.14)',
+  shutdown: '#C96B72',
+  shutdownGlow: 'rgba(201, 107, 114, 0.12)',
 } as const;
 
 export const ORION_LIFECYCLE_TIMING = {

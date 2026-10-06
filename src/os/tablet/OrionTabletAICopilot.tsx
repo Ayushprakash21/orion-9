@@ -287,7 +287,7 @@ export const OrionTabletAICopilot: React.FC = () => {
       {/* 1. STATUS & GROUNDING HEADER */}
       <div className="bg-os-surface border border-os-border rounded-2xl p-4 shrink-0 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0 shadow-[0_0_10px_rgba(6,182,212,0.2)]">
+          <div className="w-10 h-10 rounded-xl bg-white/[0.08] border border-white/20 flex items-center justify-center text-white/90 shrink-0 shadow-[0_0_10px_rgba(255,255,255,0.06)]">
             <Sparkles size={18} />
           </div>
           <div>
@@ -326,7 +326,7 @@ export const OrionTabletAICopilot: React.FC = () => {
       {/* 2. SCM TELEMETRY METRIC BAR */}
       <div className="bg-os-surface-secondary/80 border border-os-border/70 rounded-xl px-4 py-2 shrink-0 flex items-center justify-between text-xs font-mono text-os-text-secondary overflow-x-auto no-scrollbar gap-4">
         <div className="flex items-center gap-1.5 whitespace-nowrap">
-          <Activity size={14} className="text-cyan-400" />
+          <Activity size={14} className="text-white/60" />
           <span>Health:</span>
           <span className="font-bold text-os-text-primary">{healthScore}%</span>
         </div>
@@ -356,15 +356,15 @@ export const OrionTabletAICopilot: React.FC = () => {
           >
             <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold ${
               msg.sender === 'user'
-                ? 'bg-cyan-500 text-black shadow-xs'
-                : 'bg-cyan-950 border border-cyan-500/40 text-cyan-400'
+                ? 'bg-white text-black shadow-xs'
+                : 'bg-white/[0.08] border border-white/20 text-white/90'
             }`}>
               {msg.sender === 'user' ? <User size={15} /> : <Bot size={15} />}
             </div>
 
             <div className={`rounded-2xl p-3.5 text-xs shadow-xs space-y-1.5 ${
               msg.sender === 'user'
-                ? 'bg-cyan-500 text-black font-medium rounded-tr-none'
+                ? 'bg-white text-black font-medium rounded-tr-none'
                 : 'bg-os-surface border border-os-border text-os-text-primary rounded-tl-none leading-relaxed'
             }`}>
               <div className="whitespace-pre-wrap">{msg.text}</div>
@@ -380,11 +380,11 @@ export const OrionTabletAICopilot: React.FC = () => {
 
         {isProcessing && (
           <div className="flex gap-3 max-w-[80%] mr-auto items-center">
-            <div className="w-8 h-8 rounded-xl bg-cyan-950 border border-cyan-500/40 text-cyan-400 flex items-center justify-center shrink-0 animate-pulse">
+            <div className="w-8 h-8 rounded-xl bg-white/[0.08] border border-white/20 text-white/80 flex items-center justify-center shrink-0 animate-pulse">
               <Sparkles size={15} />
             </div>
-            <div className="bg-os-surface border border-os-border rounded-2xl rounded-tl-none px-4 py-2.5 text-xs text-cyan-400 font-mono flex items-center gap-2 shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+            <div className="bg-os-surface border border-os-border rounded-2xl rounded-tl-none px-4 py-2.5 text-xs text-white/80 font-mono flex items-center gap-2 shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-white/60 animate-ping" />
               <span>{processingState || 'Thinking...'}</span>
             </div>
           </div>
@@ -398,7 +398,7 @@ export const OrionTabletAICopilot: React.FC = () => {
         <button
           type="button"
           onClick={() => setIsGalleryOpen(true)}
-          className="px-3.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-xs font-mono font-bold text-cyan-400 flex items-center gap-1 hover:bg-cyan-500/20 active:scale-95 transition-all min-h-[38px] cursor-pointer shrink-0"
+          className="px-3.5 py-1.5 rounded-full bg-white/[0.08] border border-white/20 text-xs font-mono font-medium text-white flex items-center gap-1 hover:bg-white/[0.12] active:scale-95 transition-all min-h-[38px] cursor-pointer shrink-0"
           aria-label="Open Prompt Gallery"
         >
           <BookOpen size={13} />
@@ -410,7 +410,7 @@ export const OrionTabletAICopilot: React.FC = () => {
             type="button"
             onClick={() => setInputMessage(promptText)}
             disabled={isProcessing}
-            className="px-3.5 py-1.5 rounded-full bg-os-surface border border-os-border hover:border-cyan-400/50 active:bg-cyan-500/10 text-xs font-mono text-os-text-secondary hover:text-os-text-primary whitespace-nowrap active:scale-95 transition-all min-h-[38px] flex items-center cursor-pointer disabled:opacity-50"
+            className="px-3.5 py-1.5 rounded-full bg-os-surface border border-os-border hover:border-white/30 active:bg-white/[0.08] text-xs font-mono text-os-text-secondary hover:text-os-text-primary whitespace-nowrap active:scale-95 transition-all min-h-[38px] flex items-center cursor-pointer disabled:opacity-50"
             aria-label={`Select prompt suggestion: ${promptText}`}
           >
             {promptText}
@@ -436,13 +436,13 @@ export const OrionTabletAICopilot: React.FC = () => {
               }
             }}
             placeholder="Ask Orion AI about delayed shipments, inventory stockouts, or suppliers..."
-            className="w-full bg-os-surface border border-os-border focus:border-cyan-400 rounded-xl px-4 py-3 text-xs text-os-text-primary placeholder:text-os-text-muted focus:outline-none min-h-[44px] max-h-[120px] resize-none leading-relaxed"
+            className="w-full bg-os-surface border border-os-border focus:border-white/40 rounded-xl px-4 py-3 text-xs text-os-text-primary placeholder:text-os-text-muted focus:outline-none min-h-[44px] max-h-[120px] resize-none leading-relaxed"
           />
         </div>
         <button
           type="submit"
           disabled={!inputMessage.trim() || isProcessing}
-          className="p-3.5 rounded-xl bg-cyan-400 text-black font-bold disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-transform min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer shadow-xs shrink-0"
+          className="p-3.5 rounded-xl bg-white text-black font-bold disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-transform min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer shadow-xs shrink-0 hover:bg-slate-200"
           aria-label="Send Message to Orion AI"
           title="Send (Enter)"
         >
@@ -457,7 +457,7 @@ export const OrionTabletAICopilot: React.FC = () => {
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#0c0e11]">
               <div className="flex items-center gap-2.5">
-                <BookOpen size={18} className="text-cyan-400" />
+                <BookOpen size={18} className="text-white/80" />
                 <h2 className="text-base sm:text-lg font-semibold text-white">Orion Prompt Gallery</h2>
               </div>
               <button
@@ -479,7 +479,7 @@ export const OrionTabletAICopilot: React.FC = () => {
                   onClick={() => setActiveCategoryKey(cat.key)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
                     activeCategoryKey === cat.key
-                      ? "bg-cyan-500 text-black font-bold shadow-sm"
+                      ? "bg-white text-black font-bold shadow-sm"
                       : "bg-white/5 text-slate-300 hover:bg-white/10"
                   }`}
                   aria-label={`Category ${cat.label}`}
@@ -499,11 +499,11 @@ export const OrionTabletAICopilot: React.FC = () => {
                     setInputMessage(promptText);
                     setIsGalleryOpen(false);
                   }}
-                  className="w-full text-left p-3.5 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-cyan-500/40 text-sm text-slate-200 transition-all flex items-center justify-between group cursor-pointer"
+                  className="w-full text-left p-3.5 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-white/20 text-sm text-slate-200 transition-all flex items-center justify-between group cursor-pointer"
                   aria-label={`Select prompt ${promptText}`}
                 >
                   <span className="font-medium">{promptText}</span>
-                  <ArrowRight size={14} className="text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0" />
+                  <ArrowRight size={14} className="text-slate-500 group-hover:text-white transition-colors shrink-0" />
                 </button>
               ))}
             </div>

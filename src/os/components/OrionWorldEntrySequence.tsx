@@ -123,7 +123,7 @@ export const OrionWorldEntrySequence: React.FC<Props> = ({ onComplete, isAdmin =
           progress={pct}
           label="MOUNTING PROGRESS"
           readyLabel="SYSTEM READY"
-          variant={ready ? 'emerald' : 'sky'}
+          variant={ready ? 'emerald' : 'neutral'}
         />
       </div>
     </motion.main>

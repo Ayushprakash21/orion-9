@@ -110,7 +110,7 @@ export const OrionRestartScreen: React.FC<OrionRestartScreenProps> = ({ onComple
           progress={pct}
           label="REBOOT PROGRESS"
           readyLabel="SYSTEM READY"
-          variant={done ? 'emerald' : 'sky'}
+          variant={done ? 'emerald' : 'neutral'}
         />
       </div>
     </motion.main>

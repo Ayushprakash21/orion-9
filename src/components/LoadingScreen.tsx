@@ -37,10 +37,10 @@ class SafeCoreBoundary extends Component<{ children: ReactNode }, { hasError: bo
           className="relative flex items-center justify-center w-[220px] h-[220px] sm:w-[260px] sm:h-[260px]"
           aria-hidden="true"
         >
-          <div className="absolute w-44 h-44 rounded-full bg-[#00F2FE]/15 blur-2xl animate-pulse" />
-          <div className="relative w-28 h-28 rounded-full border border-[#00F2FE]/40 bg-[#080D1A] flex items-center justify-center shadow-[0_0_25px_rgba(0,242,254,0.3)]">
-            <div className="w-16 h-16 rounded-full border border-[#38BDF8]/60 flex items-center justify-center animate-spin">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#F59E0B] via-[#00F2FE] to-white shadow-[0_0_12px_#00F2FE] animate-ping" />
+          <div className="absolute w-44 h-44 rounded-full bg-white/[0.06] blur-2xl animate-pulse" />
+          <div className="relative w-28 h-28 rounded-full border border-white/20 bg-[#080D1A] flex items-center justify-center shadow-[0_0_25px_rgba(255,255,255,0.08)]">
+            <div className="w-16 h-16 rounded-full border border-white/30 flex items-center justify-center animate-spin">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#94A3B8] via-[#E2E8F0] to-white shadow-[0_0_12px_rgba(255,255,255,0.4)] animate-ping" />
             </div>
           </div>
         </div>
@@ -127,13 +127,13 @@ export const SupplyChainConvergence: React.FC<{ elapsed: number; duration: numbe
                 <path
                   d={pathD}
                   fill="none"
-                  stroke="rgba(0, 242, 254, 0.2)"
+                  stroke="rgba(255, 255, 255, 0.12)"
                   strokeWidth="1.5"
                   strokeDasharray="4 4"
                 />
                 
                 {isVisible && (
-                  <circle r="4" fill="#00F2FE" filter="url(#glow-convergence)">
+                  <circle r="4" fill="#D8DDE3" filter="url(#glow-convergence)">
                     <animateMotion
                       dur="1.5s"
                       repeatCount="indefinite"
@@ -145,11 +145,11 @@ export const SupplyChainConvergence: React.FC<{ elapsed: number; duration: numbe
                   </circle>
                 )}
 
-                <circle cx={x} cy={y} r="6" fill="#03060E" stroke="#00F2FE" strokeWidth="2" filter="url(#glow-convergence)" />
+                <circle cx={x} cy={y} r="6" fill="#03060E" stroke="#D8DDE3" strokeWidth="2" filter="url(#glow-convergence)" />
                 <text 
                   x={x + (x > 0 ? 12 : -12)} 
                   y={y + 4} 
-                  fill="#00F2FE" 
+                  fill="#D8DDE3" 
                   fontSize="10" 
                   fontFamily="monospace"
                   textAnchor={x > 0 ? "start" : "end"}
@@ -243,7 +243,7 @@ const OrionInitializationView: React.FC<{
         
         {/* Cinematic status text below the core */}
         <div className="absolute bottom-[20%] text-center">
-          <span className="text-xs tracking-[0.2em] font-mono text-[#00F2FE] uppercase opacity-80 animate-pulse transition-all duration-300">
+          <span className="text-xs tracking-[0.2em] font-mono text-white/70 uppercase opacity-80 animate-pulse transition-all duration-300">
             {getInitializationStatusText(elapsed, duration, isAdmin)}
           </span>
         </div>

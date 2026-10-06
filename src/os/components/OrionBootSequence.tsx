@@ -137,7 +137,7 @@ export function OrionBootSequence({ onComplete }: OrionBootSequenceProps) {
           progress={pct}
           label="ASSEMBLY PROGRESS"
           readyLabel="SYSTEM READY"
-          variant={ready ? 'emerald' : 'sky'}
+          variant={ready ? 'emerald' : 'neutral'}
         />
       </div>
     </motion.main>

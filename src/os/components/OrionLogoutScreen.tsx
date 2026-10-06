@@ -112,7 +112,7 @@ export const OrionLogoutScreen: React.FC<OrionLogoutScreenProps> = ({ onComplete
           progress={pct}
           label="TEARDOWN PROGRESS"
           readyLabel="SESSION CLOSED"
-          variant={done ? 'emerald' : 'sky'}
+          variant={done ? 'emerald' : 'neutral'}
         />
       </div>
     </motion.main>

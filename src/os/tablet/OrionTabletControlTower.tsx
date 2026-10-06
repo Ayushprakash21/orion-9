@@ -47,7 +47,7 @@ export const OrionTabletControlTower: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-lg font-bold text-os-text-primary">Orion Control Tower</h1>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-white/[0.06] text-white/70 border border-white/10">
               ACTIVE SCM CORE
             </span>
           </div>
@@ -59,7 +59,7 @@ export const OrionTabletControlTower: React.FC = () => {
         <button
           type="button"
           onClick={() => openOrionAI()}
-          className="px-3.5 py-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-bold flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer self-start sm:self-auto"
+          className="px-3.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.1] border border-white/12 text-white/80 hover:text-white text-xs font-mono font-medium flex items-center gap-1.5 active:scale-95 transition-all cursor-pointer self-start sm:self-auto"
         >
           <Sparkles size={14} />
           <span>Synthesize Tower State</span>
@@ -114,7 +114,7 @@ export const OrionTabletControlTower: React.FC = () => {
         <div className="bg-os-surface border border-os-border rounded-2xl p-4 shadow-sm space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-mono font-bold text-os-text-primary">Purchase Order Volume</span>
-            <span className="text-[11px] font-mono text-cyan-400">Velocity: Nominal</span>
+            <span className="text-[11px] font-mono text-emerald-400">Velocity: Nominal</span>
           </div>
           <div className="h-[180px] w-full">
             <ResponsiveContainer width="100%" height="100%">

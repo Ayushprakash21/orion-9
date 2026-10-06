@@ -105,28 +105,28 @@ export const OrionLifecycleOrbitalCore: React.FC<OrionLifecycleOrbitalCoreProps>
 
   // Semantic color and illumination tokens
   const glowColor = isShutdown
-    ? 'rgba(239, 68, 68, 0.12)'
+    ? 'rgba(201, 107, 114, 0.08)'
     : isReady
-    ? 'rgba(52, 211, 153, 0.12)'
-    : 'rgba(56, 189, 248, 0.10)';
+    ? 'rgba(95, 175, 138, 0.10)'
+    : 'rgba(255, 255, 255, 0.045)';
 
   const ringOuterBorder = isShutdown
-    ? 'border border-red-500/25 border-t-red-500/40'
+    ? 'border border-red-500/25 border-t-red-400/40'
     : isReady
-    ? 'border border-emerald-400/20 border-t-emerald-400/45'
-    : 'border border-white/12 border-t-sky-400/35';
+    ? 'border border-[#5FAF8A]/25 border-t-[#5FAF8A]/50'
+    : 'border border-white/14 border-t-white/35';
 
   const ringMidBorder = isShutdown
-    ? 'border border-dashed border-red-400/22 border-t-red-400/50'
+    ? 'border border-dashed border-red-400/20 border-t-red-400/45'
     : isReady
-    ? 'border border-dashed border-emerald-400/25 border-t-emerald-300/55'
-    : 'border border-dashed border-sky-400/22 border-t-sky-400/45';
+    ? 'border border-dashed border-[#5FAF8A]/25 border-t-[#5FAF8A]/55'
+    : 'border border-dashed border-white/18 border-t-white/40';
 
   const arcColor = isShutdown
-    ? 'rgba(239, 68, 68, 0.35)'
+    ? 'rgba(201, 107, 114, 0.30)'
     : isReady
-    ? 'rgba(52, 211, 153, 0.38)'
-    : 'rgba(56, 189, 248, 0.32)';
+    ? 'rgba(95, 175, 138, 0.35)'
+    : 'rgba(220, 225, 230, 0.25)';
 
   return (
     <div

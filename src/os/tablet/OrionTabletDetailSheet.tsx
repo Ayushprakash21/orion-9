@@ -54,7 +54,7 @@ export const OrionTabletDetailSheet: React.FC = () => {
         {/* Header */}
         <div className="px-5 py-4 border-b border-os-border flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+            <div className="w-8 h-8 rounded-xl bg-white/[0.08] border border-white/20 flex items-center justify-center text-white/80">
               <ShieldAlert size={16} />
             </div>
             <div>
@@ -95,11 +95,11 @@ export const OrionTabletDetailSheet: React.FC = () => {
           )}
 
           {raw.recommendedAction && (
-            <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/30 space-y-1">
-              <span className="font-mono font-bold text-cyan-400 text-[10px] uppercase block">
+            <div className="p-3 rounded-xl bg-white/[0.06] border border-white/10 space-y-1">
+              <span className="font-mono font-bold text-white/90 text-[10px] uppercase block">
                 Recommended Action
               </span>
-              <p className="text-cyan-300">{raw.recommendedAction}</p>
+              <p className="text-white/80">{raw.recommendedAction}</p>
             </div>
           )}
         </div>
@@ -116,7 +116,7 @@ export const OrionTabletDetailSheet: React.FC = () => {
           <button
             type="button"
             onClick={() => handleAction('Automated Containment')}
-            className="px-4 py-2 rounded-xl bg-cyan-400 text-black text-xs font-mono font-bold shadow-xs hover:bg-cyan-300"
+            className="px-4 py-2 rounded-xl bg-white text-black text-xs font-mono font-bold shadow-xs hover:bg-slate-200"
           >
             Execute Action
           </button>

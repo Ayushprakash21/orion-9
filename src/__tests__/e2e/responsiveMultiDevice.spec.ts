@@ -26,8 +26,16 @@ const VIEWPORTS = [
 test.describe('Orion-9 Multi-Device Responsive Verification', () => {
   for (const vp of VIEWPORTS) {
     test(`Layout integrity on ${vp.name}`, async ({ page }) => {
+      await page.addInitScript(() => {
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+          sessionStorage.setItem('orion_os_power_state', 'ON');
+        } catch (e) {}
+      });
+
       await page.setViewportSize({ width: vp.width, height: vp.height });
-      await page.goto('/');
+      await page.goto('/login');
 
       // 1. Check Login / Startup Portal fits within viewport
       const loginCard = page.locator('.orion-auth-card, [data-testid="login-card"], form').first();
@@ -39,26 +47,19 @@ test.describe('Orion-9 Multi-Device Responsive Verification', () => {
       });
       expect(authOverflow).toBe(true);
 
-      // 2. Perform Quick Login
-      const quickLoginBtn = page.getByRole('button', { name: /quick launch|quick test/i })
-        .or(page.locator('button:has-text("Quick"), button:has-text("Demo"), button:has-text("Admin")').first());
-      
-      if (await quickLoginBtn.isVisible()) {
-        await quickLoginBtn.click();
-      } else {
-        // Fallback login
-        const usernameInput = page.locator('input[type="text"], input[type="email"]').first();
-        if (await usernameInput.isVisible()) {
-          await usernameInput.fill('admin@orion.internal');
-          const passwordInput = page.locator('input[type="password"]').first();
-          await passwordInput.fill('OrionAdmin2026!');
-          await page.locator('button[type="submit"]').click();
-        }
-      }
+      // 2. Perform Login (Two-stage flow)
+      await page.fill('input#username', 'admin');
+      await page.click('button[type="submit"]');
+      await expect(page.locator('input#password')).toBeVisible({ timeout: 5000 });
+      await page.fill('input#password', 'admin');
+      await page.click('button[type="submit"]');
 
-      // 3. Verify Desktop Shell is visible
-      const desktopShell = page.locator('.orion-desktop-shell');
-      await expect(desktopShell).toBeVisible({ timeout: 15000 });
+      // 3. Verify Shell is visible (Mobile shell for phone, Desktop shell for desktop/tablet)
+      const shellSelector = vp.isMobile
+        ? '[data-orion-mobile-shell="true"]'
+        : '.orion-desktop-shell, [data-orion-tablet-shell="true"]';
+      const activeShell = page.locator(shellSelector).first();
+      await expect(activeShell).toBeVisible({ timeout: 15000 });
 
       // 4. Assert zero document page scrolling (BOTH vertical and horizontal must be ZERO)
       const hasZeroPageScroll = await page.evaluate(() => {

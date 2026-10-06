@@ -33,7 +33,7 @@ export const OrionTabletContentRouter: React.FC = () => {
           <button
             type="button"
             onClick={closeApp}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-os-surface-secondary hover:bg-os-surface-hover border border-os-border text-xs font-mono text-cyan-400 font-bold active:scale-95 transition-all cursor-pointer min-h-[40px]"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-os-surface-secondary hover:bg-os-surface-hover border border-os-border text-xs font-mono text-os-text-secondary hover:text-os-text-primary font-bold active:scale-95 transition-all cursor-pointer min-h-[40px]"
             aria-label="Back to Applications"
           >
             <ArrowLeft size={16} />
@@ -44,7 +44,7 @@ export const OrionTabletContentRouter: React.FC = () => {
             <span className="text-xs font-mono font-bold text-os-text-primary">
               {appConfig ? appConfig.name : activeAppId}
             </span>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-white/[0.06] text-white/70 border border-white/10">
               TABLET VIEW
             </span>
           </div>

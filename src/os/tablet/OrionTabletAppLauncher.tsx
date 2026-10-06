@@ -76,7 +76,7 @@ export const OrionTabletAppLauncher: React.FC = () => {
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search 100+ Enterprise Apps..."
-            className="w-full bg-os-surface-secondary border border-os-border focus:border-cyan-400 rounded-xl pl-11 pr-4 py-3 text-sm text-os-text-primary placeholder:text-os-text-muted focus:outline-none transition-colors"
+            className="w-full bg-os-surface-secondary border border-os-border focus:border-white/40 rounded-xl pl-11 pr-4 py-3 text-sm text-os-text-primary placeholder:text-os-text-muted focus:outline-none transition-colors"
           />
           {searchQuery && (
             <button
@@ -97,7 +97,7 @@ export const OrionTabletAppLauncher: React.FC = () => {
         return (
           <div key={catKey} className="space-y-3">
             <div className="flex items-center gap-2 px-1">
-              <span className="w-2 h-2 rounded-full bg-cyan-400" />
+              <span className="w-2 h-2 rounded-full bg-white/60" />
               <h2 className="text-xs font-mono font-bold uppercase tracking-wider text-os-text-primary">
                 {CATEGORY_NAMES[catKey] || catKey} ({apps.length})
               </h2>
@@ -109,7 +109,7 @@ export const OrionTabletAppLauncher: React.FC = () => {
                 <div
                   key={app.id}
                   onClick={() => handleLaunchApp(app.id)}
-                  className="bg-os-surface hover:bg-os-surface/90 border border-os-border hover:border-cyan-500/40 rounded-2xl p-3.5 flex items-center gap-3.5 shadow-sm active:scale-[0.98] transition-all cursor-pointer group min-h-[72px]"
+                  className="bg-os-surface hover:bg-os-surface/90 border border-os-border hover:border-white/20 rounded-2xl p-3.5 flex items-center gap-3.5 shadow-sm active:scale-[0.98] transition-all cursor-pointer group min-h-[72px]"
                   role="button"
                   aria-label={`Open ${app.name}`}
                 >
@@ -119,10 +119,10 @@ export const OrionTabletAppLauncher: React.FC = () => {
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-1">
-                      <h3 className="text-xs font-bold text-os-text-primary truncate group-hover:text-cyan-400 transition-colors">
+                      <h3 className="text-xs font-bold text-os-text-primary truncate group-hover:text-white transition-colors">
                         {app.name}
                       </h3>
-                      <ChevronRight size={14} className="text-os-text-muted group-hover:text-cyan-400 group-hover:translate-x-0.5 transition-all shrink-0" />
+                      <ChevronRight size={14} className="text-os-text-muted group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
                     </div>
                     <p className="text-[11px] text-os-text-muted truncate mt-0.5">
                       {app.description}

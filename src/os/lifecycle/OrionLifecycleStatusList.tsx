@@ -37,7 +37,7 @@ export const OrionLifecycleStatusList: React.FC<OrionLifecycleStatusListProps> =
         <span>{title}</span>
         <span className={cn(
           "transition-colors text-[10px] font-medium tracking-wide",
-          allReady ? "text-emerald-400" : "text-sky-400/80"
+          allReady ? "text-[#5FAF8A]" : "text-white/50"
         )}>
           {allReady ? 'SYSTEM READY' : 'IN PROGRESS'}
         </span>

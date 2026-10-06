@@ -72,7 +72,7 @@ export const OrionTabletHome: React.FC = () => {
             <h1 className="text-lg font-bold text-os-text-primary tracking-tight">
               Supply Chain Command Center
             </h1>
-            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-white/[0.06] text-white/70 border border-white/10">
               TABLET OS
             </span>
           </div>
@@ -83,7 +83,7 @@ export const OrionTabletHome: React.FC = () => {
 
         <div 
           onClick={() => navigateToTab('control')}
-          className="flex items-center gap-3 bg-os-surface-secondary border border-os-border hover:border-cyan-500/40 rounded-xl px-4 py-2 cursor-pointer active:scale-98 transition-all"
+          className="flex items-center gap-3 bg-os-surface-secondary border border-os-border hover:border-white/20 rounded-xl px-4 py-2 cursor-pointer active:scale-98 transition-all"
         >
           <div>
             <div className="text-[10px] font-mono uppercase text-os-text-muted">
@@ -96,7 +96,7 @@ export const OrionTabletHome: React.FC = () => {
               </span>
             </div>
           </div>
-          <ChevronRight size={16} className="text-cyan-400" />
+          <ChevronRight size={16} className="text-white/60" />
         </div>
       </div>
 
@@ -105,11 +105,11 @@ export const OrionTabletHome: React.FC = () => {
         {/* Orders Card */}
         <div 
           onClick={() => openApp('procurement')}
-          className="bg-os-surface border border-os-border hover:border-cyan-500/40 rounded-2xl p-3.5 shadow-sm active:scale-[0.98] transition-all cursor-pointer flex flex-col justify-between min-h-[92px]"
+          className="bg-os-surface border border-os-border hover:border-white/20 rounded-2xl p-3.5 shadow-sm active:scale-[0.98] transition-all cursor-pointer flex flex-col justify-between min-h-[92px]"
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-mono uppercase text-os-text-muted font-medium">Orders</span>
-            <ShoppingCart size={15} className="text-cyan-400" />
+            <ShoppingCart size={15} className="text-white/60" />
           </div>
           <div className="mt-2">
             <div className="text-xl font-bold font-mono text-os-text-primary">
@@ -125,7 +125,7 @@ export const OrionTabletHome: React.FC = () => {
         {/* Inventory Card */}
         <div 
           onClick={() => openApp('inventory')}
-          className="bg-os-surface border border-os-border hover:border-cyan-500/40 rounded-2xl p-3.5 shadow-sm active:scale-[0.98] transition-all cursor-pointer flex flex-col justify-between min-h-[92px]"
+          className="bg-os-surface border border-os-border hover:border-white/20 rounded-2xl p-3.5 shadow-sm active:scale-[0.98] transition-all cursor-pointer flex flex-col justify-between min-h-[92px]"
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-mono uppercase text-os-text-muted font-medium">Inventory</span>
@@ -145,7 +145,7 @@ export const OrionTabletHome: React.FC = () => {
         {/* Shipments Card */}
         <div 
           onClick={() => openApp('shipments')}
-          className="bg-os-surface border border-os-border hover:border-cyan-500/40 rounded-2xl p-3.5 shadow-sm active:scale-[0.98] transition-all cursor-pointer flex flex-col justify-between min-h-[92px]"
+          className="bg-os-surface border border-os-border hover:border-white/20 rounded-2xl p-3.5 shadow-sm active:scale-[0.98] transition-all cursor-pointer flex flex-col justify-between min-h-[92px]"
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-mono uppercase text-os-text-muted font-medium">Shipments</span>
@@ -155,7 +155,7 @@ export const OrionTabletHome: React.FC = () => {
             <div className="text-xl font-bold font-mono text-os-text-primary">
               {formatNumber(shpMetric?.value || shipments.length || 67)}
             </div>
-            <div className="text-[10px] font-mono text-cyan-400 flex items-center gap-0.5 mt-0.5">
+            <div className="text-[10px] font-mono text-white/60 flex items-center gap-0.5 mt-0.5">
               <Activity size={10} />
               <span>{shipments.filter(s => s.status === 'In Transit').length || 42} active</span>
             </div>
@@ -165,7 +165,7 @@ export const OrionTabletHome: React.FC = () => {
         {/* Exceptions Card */}
         <div 
           onClick={() => navigateToTab('alerts')}
-          className="bg-os-surface border border-os-border hover:border-cyan-500/40 rounded-2xl p-3.5 shadow-sm active:scale-[0.98] transition-all cursor-pointer flex flex-col justify-between min-h-[92px]"
+          className="bg-os-surface border border-os-border hover:border-white/20 rounded-2xl p-3.5 shadow-sm active:scale-[0.98] transition-all cursor-pointer flex flex-col justify-between min-h-[92px]"
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-mono uppercase text-os-text-muted font-medium">Exceptions</span>
@@ -234,7 +234,7 @@ export const OrionTabletHome: React.FC = () => {
                 onClick={() => setActiveChartMetric(key)}
                 className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all whitespace-nowrap cursor-pointer ${
                   activeChartMetric === key
-                    ? 'bg-os-surface text-cyan-400 font-bold shadow-xs border border-os-border'
+                    ? 'bg-os-surface text-os-text-primary font-bold shadow-xs border border-white/20'
                     : 'text-os-text-muted hover:text-os-text-primary'
                 }`}
               >
@@ -257,8 +257,8 @@ export const OrionTabletHome: React.FC = () => {
               <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="tabletChartGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#06b6d4" stopOpacity={0.4} />
-                    <stop offset="95%" stopColor="#06b6d4" stopOpacity={0.0} />
+                    <stop offset="5%" stopColor="#94a3b8" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="#94a3b8" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#22283a" vertical={false} />
@@ -266,13 +266,13 @@ export const OrionTabletHome: React.FC = () => {
                 <YAxis stroke="#64748b" fontSize={10} tickLine={false} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#0c101c', borderColor: '#22283a', borderRadius: '8px', fontSize: '12px' }}
-                  itemStyle={{ color: '#06b6d4' }}
+                  itemStyle={{ color: '#e2e8f0' }}
                   formatter={(value: any) => [
                     typeof value === 'number' ? formatNumber(value) : value,
                     activeChartMetric === 'PO_VOLUME' ? 'Orders' : activeChartMetric === 'SHIPMENT_VOLUME' ? 'Shipments' : activeChartMetric === 'INVENTORY_ON_HAND' ? 'Inventory' : 'Exceptions'
                   ]}
                 />
-                <Area type="monotone" dataKey={activeChartMetric} stroke="#06b6d4" strokeWidth={2} fillOpacity={1} fill="url(#tabletChartGrad)" />
+                <Area type="monotone" dataKey={activeChartMetric} stroke="#94a3b8" strokeWidth={2} fillOpacity={1} fill="url(#tabletChartGrad)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -291,7 +291,7 @@ export const OrionTabletHome: React.FC = () => {
           <button 
             type="button"
             onClick={() => navigateToTab('alerts')}
-            className="text-xs font-mono text-cyan-400 hover:underline cursor-pointer"
+            className="text-xs font-mono text-white/70 hover:text-white hover:underline cursor-pointer"
           >
             View All Alerts
           </button>
@@ -302,7 +302,7 @@ export const OrionTabletHome: React.FC = () => {
             <div 
               key={exc.id}
               onClick={() => openEntityDetail({ type: 'exception', id: exc.id, data: exc })}
-              className="bg-os-surface-secondary/70 hover:bg-os-surface-secondary border border-os-border/70 hover:border-cyan-500/30 rounded-xl p-3 flex flex-col justify-between gap-2 active:scale-[0.99] transition-all cursor-pointer"
+              className="bg-os-surface-secondary/70 hover:bg-os-surface-secondary border border-os-border/70 hover:border-white/20 rounded-xl p-3 flex flex-col justify-between gap-2 active:scale-[0.99] transition-all cursor-pointer"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -320,7 +320,7 @@ export const OrionTabletHome: React.FC = () => {
               </div>
               <div className="flex items-center justify-between pt-1 border-t border-os-border/40 text-[10px] font-mono text-os-text-muted">
                 <span>{exc.entityId}</span>
-                <span className="text-cyan-400 font-semibold flex items-center gap-0.5">
+                <span className="text-white/70 font-semibold flex items-center gap-0.5">
                   Inspect <ChevronRight size={10} />
                 </span>
               </div>

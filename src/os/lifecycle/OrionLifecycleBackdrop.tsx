@@ -37,11 +37,11 @@ export const OrionLifecycleBackdrop: React.FC<OrionLifecycleBackdropProps> = ({
 
   const ambientGlowColor =
     variant === 'shutdown'
-      ? 'rgba(239, 68, 68, 0.04)'
+      ? 'rgba(201, 107, 114, 0.04)'
       : variant === 'ready'
-      ? 'rgba(52, 211, 153, 0.035)'
+      ? 'rgba(95, 175, 138, 0.035)'
       : variant === 'boot'
-      ? 'rgba(56, 189, 248, 0.035)'
+      ? 'rgba(255, 255, 255, 0.025)'
       : 'rgba(255, 255, 255, 0.025)';
 
   return (
@@ -130,7 +130,7 @@ export const OrionLifecycleBackdrop: React.FC<OrionLifecycleBackdropProps> = ({
             <path
               d="M25 25 L35 80 M45 20 L50 65 M65 20 L65 80 M85 30 L50 35 M20 65 L50 35 L90 50"
               fill="none"
-              stroke="rgba(56, 189, 248, 0.25)"
+              stroke="rgba(255, 255, 255, 0.08)"
               strokeWidth="0.08"
               strokeDasharray="1 3"
             />

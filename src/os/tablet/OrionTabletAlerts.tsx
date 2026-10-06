@@ -61,7 +61,7 @@ export const OrionTabletAlerts: React.FC = () => {
               onClick={() => setSelectedSeverity(sev)}
               className={`px-3 py-1 rounded-lg text-xs font-mono font-semibold transition-all cursor-pointer whitespace-nowrap ${
                 selectedSeverity === sev
-                  ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 shadow-xs'
+                  ? 'bg-white/[0.08] text-white border border-white/20 shadow-xs'
                   : 'text-os-text-muted hover:text-os-text-primary'
               }`}
             >
@@ -81,7 +81,7 @@ export const OrionTabletAlerts: React.FC = () => {
             <div
               key={exc.id}
               onClick={() => openEntityDetail({ type: 'exception', id: exc.id, data: exc })}
-              className="bg-os-surface hover:bg-os-surface/90 border border-os-border hover:border-cyan-500/30 rounded-2xl p-4 flex flex-col justify-between gap-3 shadow-sm active:scale-[0.99] transition-all cursor-pointer"
+              className="bg-os-surface hover:bg-os-surface/90 border border-os-border hover:border-white/20 rounded-2xl p-4 flex flex-col justify-between gap-3 shadow-sm active:scale-[0.99] transition-all cursor-pointer"
             >
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-2">
@@ -91,7 +91,7 @@ export const OrionTabletAlerts: React.FC = () => {
                         ? 'bg-red-500/15 text-red-400 border-red-500/40'
                         : isHigh
                         ? 'bg-amber-500/15 text-amber-400 border-amber-500/40'
-                        : 'bg-blue-500/15 text-blue-400 border-blue-500/40'
+                        : 'bg-white/[0.06] text-white/70 border-white/10'
                     }`}>
                       {exc.severity}
                     </span>
@@ -115,8 +115,8 @@ export const OrionTabletAlerts: React.FC = () => {
                 </p>
 
                 {exc.recommendedAction && (
-                  <div className="bg-os-surface-secondary/70 border border-os-border/50 rounded-xl p-2.5 text-[11px] text-cyan-300">
-                    <span className="font-mono font-bold text-cyan-400 block text-[9px] uppercase tracking-wider mb-0.5">
+                  <div className="bg-os-surface-secondary/70 border border-os-border/50 rounded-xl p-2.5 text-[11px] text-white/80">
+                    <span className="font-mono font-bold text-white/90 block text-[9px] uppercase tracking-wider mb-0.5">
                       RECOMMENDED ACTION:
                     </span>
                     {exc.recommendedAction}
@@ -126,10 +126,10 @@ export const OrionTabletAlerts: React.FC = () => {
 
               <div className="flex items-center justify-between pt-2 border-t border-os-border/60 text-xs font-mono">
                 <span className="text-os-text-muted flex items-center gap-1">
-                  <Zap size={12} className="text-cyan-400" />
+                  <Zap size={12} className="text-white/60" />
                   {exc.status}
                 </span>
-                <span className="text-cyan-400 font-bold flex items-center gap-0.5">
+                <span className="text-white/80 hover:text-white font-bold flex items-center gap-0.5">
                   Review &amp; Execute <ArrowUpRight size={14} />
                 </span>
               </div>
