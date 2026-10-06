@@ -167,6 +167,56 @@ export class ScmStateMachine {
       { from: 'PENDING', to: ['POSTED', 'REVERSED'] },
       { from: 'POSTED', to: ['REVERSED'] },
     ]);
+
+    // 19. Production Order (Plan-to-Produce)
+    this.defineTransitions('ProductionOrder', [
+      { from: 'DRAFT', to: ['PLANNED', 'CANCELLED'] },
+      { from: 'PLANNED', to: ['RELEASED', 'CANCELLED'] },
+      { from: 'RELEASED', to: ['IN_PROGRESS', 'CANCELLED'] },
+      { from: 'IN_PROGRESS', to: ['QUALITY_INSPECTION', 'COMPLETED', 'CANCELLED'] },
+      { from: 'QUALITY_INSPECTION', to: ['COMPLETED', 'REWORK'] },
+      { from: 'REWORK', to: ['IN_PROGRESS', 'CANCELLED'] },
+      { from: 'COMPLETED', to: ['CLOSED'] },
+    ]);
+
+    // 20. Return Request (Reverse Logistics)
+    this.defineTransitions('ReturnRequest', [
+      { from: 'DRAFT', to: ['SUBMITTED', 'CANCELLED'] },
+      { from: 'SUBMITTED', to: ['APPROVED', 'REJECTED', 'CANCELLED'] },
+      { from: 'APPROVED', to: ['PICKUP_SCHEDULED', 'RECEIVED'] },
+      { from: 'PICKUP_SCHEDULED', to: ['RECEIVED'] },
+      { from: 'RECEIVED', to: ['INSPECTING'] },
+      { from: 'INSPECTING', to: ['RESTOCKED', 'REPAIRED', 'SCRAPPED', 'REFUNDED'] },
+    ]);
+
+    // 21. Asset Maintenance
+    this.defineTransitions('AssetMaintenance', [
+      { from: 'SCHEDULED', to: ['IN_PROGRESS', 'PARTS_WAITING', 'CANCELLED'] },
+      { from: 'PARTS_WAITING', to: ['IN_PROGRESS', 'CANCELLED'] },
+      { from: 'IN_PROGRESS', to: ['COMPLETED', 'CANCELLED'] },
+    ]);
+
+    // 22. Risk Signal
+    this.defineTransitions('RiskSignal', [
+      { from: 'DETECTED', to: ['ANALYZING', 'DISMISSED'] },
+      { from: 'ANALYZING', to: ['SCENARIO_GENERATED', 'DISMISSED'] },
+      { from: 'SCENARIO_GENERATED', to: ['ACTION_PROPOSED', 'DISMISSED'] },
+      { from: 'ACTION_PROPOSED', to: ['EXECUTED', 'DISMISSED'] },
+      { from: 'EXECUTED', to: ['RESOLVED'] },
+    ]);
+
+    // 23. Autonomous Decision (SENSE -> ACT -> LEARN)
+    this.defineTransitions('AutonomousDecision', [
+      { from: 'SENSE', to: ['UNDERSTAND', 'CANCELLED'] },
+      { from: 'UNDERSTAND', to: ['PREDICT', 'CANCELLED'] },
+      { from: 'PREDICT', to: ['SIMULATE', 'CANCELLED'] },
+      { from: 'SIMULATE', to: ['DECIDE', 'CANCELLED'] },
+      { from: 'DECIDE', to: ['GOVERN_CHECK', 'PENDING_HUMAN_APPROVAL', 'EXECUTE', 'CANCELLED'] },
+      { from: 'PENDING_HUMAN_APPROVAL', to: ['EXECUTE', 'REJECTED', 'CANCELLED'] },
+      { from: 'GOVERN_CHECK', to: ['EXECUTE', 'PENDING_HUMAN_APPROVAL', 'REJECTED'] },
+      { from: 'EXECUTE', to: ['OBSERVE', 'FAILED'] },
+      { from: 'OBSERVE', to: ['LEARN_COMPLETE'] },
+    ]);
   }
 
   private defineTransitions(entityType: string, rules: Array<{ from: string; to: string[] }>): void {

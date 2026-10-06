@@ -63,7 +63,7 @@ export class DecisionEngine {
           field: 'Days of Supply',
           value: metrics.daysOfSupply,
           timestamp: new Date().toISOString(),
-          description: `Calculated days of supply is ${metrics.daysOfSupply.toFixed(1)} days.`,
+          description: `Calculated days of supply is ${metrics.daysOfSupply != null ? Number(metrics.daysOfSupply).toFixed(1) : '0'} days.`,
           confidence: 'HIGH'
         });
       }
