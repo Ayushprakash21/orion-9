@@ -106,6 +106,7 @@ import { DatabaseControlCenter } from './components/admin/DatabaseControlCenter'
 import { motion, AnimatePresence } from 'motion/react';
 import { LoadingScreen } from './components/LoadingScreen';
 import { OrionBootSequence } from './os/components/OrionBootSequence';
+import { OrionRestartScreen } from './os/components/OrionRestartScreen';
 import { OrionWorldEntrySequence } from './os/components/OrionWorldEntrySequence';
 import { OrionLogoutScreen } from './os/components/OrionLogoutScreen';
 
@@ -367,21 +368,10 @@ function AppBootstrap() {
     // 2. SYSTEM REBOOT SEQUENCE:
     if (bootState === 'RESTARTING') {
       return (
-        <motion.div
+        <OrionRestartScreen
           key="restarting"
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.7, filter: 'blur(12px)' }}
-          transition={{ duration: 0.5 }}
-          className="fixed inset-0 z-[100000] w-full h-full bg-[#03060E] flex flex-col items-center justify-center font-mono select-none"
-        >
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-            className="w-10 h-10 rounded-full border-2 border-t-[#00F2FE] border-r-transparent border-b-transparent border-l-transparent mb-4 shadow-[0_0_15px_rgba(0,242,254,0.3)]"
-          />
-          <span className="text-xs text-os-text-primary tracking-[0.25em] uppercase font-semibold">RESTARTING ORION OS...</span>
-        </motion.div>
+          onComplete={completeSystemInitialization}
+        />
       );
     }
   

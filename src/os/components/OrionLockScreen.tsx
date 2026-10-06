@@ -4,8 +4,7 @@ import { UserProfile } from '../../types/auth';
 import { Lock, Unlock, Shield } from 'lucide-react';
 import { userService } from '../../services/userService';
 import { lockScreenVariants } from '../motion/OrionMotionVariants';
-import { isReducedMotionPreferred } from '../motion/OrionMotion';
-import { useSupplyChain } from '../../store/SupplyChainContext';
+import { useIsReducedMotion } from '../motion/OrionMotion';
 
 interface OrionLockScreenProps {
   onUnlock: () => void;
@@ -13,8 +12,7 @@ interface OrionLockScreenProps {
 }
 
 export const OrionLockScreen: React.FC<OrionLockScreenProps> = ({ onUnlock, currentUser }) => {
-  const supplyChain = useSupplyChain();
-  const isReduced = isReducedMotionPreferred(supplyChain?.settings?.reducedMotion);
+  const isReduced = useIsReducedMotion();
 
   const [password, setPassword] = React.useState('');
   const [error, setError] = React.useState(false);
@@ -61,6 +59,7 @@ export const OrionLockScreen: React.FC<OrionLockScreenProps> = ({ onUnlock, curr
 
   return (
     <motion.div
+      data-testid="orion-lock-screen"
       variants={lockScreenVariants}
       initial="initial"
       animate="animate"
@@ -69,8 +68,8 @@ export const OrionLockScreen: React.FC<OrionLockScreenProps> = ({ onUnlock, curr
     >
       {/* Ambient background lighting */}
       <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-[35vw] h-[35vw] bg-os-accent opacity-[0.03] rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-[30vw] h-[30vw] bg-[#8B5CF6] opacity-[0.03] rounded-full blur-[120px]" />
+        <div className="absolute top-1/4 left-1/4 w-[35vw] h-[35vw] bg-white/[0.02] rounded-full blur-[120px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-[30vw] h-[30vw] bg-white/[0.015] rounded-full blur-[120px]" />
         <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02]" />
       </div>
 
@@ -95,7 +94,7 @@ export const OrionLockScreen: React.FC<OrionLockScreenProps> = ({ onUnlock, curr
               </span>
             )}
           </div>
-          <div className="absolute -bottom-2 -right-2 w-7 h-7 rounded-lg bg-os-surface border border-os-border flex items-center justify-center text-os-accent shadow-lg z-10">
+          <div className="absolute -bottom-2 -right-2 w-7 h-7 rounded-lg bg-os-surface border border-os-border flex items-center justify-center text-os-text-primary shadow-lg z-10">
             <Lock className="w-3.5 h-3.5" />
           </div>
         </div>
@@ -109,7 +108,7 @@ export const OrionLockScreen: React.FC<OrionLockScreenProps> = ({ onUnlock, curr
         </p>
 
         <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/[0.04] border border-os-border text-[10px] font-mono text-os-text-muted uppercase tracking-widest mb-10">
-          <Shield className="w-3 h-3 text-os-accent" />
+          <Shield className="w-3 h-3 text-os-text-muted" />
           <span>Workstation Locked</span>
         </div>
 
@@ -124,7 +123,7 @@ export const OrionLockScreen: React.FC<OrionLockScreenProps> = ({ onUnlock, curr
             }}
             placeholder="Enter password..."
             className={`w-full bg-os-surface border ${
-              error ? 'border-red-500' : 'border-os-border focus:border-os-accent'
+              error ? 'border-red-500' : 'border-os-border focus:border-white/40'
             } rounded-lg py-2.5 px-4 text-sm text-center text-os-text-primary placeholder:text-os-text-muted transition-colors outline-none`}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleUnlockAttempt();
@@ -139,15 +138,15 @@ export const OrionLockScreen: React.FC<OrionLockScreenProps> = ({ onUnlock, curr
           type="button"
           onClick={handleUnlockAttempt}
           disabled={isVerifying}
-          className="group relative px-8 py-3 bg-os-surface-hover hover:bg-os-surface-active border border-[#00F2FE]/30 text-os-text-primary rounded-xl transition-all duration-300 shadow-[0_0_20px_rgba(0,242,254,0.05)] hover:shadow-[0_0_25px_rgba(0,242,254,0.15)] flex items-center gap-2 cursor-pointer"
+          className="group relative px-8 py-3 bg-white/[0.04] hover:bg-white/[0.08] border border-white/15 hover:border-white/30 text-os-text-primary rounded-xl transition-all duration-300 shadow-[0_12px_24px_rgba(0,0,0,0.4)] flex items-center gap-2 cursor-pointer"
         >
-          <Unlock className="w-4 h-4 text-os-accent transition-transform duration-300 group-hover:scale-110" />
+          <Unlock className="w-4 h-4 text-os-text-primary transition-transform duration-300 group-hover:scale-110" />
           <span className="text-xs tracking-[0.15em] font-medium uppercase text-os-text-primary">
             {isVerifying ? 'VERIFYING...' : 'UNLOCK SESSION'}
           </span>
         </motion.button>
 
-        <span className="text-[10px] text-slate-600 font-mono mt-6">
+        <span className="text-[10px] text-neutral-500 font-mono mt-6">
           Press Enter or Space to resume
         </span>
       </motion.div>

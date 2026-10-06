@@ -1,15 +1,13 @@
 import React, { useEffect } from 'react';
 import { motion } from 'motion/react';
-import { isReducedMotionPreferred } from '../motion/OrionMotion';
-import { useSupplyChain } from '../../store/SupplyChainContext';
+import { useIsReducedMotion } from '../motion/OrionMotion';
 
 interface OrionSleepScreenProps {
   onWake: () => void;
 }
 
 export const OrionSleepScreen: React.FC<OrionSleepScreenProps> = ({ onWake }) => {
-  const supplyChain = useSupplyChain();
-  const isReduced = isReducedMotionPreferred(supplyChain?.settings?.reducedMotion);
+  const isReduced = useIsReducedMotion();
 
   useEffect(() => {
     const handleKeyDown = () => {
@@ -21,6 +19,7 @@ export const OrionSleepScreen: React.FC<OrionSleepScreenProps> = ({ onWake }) =>
 
   return (
     <motion.div
+      data-testid="orion-sleep-screen"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
