@@ -3,11 +3,21 @@ import { useSupplyChain } from '../store/SupplyChainContext';
 import { generateCopilotResponse } from '../lib/api';
 import { conversationMemoryService } from '../ai/ConversationMemoryService';
 import { agentMemoryManager } from '../ai/AgentMemory';
-import { Send, Loader2, Cpu, Box, AlertTriangle, ShieldCheck, Database, Search, ArrowRight, CornerDownRight, CheckCircle2 } from 'lucide-react';
+import { 
+  Send, Loader2, Cpu, Box, AlertTriangle, ShieldCheck, Database, Search, 
+  ArrowRight, CornerDownRight, CheckCircle2, BookOpen, Sparkles, X, Filter
+} from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
 import { DemandForecastEngine } from '../core/planning/DemandForecastEngine';
 import { InventoryOptimizationEngine } from '../core/planning/InventoryOptimizationEngine';
+import { 
+  PROMPT_CATEGORIES, 
+  getQuickPrompts, 
+  getContextualFollowUps, 
+  PromptCategoryKey 
+} from '../config/copilotPrompts';
+import { orionAI } from '../services/ai/AIProvider';
 
 const QUICK_ACTIONS = [
   { label: 'Analyze Inventory', prompt: 'Analyze current inventory position and highlight stockout risks.', icon: Box },
@@ -50,7 +60,14 @@ export const AICopilot = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [aiState, setAiState] = useState<'idle' | 'thinking' | 'analyzing' | 'ready'>('ready');
   const [lastSource, setLastSource] = useState<'gemini' | 'deterministic' | null>(null);
+  const [serverProvider, setServerProvider] = useState<'gemini' | 'none' | 'checking'>('checking');
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [activeCategoryKey, setActiveCategoryKey] = useState<PromptCategoryKey>('CONTROL TOWER');
+  const [lastPrompt, setLastPrompt] = useState<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const lastAssistantMessage = [...messages].reverse().find(m => m.role === 'assistant')?.content || '';
+  const contextualFollowUps = getContextualFollowUps(lastAssistantMessage, lastPrompt);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -345,28 +362,40 @@ export const AICopilot = () => {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Actions */}
-          {messages.length < 3 && !isLoading && (
-            <div className="px-3.5 sm:px-6 pb-2.5 pt-1 shrink-0">
-              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                <CornerDownRight size={11} /> Suggested Actions
+          {/* Contextual Follow-up Prompt Chips */}
+          {!isLoading && (
+            <div className="px-3.5 sm:px-6 pb-2.5 pt-1.5 shrink-0 bg-[#0e1014] border-t border-white/[0.05]">
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <CornerDownRight size={11} className="text-sky-400" /> Suggested Actions
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsGalleryOpen(true)}
+                  className="text-[11px] font-medium text-sky-400 hover:text-sky-300 flex items-center gap-1 cursor-pointer transition-colors"
+                  aria-label="Open Prompt Gallery"
+                >
+                  <BookOpen size={12} /> Prompt Gallery
+                </button>
               </div>
               <div className="flex flex-wrap gap-1.5 sm:gap-2 max-h-24 overflow-x-auto custom-scrollbar">
-                {QUICK_ACTIONS.map((action, i) => (
+                {contextualFollowUps.map((chipText, i) => (
                   <button
                     key={i}
-                    onClick={() => handleSubmit(undefined, action.prompt)}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] hover:border-sky-500/30 text-xs text-slate-300 hover:text-white transition-colors cursor-pointer"
+                    type="button"
+                    onClick={() => setInput(chipText)} // POPULATES INPUT per Phase 22!
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] hover:border-sky-500/30 text-xs text-slate-300 hover:text-white transition-colors cursor-pointer text-left"
+                    aria-label={`Select prompt suggestion: ${chipText}`}
                   >
-                    <action.icon size={13} className="text-sky-400" />
-                    {action.label}
+                    <Sparkles size={11} className="text-sky-400 shrink-0" />
+                    {chipText}
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Input Area */}
+          {/* Input Form */}
           <div className="p-3 sm:p-4 bg-[#0c0e11] border-t border-white/[0.08] shrink-0 z-10">
             <form onSubmit={(e) => handleSubmit(e)} className="relative flex items-center max-w-4xl mx-auto">
               <input
@@ -376,11 +405,13 @@ export const AICopilot = () => {
                 placeholder="Ask Orion Copilot about stock levels, supply risks, POs..."
                 className="w-full pl-4 pr-12 py-3 sm:py-3.5 bg-white/[0.05] border border-white/[0.08] rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500/50 transition-all"
                 disabled={isLoading}
+                aria-label="Chat Input Prompt"
               />
               <button
                 type="submit"
                 disabled={!input.trim() || isLoading}
                 className="absolute right-2 p-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                aria-label="Send Prompt"
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </button>
@@ -391,6 +422,68 @@ export const AICopilot = () => {
           </div>
         </div>
       </div>
+
+      {/* PROMPT GALLERY MODAL */}
+      {isGalleryOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-label="Prompt Gallery Modal">
+          <div className="bg-[#12151a] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#0c0e11]">
+              <div className="flex items-center gap-2.5">
+                <BookOpen size={18} className="text-sky-400" />
+                <h2 className="text-base sm:text-lg font-semibold text-white">Orion Prompt Gallery</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsGalleryOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="Close Prompt Gallery"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Category Tabs */}
+            <div className="p-3 bg-[#15181f] border-b border-white/10 flex gap-2 overflow-x-auto custom-scrollbar shrink-0">
+              {PROMPT_CATEGORIES.map(cat => (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setActiveCategoryKey(cat.key)}
+                  className={cn(
+                    "px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all cursor-pointer",
+                    activeCategoryKey === cat.key
+                      ? "bg-sky-500 text-white shadow-sm"
+                      : "bg-white/5 text-slate-300 hover:bg-white/10"
+                  )}
+                  aria-label={`Category ${cat.label}`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Prompt List for Active Category */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-3 custom-scrollbar">
+              {PROMPT_CATEGORIES.find(c => c.key === activeCategoryKey)?.prompts.map((promptText, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setInput(promptText); // POPULATES INPUT per Phase 22!
+                    setIsGalleryOpen(false);
+                  }}
+                  className="w-full text-left p-3.5 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-sky-500/40 text-sm text-slate-200 transition-all flex items-center justify-between group cursor-pointer"
+                  aria-label={`Select prompt ${promptText}`}
+                >
+                  <span className="font-medium">{promptText}</span>
+                  <ArrowRight size={14} className="text-slate-500 group-hover:text-sky-400 transition-colors shrink-0" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

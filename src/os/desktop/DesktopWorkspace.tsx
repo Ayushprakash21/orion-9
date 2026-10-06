@@ -1040,71 +1040,92 @@ export function DesktopWorkspace() {
         const isBeingDragged = activeDraggingId === shortcut.id;
 
         return (
-          <div
-            key={shortcut.id}
-            data-shortcut-id={shortcut.id}
-            data-target-id={shortcut.targetId}
-            data-testid={`desktop-shortcut-${shortcut.targetId}`}
-            style={{
-              transform: `translate3d(${shortcut.x}px, ${shortcut.y}px, 0)`,
-              width: `${DEFAULT_GRID_CONFIG.cellWidth}px`,
-              minHeight: `${DEFAULT_GRID_CONFIG.cellHeight}px`,
-              zIndex: isBeingDragged ? 1000 : (isSelected ? 25 : 20),
-            }}
-            onPointerDown={e => handleShortcutPointerDown(e, shortcut)}
-            onDragStart={e => e.preventDefault()}
-            onDoubleClick={e => {
-              e.stopPropagation();
-              handleDoubleClick(shortcut);
-            }}
-            onContextMenu={e => {
-              e.preventDefault();
-              e.stopPropagation();
-              cancelLongPress();
-              cleanupDragListeners();
-              if (dragRef.current?.element) {
-                try {
-                  if (dragRef.current.element.hasPointerCapture(dragRef.current.pointerId)) {
-                    dragRef.current.element.releasePointerCapture(dragRef.current.pointerId);
-                  }
-                } catch {}
-                dragRef.current.element.style.transform = '';
-                dragRef.current.element.style.zIndex = '';
-                dragRef.current.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-2', 'ring-cyan-400');
-                dragRef.current.element.classList.add('cursor-grab');
-              }
-              dragRef.current = null;
-              setActiveDraggingId(null);
-              setDropTargetId(null);
-              dropTargetIdRef.current = null;
-              setSelectedIds(new Set([shortcut.id]));
-              setDesktopMenu(null);
-              setItemMenu({ x: e.clientX, y: e.clientY, shortcut });
-            }}
-            className={cn(
-              "absolute top-0 left-0 flex flex-col items-center justify-start p-2 rounded-xl transition-shadow select-none group touch-none min-h-[44px] min-w-[44px] cursor-grab",
-              isBeingDragged && "cursor-grabbing z-[1000] opacity-90 scale-105 shadow-2xl ring-2 ring-cyan-400",
-              isDropTarget && "bg-cyan-500/30 ring-2 ring-cyan-400 scale-110",
-              isSelected && !isBeingDragged
-                ? "bg-os-accent/20 border border-os-accent/50 shadow-md backdrop-blur-xs z-25"
-                : "hover:bg-os-surface-hover/30 border border-transparent"
+          <React.Fragment key={shortcut.id}>
+            {/* Ghost Slot Placeholder when item is actively dragged */}
+            {isBeingDragged && (
+              <div
+                data-testid={`desktop-shortcut-ghost-${shortcut.targetId}`}
+                style={{
+                  transform: `translate3d(${shortcut.x}px, ${shortcut.y}px, 0)`,
+                  width: `${DEFAULT_GRID_CONFIG.cellWidth}px`,
+                  minHeight: `${DEFAULT_GRID_CONFIG.cellHeight}px`,
+                }}
+                className="absolute top-0 left-0 flex flex-col items-center justify-start p-2 rounded-xl border-2 border-dashed border-cyan-400/40 bg-cyan-500/10 opacity-50 pointer-events-none z-10 animate-pulse"
+              >
+                <div className="opacity-30 grayscale">
+                  {renderShortcutIcon(shortcut, false)}
+                </div>
+                <div className="mt-1.5 w-full max-w-[140px] px-1 text-center text-[10px] font-mono text-cyan-300/60 truncate">
+                  {shortcut.name}
+                </div>
+              </div>
             )}
-          >
-            <div className="group-hover:scale-105 transition-transform pointer-events-none">
-              {renderShortcutIcon(shortcut, isSelected)}
-            </div>
+
             <div
+              data-shortcut-id={shortcut.id}
+              data-target-id={shortcut.targetId}
+              data-testid={`desktop-shortcut-${shortcut.targetId}`}
+              style={{
+                transform: `translate3d(${shortcut.x}px, ${shortcut.y}px, 0)`,
+                width: `${DEFAULT_GRID_CONFIG.cellWidth}px`,
+                minHeight: `${DEFAULT_GRID_CONFIG.cellHeight}px`,
+                zIndex: isBeingDragged ? 1000 : (isSelected ? 25 : 20),
+              }}
+              onPointerDown={e => handleShortcutPointerDown(e, shortcut)}
+              onDragStart={e => e.preventDefault()}
+              onDoubleClick={e => {
+                e.stopPropagation();
+                handleDoubleClick(shortcut);
+              }}
+              onContextMenu={e => {
+                e.preventDefault();
+                e.stopPropagation();
+                cancelLongPress();
+                cleanupDragListeners();
+                if (dragRef.current?.element) {
+                  try {
+                    if (dragRef.current.element.hasPointerCapture(dragRef.current.pointerId)) {
+                      dragRef.current.element.releasePointerCapture(dragRef.current.pointerId);
+                    }
+                  } catch {}
+                  dragRef.current.element.style.transform = '';
+                  dragRef.current.element.style.zIndex = '';
+                  dragRef.current.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-2', 'ring-cyan-400');
+                  dragRef.current.element.classList.add('cursor-grab');
+                }
+                dragRef.current = null;
+                setActiveDraggingId(null);
+                setDropTargetId(null);
+                dropTargetIdRef.current = null;
+                setSelectedIds(new Set([shortcut.id]));
+                setDesktopMenu(null);
+                setItemMenu({ x: e.clientX, y: e.clientY, shortcut });
+              }}
               className={cn(
-                "mt-1.5 w-full max-w-[140px] px-1 text-center text-[11px] font-medium leading-[15px] whitespace-normal break-words overflow-visible transition-colors drop-shadow-md pointer-events-none",
-                isSelected
-                  ? "text-os-accent font-semibold bg-black/40 rounded"
-                  : "text-os-text-primary group-hover:text-os-text-primary"
+                "absolute top-0 left-0 flex flex-col items-center justify-start p-2 rounded-xl transition-all duration-150 select-none group touch-none min-h-[44px] min-w-[44px] cursor-grab focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400",
+                isBeingDragged && "cursor-grabbing z-[1000] opacity-90 scale-105 shadow-2xl ring-2 ring-cyan-400 backdrop-blur-md",
+                isDropTarget && "bg-cyan-500/30 ring-2 ring-cyan-400 scale-110 shadow-xl z-30",
+                isSelected && !isBeingDragged
+                  ? "bg-os-accent/20 border border-os-accent/50 shadow-md backdrop-blur-xs z-25"
+                  : "hover:bg-os-surface-hover/30 hover:scale-[1.04] active:scale-[0.96] border border-transparent"
               )}
-              title={shortcut.name}
             >
-              {shortcut.name}
+              <div className="group-hover:scale-105 transition-transform pointer-events-none">
+                {renderShortcutIcon(shortcut, isSelected)}
+              </div>
+              <div
+                className={cn(
+                  "mt-1.5 w-full max-w-[140px] px-1 text-center text-[11px] font-medium leading-[15px] whitespace-normal break-words overflow-visible transition-colors drop-shadow-md pointer-events-none",
+                  isSelected
+                    ? "text-os-accent font-semibold bg-black/40 rounded"
+                    : "text-os-text-primary group-hover:text-os-text-primary"
+                )}
+                title={shortcut.name}
+              >
+                {shortcut.name}
+              </div>
             </div>
-          </div>
+          </React.Fragment>
         );
       })}
 

@@ -189,8 +189,8 @@ describe('Orion-9 Tablet OS Presentation Shell', () => {
       expect(html).toContain('Critical:');
       expect(html).toContain('Delays:');
       expect(html).toContain('Stock:');
-      expect(html).toContain('Show critical inventory risks');
-      expect(html).toContain('Which purchase orders are delayed?');
+      expect(html).toContain('Gallery');
+      expect(html).toContain('Show affected SKUs');
     });
 
     it('renders Tablet App Launcher with 3-column enterprise categories and search', () => {

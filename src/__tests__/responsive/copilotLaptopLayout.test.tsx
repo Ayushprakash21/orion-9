@@ -137,10 +137,8 @@ describe('Laptop Responsive UI & Copilot Layout Repair Suite', () => {
       const html = renderToString(<AICopilot />);
 
       expect(html).toContain('Suggested Actions');
-      expect(html).toContain('Analyze Inventory');
-      expect(html).toContain('Explain Exceptions');
-      expect(html).toContain('Analyze Supplier Risk');
-      expect(html).toContain('Review Procurement');
+      expect(html).toContain('Prompt Gallery');
+      expect(html).toContain('What needs attention right now?');
     });
 
     it('renders input composer with text area and send button anchored at bottom', () => {

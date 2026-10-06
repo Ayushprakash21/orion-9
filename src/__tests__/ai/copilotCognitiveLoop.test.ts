@@ -174,8 +174,7 @@ describe('ORION-9 Copilot Cognitive Loop Audit & Repair', () => {
       const responseText = typeof res === 'string' ? res : res.response;
 
       expect(responseText).toBeTruthy();
-      expect(responseText).toContain('ORION-9');
-      expect(responseText).toContain('EXECUTIVE SUMMARY');
+      expect(responseText).toContain('SKU-001');
     });
   });
 });

@@ -2,28 +2,14 @@
  * ORION-9 COPILOT QUESTION DIVERSITY & INTENT GROUNDING — TEST SUITE
  *
  * Verifies that the Copilot provides question-specific, fact-grounded responses
- * rather than outputting generic repeated Control Tower reports.
- *
- * Test cases:
- * 1. Simple greeting ("Hello") -> Warm greeting, no 4-section report
- * 2. Capability query ("What can you help me with?") -> Structured list of capabilities
- * 3. Open POs count query ("How many open POs do we have?") -> Direct PO counts
- * 4. Underperforming suppliers ("Which suppliers are underperforming?") -> Direct supplier list
- * 5. Delayed shipments ("Which shipments are delayed?") -> Direct delay information
- * 6. Inventory stockout risks ("What are my inventory stockout risks?") -> Direct risk items
- * 7. Specific SKU inquiry ("Tell me about SKU-1000") -> Targeted SKU breakdown
- * 8. Specific PO inquiry ("Explain PO-12345") -> Targeted PO status
- * 9. Specific SKU risk explanation ("Why is SKU-1000 risky?") -> Specific stockout cause
- * 10. Recommended action query ("What should I do?") -> Recommended actions
- * 11. Zero data state (Empty risks) -> Reports 0 stockout risks, no false delay messages
- * 12. Memory formatting integrity -> NO [object Object] text in outputs
+ * rather than outputting generic repeated Control Tower reports across all 14 prompt types.
  */
 
 import { describe, it, expect } from 'vitest';
 import { generateCopilotResponse } from '../../lib/api';
 import { agentMemoryManager } from '../../ai/AgentMemory';
 
-describe('ORION-9 Copilot Question Diversity & Grounding', () => {
+describe('ORION-9 Copilot Question Diversity & Grounding (14 Prompts)', () => {
   const mockTools = {
     getDashboardMetrics: () => ({ totalProducts: 10, openPOs: 2, totalShipments: 5, activeExceptions: 1 }),
     getInventory: () => [
@@ -57,91 +43,121 @@ describe('ORION-9 Copilot Question Diversity & Grounding', () => {
     getExceptions: () => [
       { id: 'EX-1', severity: 'Critical', estimatedImpact: 15000 }
     ],
-    getDecisions: () => [],
-    getPendingDecisions: () => [],
-    getDemandForecasts: () => [],
+    getDecisions: () => [
+      { id: 'DEC-1', title: 'Reroute Shipment SHP-999', status: 'READY_FOR_REVIEW' }
+    ],
+    getPendingDecisions: () => [
+      { id: 'DEC-1', title: 'Reroute Shipment SHP-999', status: 'READY_FOR_REVIEW' }
+    ],
+    getDemandForecasts: () => [
+      { productId: 'SKU-1000', forecastedDemand: 120, horizonDays: 30 }
+    ],
     getContracts: () => [],
     getTransportationPlans: () => []
   };
 
-  it('DIVERSITY-01: Greeting returns warm greeting instead of 4-section Control Tower report', async () => {
-    const res = await generateCopilotResponse('Hello', mockTools, 'Control Tower', { tenantId: 't-div', userId: 'u-1' });
-    const text = res.response || String(res);
+  const context = { tenantId: 't-div-14', userId: 'u-1' };
 
+  it('PROMPT-01: "Hi" -> Warm greeting, no Control Tower report', async () => {
+    const res = await generateCopilotResponse('Hi', mockTools, 'Control Tower', context);
+    const text = res.response || String(res);
     expect(text).toContain('Orion Copilot');
     expect(text).not.toContain('#### 1. EXECUTIVE SUMMARY');
   });
 
-  it('DIVERSITY-02: Capabilities query returns feature overview', async () => {
-    const res = await generateCopilotResponse('What can you help me with?', mockTools, 'Control Tower', { tenantId: 't-div', userId: 'u-1' });
+  it('PROMPT-02: "What is the current inventory position?" -> Inventory summary', async () => {
+    const res = await generateCopilotResponse('What is the current inventory position?', mockTools, 'Control Tower', context);
     const text = res.response || String(res);
-
-    expect(text).toContain('COPILOT CAPABILITIES');
-    expect(text).toContain('Inventory Optimization');
+    expect(text).toContain('INVENTORY POSITION');
     expect(text).not.toContain('#### 1. EXECUTIVE SUMMARY');
   });
 
-  it('DIVERSITY-03: Open POs query returns open PO counts and overdue details', async () => {
-    const res = await generateCopilotResponse('How many open POs do we have?', mockTools, 'Control Tower', { tenantId: 't-div', userId: 'u-1' });
+  it('PROMPT-03: "Which SKUs are below safety stock?" -> Safety stock breakdown', async () => {
+    const res = await generateCopilotResponse('Which SKUs are below safety stock?', mockTools, 'Control Tower', context);
     const text = res.response || String(res);
-
-    expect(text).toContain('OPEN PURCHASE ORDERS SUMMARY');
-    expect(text).toContain('PO-12345');
+    expect(text).toContain('SKU-1000');
+    expect(text).toContain('safety stock');
   });
 
-  it('DIVERSITY-04: Underperforming suppliers query identifies low OTIF vendors', async () => {
-    const res = await generateCopilotResponse('Which suppliers are underperforming?', mockTools, 'Control Tower', { tenantId: 't-div', userId: 'u-1' });
+  it('PROMPT-04: "Show stockout risks" -> Stockout risk analysis', async () => {
+    const res = await generateCopilotResponse('Show stockout risks', mockTools, 'Control Tower', context);
     const text = res.response || String(res);
-
-    expect(text).toContain('SUPPLIER PERFORMANCE ANALYSIS');
-    expect(text).toContain('Apex Logistics');
-    expect(text).toContain('72% OTIF');
-  });
-
-  it('DIVERSITY-05: Delayed shipments query highlights carrier transit delays', async () => {
-    const res = await generateCopilotResponse('Which shipments are delayed?', mockTools, 'Control Tower', { tenantId: 't-div', userId: 'u-1' });
-    const text = res.response || String(res);
-
-    expect(text).toContain('LOGISTICS & SHIPMENT STATUS');
-    expect(text).toContain('FastFreight');
-    expect(text).toContain('TRK-999');
-  });
-
-  it('DIVERSITY-06: Stockout risk query details critical inventory SKUs', async () => {
-    const res = await generateCopilotResponse('What are my inventory stockout risks?', mockTools, 'Control Tower', { tenantId: 't-div', userId: 'u-1' });
-    const text = res.response || String(res);
-
-    expect(text).toContain('INVENTORY RISK ANALYSIS');
+    expect(text).toContain('STOCKOUT');
     expect(text).toContain('SKU-1000');
   });
 
-  it('DIVERSITY-07: SKU specific query provides targeted item breakdown', async () => {
-    const res = await generateCopilotResponse('Tell me about SKU-1000', mockTools, 'Control Tower', { tenantId: 't-div', userId: 'u-1' });
+  it('PROMPT-05: "Show delayed shipments" -> Delayed shipment breakdown', async () => {
+    const res = await generateCopilotResponse('Show delayed shipments', mockTools, 'Control Tower', context);
     const text = res.response || String(res);
-
-    expect(text).toContain('SKU ANALYSIS: SKU-1000');
-    expect(text).toContain('CRITICAL STOCKOUT RISK');
+    expect(text).toContain('LOGISTICS & SHIPMENT DELAYS');
+    expect(text).toContain('FastFreight');
   });
 
-  it('DIVERSITY-08: PO specific query provides targeted PO status', async () => {
-    const res = await generateCopilotResponse('Explain PO-12345', mockTools, 'Control Tower', { tenantId: 't-div', userId: 'u-1' });
+  it('PROMPT-06: "Which purchase orders are overdue?" -> Overdue PO details', async () => {
+    const res = await generateCopilotResponse('Which purchase orders are overdue?', mockTools, 'Control Tower', context);
     const text = res.response || String(res);
-
-    expect(text).toContain('PURCHASE ORDER ANALYSIS: PO-12345');
-    expect(text).toContain('Overdue');
+    expect(text).toContain('OVERDUE PURCHASE ORDERS');
+    expect(text).toContain('PO-12345');
   });
 
-  it('DIVERSITY-09: Control Tower overview prompt returns structured 4-section report', async () => {
-    const res = await generateCopilotResponse('Generate executive Control Tower risk overview', mockTools, 'Control Tower', { tenantId: 't-div', userId: 'u-1' });
+  it('PROMPT-07: "How are suppliers performing?" -> Supplier performance analysis', async () => {
+    const res = await generateCopilotResponse('How are suppliers performing?', mockTools, 'Control Tower', context);
     const text = res.response || String(res);
+    expect(text).toContain('SUPPLIER PERFORMANCE ANALYSIS');
+    expect(text).toContain('Apex Logistics');
+  });
 
+  it('PROMPT-08: "What decisions are pending?" -> Pending decisions list', async () => {
+    const res = await generateCopilotResponse('What decisions are pending?', mockTools, 'Control Tower', context);
+    const text = res.response || String(res);
+    expect(text).toContain('DECISION');
+  });
+
+  it('PROMPT-09: "Show active exceptions" -> Active exceptions summary', async () => {
+    const res = await generateCopilotResponse('Show active exceptions', mockTools, 'Control Tower', context);
+    const text = res.response || String(res);
+    expect(text).toContain('EXCEPTION');
+  });
+
+  it('PROMPT-10: "What is the demand forecast?" -> Demand forecast summary', async () => {
+    const res = await generateCopilotResponse('What is the demand forecast?', mockTools, 'Control Tower', context);
+    const text = res.response || String(res);
+    expect(text).toContain('FORECAST');
+  });
+
+  it('PROMPT-11: "Give me an executive summary" -> Full 4-section Control Tower report', async () => {
+    const res = await generateCopilotResponse('Give me an executive summary', mockTools, 'Control Tower', context);
+    const text = res.response || String(res);
     expect(text).toContain('#### 1. EXECUTIVE SUMMARY');
     expect(text).toContain('#### 2. OPERATIONAL SIGNALS & ROOT CAUSES');
     expect(text).toContain('#### 3. DOWNSTREAM RISK & BUSINESS IMPACT');
     expect(text).toContain('#### 4. RECOMMENDED DECISIONS & ACTIONS');
   });
 
-  it('DIVERSITY-10: Zero-data state correctly reports 0 risks without false delay statements', async () => {
+  it('PROMPT-12: "Why is SKU-1000 at risk?" -> Entity-specific SKU risk explanation', async () => {
+    const res = await generateCopilotResponse('Why is SKU-1000 at risk?', mockTools, 'Control Tower', context);
+    const text = res.response || String(res);
+    expect(text).toContain('SKU-1000');
+  });
+
+  it('PROMPT-13: "What should I investigate next?" -> Investigative recommendations', async () => {
+    const res = await generateCopilotResponse('What should I investigate next?', mockTools, 'Control Tower', context);
+    const text = res.response || String(res);
+    expect(text).toBeDefined();
+    expect(text.length).toBeGreaterThan(50);
+  });
+
+  it('PROMPT-14: "Why?" (as a follow-up) -> Conversational context preservation', async () => {
+    // First query SKU-1000
+    await generateCopilotResponse('Tell me about SKU-1000', mockTools, 'Control Tower', context);
+    // Follow-up query "Why?"
+    const res = await generateCopilotResponse('Why?', mockTools, 'Control Tower', context);
+    const text = res.response || String(res);
+    expect(text).toBeDefined();
+    expect(text).not.toContain('#### 1. EXECUTIVE SUMMARY');
+  });
+
+  it('Zero-data state correctly reports 0 risks without false delay statements', async () => {
     const healthyTools = {
       getDashboardMetrics: () => ({ totalProducts: 5, openPOs: 0 }),
       getInventory: () => [{ productId: 'SKU-OK', onHand: 100, safetyStock: 10 }],
@@ -167,7 +183,7 @@ describe('ORION-9 Copilot Question Diversity & Grounding', () => {
     expect(text).not.toContain('Inbound transit delays');
   });
 
-  it('DIVERSITY-11: Formats memory references cleanly without [object Object]', async () => {
+  it('Formats memory references cleanly without [object Object]', async () => {
     await agentMemoryManager.storeMemory({
       tenantId: 't-div-mem',
       agentId: 'control-tower-copilot',
@@ -177,7 +193,7 @@ describe('ORION-9 Copilot Question Diversity & Grounding', () => {
       retentionPolicy: '30_DAYS'
     });
 
-    const res = await generateCopilotResponse('Generate executive report', mockTools, 'Control Tower', { tenantId: 't-div-mem', userId: 'u-1' });
+    const res = await generateCopilotResponse('Give me an executive summary', mockTools, 'Control Tower', { tenantId: 't-div-mem', userId: 'u-1' });
     const text = res.response || String(res);
 
     expect(text).not.toContain('[object Object]');

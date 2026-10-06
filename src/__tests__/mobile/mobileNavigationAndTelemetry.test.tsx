@@ -91,7 +91,7 @@ describe('Orion-9 Mobile Navigation, Workflows & Telemetry Integration', () => {
     expect(html).toContain('Stock:');
     // Quick Actions
     expect(html).toContain('Show critical inventory risks');
-    expect(html).toContain('Which purchase orders are delayed?');
+    expect(html.includes('Summarize today') && html.includes('exceptions')).toBe(true);
   });
 
   it('renders Mobile Alerts stream with severity chips and impact calculations', () => {

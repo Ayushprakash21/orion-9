@@ -20,12 +20,17 @@ import {
   RefreshCw,
   Cpu,
   Database,
-  X,
-  Layers,
+  BookOpen,
   Activity,
-  AlertCircle
+  X
 } from 'lucide-react';
 import { formatCurrency, formatNumber } from '../../lib/formatters';
+import { 
+  PROMPT_CATEGORIES, 
+  getQuickPrompts, 
+  getContextualFollowUps, 
+  PromptCategoryKey 
+} from '../../config/copilotPrompts';
 
 interface Message {
   id: string;
@@ -37,17 +42,6 @@ interface Message {
   actions?: Array<{ label: string; actionId: string }>;
   evidence?: Array<{ label: string; value: string | number }>;
 }
-
-const QUICK_PROMPTS = [
-  "Show critical inventory risks",
-  "Which purchase orders are delayed?",
-  "Which suppliers are at risk?",
-  "Summarize today's exceptions",
-  "Explain current Control Tower alerts",
-  "Show shipments at risk",
-  "What changed in the last hour?",
-  "Give me the highest-priority operational issues"
-];
 
 export const OrionMobileAICopilot: React.FC = () => {
   const { 
@@ -88,6 +82,9 @@ export const OrionMobileAICopilot: React.FC = () => {
   const [inputMessage, setInputMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingState, setProcessingState] = useState<string>('');
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [activeCategoryKey, setActiveCategoryKey] = useState<PromptCategoryKey>('CONTROL TOWER');
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'msg-init-1',
@@ -101,6 +98,13 @@ export const OrionMobileAICopilot: React.FC = () => {
       ]
     }
   ]);
+
+  const lastAiMsg = useMemo(() => [...messages].reverse().find(m => m.sender === 'ai'), [messages]);
+  const lastUserMsg = useMemo(() => [...messages].reverse().find(m => m.sender === 'user'), [messages]);
+  const contextualChips = useMemo(() => {
+    if (!lastAiMsg) return getQuickPrompts();
+    return getContextualFollowUps(lastAiMsg.text, lastUserMsg?.text || '');
+  }, [lastAiMsg, lastUserMsg]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -459,15 +463,25 @@ export const OrionMobileAICopilot: React.FC = () => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* 4. PROMPT QUICK ACTIONS CHIPS */}
+      {/* 4. PROMPT QUICK ACTIONS CHIPS & GALLERY BUTTON */}
       <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-2 shrink-0">
-        {QUICK_PROMPTS.map(promptText => (
+        <button
+          type="button"
+          onClick={() => setIsGalleryOpen(true)}
+          className="px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-[10px] font-mono font-bold text-cyan-400 flex items-center gap-1 hover:bg-cyan-500/20 active:scale-95 transition-all min-h-[44px] cursor-pointer shrink-0"
+          aria-label="Open Prompt Gallery"
+        >
+          <BookOpen size={12} />
+          <span>Gallery</span>
+        </button>
+        {contextualChips.map((promptText, idx) => (
           <button
-            key={promptText}
+            key={idx}
             type="button"
-            onClick={() => handleSend(promptText)}
+            onClick={() => setInputMessage(promptText)}
             disabled={isProcessing}
             className="px-3 py-1.5 rounded-full bg-os-surface border border-os-border hover:border-cyan-400/50 active:bg-cyan-500/10 text-[10px] font-mono text-os-text-secondary hover:text-os-text-primary whitespace-nowrap active:scale-95 transition-all min-h-[44px] flex items-center cursor-pointer disabled:opacity-50"
+            aria-label={`Select prompt suggestion: ${promptText}`}
           >
             {promptText}
           </button>
@@ -513,6 +527,67 @@ export const OrionMobileAICopilot: React.FC = () => {
           )}
         </button>
       </form>
+
+      {/* PROMPT GALLERY MODAL */}
+      {isGalleryOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-label="Prompt Gallery Modal">
+          <div className="bg-[#12151a] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
+            {/* Modal Header */}
+            <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#0c0e11]">
+              <div className="flex items-center gap-2.5">
+                <BookOpen size={18} className="text-cyan-400" />
+                <h2 className="text-base sm:text-lg font-semibold text-white">Orion Prompt Gallery</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsGalleryOpen(false)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                aria-label="Close Prompt Gallery"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Category Tabs */}
+            <div className="p-3 bg-[#15181f] border-b border-white/10 flex gap-2 overflow-x-auto custom-scrollbar shrink-0">
+              {PROMPT_CATEGORIES.map(cat => (
+                <button
+                  key={cat.key}
+                  type="button"
+                  onClick={() => setActiveCategoryKey(cat.key)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
+                    activeCategoryKey === cat.key
+                      ? "bg-cyan-500 text-black font-bold shadow-sm"
+                      : "bg-white/5 text-slate-300 hover:bg-white/10"
+                  }`}
+                  aria-label={`Category ${cat.label}`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Prompt List for Active Category */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 space-y-3 custom-scrollbar">
+              {PROMPT_CATEGORIES.find(c => c.key === activeCategoryKey)?.prompts.map((promptText, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setInputMessage(promptText);
+                    setIsGalleryOpen(false);
+                  }}
+                  className="w-full text-left p-3.5 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-cyan-500/40 text-sm text-slate-200 transition-all flex items-center justify-between group cursor-pointer"
+                  aria-label={`Select prompt ${promptText}`}
+                >
+                  <span className="font-medium">{promptText}</span>
+                  <ArrowRight size={14} className="text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
