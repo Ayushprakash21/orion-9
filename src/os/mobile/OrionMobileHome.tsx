@@ -262,25 +262,25 @@ export const OrionMobileHome: React.FC = () => {
       {/* 4. COMPACT ORION AI ASSISTANT ENTRY */}
       <div 
         onClick={() => openOrionAI()}
-        className="bg-gradient-to-r from-cyan-950/40 via-os-surface to-os-surface border border-cyan-500/30 rounded-2xl p-4 flex items-center justify-between gap-3 active:scale-[0.98] transition-all cursor-pointer shadow-sm group"
+        className="bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 rounded-2xl p-4 flex items-center justify-between gap-3 active:scale-[0.98] transition-all cursor-pointer shadow-sm group"
         role="button"
         aria-label="Ask Orion AI"
       >
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 shadow-[0_0_12px_rgba(6,182,212,0.25)]">
+          <div className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/10 flex items-center justify-center text-os-text-primary shrink-0">
             <Sparkles size={20} />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-mono font-bold text-os-text-primary">ORION AI</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             </div>
             <p className="text-xs text-os-text-muted truncate mt-0.5">
               Ask ORION about your supply chain
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-bold shrink-0 group-hover:bg-cyan-500/20 transition-colors">
+        <div className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-medium shrink-0 group-hover:bg-sky-500/20 transition-colors">
           <span>Ask AI</span>
           <ArrowRight size={12} />
         </div>

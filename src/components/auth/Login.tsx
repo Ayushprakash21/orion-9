@@ -380,7 +380,7 @@ export const Login: React.FC<LoginProps> = () => {
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className="absolute -top-32 -left-32 w-[550px] h-[550px] rounded-full bg-gradient-to-tr from-cyan-600/25 via-blue-600/15 to-transparent blur-[110px]"
+          className="absolute -top-32 -left-32 w-[550px] h-[550px] rounded-full bg-gradient-to-tr from-sky-950/20 via-slate-900/10 to-transparent blur-[120px]"
         />
         <motion.div
           animate={shouldReduceMotion ? {} : {
@@ -393,7 +393,7 @@ export const Login: React.FC<LoginProps> = () => {
             repeat: Infinity,
             ease: "easeInOut",
           }}
-          className="absolute -bottom-32 -right-32 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-indigo-600/20 via-purple-600/15 to-transparent blur-[120px]"
+          className="absolute -bottom-32 -right-32 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-slate-900/20 via-sky-950/10 to-transparent blur-[140px]"
         />
       </div>
 
@@ -471,14 +471,14 @@ export const Login: React.FC<LoginProps> = () => {
         </div>
       </header>
 
-      {/* Main Content — FlowLogin Enterprise Glassmorphic Container */}
+      {/* Main Content — Enterprise Native Minimal Container */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 w-full my-auto">
         <motion.div
           layout
           initial={{ opacity: 0, y: 15, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="backdrop-blur-2xl bg-[#070e1c]/85 border border-cyan-500/20 shadow-[0_0_60px_rgba(0,0,0,0.85),0_0_25px_rgba(6,182,212,0.12)] rounded-[24px] p-7 sm:p-9 w-full max-w-[480px] flex flex-col justify-center mx-auto relative overflow-hidden"
+          className="backdrop-blur-2xl bg-[#0c1017]/90 border border-white/[0.12] shadow-[0_24px_60px_rgba(0,0,0,0.7)] rounded-[20px] p-7 sm:p-9 w-full max-w-[480px] flex flex-col justify-center mx-auto relative overflow-hidden"
         >
           <div className="flex h-full flex-col justify-center w-full">
             <div className="w-full max-w-[380px] mx-auto flex flex-col justify-center">
@@ -527,7 +527,7 @@ export const Login: React.FC<LoginProps> = () => {
                           </label>
                           <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/40">
-                              <User className="w-4 h-4 text-cyan-400/70" />
+                              <User className="w-4 h-4 text-white/40" />
                             </div>
                             <input
                               ref={usernameInputRef}
@@ -544,7 +544,7 @@ export const Login: React.FC<LoginProps> = () => {
                               }}
                               onFocus={() => setIsInputFocused(true)}
                               onBlur={() => setIsInputFocused(false)}
-                              className="w-full h-11 pl-10 pr-4 bg-[#0f172a]/80 border border-white/15 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/80 focus:ring-1 focus:ring-cyan-400/50 transition-all shadow-inner"
+                              className="w-full h-11 pl-10 pr-4 bg-[#141923] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/40 transition-all shadow-inner"
                               placeholder={t.userIdPlaceholder}
                             />
                           </div>
@@ -556,7 +556,7 @@ export const Login: React.FC<LoginProps> = () => {
                           whileTap={{ scale: 0.98 }}
                           type="submit"
                           disabled={isIdentifying}
-                          className="h-[48px] w-full px-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-semibold text-sm transition-all duration-200 rounded-[14px] shadow-[0_0_24px_rgba(6,182,212,0.35)] hover:shadow-[0_0_32px_rgba(6,182,212,0.5)] disabled:opacity-50 cursor-pointer border border-cyan-400/40 flex items-center justify-center gap-2 mt-4"
+                          className="h-[48px] w-full px-4 bg-sky-600 hover:bg-sky-500 text-white font-medium text-sm transition-all duration-200 rounded-xl disabled:opacity-50 cursor-pointer border border-sky-400/20 shadow-[0_0_24px_rgba(37,99,235,0.25)] flex items-center justify-center gap-2 mt-4"
                         >
                           {isIdentifying ? (
                             <>
@@ -588,7 +588,7 @@ export const Login: React.FC<LoginProps> = () => {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <User className="w-9 h-9 text-cyan-300/80" />
+                            <User className="w-9 h-9 text-white/50" />
                           )}
                         </div>
 
@@ -608,7 +608,7 @@ export const Login: React.FC<LoginProps> = () => {
                               initial={{ opacity: 0, y: -6, height: 0 }}
                               animate={{ opacity: 1, y: 0, height: 'auto' }}
                               exit={{ opacity: 0, y: -6, height: 0 }}
-                              className="p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-white text-xs flex items-start gap-2 font-medium backdrop-blur-md overflow-hidden"
+                              className="p-3 rounded-xl bg-red-500/15 border border-red-500/25 text-white text-xs flex items-start gap-2 font-medium backdrop-blur-md overflow-hidden"
                             >
                               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
                               <span>{errorMsg}</span>
@@ -623,7 +623,7 @@ export const Login: React.FC<LoginProps> = () => {
                           </label>
                           <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/40">
-                              <Lock className="w-4 h-4 text-cyan-400/70" />
+                              <Lock className="w-4 h-4 text-white/40" />
                             </div>
                             <input
                               ref={passwordInputRef}
@@ -640,7 +640,7 @@ export const Login: React.FC<LoginProps> = () => {
                               }}
                               onFocus={() => setIsInputFocused(true)}
                               onBlur={() => setIsInputFocused(false)}
-                              className="w-full h-11 pl-10 pr-10 bg-[#0f172a]/80 border border-white/15 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/80 focus:ring-1 focus:ring-cyan-400/50 transition-all shadow-inner"
+                              className="w-full h-11 pl-10 pr-10 bg-[#141923] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/40 transition-all shadow-inner"
                               placeholder="••••••••"
                             />
                             <button
@@ -660,7 +660,7 @@ export const Login: React.FC<LoginProps> = () => {
                           whileTap={{ scale: 0.98 }}
                           type="submit"
                           disabled={isSubmitting}
-                          className="h-[48px] w-full px-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-semibold text-sm transition-all duration-200 rounded-[14px] shadow-[0_0_24px_rgba(6,182,212,0.35)] hover:shadow-[0_0_32px_rgba(6,182,212,0.5)] disabled:opacity-50 cursor-pointer border border-cyan-400/40 flex items-center justify-center gap-2 mt-4"
+                          className="h-[48px] w-full px-4 bg-sky-600 hover:bg-sky-500 text-white font-medium text-sm transition-all duration-200 rounded-xl disabled:opacity-50 cursor-pointer border border-sky-400/20 shadow-[0_0_24px_rgba(37,99,235,0.25)] flex items-center justify-center gap-2 mt-4"
                         >
                           {isSubmitting ? (
                             <>
@@ -680,7 +680,7 @@ export const Login: React.FC<LoginProps> = () => {
                           <label className="flex items-center gap-2 cursor-pointer group text-white/70 hover:text-white transition-colors">
                             <input 
                               type="checkbox" 
-                              className="rounded border-white/20 bg-white/10 text-cyan-500 focus:ring-0 w-3.5 h-3.5 cursor-pointer accent-cyan-500"
+                              className="rounded border-white/20 bg-white/10 text-sky-500 focus:ring-0 w-3.5 h-3.5 cursor-pointer accent-sky-500"
                               checked={rememberMe}
                               onChange={(e) => setRememberMe(e.target.checked)}
                             />
@@ -727,9 +727,9 @@ export const Login: React.FC<LoginProps> = () => {
             }}
             title={t.shutDown}
             aria-label={t.shutDown}
-            className="group flex items-center h-9 px-2.5 rounded-full bg-white/5 hover:bg-red-950/80 border border-white/15 hover:border-red-500/60 transition-all duration-300 backdrop-blur-md shadow-md cursor-pointer text-white/70 hover:text-red-400 hover:shadow-[0_0_20px_rgba(239,68,68,0.55)] overflow-hidden"
+            className="group flex items-center h-8 px-2.5 rounded-full bg-white/5 hover:bg-red-950/80 border border-white/10 hover:border-red-500/60 transition-all duration-200 backdrop-blur-md cursor-pointer text-white/70 hover:text-red-400 hover:shadow-[0_0_20px_rgba(239,68,68,0.55)] overflow-hidden"
           >
-            <Power className="w-4 h-4 shrink-0 text-white/70 group-hover:text-red-400 group-hover:drop-shadow-[0_0_8px_rgba(239,68,68,0.9)] transition-colors duration-300" />
+            <Power className="w-3.5 h-3.5 shrink-0 text-white/70 group-hover:text-red-400 transition-colors" />
             <span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 group-hover:max-w-[120px] group-hover:opacity-100 group-hover:ml-2 transition-all duration-300 ease-out text-xs font-medium text-red-400 select-none">
               {t.shutDown}
             </span>
@@ -743,9 +743,9 @@ export const Login: React.FC<LoginProps> = () => {
             onClick={handleSwitchUser}
             title={t.switchUser}
             aria-label={t.switchUser}
-            className="group flex items-center h-9 px-2.5 rounded-full bg-white/5 hover:bg-blue-950/80 border border-white/15 hover:border-blue-500/60 transition-all duration-300 backdrop-blur-md shadow-md cursor-pointer text-white/70 hover:text-blue-400 hover:shadow-[0_0_20px_rgba(59,130,246,0.55)] overflow-hidden"
+            className="group flex items-center h-8 px-2.5 rounded-full bg-white/5 hover:bg-blue-950/80 border border-white/10 hover:border-blue-500/60 transition-all duration-200 backdrop-blur-md cursor-pointer text-white/70 hover:text-blue-400 overflow-hidden"
           >
-            <User className="w-4 h-4 shrink-0 text-white/70 group-hover:text-blue-400 group-hover:drop-shadow-[0_0_8px_rgba(59,130,246,0.9)] transition-colors duration-300" />
+            <User className="w-3.5 h-3.5 shrink-0 text-white/70 group-hover:text-blue-400 transition-colors" />
             <span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 group-hover:max-w-[120px] group-hover:opacity-100 group-hover:ml-2 transition-all duration-300 ease-out text-xs font-medium text-blue-400 select-none">
               {t.switchUser}
             </span>

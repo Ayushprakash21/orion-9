@@ -122,11 +122,11 @@ export const NetworkIntelligenceView: React.FC = () => {
         {/* 3D World Model Quick Launcher */}
         <button
           onClick={() => navigate('/world-model')}
-          className="px-4 py-2.5 bg-gradient-to-r from-cyan-950 to-slate-900 hover:from-cyan-900 hover:to-slate-850 border border-cyan-500/40 text-cyan-300 rounded-xl font-mono text-xs font-bold flex items-center gap-2 shadow-lg transition-all active:scale-95 group"
+          className="px-4 py-2 bg-white/[0.06] hover:bg-white/[0.10] border border-white/10 text-white rounded-xl text-xs font-medium flex items-center gap-2 shadow-sm transition-all active:scale-95 group"
         >
-          <Box size={16} className="text-cyan-400 group-hover:rotate-12 transition-transform" />
+          <Box size={16} className="text-os-text-secondary group-hover:rotate-12 transition-transform" />
           <span>OPEN 3D WORLD MODEL</span>
-          <ArrowRight size={14} className="text-cyan-400" />
+          <ArrowRight size={14} className="text-os-text-secondary" />
         </button>
       </div>
 

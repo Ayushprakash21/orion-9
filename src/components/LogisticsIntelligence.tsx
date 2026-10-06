@@ -594,7 +594,7 @@ export const LogisticsIntelligence: React.FC = () => {
                                       ? 'bg-emerald-400' 
                                       : isBreached 
                                       ? 'bg-rose-500' 
-                                      : 'bg-gradient-to-r from-cyan-500 to-blue-500'
+                                      : 'bg-sky-500'
                                   }`} 
                                   style={{ width: `${c.progressPercent}%` }}
                                 />
