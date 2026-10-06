@@ -475,7 +475,9 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
         onPointerUp={handleTitlePointerUp}
         onPointerCancel={handleTitlePointerUp}
         onContextMenu={handleTitleContextMenu}
-        data-window-titlebar="true" data-orion-app-topbar="true"
+        data-window-titlebar="true" 
+        data-orion-window-titlebar="true" 
+        data-orion-app-topbar="true"
         onDoubleClick={() => {
           if (win.state === 'maximized') {
             restoreApplication(win.id);
@@ -483,29 +485,39 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
             maximizeApplication(win.id);
           }
         }}
+        style={{
+          backgroundColor: '#080a0d',
+          opacity: 1,
+          backgroundImage: 'none',
+          backdropFilter: 'none',
+          WebkitBackdropFilter: 'none',
+          mixBlendMode: 'normal',
+          isolation: 'isolate',
+        }}
         className={cn(
-          "orion-window-titlebar h-10 bg-[#12151a]/95 dark:bg-[#12151a]/95 backdrop-blur-2xl border-b border-white/[0.08] px-3.5 flex items-center justify-between select-none relative z-[100] transition-colors cursor-default",
+          "orion-window-titlebar h-11 bg-[#080a0d] border-b border-white/[0.08] px-3.5 flex items-center justify-between select-none relative z-20 cursor-default",
           isActive ? "text-os-text-primary" : "text-os-text-muted"
         )}
       >
         {/* Left: App Identity */}
-        <div className="flex items-center gap-2 min-w-0 pr-3 pointer-events-none">
-          <OrionAppIcon app={win.id} size={18} showContainer={false} />
+        <div className="flex items-center gap-2 min-w-0 pr-3 pointer-events-none select-none pl-0.5">
+          <OrionAppIcon app={win.id} size={16} showContainer={false} />
           <span className={cn(
-            "text-[12px] font-semibold tracking-normal truncate",
-            isActive ? "text-white" : "text-os-text-muted"
+            "text-[12.5px] font-semibold tracking-normal truncate leading-none",
+            isActive ? "text-slate-100" : "text-slate-400"
           )}>
             {app.name}
           </span>
-          <span className="text-[10px] text-os-text-muted font-medium uppercase tracking-wider hidden sm:inline-block ml-1 opacity-70 truncate">
-            • {app.category}
+          <span className="text-white/20 text-xs font-mono select-none">·</span>
+          <span className="text-[9.5px] text-slate-500 font-mono font-medium uppercase tracking-[0.1em] hidden sm:inline-block truncate leading-none">
+            {app.category}
           </span>
         </div>
 
         {/* Right: Window Controls */}
         <div 
           data-window-controls="true"
-          className="flex items-center gap-1.5 group/controls ml-auto z-[120] pointer-events-auto h-full shrink-0"
+          className="flex items-center gap-1.5 sm:gap-2 group/controls ml-auto z-30 pointer-events-auto h-full shrink-0 pr-1"
           onPointerDown={(e) => e.stopPropagation()}
           onMouseDown={(e) => e.stopPropagation()}
           onContextMenu={(e) => e.stopPropagation()}
@@ -522,14 +534,14 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
               e.preventDefault();
               minimizeApplication(win.id);
             }}
-            className="w-7 h-7 sm:w-3.5 sm:h-3.5 flex items-center justify-center cursor-pointer transition-all"
+            className="w-8 h-8 rounded-lg bg-[#171b21] hover:bg-[#20252e] active:bg-[#121519] border border-white/[0.10] hover:border-white/[0.20] flex items-center justify-center transition-all cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-400 group/btn"
           >
-            <span className="w-3.5 h-3.5 rounded-full bg-amber-500/80 hover:bg-amber-500 border border-amber-600/40 flex items-center justify-center shadow-sm">
-              <Minus className="w-2 h-2 text-white opacity-0 group-hover/controls:opacity-100" />
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 hover:bg-amber-500 border border-amber-600/40 flex items-center justify-center shadow-sm">
+              <Minus className="w-1.5 h-1.5 text-black opacity-0 group-hover/controls:opacity-100 transition-opacity" />
             </span>
           </button>
 
-          {/* 2. Maximize / Restore Button (Green) */}
+          {/* 2. Maximize / Restore Button (Emerald/Cyan) */}
           {!isMobile && (
             <button
               type="button"
@@ -544,9 +556,11 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
                   maximizeApplication(win.id);
                 }
               }}
-              className="w-3.5 h-3.5 rounded-full bg-emerald-500/80 hover:bg-emerald-500 border border-emerald-600/40 flex items-center justify-center transition-all cursor-pointer shadow-sm"
+              className="w-8 h-8 rounded-lg bg-[#171b21] hover:bg-[#20252e] active:bg-[#121519] border border-white/[0.10] hover:border-white/[0.20] flex items-center justify-center transition-all cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-400 group/btn"
             >
-              <Maximize2 className="w-2 h-2 text-white opacity-0 group-hover/controls:opacity-100" />
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 hover:bg-emerald-500 border border-emerald-600/40 flex items-center justify-center shadow-sm">
+                <Maximize2 className="w-1.5 h-1.5 text-black opacity-0 group-hover/controls:opacity-100 transition-opacity" />
+              </span>
             </button>
           )}
 
@@ -560,10 +574,10 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
               e.preventDefault();
               closeApplication(win.id);
             }}
-            className="w-7 h-7 sm:w-3.5 sm:h-3.5 flex items-center justify-center cursor-pointer transition-all"
+            className="w-8 h-8 rounded-lg bg-[#171b21] hover:bg-red-500/20 active:bg-[#121519] border border-white/[0.10] hover:border-red-500/40 flex items-center justify-center transition-all cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-400 group/btn"
           >
-            <span className="w-3.5 h-3.5 rounded-full bg-red-500/80 hover:bg-red-500 border border-red-600/40 flex items-center justify-center shadow-sm">
-              <X className="w-2 h-2 text-white opacity-0 group-hover/controls:opacity-100" />
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500/80 hover:bg-red-500 border border-red-600/40 flex items-center justify-center shadow-sm">
+              <X className="w-1.5 h-1.5 text-black opacity-0 group-hover/controls:opacity-100 transition-opacity" />
             </span>
           </button>
         </div>

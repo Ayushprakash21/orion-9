@@ -932,9 +932,9 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
   return (
     <div className="flex flex-col md:flex-row w-full h-full bg-[#0c0e11] text-white overflow-hidden font-sans select-none">
       {/* ─── LEFT SIDEBAR ─── */}
-      <div className="w-full md:w-[230px] max-h-[35vh] md:max-h-full shrink-0 bg-[#12151a] border-b md:border-b-0 md:border-r border-white/[0.08] flex flex-col">
+      <div className="w-full md:w-[230px] max-h-[35vh] md:max-h-full shrink-0 bg-[#101318] border-b md:border-b-0 md:border-r border-white/[0.08] flex flex-col">
         {/* Search */}
-        <div className="p-3.5 border-b border-white/[0.08] backdrop-blur-md sticky top-0 z-10 bg-[#12151a]">
+        <div className="p-3.5 border-b border-white/[0.08] sticky top-0 z-10 bg-[#101318]">
           <div className="relative">
             <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
             <input 

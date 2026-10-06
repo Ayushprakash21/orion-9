@@ -28,10 +28,22 @@ export const OrionSettingsSplitLayout: React.FC<OrionSettingsSplitLayoutProps> =
     <div className={cn("flex-1 min-h-0 flex flex-col h-full overflow-hidden bg-transparent select-none min-w-0 max-w-full", className)}>
       {/* Optional Title Header Bar for Sections */}
       {(title || subtitle || badge || headerActions) && (
-        <div className="px-4 py-3 sm:px-6 sm:py-3.5 border-b border-white/[0.08] flex items-center justify-between gap-4 shrink-0 bg-[#12151a]/40 backdrop-blur-md min-w-0">
+        <div 
+          data-orion-settings-header="true"
+          style={{
+            backgroundColor: '#0c0e11',
+            opacity: 1,
+            backgroundImage: 'none',
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none',
+            mixBlendMode: 'normal',
+            isolation: 'isolate',
+          }}
+          className="px-6 md:px-7 h-[50px] min-h-[48px] max-h-[56px] border-b border-white/[0.07] bg-[#0c0e11] flex items-center justify-between gap-4 shrink-0 z-10 min-w-0 select-none"
+        >
           <div className="flex items-center gap-3 min-w-0">
             {title && (
-              <h2 className="text-sm sm:text-base font-semibold text-white tracking-wide truncate">
+              <h2 className="text-sm font-semibold text-white tracking-wide truncate">
                 {title}
               </h2>
             )}
@@ -41,9 +53,12 @@ export const OrionSettingsSplitLayout: React.FC<OrionSettingsSplitLayoutProps> =
               </span>
             )}
             {subtitle && (
-              <span className="hidden sm:inline-block text-xs text-slate-400 truncate border-l border-white/[0.1] pl-3 font-mono">
-                {subtitle}
-              </span>
+              <div className="hidden sm:flex items-center gap-2.5 min-w-0">
+                <span className="text-white/20 select-none font-mono text-xs">|</span>
+                <span className="text-xs text-slate-400 truncate font-mono">
+                  {subtitle}
+                </span>
+              </div>
             )}
           </div>
           {headerActions && (
