@@ -73,14 +73,15 @@ describe('ORION-9 Copilot Outcome Learning & Feedback Loop', () => {
       getPendingDecisions: () => []
     };
 
-    const response = await generateCopilotResponse(
+    const resObj = await generateCopilotResponse(
       'Should we expedite purchase order PO-500 again?',
       localTools,
       'Control Tower',
       { tenantId: 'global', userId: 'user' }
     );
+    const response = typeof resObj === 'string' ? resObj : resObj.response;
 
     expect(response).toBeTruthy();
-    expect(response).toContain('ORION-9');
+    expect(response).toContain('PURCHASE ORDER ANALYSIS');
   });
 });

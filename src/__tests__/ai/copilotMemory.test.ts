@@ -67,7 +67,8 @@ describe('ORION-9 Copilot Memory & Tenant Isolation', () => {
       getPendingDecisions: () => []
     };
 
-    const res1 = await generateCopilotResponse(question, state1Tools, 'Control Tower', { tenantId: 'global', userId: 'user' });
+    const res1Obj = await generateCopilotResponse(question, state1Tools, 'Control Tower', { tenantId: 'global', userId: 'user' });
+    const res1 = typeof res1Obj === 'string' ? res1Obj : res1Obj.response;
 
     // State 2: Critical stockout risk on SKU-CRITICAL-777
     const state2Tools = {
@@ -80,7 +81,8 @@ describe('ORION-9 Copilot Memory & Tenant Isolation', () => {
       getPendingDecisions: () => []
     };
 
-    const res2 = await generateCopilotResponse(question, state2Tools, 'Control Tower', { tenantId: 'global', userId: 'user' });
+    const res2Obj = await generateCopilotResponse(question, state2Tools, 'Control Tower', { tenantId: 'global', userId: 'user' });
+    const res2 = typeof res2Obj === 'string' ? res2Obj : res2Obj.response;
 
     expect(res1).not.toEqual(res2);
     expect(res2).toContain('SKU-CRITICAL-777');

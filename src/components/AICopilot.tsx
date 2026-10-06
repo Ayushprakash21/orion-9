@@ -49,6 +49,7 @@ export const AICopilot = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [aiState, setAiState] = useState<'idle' | 'thinking' | 'analyzing' | 'ready'>('ready');
+  const [lastSource, setLastSource] = useState<'gemini' | 'deterministic' | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -118,12 +119,12 @@ export const AICopilot = () => {
           name: s.name,
           otif: s.otif || 90,
           defectRate: s.defectRate || 0,
-          leadTimeDays: s.leadTime || 5
+          leadTimeDays: s.leadTime || 14
         })),
         getPurchaseOrders: () => purchaseOrders.map(p => ({
           id: p.id,
           supplierId: p.supplierId,
-          totalAmount: p.totalValue,
+          totalValue: p.totalValue,
           status: p.status,
           expectedDelivery: p.expectedDelivery
         })),
@@ -161,13 +162,18 @@ export const AICopilot = () => {
         getTransportationPlans: () => (routes || []).slice(0, 10)
       };
 
-      const response = await generateCopilotResponse(
+      const copilotRes = await generateCopilotResponse(
         promptText,
         localDataTools,
         'Control Tower',
         { tenantId: 'global', userId: 'user', agentId: 'control-tower-copilot' }
       );
       
+      const response = copilotRes.response || String(copilotRes);
+      if (copilotRes.source) {
+        setLastSource(copilotRes.source);
+      }
+
       let parsedResponse;
       try {
         parsedResponse = JSON.parse(response);
@@ -250,7 +256,11 @@ export const AICopilot = () => {
           <div className="hidden md:flex flex-col items-end gap-1 text-right">
             <div className="text-[10px] text-slate-400">Intelligence Core</div>
             <div className="text-xs font-medium text-slate-200 flex items-center gap-1.5">
-              Gemini Pro Grounding <span className="w-2 h-2 bg-emerald-400 rounded-full" />
+              {lastSource === 'gemini' ? (
+                <>Gemini 3.8 Flash Grounding <span className="w-2 h-2 bg-emerald-400 rounded-full" /></>
+              ) : (
+                <>Deterministic SCM Core <span className="w-2 h-2 bg-sky-400 rounded-full" /></>
+              )}
             </div>
           </div>
         </div>

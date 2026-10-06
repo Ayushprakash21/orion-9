@@ -67,7 +67,8 @@ export default {
     if (url.pathname === "/api/ai/choose-tools" && request.method === "POST") {
       let body: any = {};
       try { body = await request.json(); } catch (e) {}
-      const prompt = body.prompt || "";
+      const rawPrompt = (body.prompt || "").trim();
+      const p = rawPrompt.toLowerCase();
       const allowlist = [
         'getInventory', 'getInventoryRisks', 'getSuppliers', 'getSupplierPerformance',
         'getPurchaseOrders', 'getOverduePOs', 'getShipments', 'getDelayedShipments',
@@ -75,12 +76,18 @@ export default {
         'getDemandForecasts', 'getInventoryOptimization', 'getContracts', 'getTransportationPlans'
       ];
 
+      // Fast-path for simple greetings or capability queries
+      if (p === 'hello' || p === 'hi' || p === 'hey' || p === 'good morning' || p === 'help' || p === 'what can you do') {
+        return new Response(JSON.stringify({ toolsToCall: [] }), {
+          status: 200, headers: { "Content-Type": "application/json" }
+        });
+      }
+
       const apiKey = env.GEMINI_API_KEY || (typeof process !== "undefined" ? process.env?.GEMINI_API_KEY : undefined);
       const gemini = getWorkerGeminiClient(apiKey);
 
       if (!gemini) {
-        const p = prompt.toLowerCase();
-        const tools = ['getDashboardMetrics'];
+        const tools: string[] = ['getDashboardMetrics'];
         if (p.includes('inventory') || p.includes('stock') || p.includes('sku')) tools.push('getInventory', 'getInventoryRisks');
         if (p.includes('supplier') || p.includes('vendor')) tools.push('getSuppliers', 'getSupplierPerformance');
         if (p.includes('po') || p.includes('purchase') || p.includes('order')) tools.push('getPurchaseOrders', 'getOverduePOs');
@@ -97,11 +104,13 @@ export default {
 Based on the user's query, determine which of the following operational data tools are needed to answer the question:
 ${allowlist.join(', ')}
 
-Return ONLY a valid JSON array of string tool names. Only include tools that are absolutely relevant. If unsure, include 'getDashboardMetrics'.`;
+Return ONLY a valid JSON array of string tool names. Only include tools that are strictly relevant to fetching data needed for the query.
+If the query is a simple greeting (e.g. "hello", "hi") or general capability query (e.g. "what can you do"), return an empty array [].
+If unsure for operational queries, include 'getDashboardMetrics'.`;
 
         const response = await gemini.models.generateContent({
           model: 'gemini-3.8-flash',
-          contents: `${systemPrompt}\n\nUser Prompt: ${prompt}`,
+          contents: `${systemPrompt}\n\nUser Prompt: ${rawPrompt}`,
           config: { temperature: 0.1 }
         });
         const responseText = response.text || "[]";
@@ -116,7 +125,6 @@ Return ONLY a valid JSON array of string tool names. Only include tools that are
         } catch (e) {
           tools = ["getDashboardMetrics"];
         }
-        if (tools.length === 0) tools = ["getDashboardMetrics"];
         return new Response(JSON.stringify({ toolsToCall: tools }), {
           status: 200, headers: { "Content-Type": "application/json" }
         });
@@ -150,10 +158,14 @@ Return ONLY a valid JSON array of string tool names. Only include tools that are
       try {
         const systemInstruction = `You are ORION AI, the native cognitive layer of the Orion Supply Chain Operating System.
 You operate on the core loop: SENSE → UNDERSTAND → PREDICT → DECIDE → ACT → LEARN.
-Grounded Principle: You must ground all insights strictly and exclusively in the provided operational data context.
+Grounded Principle: Ground all insights strictly and exclusively in the provided operational data context.
 Do NOT invent fake SKUs, fabricated inventory numbers, imaginary supplier names, or false metrics.
 When data is missing or incomplete, explicitly state "DATA NOT AVAILABLE" or "INSUFFICIENT DATA".
-Structure your response clearly using markdown with these standard OS sections where appropriate:
+
+Instructions:
+1. Answer the user's specific prompt directly, accurately, and concisely.
+2. If the user asks a simple question, greeting, or specific query (e.g. about a single SKU, PO, or supplier), provide a direct targeted response without forcing unnecessary multi-section templates.
+3. For comprehensive risk overviews, executive reports, or multi-domain SCM analysis, structure your response using markdown with standard OS sections where appropriate:
 - **EXECUTIVE SUMMARY**
 - **OPERATIONAL SIGNALS & ROOT CAUSES** (Categorize clearly as KNOWN, CALCULATED, or INFERRED)
 - **DOWNSTREAM RISK & BUSINESS IMPACT** (Quantify financial exposure, service level impact, stockout risk)

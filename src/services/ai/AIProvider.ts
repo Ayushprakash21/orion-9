@@ -144,11 +144,188 @@ export class OrionAIProvider {
     const exceptions = ctx.getExceptions || [];
     const pendingDecisions = ctx.getPendingDecisions || [];
     const supplierPerf = ctx.getSupplierPerformance || [];
+    const suppliers = ctx.getSuppliers || [];
+    const inventory = ctx.getInventory || [];
+    const purchaseOrders = ctx.getPurchaseOrders || [];
+    const shipments = ctx.getShipments || [];
     const metrics = ctx.getDashboardMetrics || {};
     const ragEvidence = ctx._ragEvidence;
     const persistentMemories = ctx._persistentMemories || [];
     const pastOutcomes = ctx._pastOutcomes || [];
 
+    const promptText = (req.prompt || '').trim();
+    const p = promptText.toLowerCase();
+
+    // Helper: Safely format memory references without [object Object]
+    const formatMemoryRef = (mem: any): string => {
+      if (!mem) return 'Pattern recorded';
+      const ref = mem.ref || mem.contentReference;
+      if (!ref) return 'Pattern recorded';
+      if (typeof ref === 'string') return ref;
+      if (typeof ref === 'object') {
+        if (ref.note) return String(ref.note);
+        if (ref.query) return `Query: ${ref.query}${ref.status ? ` (${ref.status})` : ''}`;
+        if (ref.summary) return String(ref.summary);
+        if (ref.id) return `Reference ${ref.id}`;
+        try {
+          return JSON.stringify(ref);
+        } catch {
+          return 'Recorded memory reference';
+        }
+      }
+      return String(ref);
+    };
+
+    // ── INTENT 1: GREETING ────────────────────────────────────────────────────
+    if (p === 'hello' || p === 'hi' || p === 'hey' || p === 'good morning' || p === 'good afternoon' || p.startsWith('hello ') || p.startsWith('hi ')) {
+      let greeting = `Hello! I am **Orion Copilot**, the cognitive AI assistant for the Orion Supply Chain Operating System.\n\n`;
+      greeting += `I am currently online and connected to live operational telemetry (${metrics.totalProducts || 0} Products, ${metrics.openPOs || 0} Open POs, ${exceptions.length} Active Exceptions).\n\n`;
+      greeting += `How can I help you optimize your supply chain today? You can ask about inventory risks, overdue purchase orders, supplier performance, or delayed shipments.`;
+      return greeting;
+    }
+
+    // ── INTENT 2: HELP / CAPABILITIES ─────────────────────────────────────────
+    if (p.includes('help') || p.includes('what can you do') || p.includes('capabilities') || p.includes('options') || p.includes('commands')) {
+      let helpMsg = `### ORION-9 COPILOT CAPABILITIES\n\n`;
+      helpMsg += `I can assist with real-time supply chain analysis, decision support, and operational monitoring across:\n\n`;
+      helpMsg += `- **Inventory Optimization**: Stockout risk detection, safety stock variances, reorder recommendations.\n`;
+      helpMsg += `- **Procurement & POs**: Overdue purchase orders, supplier fulfillment delays, order tracking.\n`;
+      helpMsg += `- **Logistics & Freight**: Inbound shipment delays, carrier transit performance, tracking.\n`;
+      helpMsg += `- **Supplier Performance**: OTIF rating tracking, defect rates, supplier communication drafting.\n`;
+      helpMsg += `- **Executive Control Tower**: Enterprise risk overviews, financial value-at-risk calculations.\n\n`;
+      helpMsg += `Ask a specific question (e.g. *"Show overdue purchase orders"* or *"Explain stockout risks for SKU-1000"*) to get instant grounded insights.`;
+      return helpMsg;
+    }
+
+    const isFullReportPrompt = p.includes('analyze') || p.includes('report') || p.includes('overview') || p.includes('executive') || p.includes('control tower');
+
+    // ── INTENT 3: SPECIFIC SKU / ITEM INQUIRY (Single lookup) ────────────────
+    const skuMatch = promptText.match(/SKU-[A-Za-z0-9-]+/i) || promptText.match(/PROD-[A-Za-z0-9-]+/i);
+    if (!isFullReportPrompt && (skuMatch || (p.includes('sku') && !p.includes('risks') && !p.includes('inventory risks')))) {
+      const targetSku = skuMatch ? skuMatch[0].toUpperCase() : null;
+      let skuInfo = inventory.find((i: any) => i.productId?.toUpperCase() === targetSku || i.sku?.toUpperCase() === targetSku);
+      let skuRisk = inventoryRisks.find((i: any) => i.productId?.toUpperCase() === targetSku || i.sku?.toUpperCase() === targetSku);
+      
+      let res = `### SKU ANALYSIS${targetSku ? `: ${targetSku}` : ''}\n\n`;
+      if (skuInfo || skuRisk) {
+        const item = skuRisk || skuInfo;
+        const onHand = item.onHand ?? 'N/A';
+        const safety = item.safetyStock ?? item.reorderPoint ?? 10;
+        const isLow = Number(onHand) <= Number(safety);
+        res += `- **Product ID**: \`${item.productId || targetSku}\`\n`;
+        res += `- **Current On-Hand**: ${onHand} units\n`;
+        res += `- **Safety Stock Target**: ${safety} units\n`;
+        res += `- **Status**: ${isLow ? '🚨 **CRITICAL STOCKOUT RISK** (Below Safety Stock)' : '✅ **HEALTHY** (Sufficient Buffer)'}\n\n`;
+        if (isLow) {
+          res += `**Recommended Action**: Issue priority expedited purchase reorder to restore buffer to ${Number(safety) * 2} units.`;
+        }
+      } else if (targetSku) {
+        res += `SKU \`${targetSku}\` was not found in active inventory telemetry, or has normal stock levels without active exceptions.\n\n`;
+        res += `Active monitored SKUs: ${inventory.slice(0, 5).map((i: any) => `\`${i.productId}\``).join(', ')}.`;
+      } else {
+        res += `- **Monitored Inventory SKUs**: ${inventory.length} total items in system telemetry.\n`;
+        res += `- **Stockout Risk SKUs**: ${inventoryRisks.length} items currently below safety stock threshold.`;
+      }
+      return res;
+    }
+
+    // ── INTENT 4: SPECIFIC PO INQUIRY (Single lookup) ─────────────────────────
+    const poMatch = promptText.match(/PO-[A-Za-z0-9-]+/i);
+    if (!isFullReportPrompt && (poMatch || (p.includes('po') && !p.includes('overdue pos') && !p.includes('open pos') && !p.includes('how many open pos')))) {
+      const targetPO = poMatch ? poMatch[0].toUpperCase() : null;
+      let poItem = purchaseOrders.find((po: any) => po.id?.toUpperCase() === targetPO) || overduePOs.find((po: any) => po.id?.toUpperCase() === targetPO);
+
+      let res = `### PURCHASE ORDER ANALYSIS${targetPO ? `: ${targetPO}` : ''}\n\n`;
+      if (poItem) {
+        res += `- **PO Reference**: \`${poItem.id}\`\n`;
+        res += `- **Supplier ID**: \`${poItem.supplierId || 'Unknown'}\`\n`;
+        res += `- **Total Value**: $${(poItem.totalAmount || poItem.totalValue || 0).toLocaleString()}\n`;
+        res += `- **Expected Delivery**: ${poItem.expectedDelivery ? new Date(poItem.expectedDelivery).toLocaleDateString() : 'N/A'}\n`;
+        res += `- **Status**: **${poItem.status || 'Active'}**\n\n`;
+        if (poItem.status === 'Overdue' || overduePOs.some((o: any) => o.id === poItem.id)) {
+          res += `**Recommended Action**: Send formal status escalation to supplier via Supplier Communication Center.`;
+        }
+      } else if (targetPO) {
+        res += `Purchase Order \`${targetPO}\` was not found in active procurement telemetry.\n\n`;
+        res += `Active POs on record: ${purchaseOrders.slice(0, 5).map((po: any) => `\`${po.id}\``).join(', ')}.`;
+      } else {
+        res += `- **Total Active Purchase Orders**: ${purchaseOrders.length}\n`;
+        res += `- **Overdue Purchase Orders**: ${overduePOs.length}\n`;
+      }
+      return res;
+    }
+
+    // ── INTENT 5: OPEN POS QUANTITY / QUERY ──────────────────────────────────
+    if (!isFullReportPrompt && (p.includes('how many open pos') || p.includes('open po') || p.includes('open purchase order'))) {
+      const openCount = metrics.openPOs !== undefined ? metrics.openPOs : purchaseOrders.filter((p: any) => p.status !== 'Received' && p.status !== 'Cancelled').length;
+      let res = `### OPEN PURCHASE ORDERS SUMMARY\n\n`;
+      res += `- **Total Open Purchase Orders**: **${openCount}**\n`;
+      res += `- **Overdue Purchase Orders**: ${overduePOs.length}\n\n`;
+      if (overduePOs.length > 0) {
+        res += `**Overdue Orders Requiring Attention**:\n`;
+        overduePOs.forEach((po: any) => {
+          res += `- Order \`${po.id}\` (Supplier: \`${po.supplierId}\`, Value: $${(po.totalValue || po.totalAmount || 0).toLocaleString()})\n`;
+        });
+      } else {
+        res += `All open purchase orders are currently within expected delivery milestones.`;
+      }
+      return res;
+    }
+
+    // ── INTENT 6: SUPPLIER PERFORMANCE QUERY ─────────────────────────────────
+    if (!isFullReportPrompt && (p.includes('supplier') || p.includes('vendor') || p.includes('underperforming') || p.includes('otif'))) {
+      let res = `### SUPPLIER PERFORMANCE ANALYSIS\n\n`;
+      const perfList = supplierPerf.length > 0 ? supplierPerf : suppliers;
+      if (perfList.length > 0) {
+        const lowOtif = perfList.filter((s: any) => (s.otif !== undefined ? s.otif : s.rating) < 85);
+        res += `- **Total Tracked Vendors**: ${perfList.length}\n`;
+        res += `- **Underperforming Vendors (<85% OTIF)**: **${lowOtif.length}**\n\n`;
+        if (lowOtif.length > 0) {
+          res += `**Vendors Requiring Operational Review**:\n`;
+          lowOtif.forEach((s: any) => {
+            res += `- **${s.name}** (ID: \`${s.id}\`): ${Math.round(s.otif || s.rating || 0)}% OTIF, ${s.defectRate || 0}% Defect Rate\n`;
+          });
+        } else {
+          res += `All tracked suppliers are currently operating above the 85% OTIF target threshold.`;
+        }
+      } else {
+        res += `No supplier telemetry currently recorded in system context.`;
+      }
+      return res;
+    }
+
+    // ── INTENT 7: LOGISTICS & SHIPMENT DELAYS QUERY ───────────────────────────
+    if (!isFullReportPrompt && (p.includes('shipment') || p.includes('carrier') || p.includes('freight') || p.includes('delay'))) {
+      let res = `### LOGISTICS & SHIPMENT STATUS\n\n`;
+      res += `- **Total Shipments in Transit**: ${shipments.length || metrics.totalShipments || 0}\n`;
+      res += `- **Delayed Shipments**: **${delayedShipments.length}**\n\n`;
+      if (delayedShipments.length > 0) {
+        res += `**Active Inbound Delays**:\n`;
+        delayedShipments.forEach((s: any) => {
+          res += `- Tracking \`${s.trackingNumber || s.id}\` via **${s.carrier || 'Carrier'}**: Delayed by **${s.delayDays || 3} days** (Destination: ${s.destination || 'Hub'})\n`;
+        });
+      } else {
+        res += `All inbound shipments are currently arriving on schedule across active transit corridors.`;
+      }
+      return res;
+    }
+
+    // ── INTENT 8: INVENTORY STOCKOUT RISKS QUERY ──────────────────────────────
+    if (!isFullReportPrompt && (p.includes('stockout') || (p.includes('inventory') && (p.includes('risk') || p.includes('low') || p.includes('shortage'))))) {
+      let res = `### INVENTORY RISK ANALYSIS\n\n`;
+      res += `- **Active Stockout Risks**: **${inventoryRisks.length}** SKUs below safety stock threshold.\n\n`;
+      if (inventoryRisks.length > 0) {
+        res += `**Critical Stockout Risk Items**:\n`;
+        inventoryRisks.forEach((inv: any) => {
+          res += `- SKU \`${inv.sku || inv.productId}\`: On hand: **${inv.onHand}** units vs safety stock target **${inv.safetyStock || inv.reorderPoint || 10}** units.\n`;
+        });
+      } else {
+        res += `All inventory levels are healthy across monitored warehouses. Zero active stockout risks detected.`;
+      }
+      return res;
+    }
+
+    // ── DEFAULT: FULL CONTROL TOWER REPORT ─────────────────────────────────────
     let response = `### ORION-9 — COGNITIVE SUMMARY\n\n`;
     response += `*Operating Mode: ${mode} | Engine: Deterministic SCM Core*\n\n`;
 
@@ -160,12 +337,13 @@ export class OrionAIProvider {
     response += `- **Procurement Exposure**: ${overduePOs.length} purchase orders overdue or flagged for supplier rescheduling.\n`;
     response += `- **Decisions Awaiting Review**: ${pendingDecisions.length} operational decisions staged for authorized action.\n\n`;
 
-    // RAG & Memory Context Grounding
+    // RAG & Memory Context Grounding (Safely Formatted)
     if (ragEvidence && ragEvidence.summary) {
       response += `> **Governed Knowledge Context**: ${ragEvidence.summary}\n\n`;
     }
     if (persistentMemories.length > 0) {
-      response += `> **Agent Memory Recurrence**: Prior observation: ${persistentMemories[0].ref || 'Pattern recorded'}\n\n`;
+      const formattedMem = formatMemoryRef(persistentMemories[0]);
+      response += `> **Agent Memory Recurrence**: Prior observation: ${formattedMem}\n\n`;
     }
 
     // 2. Operational Signals & Root Causes
@@ -188,7 +366,11 @@ export class OrionAIProvider {
         response += `- **Supplier Reliability Variance (CALCULATED)**: ${lowOtif.length} vendors operating under 85% OTIF threshold (lowest: **${lowOtif[0].name}** at ${Math.round(lowOtif[0].otif)}% OTIF).\n`;
       }
     }
-    response += `- **Causal Chain (INFERRED)**: Inbound transit delays and supplier lead-time variances are depleting safety stock buffers, creating localized service risk for downstream commitments.\n\n`;
+    if (delayedShipments.length === 0 && overduePOs.length === 0 && inventoryRisks.length === 0) {
+      response += `- **Operational Telemetry Status (KNOWN)**: Operational parameters are operating within baseline tolerances.\n`;
+    } else {
+      response += `- **Causal Chain (INFERRED)**: Inbound transit delays and supplier lead-time variances are depleting safety stock buffers, creating localized service risk for downstream commitments.\n\n`;
+    }
 
     // 3. Business Impact
     response += `#### 3. DOWNSTREAM RISK & BUSINESS IMPACT\n`;

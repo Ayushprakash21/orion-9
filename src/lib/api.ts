@@ -4,12 +4,17 @@ import { agentMemoryManager } from '../ai/AgentMemory';
 import { knowledgeRetrievalEngine } from '../knowledge/KnowledgeRetrievalEngine';
 import { outcomeRecorder } from '../ai/OutcomeRecorder';
 
+export interface CopilotResponse {
+  response: string;
+  source: 'gemini' | 'deterministic';
+}
+
 export const generateInsight = async (
   prompt: string, 
   dataContext: any, 
   specializedMode?: any,
   options?: { tenantId?: string; userId?: string }
-) => {
+): Promise<CopilotResponse> => {
   try {
     const result = await orionAI.generateInsight({
       prompt,
@@ -18,11 +23,10 @@ export const generateInsight = async (
       tenantId: options?.tenantId,
       userId: options?.userId,
     });
-    return result.response;
+    return result;
   } catch (error: any) {
     console.warn("AI Insight using fallback reasoning:", error);
-    const result = await orionAI.generateInsight({ prompt, dataContext, specializedMode, tenantId: options?.tenantId, userId: options?.userId });
-    return result.response;
+    return await orionAI.generateInsight({ prompt, dataContext, specializedMode, tenantId: options?.tenantId, userId: options?.userId });
   }
 };
 
@@ -31,7 +35,7 @@ export const generateCopilotResponse = async (
   localDataTools: Record<string, () => any>,
   specializedMode?: 'Control Tower' | 'Decision Copilot' | 'Scenario Copilot' | 'Executive Copilot' | 'Root Cause Copilot',
   options?: { tenantId?: string; userId?: string; conversationId?: string; agentId?: string }
-) => {
+): Promise<any> => {
   const tenantId = options?.tenantId || 'global';
   const userId = options?.userId || 'user';
   const agentId = options?.agentId || 'control-tower-copilot';
@@ -52,8 +56,8 @@ export const generateCopilotResponse = async (
       }
     }
 
-    // Always include dashboard metrics if not present
-    if (!dataContext.getDashboardMetrics && localDataTools.getDashboardMetrics) {
+    // Include dashboard metrics if tools were selected but metrics not explicitly run
+    if (toolsToCall.length > 0 && !dataContext.getDashboardMetrics && localDataTools.getDashboardMetrics) {
       dataContext.getDashboardMetrics = localDataTools.getDashboardMetrics();
     }
 
@@ -110,14 +114,21 @@ export const generateCopilotResponse = async (
     }
 
     // 7. Execute inference via Gemini or deterministic engine
-    return await generateInsight(prompt, dataContext, specializedMode, { tenantId, userId });
+    const res = await generateInsight(prompt, dataContext, specializedMode, { tenantId, userId });
+    return {
+      response: res.response,
+      source: res.source
+    };
   } catch (error: any) {
     console.error("Copilot Error:", error);
-    // Grounded fallback reasoning
     const fallbackCtx: any = {
       getDashboardMetrics: localDataTools.getDashboardMetrics ? localDataTools.getDashboardMetrics() : {}
     };
-    return await generateInsight(prompt, fallbackCtx, specializedMode, { tenantId, userId });
+    const res = await generateInsight(prompt, fallbackCtx, specializedMode, { tenantId, userId });
+    return {
+      response: res.response,
+      source: res.source
+    };
   }
 };
 

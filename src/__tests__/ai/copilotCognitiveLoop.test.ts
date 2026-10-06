@@ -165,12 +165,13 @@ describe('ORION-9 Copilot Cognitive Loop Audit & Repair', () => {
         getInventoryOptimization: () => []
       };
 
-      const responseText = await generateCopilotResponse(
+      const res = await generateCopilotResponse(
         'Analyze supplier delay on PO-100 and SKU-001 stockout risk',
         localTools,
         'Control Tower',
         { tenantId: 'global', userId: 'user', agentId: 'control-tower-copilot' }
       );
+      const responseText = typeof res === 'string' ? res : res.response;
 
       expect(responseText).toBeTruthy();
       expect(responseText).toContain('ORION-9');
