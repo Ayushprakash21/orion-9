@@ -110,47 +110,45 @@ export const OrionPowerOnScreen: React.FC<OrionPowerOnScreenProps> = ({
       initial="hidden"
       animate="visible"
       exit="exit"
-      className="fixed inset-0 w-full h-full z-[10000] bg-[#05070B] text-os-text-primary font-sans select-none overflow-hidden flex flex-col items-center justify-center p-4"
+      className="fixed inset-0 w-full h-[100dvh] z-[10000] bg-[#08090A] text-white font-sans select-none overflow-hidden flex flex-col items-center justify-center p-4"
     >
-      {/* Background Ambient OS Grid & Vignette */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,242,254,0.035),transparent_70%)] pointer-events-none" />
-      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent,rgba(5,7,11,0.8))] pointer-events-none" />
+      {/* Subtle Barely-Visible Neutral Ambient Glow Behind Center */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.025),transparent_60%)] pointer-events-none" />
 
       {/* Main Central Workspace */}
-      <div className="relative z-10 w-full max-w-md flex flex-col items-center justify-center min-h-[420px]">
+      <div className="relative z-10 w-full max-w-sm flex flex-col items-center justify-center min-h-[420px]">
         <AnimatePresence mode="wait">
           {phase === 'INITIALIZING' && (
             <motion.div
               key="initializing-phase"
               data-testid="initialization-phase"
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.02 }}
-              transition={{ duration: isReduced ? 0.1 : 0.5, ease: ORION_EASE }}
+              transition={{ duration: isReduced ? 0.1 : 0.4, ease: ORION_EASE }}
               className="flex flex-col items-center justify-center text-center w-full"
               role="status"
               aria-live="polite"
             >
-              {/* Logo with cyan glow */}
+              {/* Logo without neon/cyan glow */}
               <motion.div
                 data-testid="startup-logo"
-                initial={{ opacity: 0, scale: 0.9 }}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.8, ease: ORION_EASE }}
+                transition={{ duration: 0.6, ease: ORION_EASE }}
                 className="relative mb-5"
               >
-                <div className="absolute inset-0 rounded-full bg-[#00F2FE]/15 blur-xl transition-opacity duration-700" />
                 <BrandLogo
                   sizePreset="lg"
                   variant="mark"
-                  className="relative justify-center drop-shadow-[0_0_15px_rgba(0,242,254,0.3)]"
+                  className="relative justify-center drop-shadow-[0_12px_24px_rgba(0,0,0,0.45)]"
                 />
               </motion.div>
 
               {/* Tagline */}
               <p
                 data-testid="startup-tagline"
-                className="font-mono text-os-text-muted text-[10px] sm:text-xs tracking-[0.2em] uppercase mt-1 mb-8"
+                className="font-sans text-white/40 text-xs tracking-wider uppercase mt-1 mb-8"
               >
                 {appTagline.toUpperCase()}
               </p>
@@ -158,16 +156,16 @@ export const OrionPowerOnScreen: React.FC<OrionPowerOnScreenProps> = ({
               {/* Progressive Service Status */}
               <motion.div
                 data-testid="initialization-status-box"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: elapsedMs >= 1000 ? 1 : 0, y: elapsedMs >= 1000 ? 0 : 10 }}
-                transition={{ duration: 0.4 }}
-                className="w-full max-w-[320px] space-y-1.5"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: elapsedMs >= 800 ? 1 : 0, y: elapsedMs >= 800 ? 0 : 8 }}
+                transition={{ duration: 0.3 }}
+                className="w-full max-w-[280px] space-y-2"
               >
-                <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.08] text-[10px] font-mono tracking-widest text-os-text-muted uppercase">
+                <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/[0.08] text-[11px] font-sans font-medium tracking-wider text-white/50 uppercase">
                   <span>INITIALIZING SYSTEM</span>
                   <span className={cn(
                     "transition-colors",
-                    allServicesReady ? "text-emerald-400 font-semibold" : "text-[#00F2FE]"
+                    allServicesReady ? "text-emerald-400 font-medium" : "text-white/70"
                   )}>
                     {allServicesReady ? 'SYSTEM READY' : 'IN PROGRESS'}
                   </span>
@@ -184,15 +182,15 @@ export const OrionPowerOnScreen: React.FC<OrionPowerOnScreenProps> = ({
                       data-service-ready={isReady ? 'true' : 'false'}
                       initial={{ opacity: 0.2 }}
                       animate={{ opacity: isVisible ? 1 : 0.2 }}
-                      transition={{ duration: 0.3 }}
-                      className="flex items-center justify-between font-mono text-[11px] sm:text-xs w-full py-0.5"
+                      transition={{ duration: 0.2 }}
+                      className="flex items-center justify-between font-sans text-xs w-full py-0.5"
                     >
-                      <span className="shrink-0 text-os-text-secondary">{svc.label}</span>
-                      <span className="mx-2 flex-1 border-b border-dotted border-white/15 h-0 translate-y-1" />
+                      <span className="shrink-0 text-white/70 font-normal">{svc.label}</span>
+                      <span className="mx-2 flex-1 border-b border-dotted border-white/10 h-0 translate-y-1" />
                       <span
                         className={cn(
-                          "shrink-0 font-semibold tracking-wider text-[10px] uppercase transition-colors duration-300",
-                          isReady ? "text-emerald-400" : "text-os-text-muted/60"
+                          "shrink-0 font-medium tracking-wide text-[10px] uppercase transition-colors duration-200",
+                          isReady ? "text-emerald-400" : "text-white/30"
                         )}
                       >
                         {isReady ? 'READY' : 'PENDING'}
@@ -206,11 +204,11 @@ export const OrionPowerOnScreen: React.FC<OrionPowerOnScreenProps> = ({
               <div
                 data-testid="init-system-ready-label"
                 className={cn(
-                  "mt-6 flex items-center justify-center gap-2 font-mono text-[11px] tracking-[0.2em] uppercase text-emerald-400 font-semibold transition-all duration-500",
+                  "mt-6 flex items-center justify-center gap-2 font-sans text-xs tracking-wider uppercase text-emerald-400 font-medium transition-all duration-300",
                   allServicesReady ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
                 )}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34D399] animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 <span>SYSTEM READY</span>
               </div>
             </motion.div>
@@ -220,35 +218,36 @@ export const OrionPowerOnScreen: React.FC<OrionPowerOnScreenProps> = ({
             <motion.div
               key="boot-ready-phase"
               data-testid="boot-phase"
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.98 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.05 }}
-              transition={{ duration: isReduced ? 0.1 : 0.5, ease: ORION_EASE }}
+              exit={{ opacity: 0, scale: 1.02 }}
+              transition={{ duration: isReduced ? 0.1 : 0.4, ease: ORION_EASE }}
               className="flex flex-col items-center justify-center text-center w-full"
             >
               <div
                 data-testid="boot-logo"
-                className="relative mb-5"
+                className="relative mb-6"
               >
-                <div className="absolute inset-0 rounded-full bg-[#00F2FE]/15 blur-xl animate-pulse" />
                 <BrandLogo
                   sizePreset="lg"
                   variant="mark"
-                  className="relative justify-center drop-shadow-[0_0_20px_rgba(0,242,254,0.35)]"
+                  className="relative justify-center drop-shadow-[0_16px_32px_rgba(0,0,0,0.5)]"
                 />
               </div>
 
+              {/* Restrained SYSTEM READY Badge */}
               <div
                 data-testid="boot-system-ready-badge"
-                className="flex items-center justify-center gap-2 mb-8 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono text-[11px] tracking-[0.2em] uppercase"
+                className="flex items-center justify-center gap-2 mb-8 px-3.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-sans text-xs tracking-wider uppercase font-medium"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34D399] animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 <span>SYSTEM READY</span>
               </div>
 
+              {/* Premium Minimal OS Button */}
               <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 type="button"
                 data-testid="start-orion-button"
                 onClick={handleStartOrion}
@@ -256,23 +255,24 @@ export const OrionPowerOnScreen: React.FC<OrionPowerOnScreenProps> = ({
                 autoFocus
                 aria-label="Start Orion Operating System"
                 className={cn(
-                  "relative group w-full max-w-[220px] px-6 py-3.5 rounded-xl cursor-pointer select-none outline-none",
-                  "bg-[#0C1017] hover:bg-[#121824] active:scale-[0.98]",
-                  "border border-white/10 hover:border-[#00F2FE]/50 focus-visible:border-[#00F2FE]/80",
-                  "shadow-[0_10px_30px_rgba(0,0,0,0.6),inset_0_1px_1px_rgba(255,255,255,0.06)]",
-                  "hover:shadow-[0_0_25px_rgba(0,242,254,0.2),inset_0_1px_1px_rgba(255,255,255,0.1)]",
-                  "focus-visible:ring-2 focus-visible:ring-[#00F2FE]/40",
-                  "transition-all duration-200 flex items-center justify-center gap-2"
+                  "relative w-full max-w-[240px] h-[50px] px-6 rounded-xl cursor-pointer select-none outline-none font-sans font-medium text-sm tracking-[0.04em]",
+                  "bg-white/[0.035] hover:bg-white/[0.06] active:bg-white/[0.025]",
+                  "border border-white/15 hover:border-white/25 focus-visible:border-white/40",
+                  "text-white/90 hover:text-white transition-all duration-200",
+                  "shadow-[0_12px_32px_rgba(0,0,0,0.45)]",
+                  "focus-visible:ring-2 focus-visible:ring-white/20",
+                  "flex items-center justify-center gap-2"
                 )}
               >
-                <span className="font-mono font-bold text-xs tracking-[0.22em] text-[#00F2FE] group-hover:text-white transition-colors uppercase">
+                <span>
                   {isBooting ? 'BOOTING...' : 'START ORION'}
                 </span>
               </motion.button>
 
+              {/* Quiet ENTER SYSTEM prompt */}
               <p
                 data-testid="boot-enter-system-caption"
-                className="font-mono text-[10px] text-os-text-muted tracking-[0.25em] uppercase mt-4"
+                className="font-sans text-[10px] text-white/35 tracking-[0.18em] uppercase mt-4"
               >
                 ENTER SYSTEM
               </p>
