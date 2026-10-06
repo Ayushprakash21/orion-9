@@ -67,34 +67,38 @@ test.describe('Orion-9 Global Window Controls Placement E2E Suite', () => {
       expect(titlebarRightEdge - controlsRightEdge).toBeGreaterThanOrEqual(0);
     }
 
-    // 6. Verify internal button order: MINIMIZE, MAXIMIZE, CLOSE (Left -> Right)
+    // 6. Verify internal button order: MAXIMIZE (GREEN), MINIMIZE (YELLOW), CLOSE (RED) (Left -> Right)
     const buttons = controls.locator('button');
     const buttonCount = await buttons.count();
     expect(buttonCount).toBeGreaterThanOrEqual(2);
 
-    const minimizeBtn = buttons.nth(0);
-    await expect(minimizeBtn).toHaveAttribute('aria-label', /Minimize/i);
-
     if (buttonCount >= 3) {
-      const maxBtn = buttons.nth(1);
+      const maxBtn = buttons.nth(0);
+      const minimizeBtn = buttons.nth(1);
       const closeBtn = buttons.nth(2);
 
       await expect(maxBtn).toHaveAttribute('aria-label', /Maximize|Restore/i);
+      await expect(minimizeBtn).toHaveAttribute('aria-label', /Minimize/i);
       await expect(closeBtn).toHaveAttribute('aria-label', /Close/i);
 
-      const minBox = await minimizeBtn.boundingBox();
       const maxBox = await maxBtn.boundingBox();
+      const minBox = await minimizeBtn.boundingBox();
       const closeBox = await closeBtn.boundingBox();
 
-      expect(minBox).not.toBeNull();
       expect(maxBox).not.toBeNull();
+      expect(minBox).not.toBeNull();
       expect(closeBox).not.toBeNull();
 
-      if (minBox && maxBox && closeBox) {
-        // Strict order: Minimize < Maximize < Close
-        expect(minBox.x).toBeLessThan(maxBox.x);
-        expect(maxBox.x).toBeLessThan(closeBox.x);
+      if (maxBox && minBox && closeBox) {
+        // Canonical Orion-9 order: Maximize (Green) < Minimize (Yellow) < Close (Red)
+        expect(maxBox.x).toBeLessThan(minBox.x);
+        expect(minBox.x).toBeLessThan(closeBox.x);
       }
+    } else {
+      const minimizeBtn = buttons.nth(0);
+      const closeBtn = buttons.nth(1);
+      await expect(minimizeBtn).toHaveAttribute('aria-label', /Minimize/i);
+      await expect(closeBtn).toHaveAttribute('aria-label', /Close/i);
     }
   });
 

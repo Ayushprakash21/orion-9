@@ -514,7 +514,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
           </span>
         </div>
 
-        {/* Right: Window Controls */}
+        {/* Right: Window Controls: GREEN -> YELLOW -> RED */}
         <div 
           data-window-controls="true"
           className="flex items-center gap-1.5 sm:gap-2 group/controls ml-auto z-30 pointer-events-auto h-full shrink-0 pr-1"
@@ -524,24 +524,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
           onClick={(e) => e.stopPropagation()}
           onDoubleClick={(e) => e.stopPropagation()}
         >
-          {/* 1. Minimize Button (Amber) */}
-          <button
-            type="button"
-            aria-label={`Minimize ${app.name}`}
-            title="Minimize"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              minimizeApplication(win.id);
-            }}
-            className="w-8 h-8 rounded-lg bg-[#171b21] hover:bg-[#20252e] active:bg-[#121519] border border-white/[0.10] hover:border-white/[0.20] flex items-center justify-center transition-all cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-400 group/btn"
-          >
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 hover:bg-amber-500 border border-amber-600/40 flex items-center justify-center shadow-sm">
-              <Minus className="w-1.5 h-1.5 text-black opacity-0 group-hover/controls:opacity-100 transition-opacity" />
-            </span>
-          </button>
-
-          {/* 2. Maximize / Restore Button (Emerald/Cyan) */}
+          {/* 1. Maximize / Restore Button (Green / Emerald) */}
           {!isMobile && (
             <button
               type="button"
@@ -556,13 +539,30 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
                   maximizeApplication(win.id);
                 }
               }}
-              className="w-8 h-8 rounded-lg bg-[#171b21] hover:bg-[#20252e] active:bg-[#121519] border border-white/[0.10] hover:border-white/[0.20] flex items-center justify-center transition-all cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-sky-400 group/btn"
+              className="w-8 h-8 rounded-lg bg-[#171b21] hover:bg-[#20252e] active:bg-[#121519] border border-white/[0.10] hover:border-white/[0.20] flex items-center justify-center transition-all cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400 group/btn"
             >
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 hover:bg-emerald-500 border border-emerald-600/40 flex items-center justify-center shadow-sm">
                 <Maximize2 className="w-1.5 h-1.5 text-black opacity-0 group-hover/controls:opacity-100 transition-opacity" />
               </span>
             </button>
           )}
+
+          {/* 2. Minimize Button (Yellow / Amber) */}
+          <button
+            type="button"
+            aria-label={`Minimize ${app.name}`}
+            title="Minimize"
+            onClick={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              minimizeApplication(win.id);
+            }}
+            className="w-8 h-8 rounded-lg bg-[#171b21] hover:bg-[#20252e] active:bg-[#121519] border border-white/[0.10] hover:border-white/[0.20] flex items-center justify-center transition-all cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 group/btn"
+          >
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 hover:bg-amber-500 border border-amber-600/40 flex items-center justify-center shadow-sm">
+              <Minus className="w-1.5 h-1.5 text-black opacity-0 group-hover/controls:opacity-100 transition-opacity" />
+            </span>
+          </button>
 
           {/* 3. Close Button (Red) */}
           <button
