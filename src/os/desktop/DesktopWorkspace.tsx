@@ -193,44 +193,160 @@ export function DesktopWorkspace() {
     loadWidgets();
   }, [loadShortcuts, loadWidgets]);
 
-  const handleWidgetMoveStart = (e: React.PointerEvent, widget: DesktopWidgetRecord) => {
+  // Dedicated Widget Drag Session reference (isolated from desktop shortcuts)
+  const widgetDragRef = useRef<{
+    pointerId: number;
+    widgetId: string;
+    startPointerX: number;
+    startPointerY: number;
+    startWidgetX: number;
+    startWidgetY: number;
+    dragOffsetX: number;
+    dragOffsetY: number;
+    moved: boolean;
+    element: HTMLElement | null;
+  } | null>(null);
+
+  const handleWidgetMoveStart = useCallback((e: React.PointerEvent, widget: DesktopWidgetRecord) => {
+    // Only primary pointer and left-click (or touch)
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (!e.isPrimary) return;
+
     e.stopPropagation();
     e.preventDefault();
 
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const initX = widget.x;
-    const initY = widget.y;
+    const targetElement = e.currentTarget as HTMLElement;
+    const pointerId = e.pointerId;
 
-    const handlePointerMove = (moveEvt: PointerEvent) => {
-      const dx = moveEvt.clientX - startX;
-      const dy = moveEvt.clientY - startY;
+    // Acquire pointer capture if supported
+    try {
+      if (typeof targetElement.setPointerCapture === 'function') {
+        targetElement.setPointerCapture(pointerId);
+      }
+    } catch {}
 
-      const newX = Math.max(16, Math.min(window.innerWidth - widget.width - 16, initX + dx));
-      const newY = Math.max(52, Math.min(window.innerHeight - widget.height - 84, initY + dy));
+    const canvasEl = (containerRef.current || document.querySelector('[data-desktop-canvas="true"]')) as HTMLElement | null;
+    const canvasRect = canvasEl ? canvasEl.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+
+    const startPointerX = e.clientX;
+    const startPointerY = e.clientY;
+    const startWidgetX = widget.x;
+    const startWidgetY = widget.y;
+
+    widgetDragRef.current = {
+      pointerId,
+      widgetId: widget.id,
+      startPointerX,
+      startPointerY,
+      startWidgetX,
+      startWidgetY,
+      dragOffsetX: 0,
+      dragOffsetY: 0,
+      moved: false,
+      element: targetElement,
+    };
+
+    const cleanup = () => {
+      window.removeEventListener('pointermove', onPointerMove, true);
+      window.removeEventListener('pointerup', onPointerUp, true);
+      window.removeEventListener('pointercancel', onPointerCancel, true);
+      try {
+        if (targetElement && typeof targetElement.releasePointerCapture === 'function' && targetElement.hasPointerCapture(pointerId)) {
+          targetElement.releasePointerCapture(pointerId);
+        }
+      } catch {}
+      widgetDragRef.current = null;
+    };
+
+    const onPointerMove = (moveEvt: PointerEvent) => {
+      const session = widgetDragRef.current;
+      if (!session || session.pointerId !== moveEvt.pointerId) return;
+
+      const dx = moveEvt.clientX - session.startPointerX;
+      const dy = moveEvt.clientY - session.startPointerY;
+
+      if (!session.moved) {
+        if (Math.hypot(dx, dy) >= 3) {
+          session.moved = true;
+        } else {
+          return;
+        }
+      }
+
+      moveEvt.preventDefault();
+
+      const cEl = (containerRef.current || document.querySelector('[data-desktop-canvas="true"]')) as HTMLElement | null;
+      const cRect = cEl ? cEl.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+
+      const minX = 16;
+      const maxX = Math.max(minX, cRect.width - widget.width - 16);
+      const minY = 52;
+      const maxY = Math.max(minY, cRect.height - widget.height - 84);
+
+      const targetX = session.startWidgetX + dx;
+      const targetY = session.startWidgetY + dy;
+
+      const clampedX = Math.max(minX, Math.min(maxX, Math.round(targetX)));
+      const clampedY = Math.max(minY, Math.min(maxY, Math.round(targetY)));
 
       setWidgets((prev) =>
-        prev.map((w) => (w.id === widget.id ? { ...w, x: newX, y: newY } : w))
+        prev.map((w) => (w.id === widget.id ? { ...w, x: clampedX, y: clampedY } : w))
       );
     };
 
-    const handlePointerUp = async (upEvt: PointerEvent) => {
-      window.removeEventListener('pointermove', handlePointerMove);
-      window.removeEventListener('pointerup', handlePointerUp);
+    const onPointerUp = async (upEvt: PointerEvent) => {
+      const session = widgetDragRef.current;
+      if (!session || session.pointerId !== upEvt.pointerId) return;
+      cleanup();
 
-      const dx = upEvt.clientX - startX;
-      const dy = upEvt.clientY - startY;
-      const finalX = Math.max(16, Math.min(window.innerWidth - widget.width - 16, initX + dx));
-      const finalY = Math.max(52, Math.min(window.innerHeight - widget.height - 84, initY + dy));
+      if (!session.moved) return;
 
-      const updated = { ...widget, x: finalX, y: finalY };
+      const dx = upEvt.clientX - session.startPointerX;
+      const dy = upEvt.clientY - session.startPointerY;
+
+      const cEl = (containerRef.current || document.querySelector('[data-desktop-canvas="true"]')) as HTMLElement | null;
+      const cRect = cEl ? cEl.getBoundingClientRect() : { left: 0, top: 0, width: window.innerWidth, height: window.innerHeight };
+
+      const minX = 16;
+      const maxX = Math.max(minX, cRect.width - widget.width - 16);
+      const minY = 52;
+      const maxY = Math.max(minY, cRect.height - widget.height - 84);
+
+      const targetX = session.startWidgetX + dx;
+      const targetY = session.startWidgetY + dy;
+
+      const finalX = Math.max(minX, Math.min(maxX, Math.round(targetX)));
+      const finalY = Math.max(minY, Math.min(maxY, Math.round(targetY)));
+
+      const updated: DesktopWidgetRecord = { ...widget, x: finalX, y: finalY };
       setWidgets((prev) => prev.map((w) => (w.id === widget.id ? updated : w)));
-      await desktopWorkspaceService.saveWidget(updated);
+
+      try {
+        await desktopWorkspaceService.saveWidget(updated);
+      } catch (err: any) {
+        console.error('Failed to persist widget coordinates:', err);
+        // Rollback to original start position on error
+        setWidgets((prev) =>
+          prev.map((w) => (w.id === widget.id ? { ...w, x: session.startWidgetX, y: session.startWidgetY } : w))
+        );
+        showToast(`Could not save widget location: ${err?.message || 'Storage error'}`, 'error', 'Desktop');
+      }
     };
 
-    window.addEventListener('pointermove', handlePointerMove);
-    window.addEventListener('pointerup', handlePointerUp);
-  };
+    const onPointerCancel = () => {
+      const session = widgetDragRef.current;
+      if (!session) return;
+      cleanup();
+      // Restore start position
+      setWidgets((prev) =>
+        prev.map((w) => (w.id === widget.id ? { ...w, x: session.startWidgetX, y: session.startWidgetY } : w))
+      );
+    };
+
+    window.addEventListener('pointermove', onPointerMove, { passive: false, capture: true });
+    window.addEventListener('pointerup', onPointerUp, { passive: false, capture: true });
+    window.addEventListener('pointercancel', onPointerCancel, { passive: false, capture: true });
+  }, [showToast]);
 
   const handleRemoveWidget = async (widgetId: string) => {
     await desktopWorkspaceService.removeWidget(widgetId);
@@ -248,13 +364,21 @@ export function DesktopWorkspace() {
     setWidgets(prev => prev.map(w => w.id === widgetId ? updated : w));
   };
 
-  const handleAddWidgetFromGallery = async (item: WidgetGalleryItem) => {
+  const handleAddWidgetFromGallery = async (item: WidgetGalleryItem, customPos?: { x: number; y: number }) => {
     const now = new Date().toISOString();
     const activeEnv = dbManager.getEnvironment();
     const id = `widget_${activeWorkspaceId}_${item.type}_${Date.now()}`;
 
-    const x = Math.min(1200, window.innerWidth - item.dimensions.width - 40);
-    const y = 52 + (widgets.length * 40) % (window.innerHeight - 300);
+    const canvasEl = (containerRef.current || document.querySelector('[data-desktop-canvas="true"]')) as HTMLElement | null;
+    const canvasRect = canvasEl ? canvasEl.getBoundingClientRect() : { width: window.innerWidth, height: window.innerHeight };
+
+    const minX = 16;
+    const maxX = Math.max(minX, canvasRect.width - item.dimensions.width - 24);
+    const minY = 52;
+    const maxY = Math.max(minY, canvasRect.height - item.dimensions.height - 84);
+
+    let x = customPos ? Math.max(minX, Math.min(maxX, customPos.x)) : Math.min(1200, Math.max(minX, canvasRect.width - item.dimensions.width - 40));
+    let y = customPos ? Math.max(minY, Math.min(maxY, customPos.y)) : 52 + (widgets.length * 40) % Math.max(100, canvasRect.height - 300);
 
     const newWidget: DesktopWidgetRecord = {
       id,
@@ -276,9 +400,14 @@ export function DesktopWorkspace() {
       updatedAt: now,
     };
 
-    await desktopWorkspaceService.saveWidget(newWidget);
-    setWidgets((prev) => [...prev, newWidget]);
-    showToast(`Added ${item.title} to desktop`, 'success');
+    try {
+      await desktopWorkspaceService.saveWidget(newWidget);
+      setWidgets((prev) => [...prev, newWidget]);
+      showToast(`Added ${item.title} to desktop`, 'success', 'Desktop');
+    } catch (err: any) {
+      console.error('Failed to add widget from gallery:', err);
+      showToast(`Failed to add widget: ${err?.message || 'Storage error'}`, 'error', 'Desktop');
+    }
   };
 
   const handleRestoreDefaults = async () => {
@@ -1036,23 +1165,16 @@ export function DesktopWorkspace() {
       )}
 
       {/* Spatial Widgets Canvas */}
-      {widgets.map((widget) => {
-        const maxX = typeof window !== 'undefined' ? Math.max(16, window.innerWidth - widget.width - 16) : widget.x;
-        const clampedWidget = {
-          ...widget,
-          x: Math.min(widget.x, maxX),
-        };
-        return (
-          <DesktopWidgetSystem
-            key={widget.id}
-            widget={clampedWidget}
-            isEditMode={isEditMode}
-            onRemove={handleRemoveWidget}
-            onResize={handleResizeWidget}
-            onMoveStart={handleWidgetMoveStart}
-          />
-        );
-      })}
+      {widgets.map((widget) => (
+        <DesktopWidgetSystem
+          key={widget.id}
+          widget={widget}
+          isEditMode={isEditMode}
+          onRemove={handleRemoveWidget}
+          onResize={handleResizeWidget}
+          onMoveStart={handleWidgetMoveStart}
+        />
+      ))}
 
       {/* Desktop Shortcuts Canvas */}
       {shortcuts.map(shortcut => {

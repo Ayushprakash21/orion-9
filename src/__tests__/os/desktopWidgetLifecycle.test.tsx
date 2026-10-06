@@ -98,8 +98,9 @@ describe('ORION-9 Desktop Widget Lifecycle & Removal UX', () => {
       />
     );
 
+    expect(html).toContain('data-testid="widget-drag-handle"');
     expect(html).toContain('DRAG');
-    expect(html).toContain('border-sky-500/60');
+    expect(html).toContain('border-white/40');
   });
 
   it('3. DesktopWorkspaceService seeds default widgets on first initialization', async () => {
@@ -167,5 +168,43 @@ describe('ORION-9 Desktop Widget Lifecycle & Removal UX', () => {
     expect(html).toContain('data-action="restore-default-widgets"');
     expect(html).toContain('Restore Default Widgets');
     expect(html).toContain('Control Tower Radar');
+  });
+
+  it('7. DesktopWidgetSystem renders dedicated widget-drag-handle in normal mode without edit mode', () => {
+    const handleRemove = vi.fn();
+    const handleResize = vi.fn();
+    const handleMoveStart = vi.fn();
+
+    const html = renderToString(
+      <DesktopWidgetSystem
+        widget={sampleWidget}
+        isEditMode={false}
+        onRemove={handleRemove}
+        onResize={handleResize}
+        onMoveStart={handleMoveStart}
+      />
+    );
+
+    expect(html).toContain('data-testid="widget-drag-handle"');
+    expect(html).toContain('aria-label="Drag Widget"');
+    expect(html).toContain('MOVE');
+  });
+
+  it('8. DesktopWidgetGalleryModal supports drag-to-desktop placement attributes', () => {
+    const handleRestore = vi.fn();
+    const handleClose = vi.fn();
+    const handleAdd = vi.fn();
+
+    const html = renderToString(
+      <DesktopWidgetGalleryModal
+        isOpen={true}
+        onClose={handleClose}
+        onAddWidget={handleAdd}
+        onRestoreDefaults={handleRestore}
+      />
+    );
+
+    expect(html).toContain('data-widget-gallery-drag-source="true"');
+    expect(html).toContain('Click or drag spatial OS widgets onto your desktop');
   });
 });

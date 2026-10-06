@@ -476,20 +476,25 @@ export function DesktopWidgetSystem({
         }}
         className={`rounded-2xl backdrop-blur-2xl bg-[#12151a]/90 border transition-all duration-200 p-3.5 flex flex-col justify-between shadow-2xl select-none group ${
           isEditMode
-            ? 'border-sky-500/60 ring-1 ring-sky-500/40 shadow-xl'
+            ? 'border-white/40 ring-1 ring-white/20 shadow-xl'
             : 'border-white/[0.08] hover:border-white/[0.16]'
         }`}
       >
-        {/* Widget Drag Header in Edit Mode */}
-        {isEditMode && (
-          <div
-            onPointerDown={(e) => onMoveStart(e, widget)}
-            className="absolute -top-3 left-1/2 -translate-x-1/2 bg-sky-600 text-white px-3 py-0.5 rounded-full text-[10px] font-semibold tracking-wider flex items-center gap-1 cursor-grab active:cursor-grabbing z-30 shadow-md"
-          >
-            <GripHorizontal className="w-3 h-3" />
-            <span>DRAG</span>
-          </div>
-        )}
+        {/* Authoritative Dedicated Widget Drag Handle - Always available across normal and edit modes */}
+        <div
+          data-testid="widget-drag-handle"
+          onPointerDown={(e) => onMoveStart(e, widget)}
+          className={`absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[10px] font-medium tracking-wide flex items-center gap-1.5 cursor-grab active:cursor-grabbing z-30 shadow-md touch-none select-none transition-all duration-150 ${
+            isEditMode
+              ? 'bg-[#1e232d] text-white border border-white/30 opacity-100 shadow-lg'
+              : 'bg-[#181c24]/90 hover:bg-[#202632] text-white/70 hover:text-white border border-white/15 opacity-70 group-hover:opacity-100 focus-within:opacity-100 hover:scale-105'
+          }`}
+          title="Drag to reposition widget"
+          aria-label="Drag Widget"
+        >
+          <GripHorizontal className="w-3 h-3 text-white/70" />
+          <span className="text-[9px] uppercase font-mono tracking-wider">{isEditMode ? 'DRAG' : 'MOVE'}</span>
+        </div>
 
         {/* Edit Mode Remove Control */}
         {isEditMode && (

@@ -558,7 +558,7 @@ export function OrionApplicationLauncher() {
           className={cn(
             "fixed pointer-events-none z-[2147483647] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5 p-3 rounded-2xl border shadow-2xl backdrop-blur-xl transition-transform duration-75 select-none",
             activeDrag.isOverDesktop
-              ? "bg-[#0c1524]/95 border-cyan-400 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_30px_rgba(34,211,238,0.4)] scale-110"
+              ? "bg-[#141820]/95 border-white/40 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_20px_rgba(255,255,255,0.12)] scale-110 ring-1 ring-white/20"
               : "bg-[#12151a]/95 border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.9)] scale-100 opacity-80"
           )}
           style={{
@@ -571,8 +571,8 @@ export function OrionApplicationLauncher() {
             {activeDrag.app.name}
           </span>
           {activeDrag.isOverDesktop && (
-            <span className="text-[10px] font-bold text-cyan-300 uppercase tracking-wider bg-cyan-950/90 px-2 py-0.5 rounded-full border border-cyan-400/50 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+            <span className="text-[10px] font-medium text-white/90 uppercase tracking-wider bg-white/[0.12] px-2.5 py-0.5 rounded-full border border-white/20 flex items-center gap-1.5 shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               Drop on Desktop
             </span>
           )}
