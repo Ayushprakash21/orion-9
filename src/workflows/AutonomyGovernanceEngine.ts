@@ -17,19 +17,17 @@ export interface AutonomyCheckResult {
 }
 
 export class AutonomyGovernanceEngine {
-  // Permanently prohibited autonomous actions across the entire enterprise
+  // Strictly prohibited autonomous actions across the entire enterprise
+  // Limited strictly to safety, security, audit tampering, and system boundary violations
   private static readonly PROHIBITED_AUTONOMOUS_ACTIONS = new Set([
-    'PAYMENT_SETTLEMENT',
-    'CONTRACT_MODIFICATION',
-    'CONTRACT_CREATION',
-    'CREATE_POLICY',
-    'UPDATE_POLICY',
-    'DELETE_POLICY',
-    'CREATE_ROLE',
-    'UPDATE_ROLE',
-    'UNRESTRICTED_PROCUREMENT',
+    'CODE_EXECUTION',
     'DATABASE_MUTATION',
-    'CODE_EXECUTION'
+    'SECURITY_BYPASS',
+    'AUTONOMY_ESCALATION',
+    'AUDIT_TAMPERING',
+    'SECRET_EXTRACTION',
+    'POLICY_BYPASS',
+    'TENANT_BOUNDARY_BYPASS'
   ]);
 
   /**

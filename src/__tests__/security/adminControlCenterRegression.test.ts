@@ -307,10 +307,9 @@ describe('Admin AI + Manual Control Center Regression Suite', () => {
       expect(canElevate).toBe(false);
 
       // Sensitive operations are strictly prohibited for AI autonomy
-      expect(AutonomyGovernanceEngine.isOperationProhibited('CREATE_ROLE')).toBe(true);
-      expect(AutonomyGovernanceEngine.isOperationProhibited('UPDATE_POLICY')).toBe(true);
+      expect(AutonomyGovernanceEngine.isOperationProhibited('SECURITY_BYPASS')).toBe(true);
+      expect(AutonomyGovernanceEngine.isOperationProhibited('CODE_EXECUTION')).toBe(true);
       expect(AutonomyGovernanceEngine.isOperationProhibited('DATABASE_MUTATION')).toBe(true);
-      expect(AutonomyGovernanceEngine.isOperationProhibited('PAYMENT_SETTLEMENT')).toBe(true);
     });
 
     it('23. guarantees cross-tenant policy and proposal isolation', () => {

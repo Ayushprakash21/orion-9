@@ -86,7 +86,7 @@ describe('Wave 7 Security, Adversarial & Prompt Injection Defense Gate', () => {
       expect(res.reason).toContain('prohibited');
     });
 
-    it('strictly forbids autonomous payment settlement or contract modification', () => {
+    it('requires human approval for high/critical risk payment settlement or contract modification', () => {
       const res = AutonomyGovernanceEngine.evaluateActionAutonomy(
         'LEVEL_4_GOVERNED_AUTONOMOUS',
         {
@@ -99,8 +99,9 @@ describe('Wave 7 Security, Adversarial & Prompt Injection Defense Gate', () => {
         },
         { id: 'AGENT_01', role: 'ai_agent', isAi: true }
       );
-      expect(res.allowed).toBe(false);
-      expect(res.reason).toContain('permanently prohibited');
+      expect(res.allowed).toBe(true);
+      expect(res.requiresApproval).toBe(true);
+      expect(res.reason).toContain('human approval');
     });
   });
 

@@ -193,6 +193,33 @@ export function registerScmCommandHandlers(): void {
 
     return result;
   });
+
+  // CREATE_PURCHASE_ORDER
+  kernelCommandBus.registerHandler('CREATE_PURCHASE_ORDER', async (command: CommandEnvelope) => {
+    const poId = command.entityId || `PO-${Date.now().toString(36).toUpperCase()}`;
+    const result = {
+      poId,
+      status: 'ISSUED',
+      tenantId: command.tenant.organizationId,
+      payload: command.payload,
+      createdAt: command.timestamp,
+    };
+    await scmPersistenceService.saveRecord('purchase_orders', poId, result);
+    return result;
+  });
+
+  // CANCEL_ACTION (Autonomous Rollback)
+  kernelCommandBus.registerHandler('CANCEL_ACTION', async (command: CommandEnvelope) => {
+    const cancelId = command.entityId || `CNCL-${Date.now().toString(36).toUpperCase()}`;
+    const result = {
+      cancelId,
+      status: 'CANCELLED',
+      tenantId: command.tenant.organizationId,
+      reason: command.payload.reason,
+      createdAt: command.timestamp,
+    };
+    return result;
+  });
 }
 
 // Auto-register upon import

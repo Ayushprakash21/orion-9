@@ -1251,6 +1251,37 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     description: 'Cryptographic document reader, annotation engine, and PDF viewer.',
     palette: { from: '#DC2626', to: '#7F1D1D', accent: '#F87171', surface: '#F8717115' },
     component: IconOrionPdf
+  },
+  'autonomous-command-center': {
+    appId: 'autonomous-command-center',
+    iconId: 'icon-autonomous-command-center',
+    name: 'Autonomous Command Center',
+    category: 'Control',
+    description: 'Autonomous enterprise control center for missions, approvals, and AI workforce.',
+    palette: { from: '#4F46E5', to: '#1E1B4B', accent: '#818CF8', surface: '#818CF815' },
+    component: ({ size = 24, className = '' }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+        <circle cx="12" cy="12" r="3" fill="currentColor" opacity="0.3" />
+      </svg>
+    )
+  },
+  'multi-party-network': {
+    appId: 'multi-party-network',
+    iconId: 'icon-multi-party-network',
+    name: 'Multi-Party Network Portal',
+    category: 'Operations',
+    description: 'Collaborative ecosystem portal for suppliers, carriers, 3PLs, and customers.',
+    palette: { from: '#059669', to: '#064E3B', accent: '#34D399', surface: '#34D39915' },
+    component: ({ size = 24, className = '' }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <circle cx="18" cy="5" r="3" />
+        <circle cx="6" cy="12" r="3" />
+        <circle cx="18" cy="19" r="3" />
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+      </svg>
+    )
   }
 };
 

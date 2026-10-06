@@ -107,6 +107,8 @@ import { SupplierCollaborationCenter } from '../components/SupplierCollaboration
 import { NetworkDesignCenter } from '../components/NetworkDesignCenter';
 import { SustainabilityCenter } from '../components/SustainabilityCenter';
 import { OrionDocuments, OrionSheets, OrionSlides, OrionPdf } from '../components/office';
+import { AutonomousCommandCenter } from '../components/autonomy/AutonomousCommandCenter';
+import { MultiPartyNetworkPortal } from '../network/MultiPartyNetworkPortal';
 import { GuidedBuyWorkflow } from '../components/guided/GuidedBuyWorkflow';
 
 
@@ -115,6 +117,8 @@ const ProfileOrgView: React.FC = () => <Profile initialTab="organization" />;
 
 export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'command-center': Dashboard,
+  'autonomous-command-center': AutonomousCommandCenter,
+  'multi-party-network': MultiPartyNetworkPortal,
   'buy-workflow': GuidedBuyWorkflow,
   'inventory': Inventory,
   'procurement': Procurement,
