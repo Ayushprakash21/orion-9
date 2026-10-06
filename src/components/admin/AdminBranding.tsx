@@ -166,7 +166,7 @@ export const AdminBranding = () => {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300 max-w-3xl">
+    <div className="w-full max-w-[1440px] mx-auto space-y-6 animate-in fade-in duration-300">
       <div>
         <h1 className="text-2xl font-light tracking-tight mb-2">Platform Branding</h1>
         <p className="text-sm text-os-text-secondary">Customize platform identity, logos, and global nomenclature.</p>

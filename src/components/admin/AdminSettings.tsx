@@ -87,7 +87,7 @@ export const AdminSettings: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300 max-w-6xl h-full flex flex-col p-4 md:p-6 overflow-y-auto">
+    <div className="w-full max-w-[1440px] mx-auto space-y-6 animate-in fade-in duration-300">
       <div>
         <h1 className="text-2xl font-bold font-mono tracking-tight text-white mb-1">
           Administration Settings & Environment

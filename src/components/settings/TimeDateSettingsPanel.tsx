@@ -93,7 +93,7 @@ export const TimeDateSettingsPanel: React.FC = () => {
   }, [selectedTimezone, is24Hour]);
 
   return (
-    <div className="space-y-5 font-sans text-white max-w-full">
+    <div className="w-full max-w-full space-y-5 font-sans text-white">
       {/* SECTION 1 — CURRENT TIME HERO CARD */}
       <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">

@@ -172,7 +172,7 @@ export const LanguageSettingsPanel: React.FC = () => {
   );
 
   return (
-    <div className="space-y-5 font-sans text-white max-w-full">
+    <div className="w-full max-w-full space-y-5 font-sans text-white">
       {/* SECTION 1 — INTERFACE LANGUAGE */}
       <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3">
         <div className="flex items-center justify-between">

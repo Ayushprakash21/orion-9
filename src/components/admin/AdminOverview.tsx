@@ -17,7 +17,7 @@ export const AdminOverview = () => {
   const standardUsers = users.filter(u => u.role === 'user' || u.role === 'manager').length;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
+    <div className="w-full max-w-[1440px] mx-auto space-y-6 animate-in fade-in duration-300">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-light tracking-tight mb-1 text-os-text-primary">Admin Overview</h1>

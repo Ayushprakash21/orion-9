@@ -47,7 +47,7 @@ export const AdminDatabaseHealth: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full overflow-y-auto p-6 space-y-6 text-os-text-primary">
+    <div className="w-full max-w-[1440px] mx-auto space-y-6 text-os-text-primary">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-os-border pb-5">
         <div>

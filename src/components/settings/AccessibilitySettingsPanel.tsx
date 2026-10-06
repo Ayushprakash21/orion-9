@@ -20,7 +20,7 @@ export const AccessibilitySettingsPanel: React.FC<AccessibilitySettingsPanelProp
   ];
 
   return (
-    <div className="space-y-8 p-6 max-w-5xl">
+    <div className="w-full space-y-8">
       {/* Banner */}
       <div className="bg-[var(--orion-surface-secondary)] border border-[var(--orion-border)] rounded-xl p-5">
         <h2 className="text-xl font-bold text-[var(--orion-text)] flex items-center gap-2">

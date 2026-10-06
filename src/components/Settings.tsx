@@ -357,8 +357,8 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
     }
 
     return (
-      <div className="flex flex-col h-full space-y-4 p-4">
-        <div className="bg-[#12151a] border border-white/[0.08] rounded-xl p-3 flex items-center justify-between shrink-0">
+      <div className="flex flex-col h-full min-h-0 w-full min-w-0 space-y-4 p-4">
+        <div className="bg-[#12151a] border border-white/[0.08] rounded-xl p-3 flex items-center justify-between shrink-0 z-10">
           <div className="flex items-center gap-3">
             <ShieldCheck className="text-emerald-400 w-4 h-4" />
             <div className="text-xs font-medium text-white flex items-center gap-2">
@@ -374,7 +374,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
           </button>
         </div>
         
-        <div className="flex-1 bg-[#12151a] border border-white/[0.08] rounded-xl overflow-hidden relative">
+        <div className="flex-1 min-h-0 w-full min-w-0 overflow-y-auto overflow-x-hidden custom-scrollbar bg-[#12151a] border border-white/[0.08] rounded-xl relative p-4 sm:p-6">
           {(activeSection === 'admin' || activeSection === 'admin_overview') && <AdminOverview />}
           {activeSection === 'admin_control_center' && <AdminControlCenter />}
           {activeSection === 'admin_users' && <AdminUsers />}

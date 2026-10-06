@@ -163,7 +163,7 @@ export const AdminWallpaperStudio: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn" data-testid="admin-wallpaper-studio">
+    <div className="w-full max-w-[1440px] mx-auto space-y-6 animate-fadeIn" data-testid="admin-wallpaper-studio">
       
       {/* Admin Header */}
       <div className="p-5 rounded-2xl bg-[#12151a] border border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">

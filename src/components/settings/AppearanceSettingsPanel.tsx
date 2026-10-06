@@ -77,7 +77,7 @@ export const AppearanceSettingsPanel: React.FC<AppearanceSettingsPanelProps> = (
   };
 
   return (
-    <div className="space-y-8 p-6 max-w-5xl">
+    <div className="w-full space-y-8">
       {/* Header Banner */}
       <div className="bg-[var(--orion-surface-secondary)] border border-[var(--orion-border)] rounded-xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>

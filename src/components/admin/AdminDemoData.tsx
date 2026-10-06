@@ -210,7 +210,7 @@ export const AdminDemoData: React.FC = () => {
   const lastBatch = batchHistory[0];
 
   return (
-    <div className="flex-1 p-6 space-y-6 overflow-y-auto bg-os-bg text-os-text-primary">
+    <div className="w-full max-w-[1440px] mx-auto space-y-6 bg-os-bg text-os-text-primary">
       {/* HEADER */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-os-border pb-5">
         <div>
