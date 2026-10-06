@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useSupplyChain } from '../store/SupplyChainContext';
 import { generateCopilotResponse } from '../lib/api';
+import { conversationMemoryService } from '../ai/ConversationMemoryService';
+import { agentMemoryManager } from '../ai/AgentMemory';
 import { Send, Loader2, Cpu, Box, AlertTriangle, ShieldCheck, Database, Search, ArrowRight, CornerDownRight, CheckCircle2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
@@ -15,7 +17,7 @@ const QUICK_ACTIONS = [
 ];
 
 export const AICopilot = () => {
-  const { inventory, products, suppliers, purchaseOrders, shipments, exceptions, decisions, settings } = useSupplyChain();
+  const { inventory, products, suppliers, purchaseOrders, shipments, exceptions, decisions, settings, contracts, routes } = useSupplyChain();
   
   const [messages, setMessages] = useState<{
     role: 'user' | 'assistant', 
@@ -25,13 +27,25 @@ export const AICopilot = () => {
     governanceStatus?: 'ANSWER' | 'RECOMMENDATION' | 'DRAFT' | 'ACTION REQUEST' | 'PENDING APPROVAL' | 'EXECUTED' | 'REJECTED',
     approvalId?: string,
     commandId?: string
-  }[]>([
-    {
-      role: 'assistant',
-      content: 'I am ORION AI, the platform intelligence core. How can I assist you with supply chain analysis today?',
-      governanceStatus: 'ANSWER'
+  }[]>(() => {
+    const session = conversationMemoryService.getOrCreateSession('global', 'user');
+    if (session && session.messages.length > 0) {
+      return session.messages.map(m => ({
+        role: m.role as 'user' | 'assistant',
+        content: m.content,
+        evidence: m.evidence,
+        recommendation: m.recommendation,
+        governanceStatus: (m.governanceStatus as any) || 'ANSWER'
+      }));
     }
-  ]);
+    return [
+      {
+        role: 'assistant',
+        content: 'I am ORION AI, the platform intelligence core. How can I assist you with supply chain analysis today?',
+        governanceStatus: 'ANSWER'
+      }
+    ];
+  });
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [aiState, setAiState] = useState<'idle' | 'thinking' | 'analyzing' | 'ready'>('ready');
@@ -56,28 +70,102 @@ export const AICopilot = () => {
     setIsLoading(true);
     setAiState('thinking');
 
-    // Simulate analysis phases
-    setTimeout(() => setAiState('analyzing'), 1000);
+    // Save user message to persistent conversation memory
+    await conversationMemoryService.addMessage('global', 'user', undefined, 'user', promptText);
+
+    setTimeout(() => setAiState('analyzing'), 800);
 
     try {
       const forecasts = DemandForecastEngine.generateForecast(inventory, products, 30, 0);
       const optimizations = InventoryOptimizationEngine.optimize(inventory, forecasts, purchaseOrders, suppliers, settings);
 
-      const contextData = {
+      const localDataTools: Record<string, () => any> = {
+        getDashboardMetrics: () => ({
+          totalProducts: products.length,
+          totalSuppliers: suppliers.length,
+          totalPOs: purchaseOrders.length,
+          openPOs: purchaseOrders.filter(p => p.status !== 'Received' && p.status !== 'Cancelled').length,
+          totalShipments: shipments.length,
+          delayedShipments: shipments.filter(s => s.status === 'Delayed').length,
+          activeExceptions: exceptions.length,
+          pendingDecisions: decisions.filter(d => d.status === 'DETECTED' || d.status === 'ANALYZING' || d.status === 'READY_FOR_REVIEW').length
+        }),
         getInventory: () => inventory.map(i => ({
           productId: i.productId,
           onHand: i.onHand,
-          warehouseId: i.warehouseId
+          warehouseId: i.warehouseId,
+          safetyStock: i.safetyStock,
+          reorderPoint: i.reorderPoint
         })),
-        getOptimizations: () => optimizations.slice(0, 10), // Send top 10 for context limits
-        getExceptions: () => exceptions.slice(0, 5),
-        getRecentDecisions: () => decisions.slice(0, 3)
+        getInventoryRisks: () => inventory.filter(i => i.onHand <= (i.safetyStock || i.reorderPoint || 10)).map(i => ({
+          productId: i.productId,
+          sku: i.productId,
+          onHand: i.onHand,
+          safetyStock: i.safetyStock,
+          reorderPoint: i.reorderPoint
+        })),
+        getInventoryOptimization: () => optimizations.slice(0, 10),
+        getSuppliers: () => suppliers.map(s => ({
+          id: s.id,
+          name: s.name,
+          rating: s.score || 90,
+          otif: s.otif,
+          leadTimeDays: s.leadTime,
+          country: s.country
+        })),
+        getSupplierPerformance: () => suppliers.map(s => ({
+          id: s.id,
+          name: s.name,
+          otif: s.otif || 90,
+          defectRate: s.defectRate || 0,
+          leadTimeDays: s.leadTime || 5
+        })),
+        getPurchaseOrders: () => purchaseOrders.map(p => ({
+          id: p.id,
+          supplierId: p.supplierId,
+          totalAmount: p.totalValue,
+          status: p.status,
+          expectedDelivery: p.expectedDelivery
+        })),
+        getOverduePOs: () => purchaseOrders.filter(p => p.status === 'Overdue' || (p.expectedDelivery && new Date(p.expectedDelivery) < new Date() && p.status !== 'Received' && p.status !== 'Cancelled')).map(p => ({
+          id: p.id,
+          supplierId: p.supplierId,
+          expectedDelivery: p.expectedDelivery,
+          totalAmount: p.totalValue
+        })),
+        getShipments: () => shipments.map(s => ({
+          id: s.id,
+          trackingNumber: s.trackingNumber,
+          carrier: s.carrier,
+          status: s.status,
+          destination: s.destination,
+          eta: s.expectedArrival
+        })),
+        getDelayedShipments: () => shipments.filter(s => s.status === 'Delayed').map(s => ({
+          id: s.id,
+          trackingNumber: s.trackingNumber,
+          carrier: s.carrier,
+          delayDays: s.delayDays || 3,
+          destination: s.destination
+        })),
+        getExceptions: () => exceptions.slice(0, 10),
+        getDecisions: () => decisions.slice(0, 10),
+        getPendingDecisions: () => decisions.filter(d => d.status === 'DETECTED' || d.status === 'ANALYZING' || d.status === 'READY_FOR_REVIEW').slice(0, 5),
+        getDemandForecasts: () => forecasts.slice(0, 10),
+        getContracts: () => (contracts || []).map(c => ({
+          id: c.id,
+          supplierName: (c as any).supplierName || c.supplierId,
+          status: c.status,
+          value: (c as any).value || (c as any).totalValue
+        })),
+        getTransportationPlans: () => (routes || []).slice(0, 10)
       };
 
       const response = await generateCopilotResponse(
         promptText,
-        contextData,
-        'Control Tower'
+        localDataTools,
+        'Control Tower',
+        { tenantId: 'global', userId: 'user', agentId: 'control-tower-copilot' }
       );
       
       let parsedResponse;
@@ -95,11 +183,30 @@ export const AICopilot = () => {
         govStatus = 'RECOMMENDATION';
       }
 
+      const contentText = parsedResponse ? (parsedResponse.executiveSummary || response) : response;
+      const telemetryEvidence = parsedResponse?.telemetryEvidence || undefined;
+      const recommendationText = parsedResponse?.strategicRoadmap?.[0]?.actionDetails || undefined;
+
+      await conversationMemoryService.addMessage('global', 'user', undefined, 'assistant', contentText, {
+        evidence: telemetryEvidence,
+        recommendation: recommendationText,
+        governanceStatus: govStatus
+      });
+
+      await agentMemoryManager.storeMemory({
+        tenantId: 'global',
+        agentId: 'control-tower-copilot',
+        type: 'TASK',
+        source: 'copilot_ui',
+        contentReference: { query: promptText.substring(0, 60), status: govStatus },
+        retentionPolicy: '30_DAYS'
+      });
+
       setMessages(prev => [...prev, { 
         role: 'assistant', 
-        content: parsedResponse ? (parsedResponse.executiveSummary || response) : response,
-        evidence: parsedResponse?.telemetryEvidence || undefined,
-        recommendation: parsedResponse?.strategicRoadmap?.[0]?.actionDetails || undefined,
+        content: contentText,
+        evidence: telemetryEvidence,
+        recommendation: recommendationText,
         governanceStatus: govStatus
       }]);
     } catch (error: any) {

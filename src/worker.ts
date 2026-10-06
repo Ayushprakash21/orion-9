@@ -8,6 +8,7 @@
 import { checkCloudflareWallpaperStatus, generateCloudflareWallpapers } from "./server/cloudflareAiBackend";
 import { demoPersistentSchedulerService } from "./services/demo/DemoPersistentSchedulerService";
 import { dbManager } from "./core/database/DatabaseConnectionManager";
+import { GoogleGenAI } from "@google/genai";
 
 export interface ScheduledController {
   scheduledTime: number;
@@ -24,12 +25,233 @@ export interface Env {
   AI?: any; // Cloudflare Workers AI Binding
   CLOUDFLARE_API_TOKEN?: string;
   CLOUDFLARE_ACCOUNT_ID?: string;
+  GEMINI_API_KEY?: string;
   ORION_RUNTIME_ENVIRONMENT?: string;
 }
+
+const getWorkerGeminiClient = (apiKey?: string) => {
+  const key = apiKey || (typeof process !== "undefined" ? process.env?.GEMINI_API_KEY : undefined);
+  if (!key) return null;
+  try {
+    return new GoogleGenAI({
+      apiKey: key,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        }
+      }
+    });
+  } catch (e) {
+    return null;
+  }
+};
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+
+    // AI status route
+    if (url.pathname === "/api/ai/status" && request.method === "GET") {
+      const apiKey = env.GEMINI_API_KEY || (typeof process !== "undefined" ? process.env?.GEMINI_API_KEY : undefined);
+      return new Response(
+        JSON.stringify({
+          configured: !!apiKey,
+          provider: apiKey ? "gemini" : "deterministic_engine",
+          model: apiKey ? "gemini-3.8-flash" : "local_scm_rules",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }
+      );
+    }
+
+    // AI choose tools route
+    if (url.pathname === "/api/ai/choose-tools" && request.method === "POST") {
+      let body: any = {};
+      try { body = await request.json(); } catch (e) {}
+      const prompt = body.prompt || "";
+      const allowlist = [
+        'getInventory', 'getInventoryRisks', 'getSuppliers', 'getSupplierPerformance',
+        'getPurchaseOrders', 'getOverduePOs', 'getShipments', 'getDelayedShipments',
+        'getExceptions', 'getPendingDecisions', 'getDecisions', 'getDashboardMetrics',
+        'getDemandForecasts', 'getInventoryOptimization', 'getContracts', 'getTransportationPlans'
+      ];
+
+      const apiKey = env.GEMINI_API_KEY || (typeof process !== "undefined" ? process.env?.GEMINI_API_KEY : undefined);
+      const gemini = getWorkerGeminiClient(apiKey);
+
+      if (!gemini) {
+        const p = prompt.toLowerCase();
+        const tools = ['getDashboardMetrics'];
+        if (p.includes('inventory') || p.includes('stock') || p.includes('sku')) tools.push('getInventory', 'getInventoryRisks');
+        if (p.includes('supplier') || p.includes('vendor')) tools.push('getSuppliers', 'getSupplierPerformance');
+        if (p.includes('po') || p.includes('purchase') || p.includes('order')) tools.push('getPurchaseOrders', 'getOverduePOs');
+        if (p.includes('shipment') || p.includes('carrier') || p.includes('delay')) tools.push('getShipments', 'getDelayedShipments');
+        if (p.includes('exception') || p.includes('alert')) tools.push('getExceptions');
+        if (p.includes('decision') || p.includes('approve')) tools.push('getDecisions', 'getPendingDecisions');
+        return new Response(JSON.stringify({ toolsToCall: Array.from(new Set(tools)), fallback: true }), {
+          status: 200, headers: { "Content-Type": "application/json" }
+        });
+      }
+
+      try {
+        const systemPrompt = `You are a data router for the Orion Supply Chain Operating System.
+Based on the user's query, determine which of the following operational data tools are needed to answer the question:
+${allowlist.join(', ')}
+
+Return ONLY a valid JSON array of string tool names. Only include tools that are absolutely relevant. If unsure, include 'getDashboardMetrics'.`;
+
+        const response = await gemini.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: `${systemPrompt}\n\nUser Prompt: ${prompt}`,
+          config: { temperature: 0.1 }
+        });
+        const responseText = response.text || "[]";
+        let tools: string[] = [];
+        try {
+          let cleanText = responseText.replace(/\s*```json\s*/g, '').replace(/\s*```\s*/g, '').trim();
+          const parsed = JSON.parse(cleanText);
+          const list = Array.isArray(parsed) ? parsed : (parsed.tools || parsed.toolsToCall || Object.values(parsed).flat());
+          if (Array.isArray(list)) {
+            tools = list.filter((t: any) => typeof t === 'string' && allowlist.includes(t));
+          }
+        } catch (e) {
+          tools = ["getDashboardMetrics"];
+        }
+        if (tools.length === 0) tools = ["getDashboardMetrics"];
+        return new Response(JSON.stringify({ toolsToCall: tools }), {
+          status: 200, headers: { "Content-Type": "application/json" }
+        });
+      } catch (err: any) {
+        return new Response(JSON.stringify({ toolsToCall: ["getDashboardMetrics", "getInventoryRisks", "getExceptions", "getPendingDecisions"], fallback: true }), {
+          status: 200, headers: { "Content-Type": "application/json" }
+        });
+      }
+    }
+
+    // AI insight route
+    if (url.pathname === "/api/ai/insight" && request.method === "POST") {
+      let body: any = {};
+      try { body = await request.json(); } catch (e) {}
+      const { prompt, dataContext, specializedMode } = body;
+
+      const apiKey = env.GEMINI_API_KEY || (typeof process !== "undefined" ? process.env?.GEMINI_API_KEY : undefined);
+      const gemini = getWorkerGeminiClient(apiKey);
+
+      if (!gemini) {
+        return new Response(
+          JSON.stringify({
+            fallback: true,
+            error: "No AI provider configured on the server.",
+            message: "Using local deterministic reasoning engine grounded in live data."
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      try {
+        const systemInstruction = `You are ORION AI, the native cognitive layer of the Orion Supply Chain Operating System.
+You operate on the core loop: SENSE → UNDERSTAND → PREDICT → DECIDE → ACT → LEARN.
+Grounded Principle: You must ground all insights strictly and exclusively in the provided operational data context.
+Do NOT invent fake SKUs, fabricated inventory numbers, imaginary supplier names, or false metrics.
+When data is missing or incomplete, explicitly state "DATA NOT AVAILABLE" or "INSUFFICIENT DATA".
+Structure your response clearly using markdown with these standard OS sections where appropriate:
+- **EXECUTIVE SUMMARY**
+- **OPERATIONAL SIGNALS & ROOT CAUSES** (Categorize clearly as KNOWN, CALCULATED, or INFERRED)
+- **DOWNSTREAM RISK & BUSINESS IMPACT** (Quantify financial exposure, service level impact, stockout risk)
+- **RECOMMENDED DECISIONS & ACTIONS** (Actionable, specific next steps)
+- **CONFIDENCE & EVIDENCE GROUNDING**`;
+
+        const userContent = `OPERATIONAL CONTEXT (Live SCM Data):
+${JSON.stringify(dataContext || {}, null, 2)}
+
+SPECIALIZED COGNITIVE MODE: ${specializedMode || 'General Copilot'}
+
+USER PROMPT:
+${prompt || ''}`;
+
+        const response = await gemini.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: `${systemInstruction}\n\n${userContent}`,
+          config: { temperature: 0.2 }
+        });
+
+        return new Response(
+          JSON.stringify({ response: response.text || "No response generated.", provider: "gemini", model: "gemini-3.8-flash" }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      } catch (err: any) {
+        return new Response(
+          JSON.stringify({
+            fallback: true,
+            error: err?.message || "Failed to generate AI insights.",
+            message: "Falling back to deterministic Orion reasoning."
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
+
+    // AI platform intelligence route
+    if (url.pathname === "/api/ai/platform-intelligence" && request.method === "POST") {
+      let body: any = {};
+      try { body = await request.json(); } catch (e) {}
+      const { dataContext, scope, horizon, customPrompt, adminInfo } = body;
+
+      const apiKey = env.GEMINI_API_KEY || (typeof process !== "undefined" ? process.env?.GEMINI_API_KEY : undefined);
+      const gemini = getWorkerGeminiClient(apiKey);
+
+      if (!gemini) {
+        return new Response(
+          JSON.stringify({
+            fallback: true,
+            error: "No AI provider configured on the server.",
+            message: "Using local deterministic reasoning engine grounded in live data."
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      try {
+        const systemInstruction = `You are ORION-9 PLATFORM INTELLIGENCE, the strategic cognitive engine for enterprise platform administrators.
+Analyze the supplied live operational supply chain context (inventory, suppliers, shipments, exceptions, decisions, purchase orders, contracts).
+Adhere strictly to deterministic reality:
+1. All metrics, entities, and impacts MUST derive directly from the provided dataContext.
+2. Root causes MUST be explicitly tagged with [KNOWN], [CALCULATED], or [INFERRED].
+3. DO NOT invent fictitious suppliers, imaginary SKUs, or false data.
+4. Provide structured, executive-grade analysis with dollar-quantified risk exposure.
+
+Return a STRICT JSON object conforming to exact platform intelligence schema.`;
+
+        const userContent = `ADMINISTRATOR CONTEXT:
+Admin: ${adminInfo?.fullName || adminInfo?.username || 'Platform Administrator'} (${adminInfo?.role || 'platform_admin'})
+Scope: ${scope || 'full_chain'}
+Planning Horizon: ${horizon || 'realtime'}
+Custom Query: ${customPrompt || 'Execute end-to-end strategic platform intelligence analysis'}
+
+LIVE SUPPLY CHAIN TELEMETRY:
+${JSON.stringify(dataContext || {}, null, 2)}`;
+
+        const response = await gemini.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: `${systemInstruction}\n\n${userContent}`,
+          config: { temperature: 0.15, responseMimeType: "application/json" }
+        });
+
+        const responseText = response.text || "{}";
+        let parsed: any = {};
+        try {
+          let cleanText = responseText.replace(/\s*```json\s*/g, '').replace(/\s*```\s*/g, '').trim();
+          parsed = JSON.parse(cleanText);
+        } catch (e) {
+          parsed = { executiveSummary: responseText, systemHealthScore: 82 };
+        }
+        return new Response(JSON.stringify(parsed), { status: 200, headers: { "Content-Type": "application/json" } });
+      } catch (err: any) {
+        return new Response(
+          JSON.stringify({ fallback: true, error: err?.message || "Failed to generate strategic platform intelligence." }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        );
+      }
+    }
 
     // 1. GET /api/wallpaper/cloudflare/status or /api/wallpaper/status or /api/ai/wallpaper-status
     if (

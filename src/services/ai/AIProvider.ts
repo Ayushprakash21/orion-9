@@ -15,6 +15,8 @@ export interface CopilotRequest {
   prompt: string;
   dataContext: Record<string, any>;
   specializedMode?: 'Control Tower' | 'Decision Copilot' | 'Scenario Copilot' | 'Executive Copilot' | 'Root Cause Copilot';
+  tenantId?: string;
+  userId?: string;
 }
 
 export interface SupplierDraftRequest {
@@ -143,6 +145,9 @@ export class OrionAIProvider {
     const pendingDecisions = ctx.getPendingDecisions || [];
     const supplierPerf = ctx.getSupplierPerformance || [];
     const metrics = ctx.getDashboardMetrics || {};
+    const ragEvidence = ctx._ragEvidence;
+    const persistentMemories = ctx._persistentMemories || [];
+    const pastOutcomes = ctx._pastOutcomes || [];
 
     let response = `### ORION-9 — COGNITIVE SUMMARY\n\n`;
     response += `*Operating Mode: ${mode} | Engine: Deterministic SCM Core*\n\n`;
@@ -154,6 +159,14 @@ export class OrionAIProvider {
     response += `- **Inbound Logistical Delays**: ${delayedShipments.length} shipments currently delayed across active transit lanes.\n`;
     response += `- **Procurement Exposure**: ${overduePOs.length} purchase orders overdue or flagged for supplier rescheduling.\n`;
     response += `- **Decisions Awaiting Review**: ${pendingDecisions.length} operational decisions staged for authorized action.\n\n`;
+
+    // RAG & Memory Context Grounding
+    if (ragEvidence && ragEvidence.summary) {
+      response += `> **Governed Knowledge Context**: ${ragEvidence.summary}\n\n`;
+    }
+    if (persistentMemories.length > 0) {
+      response += `> **Agent Memory Recurrence**: Prior observation: ${persistentMemories[0].ref || 'Pattern recorded'}\n\n`;
+    }
 
     // 2. Operational Signals & Root Causes
     response += `#### 2. OPERATIONAL SIGNALS & ROOT CAUSES\n`;
@@ -167,7 +180,7 @@ export class OrionAIProvider {
     }
     if (inventoryRisks.length > 0) {
       const topInv = inventoryRisks[0];
-      response += `- **Stockout Risk (CALCULATED)**: SKU \`${topInv.sku || topInv.productId}\` on hand: ${topInv.onHand} units vs daily demand ${topInv.dailyDemand || topInv.averageDailyDemand || 0} units.\n`;
+      response += `- **Stockout Risk (CALCULATED)**: SKU \`${topInv.sku || topInv.productId}\` on hand: ${topInv.onHand} units vs safety stock target ${topInv.safetyStock || topInv.reorderPoint || 10} units.\n`;
     }
     if (supplierPerf.length > 0) {
       const lowOtif = supplierPerf.filter((s: any) => s.otif < 85);
@@ -197,7 +210,13 @@ export class OrionAIProvider {
     if (delayedShipments.length > 0) {
       response += `3. **Logistics Rerouting**: Contact carrier dispatch for delay mitigation on tracking \`${delayedShipments[0].trackingNumber || delayedShipments[0].id}\`.\n`;
     }
-    response += `\n*Confidence: HIGH (Deterministic evaluation of active operational state).*`;
+    
+    if (pastOutcomes.length > 0) {
+      const lastOutcome = pastOutcomes[pastOutcomes.length - 1];
+      response += `\n*Feedback Loop Grounding: Previous similar decision (${lastOutcome.action || 'Action'}) resulted in ${lastOutcome.success ? 'ACCEPTED' : 'REJECTED'} outcome.*`;
+    }
+
+    response += `\n\n*Confidence: HIGH (Deterministic evaluation of active operational state).*`;
 
     return response;
   }

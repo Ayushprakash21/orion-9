@@ -40,11 +40,17 @@ export class KnowledgeIndexEngine {
   }
 
   /**
-   * Generates a deterministic normalized 16-dimensional embedding vector for text
+   * Generates a normalized 32-dimensional embedding vector for text.
+   * Mode: DETERMINISTIC_HASH_VECTOR (Offline-resilient TF-IDF/N-Gram hash vectorizer).
+   * Note: This serves as a high-performance offline fallback vector representation.
    */
   public generateEmbeddingVector(text: string): number[] {
-    const vector = new Array(16).fill(0);
-    const words = text.toLowerCase().split(/\W+/).filter(Boolean);
+    const DIM = 32;
+    const vector = new Array(DIM).fill(0);
+    const cleanText = text.toLowerCase();
+    const words = cleanText.split(/\W+/).filter(Boolean);
+
+    // 1. Word token hashing
     for (let i = 0; i < words.length; i++) {
       const word = words[i];
       let hash = 0;
@@ -52,9 +58,22 @@ export class KnowledgeIndexEngine {
         hash = (hash << 5) - hash + word.charCodeAt(j);
         hash |= 0;
       }
-      const idx = Math.abs(hash) % 16;
+      const idx = Math.abs(hash) % DIM;
       vector[idx] += 1;
     }
+
+    // 2. Character 3-gram hashing for partial matching
+    for (let i = 0; i < cleanText.length - 3; i += 2) {
+      const gram = cleanText.substring(i, i + 3);
+      let hash = 0;
+      for (let j = 0; j < gram.length; j++) {
+        hash = (hash << 5) - hash + gram.charCodeAt(j);
+        hash |= 0;
+      }
+      const idx = Math.abs(hash) % DIM;
+      vector[idx] += 0.5;
+    }
+
     // Normalize vector to unit length
     const magnitude = Math.sqrt(vector.reduce((sum, val) => sum + val * val, 0)) || 1;
     return vector.map(val => val / magnitude);
