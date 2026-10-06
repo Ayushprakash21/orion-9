@@ -103,9 +103,11 @@ import { PlatformMaturityCenter } from './components/PlatformMaturityCenter';
 import { ManualCenter } from './components/ManualCenter';
 import { DatabaseControlCenter } from './components/admin/DatabaseControlCenter';
 
+import { motion, AnimatePresence } from 'motion/react';
 import { LoadingScreen } from './components/LoadingScreen';
 import { OrionBootSequence } from './os/components/OrionBootSequence';
 import { OrionWorldEntrySequence } from './os/components/OrionWorldEntrySequence';
+import { OrionLogoutScreen } from './os/components/OrionLogoutScreen';
 
 import { OrionDesktop } from './os/components/OrionDesktop';
 import { OrionLiveWallpaper } from './os/components/OrionLiveWallpaper';
@@ -277,6 +279,7 @@ function AppBootstrap() {
     wake,
     powerOn,
     completeShutdown,
+    completeSignOut,
     completeSystemInitialization,
     isLoading,
   } = useAuth();
@@ -324,10 +327,21 @@ function AppBootstrap() {
     if (bootState === 'SHUTTING_DOWN') {
       return (
         <OrionShutdownScreen
+          key="shutdown"
           onComplete={() => {
             completeShutdown();
             navigate('/', { replace: true });
           }}
+        />
+      );
+    }
+
+    // 1.2 SIGNING OUT:
+    if (bootState === 'SIGNING_OUT') {
+      return (
+        <OrionLogoutScreen
+          key="logout"
+          onComplete={completeSignOut}
         />
       );
     }
@@ -336,6 +350,7 @@ function AppBootstrap() {
     if (bootState === 'POWERED_OFF') {
       return (
         <OrionPowerOnScreen
+          key="poweroff"
           isInitializing={false}
           onPowerOn={powerOn}
           onComplete={() => {}}
@@ -345,16 +360,28 @@ function AppBootstrap() {
 
     if (bootState === 'SYSTEM_INITIALIZING') {
       return (
-        <OrionBootSequence onComplete={completeSystemInitialization} />
+        <OrionBootSequence key="boot" onComplete={completeSystemInitialization} />
       );
     }
   
     // 2. SYSTEM REBOOT SEQUENCE:
     if (bootState === 'RESTARTING') {
       return (
-        <div className="fixed inset-0 z-[100000] w-full h-full bg-[#03060E] flex items-center justify-center">
-          <div className="w-8 h-8 rounded-full border-t-2 border-os-accent animate-spin" />
-        </div>
+        <motion.div
+          key="restarting"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.7, filter: 'blur(12px)' }}
+          transition={{ duration: 0.5 }}
+          className="fixed inset-0 z-[100000] w-full h-full bg-[#03060E] flex flex-col items-center justify-center font-mono select-none"
+        >
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+            className="w-10 h-10 rounded-full border-2 border-t-[#00F2FE] border-r-transparent border-b-transparent border-l-transparent mb-4 shadow-[0_0_15px_rgba(0,242,254,0.3)]"
+          />
+          <span className="text-xs text-os-text-primary tracking-[0.25em] uppercase font-semibold">RESTARTING ORION OS...</span>
+        </motion.div>
       );
     }
   
@@ -362,6 +389,7 @@ function AppBootstrap() {
     if (bootState === 'AUTH_RESOLVING' || (bootState === 'BOOTING' && !initTimedOut)) {
       return (
         <LoadingScreen 
+          key="loading"
           isFadingOut={isFadingOut}
           message="VERIFYING SYSTEM CREDENTIALS..."
         />
@@ -371,14 +399,21 @@ function AppBootstrap() {
     // 4. CRITICAL GATE: UNAUTHENTICATED USERS CAN NEVER REACH THE DESKTOP
     if (!isAuthenticated || !currentUser || bootState === 'LOGIN_REQUIRED' || bootState === 'AUTHENTICATING') {
       return (
-        <div className="w-full h-full min-h-screen bg-[#02050a] relative z-20 orion-auth-portal overflow-hidden">
+        <motion.div
+          key="auth-portal"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.4 }}
+          className="w-full h-full min-h-screen bg-[#02050a] relative z-20 orion-auth-portal overflow-hidden"
+        >
           <OrionLiveWallpaper target="login" showLogo={false} />
           <div className="relative z-10 w-full h-full">
             <ErrorBoundary fallbackTitle="AUTHENTICATION PORTAL EXCEPTION">
               <UnauthenticatedApplication />
             </ErrorBoundary>
           </div>
-        </div>
+        </motion.div>
       );
     }
 
@@ -386,6 +421,7 @@ function AppBootstrap() {
     if (bootState === 'POST_LOGIN_INITIALIZING') {
       return (
         <OrionWorldEntrySequence
+          key="world-entry"
           isAdmin={isAdmin}
           onComplete={() => {
             const dest = postLoginDestination || '/';
@@ -400,6 +436,7 @@ function AppBootstrap() {
     if (isSupplyChainInitializing && !initTimedOut) {
       return (
         <LoadingScreen 
+          key="scm-loading"
           isFadingOut={isFadingOut}
           message="CONNECTING SUPPLY CHAIN KERNEL..."
         />
@@ -408,38 +445,38 @@ function AppBootstrap() {
   
     // 7. READY / AUTHENTICATED / LOCKED / SLEEPING:
     return (
-      <div className="w-full h-full min-h-screen relative orion-authenticated-shell">
+      <motion.div
+        key="desktop-shell"
+        initial={{ opacity: 0, scale: 0.99 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.99 }}
+        transition={{ duration: 0.5 }}
+        className="w-full h-full min-h-screen relative orion-authenticated-shell"
+      >
         <ErrorBoundary fallbackTitle="ORION SCM APPLICATION EXCEPTION">
           <AuthenticatedApplication />
         </ErrorBoundary>
         
-        {bootState === 'LOCKED' && (
-          <OrionLockScreen onUnlock={unlock} currentUser={currentUser} />
-        )}
-  
-        {bootState === 'SLEEPING' && (
-          <OrionSleepScreen onWake={wake} />
-        )}
-      </div>
+        <AnimatePresence>
+          {bootState === 'LOCKED' && (
+            <OrionLockScreen key="lock-screen" onUnlock={unlock} currentUser={currentUser} />
+          )}
+    
+          {bootState === 'SLEEPING' && (
+            <OrionSleepScreen key="sleep-screen" onWake={wake} />
+          )}
+        </AnimatePresence>
+      </motion.div>
     );
   };
-
-  if (bootState === 'SHUTTING_DOWN') {
-    return (
-      <OrionShutdownScreen
-        onComplete={() => {
-          completeShutdown();
-          navigate('/', { replace: true });
-        }}
-      />
-    );
-  }
 
   return (
     <div className="w-full h-full min-h-screen bg-os-bg relative overflow-hidden">
       <OrionDisplayPreferencesProvider />
       <div className="w-full h-full relative z-0">
-        {renderContent()}
+        <AnimatePresence mode="wait">
+          {renderContent()}
+        </AnimatePresence>
       </div>
     </div>
   );

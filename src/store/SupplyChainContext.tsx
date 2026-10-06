@@ -1615,10 +1615,16 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
   );
 };
 
+export { SupplyChainContext };
+
 export const useSupplyChain = () => {
   const context = useContext(SupplyChainContext);
   if (context === undefined) {
     throw new Error('useSupplyChain must be used within a SupplyChainProvider');
   }
   return context;
+};
+
+export const useOptionalSupplyChain = () => {
+  return useContext(SupplyChainContext) || null;
 };

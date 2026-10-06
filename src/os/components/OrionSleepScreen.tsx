@@ -1,10 +1,16 @@
 import React, { useEffect } from 'react';
+import { motion } from 'motion/react';
+import { isReducedMotionPreferred } from '../motion/OrionMotion';
+import { useSupplyChain } from '../../store/SupplyChainContext';
 
 interface OrionSleepScreenProps {
   onWake: () => void;
 }
 
 export const OrionSleepScreen: React.FC<OrionSleepScreenProps> = ({ onWake }) => {
+  const supplyChain = useSupplyChain();
+  const isReduced = isReducedMotionPreferred(supplyChain?.settings?.reducedMotion);
+
   useEffect(() => {
     const handleKeyDown = () => {
       onWake();
@@ -14,7 +20,11 @@ export const OrionSleepScreen: React.FC<OrionSleepScreenProps> = ({ onWake }) =>
   }, [onWake]);
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: isReduced ? 0.1 : 0.6 }}
       onClick={onWake}
       className="fixed inset-0 bg-black z-[100000] cursor-pointer flex flex-col items-center justify-center select-none group"
       title="Click or press any key to wake"
@@ -25,6 +35,6 @@ export const OrionSleepScreen: React.FC<OrionSleepScreenProps> = ({ onWake }) =>
           Click or press any key to wake
         </span>
       </div>
-    </div>
+    </motion.div>
   );
 };

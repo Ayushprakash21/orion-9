@@ -54,6 +54,12 @@ if (typeof globalThis.sessionStorage === 'undefined') {
 if (typeof globalThis.window === 'undefined') {
   (globalThis as any).window = globalThis;
 }
+if (typeof (globalThis as any).addEventListener === 'undefined') {
+  (globalThis as any).addEventListener = vi.fn();
+}
+if (typeof (globalThis as any).removeEventListener === 'undefined') {
+  (globalThis as any).removeEventListener = vi.fn();
+}
 
 describe('Orion-9 Startup & Authentication Security Hardening Suite', () => {
 

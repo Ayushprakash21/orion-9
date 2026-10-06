@@ -19,7 +19,8 @@ export type BootState =
   | 'LOCKED'
   | 'SLEEPING'
   | 'RESTARTING'
-  | 'SHUTTING_DOWN';
+  | 'SHUTTING_DOWN'
+  | 'SIGNING_OUT';
 
 export interface LoginOptions {
   destination?: string;
@@ -39,6 +40,7 @@ interface AuthContextType extends SessionState {
   startPostLoginInitialization: (destination?: string) => void;
   completePostLoginInitialization: () => void;
   completeSystemInitialization: () => void;
+  completeSignOut: () => void;
   hasPermission: (permission: PermissionCode) => boolean;
   hasRole: (roles: RoleCode[]) => boolean;
   privilegedSession: PrivilegedAdminSession | null;
@@ -84,6 +86,7 @@ const AuthContext = createContext<AuthContextType>({
   startPostLoginInitialization: () => {},
   completePostLoginInitialization: () => {},
   completeSystemInitialization: () => {},
+  completeSignOut: () => {},
   hasPermission: () => false,
   hasRole: () => false,
   privilegedSession: null,
@@ -217,6 +220,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const completeSystemInitialization = useCallback(() => {
     // Every physical power-on must land at authentication, even if a previous
     // browser session exists. Authentication is a deliberate post-boot step.
+    setBootState('LOGIN_REQUIRED');
+  }, []);
+
+  const completeSignOut = useCallback(() => {
     setBootState('LOGIN_REQUIRED');
   }, []);
 
@@ -420,11 +427,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     setState(prev => ({ ...prev, isLoading: true }));
     try {
+      revokeAdminStepUp();
       await authService.logout();
       realtimeSubscriptionManager.cleanupUserSubscriptions();
     } finally {
       clearSessionState();
-      setBootState('LOGIN_REQUIRED');
+      setBootState('SIGNING_OUT');
     }
   };
 
@@ -494,6 +502,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         startPostLoginInitialization,
         completePostLoginInitialization,
         completeSystemInitialization,
+        completeSignOut,
         hasPermission,
         hasRole,
         privilegedSession,

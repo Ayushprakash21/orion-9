@@ -448,14 +448,14 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, scale: 0.95, y: 20 }}
+      initial={{ opacity: 0, scale: 0.97, y: 8 }}
       animate={{ 
         opacity: isMinimized ? 0 : 1, 
-        scale: isMinimized ? 0.75 : 1, 
-        y: isMinimized ? 80 : 0,
+        scale: isMinimized ? 0.92 : 1, 
+        y: isMinimized ? 16 : 0,
       }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15, ease: "linear" }}
+      exit={{ opacity: 0, scale: 0.985, y: 5 }}
+      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
       data-window-id={win.id} data-orion-window
       onPointerDown={() => focusApplication(win.id)}
       style={windowStyles}

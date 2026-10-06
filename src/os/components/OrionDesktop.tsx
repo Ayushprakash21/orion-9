@@ -8,7 +8,8 @@ import { OrionCommandPalette } from './OrionCommandPalette';
 import { OrionLiveWallpaper } from './OrionLiveWallpaper';
 import { OrionWindow } from './OrionWindow';
 import { OrionTaskSwitcher } from './OrionTaskSwitcher';
-import { AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
+import { desktopEntranceVariants } from '../motion/OrionMotionVariants';
 import { OrionContextMenu } from '../contextMenu/OrionContextMenu';
 import { useContextMenuTrigger, ContextMenuItem } from '../contextMenu/OrionContextMenuContext';
 import { EntityDrawer } from '../../components/drawers/EntityDrawer';
@@ -243,7 +244,12 @@ export function OrionDesktop() {
   }, []);
 
   return (
-    <div className="orion-desktop-shell bg-transparent text-os-text-primary font-sans select-none">
+    <motion.div
+      variants={desktopEntranceVariants}
+      initial="hidden"
+      animate="visible"
+      className="orion-desktop-shell bg-transparent text-os-text-primary font-sans select-none"
+    >
       
       {/* OS Layer 0: Premium Desktop Background & Live Supply Chain Network (Wallpaper) */}
       <div className="orion-desktop-wallpaper-layer absolute inset-0 z-0 pointer-events-none">
@@ -297,7 +303,7 @@ export function OrionDesktop() {
       <EntityDrawer />
       <ConfirmModal />
       <OrionContextMenu />
-    </div>
+    </motion.div>
   );
 }
 
