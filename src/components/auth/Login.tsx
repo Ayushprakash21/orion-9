@@ -78,17 +78,11 @@ function getPasswordStrength(pass: string): { score: number; label: string; colo
   }
 }
 
-export const Login: React.FC<LoginProps> = ({ initialTab = 'login' }) => {
-  const { login, signUp, triggerShutdown, triggerRestart, triggerLock, signOut } = useAuth();
+export const Login: React.FC<LoginProps> = () => {
+  const { login, triggerShutdown, triggerRestart, triggerLock, signOut } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const shouldReduceMotion = useReducedMotion();
-
-  // Mode: 'login' (FlowLogin) or 'signup' (FlowSignup)
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>(() => {
-    if (location.pathname === '/signup' || initialTab === 'signup') return 'signup';
-    return 'login';
-  });
 
   // Stage state for Login: 1 = User ID lookup, 2 = Password entry for identified user
   const [stage, setStage] = useState<1 | 2>(1);
@@ -101,18 +95,6 @@ export const Login: React.FC<LoginProps> = ({ initialTab = 'login' }) => {
   const [isIdentifying, setIsIdentifying] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [resolvedUser, setResolvedUser] = useState<UserProfile | null>(null);
-
-  // Signup State (FlowSignup)
-  const [signupName, setSignupName] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
-  const [showSignupPassword, setShowSignupPassword] = useState(false);
-  const [showSignupConfirmPassword, setShowSignupConfirmPassword] = useState(false);
-  const [isSigningUp, setIsSigningUp] = useState(false);
-
-  // Password strength calculation
-  const signupStrength = useMemo(() => getPasswordStrength(signupPassword), [signupPassword]);
 
   // Focus & typing interaction tracking
   const [isInputFocused, setIsInputFocused] = useState(false);
@@ -135,15 +117,6 @@ export const Login: React.FC<LoginProps> = ({ initialTab = 'login' }) => {
     controlPlane: 'READY',
     latencyMs: 12,
   });
-
-  // Sync mode with route if needed
-  useEffect(() => {
-    if (location.pathname === '/signup') {
-      setAuthMode('signup');
-    } else if (location.pathname === '/login') {
-      setAuthMode('login');
-    }
-  }, [location.pathname]);
 
   // Query authoritative health probes on mount & listen to environment changes
   useEffect(() => {
@@ -259,18 +232,16 @@ export const Login: React.FC<LoginProps> = ({ initialTab = 'login' }) => {
 
   // Keyboard navigation & autofocusing
   useEffect(() => {
-    if (authMode === 'login') {
-      if (stage === 2) {
-        setTimeout(() => {
-          passwordInputRef.current?.focus();
-        }, 50);
-      } else {
-        setTimeout(() => {
-          usernameInputRef.current?.focus();
-        }, 50);
-      }
+    if (stage === 2) {
+      setTimeout(() => {
+        passwordInputRef.current?.focus();
+      }, 50);
+    } else {
+      setTimeout(() => {
+        usernameInputRef.current?.focus();
+      }, 50);
     }
-  }, [stage, authMode]);
+  }, [stage]);
 
   const handleInputChange = () => {
     setIsTyping(true);
@@ -371,40 +342,6 @@ export const Login: React.FC<LoginProps> = ({ initialTab = 'login' }) => {
     }
   };
 
-  // SIGNUP SUBMIT Flow
-  const handleSignupSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg("");
-    setSuccessMsg("");
-
-    if (!signupEmail || !signupEmail.trim()) {
-      setErrorMsg("Please enter a valid email address.");
-      return;
-    }
-    if (!signupPassword || !signupPassword.trim()) {
-      setErrorMsg("Please enter a password.");
-      return;
-    }
-    if (signupPassword !== signupConfirmPassword) {
-      setErrorMsg("Passwords do not match.");
-      return;
-    }
-
-    setIsSigningUp(true);
-
-    try {
-      await signUp(signupEmail, signupPassword);
-      setSuccessMsg("Account created successfully! Redirecting...");
-      setTimeout(() => {
-        setAuthMode('login');
-      }, 1500);
-    } catch (err: any) {
-      setErrorMsg(err?.message || "Failed to create account. Please contact your administrator.");
-    } finally {
-      setIsSigningUp(false);
-    }
-  };
-
   // Switch back to STAGE 1 ("Other user")
   const handleBackToStage1 = () => {
     setStage(1);
@@ -425,12 +362,12 @@ export const Login: React.FC<LoginProps> = ({ initialTab = 'login' }) => {
     <div 
       className="w-screen h-[100dvh] max-h-[100dvh] flex flex-col justify-between overflow-hidden font-sans relative selection:bg-cyan-500/30 bg-transparent text-white"
       onKeyDown={(e) => {
-        if (e.key === 'Escape' && stage === 2 && authMode === 'login') {
+        if (e.key === 'Escape' && stage === 2) {
           handleBackToStage1();
         }
       }}
     >
-      {/* FLOWLOGIN / FLOWSIGNUP Decorative Ambient Background Orbs */}
+      {/* FLOWLOGIN Decorative Ambient Background Orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
         <motion.div
           animate={shouldReduceMotion ? {} : {
@@ -534,7 +471,7 @@ export const Login: React.FC<LoginProps> = ({ initialTab = 'login' }) => {
         </div>
       </header>
 
-      {/* Main Content — FlowLogin & FlowSignup Glassmorphic Container */}
+      {/* Main Content — FlowLogin Enterprise Glassmorphic Container */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 w-full my-auto">
         <motion.div
           layout
@@ -543,468 +480,233 @@ export const Login: React.FC<LoginProps> = ({ initialTab = 'login' }) => {
           transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
           className="backdrop-blur-2xl bg-[#070e1c]/85 border border-cyan-500/20 shadow-[0_0_60px_rgba(0,0,0,0.85),0_0_25px_rgba(6,182,212,0.12)] rounded-[24px] p-7 sm:p-9 w-full max-w-[480px] flex flex-col justify-center mx-auto relative overflow-hidden"
         >
-          {/* Top Mode Selector Tabs (Sign In / Sign Up) */}
-          <div className="flex items-center justify-center mb-6 select-none p-1 bg-white/5 border border-white/10 rounded-xl max-w-[280px] mx-auto w-full relative">
-            <button
-              type="button"
-              onClick={() => {
-                setAuthMode('login');
-                setErrorMsg('');
-                setSuccessMsg('');
-              }}
-              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-colors relative z-10 ${
-                authMode === 'login' ? 'text-white' : 'text-white/50 hover:text-white/80'
-              }`}
-            >
-              {authMode === 'login' && (
-                <motion.div
-                  layoutId="authModePill"
-                  className="absolute inset-0 bg-gradient-to-r from-cyan-500/30 to-blue-600/30 border border-cyan-400/40 rounded-lg shadow-sm"
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                />
-              )}
-              <span className="relative z-10">Sign In</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setAuthMode('signup');
-                setErrorMsg('');
-                setSuccessMsg('');
-              }}
-              className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-colors relative z-10 ${
-                authMode === 'signup' ? 'text-white' : 'text-white/50 hover:text-white/80'
-              }`}
-            >
-              {authMode === 'signup' && (
-                <motion.div
-                  layoutId="authModePill"
-                  className="absolute inset-0 bg-gradient-to-r from-cyan-500/30 to-blue-600/30 border border-cyan-400/40 rounded-lg shadow-sm"
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                />
-              )}
-              <span className="relative z-10">Sign Up</span>
-            </button>
-          </div>
-
           <div className="flex h-full flex-col justify-center w-full">
             <div className="w-full max-w-[380px] mx-auto flex flex-col justify-center">
               
               <AnimatePresence mode="wait">
-                {/* LOGIN MODE (FlowLogin) */}
-                {authMode === 'login' && (
-                  <motion.div
-                    key="login-mode"
-                    initial={{ opacity: 0, x: -12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 12 }}
-                    transition={{ duration: 0.25 }}
-                    className="w-full"
-                  >
-                    {/* STAGE 1: USER ID STAGE */}
-                    {stage === 1 && (
-                      <div className="w-full">
-                        <div className="flex flex-col items-center justify-center mb-6 select-none text-center">
-                          <BrandLogo variant="mark" sizePreset="lg" width={128} className="mx-auto mb-4" />
-                          <h1 className="text-white font-bold tracking-normal text-[21px] sm:text-[22px] leading-tight">
-                            {t.signInTitle}
-                          </h1>
-                          <p className="text-white/60 text-[13px] font-normal mt-1.5 max-w-[320px] leading-relaxed">
-                            {t.subtitle}
-                          </p>
-                        </div>
-
-                        <form className="space-y-4" onSubmit={handleStage1Submit} noValidate>
-                          <AnimatePresence>
-                            {errorMsg && (
-                              <motion.div
-                                initial={{ opacity: 0, y: -6, height: 0 }}
-                                animate={{ opacity: 1, y: 0, height: 'auto' }}
-                                exit={{ opacity: 0, y: -6, height: 0 }}
-                                className="p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-white text-xs flex items-start gap-2 font-medium backdrop-blur-md overflow-hidden"
-                              >
-                                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
-                                <span>{errorMsg}</span>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-
-                          {/* User ID Field */}
-                          <div className="relative">
-                            <label htmlFor="username" className="block text-xs sm:text-[13px] font-medium text-white/75 mb-2 select-none">
-                              {t.userIdLabel}
-                            </label>
-                            <div className="relative">
-                              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/40">
-                                <User className="w-4 h-4 text-cyan-400/70" />
-                              </div>
-                              <input
-                                ref={usernameInputRef}
-                                id="username"
-                                name="username"
-                                type="text"
-                                autoComplete="username"
-                                required
-                                value={username}
-                                onChange={(e) => {
-                                  setUsername(e.target.value);
-                                  handleInputChange();
-                                  if (errorMsg) setErrorMsg("");
-                                }}
-                                onFocus={() => setIsInputFocused(true)}
-                                onBlur={() => setIsInputFocused(false)}
-                                className="w-full h-11 pl-10 pr-4 bg-[#0f172a]/80 border border-white/15 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/80 focus:ring-1 focus:ring-cyan-400/50 transition-all shadow-inner"
-                                placeholder={t.userIdPlaceholder}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Continue Button */}
-                          <motion.button
-                            whileHover={{ scale: 1.01 }}
-                            whileTap={{ scale: 0.98 }}
-                            type="submit"
-                            disabled={isIdentifying}
-                            className="h-[48px] w-full px-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-semibold text-sm transition-all duration-200 rounded-[14px] shadow-[0_0_24px_rgba(6,182,212,0.35)] hover:shadow-[0_0_32px_rgba(6,182,212,0.5)] disabled:opacity-50 cursor-pointer border border-cyan-400/40 flex items-center justify-center gap-2 mt-4"
-                          >
-                            {isIdentifying ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin text-white" />
-                                <span>{t.identifying}</span>
-                              </>
-                            ) : (
-                              <>
-                                <span>{t.continueBtn}</span>
-                                <ArrowRight className="w-4 h-4" />
-                              </>
-                            )}
-                          </motion.button>
-                        </form>
+                <motion.div
+                  key="login-mode"
+                  initial={{ opacity: 0, x: -12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 12 }}
+                  transition={{ duration: 0.25 }}
+                  className="w-full"
+                >
+                  {/* STAGE 1: USER ID STAGE */}
+                  {stage === 1 && (
+                    <div className="w-full">
+                      <div className="flex flex-col items-center justify-center mb-6 select-none text-center">
+                        <BrandLogo variant="mark" sizePreset="lg" width={128} className="mx-auto mb-4" />
+                        <h1 className="text-white font-bold tracking-normal text-[21px] sm:text-[22px] leading-tight">
+                          {t.signInTitle}
+                        </h1>
+                        <p className="text-white/60 text-[13px] font-normal mt-1.5 max-w-[320px] leading-relaxed">
+                          {t.subtitle}
+                        </p>
                       </div>
-                    )}
 
-                    {/* STAGE 2: USER RECOGNIZED & PASSWORD STAGE */}
-                    {stage === 2 && (
-                      <div className="w-full">
-                        {/* Resolved User Photo & Name Display */}
-                        <div className="flex flex-col items-center justify-center mb-5 select-none text-center">
-                          {/* Avatar Photo */}
-                          <div className="w-18 h-18 rounded-full border-2 border-cyan-400/40 shadow-xl bg-[#0f172a] flex items-center justify-center overflow-hidden mb-3 backdrop-blur-md">
-                            {resolvedUser?.avatarUrl || (resolvedUser as any)?.photoURL ? (
-                              <img 
-                                src={resolvedUser?.avatarUrl || (resolvedUser as any)?.photoURL} 
-                                alt={resolvedUser?.displayName || username} 
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <User className="w-9 h-9 text-cyan-300/80" />
-                            )}
+                      <form className="space-y-4" onSubmit={handleStage1Submit} noValidate>
+                        <AnimatePresence>
+                          {errorMsg && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -6, height: 0 }}
+                              animate={{ opacity: 1, y: 0, height: 'auto' }}
+                              exit={{ opacity: 0, y: -6, height: 0 }}
+                              className="p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-white text-xs flex items-start gap-2 font-medium backdrop-blur-md overflow-hidden"
+                            >
+                              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
+                              <span>{errorMsg}</span>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        {/* User ID Field */}
+                        <div className="relative">
+                          <label htmlFor="username" className="block text-xs sm:text-[13px] font-medium text-white/75 mb-2 select-none">
+                            {t.userIdLabel}
+                          </label>
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/40">
+                              <User className="w-4 h-4 text-cyan-400/70" />
+                            </div>
+                            <input
+                              ref={usernameInputRef}
+                              id="username"
+                              name="username"
+                              type="text"
+                              autoComplete="username"
+                              required
+                              value={username}
+                              onChange={(e) => {
+                                setUsername(e.target.value);
+                                handleInputChange();
+                                if (errorMsg) setErrorMsg("");
+                              }}
+                              onFocus={() => setIsInputFocused(true)}
+                              onBlur={() => setIsInputFocused(false)}
+                              className="w-full h-11 pl-10 pr-4 bg-[#0f172a]/80 border border-white/15 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/80 focus:ring-1 focus:ring-cyan-400/50 transition-all shadow-inner"
+                              placeholder={t.userIdPlaceholder}
+                            />
                           </div>
-
-                          {/* Display Name & Username Handle */}
-                          <h2 className="text-white font-bold tracking-normal text-lg sm:text-[19px] leading-tight">
-                            {resolvedUser?.displayName || resolvedUser?.fullName || username}
-                          </h2>
-                          <span className="text-white/60 text-xs font-mono mt-1">
-                            @{resolvedUser?.username || username}
-                          </span>
                         </div>
 
-                        <form className="space-y-4" onSubmit={handleStage2Submit} noValidate>
-                          <AnimatePresence>
-                            {errorMsg && (
-                              <motion.div
-                                initial={{ opacity: 0, y: -6, height: 0 }}
-                                animate={{ opacity: 1, y: 0, height: 'auto' }}
-                                exit={{ opacity: 0, y: -6, height: 0 }}
-                                className="p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-white text-xs flex items-start gap-2 font-medium backdrop-blur-md overflow-hidden"
-                              >
-                                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
-                                <span>{errorMsg}</span>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                          
-                          {/* Password Input */}
+                        {/* Continue Button */}
+                        <motion.button
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.98 }}
+                          type="submit"
+                          disabled={isIdentifying}
+                          className="h-[48px] w-full px-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-semibold text-sm transition-all duration-200 rounded-[14px] shadow-[0_0_24px_rgba(6,182,212,0.35)] hover:shadow-[0_0_32px_rgba(6,182,212,0.5)] disabled:opacity-50 cursor-pointer border border-cyan-400/40 flex items-center justify-center gap-2 mt-4"
+                        >
+                          {isIdentifying ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin text-white" />
+                              <span>{t.identifying}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>{t.continueBtn}</span>
+                              <ArrowRight className="w-4 h-4" />
+                            </>
+                          )}
+                        </motion.button>
+                      </form>
+                    </div>
+                  )}
+
+                  {/* STAGE 2: USER RECOGNIZED & PASSWORD STAGE */}
+                  {stage === 2 && (
+                    <div className="w-full">
+                      {/* Resolved User Photo & Name Display */}
+                      <div className="flex flex-col items-center justify-center mb-5 select-none text-center">
+                        {/* Avatar Photo */}
+                        <div className="w-18 h-18 rounded-full border-2 border-cyan-400/40 shadow-xl bg-[#0f172a] flex items-center justify-center overflow-hidden mb-3 backdrop-blur-md">
+                          {resolvedUser?.avatarUrl || (resolvedUser as any)?.photoURL ? (
+                            <img 
+                              src={resolvedUser?.avatarUrl || (resolvedUser as any)?.photoURL} 
+                              alt={resolvedUser?.displayName || username} 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <User className="w-9 h-9 text-cyan-300/80" />
+                          )}
+                        </div>
+
+                        {/* Display Name & Username Handle */}
+                        <h2 className="text-white font-bold tracking-normal text-lg sm:text-[19px] leading-tight">
+                          {resolvedUser?.displayName || resolvedUser?.fullName || username}
+                        </h2>
+                        <span className="text-white/60 text-xs font-mono mt-1">
+                          @{resolvedUser?.username || username}
+                        </span>
+                      </div>
+
+                      <form className="space-y-4" onSubmit={handleStage2Submit} noValidate>
+                        <AnimatePresence>
+                          {errorMsg && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -6, height: 0 }}
+                              animate={{ opacity: 1, y: 0, height: 'auto' }}
+                              exit={{ opacity: 0, y: -6, height: 0 }}
+                              className="p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-white text-xs flex items-start gap-2 font-medium backdrop-blur-md overflow-hidden"
+                            >
+                              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
+                              <span>{errorMsg}</span>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                        
+                        {/* Password Input */}
+                        <div className="relative">
+                          <label htmlFor="password" className="block text-xs sm:text-[13px] font-medium text-white/75 mb-2 select-none">
+                            {t.enterPassword}
+                          </label>
                           <div className="relative">
-                            <label htmlFor="password" className="block text-xs sm:text-[13px] font-medium text-white/75 mb-2 select-none">
-                              {t.enterPassword}
-                            </label>
-                            <div className="relative">
-                              <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/40">
-                                <Lock className="w-4 h-4 text-cyan-400/70" />
-                              </div>
-                              <input
-                                ref={passwordInputRef}
-                                id="password"
-                                name="password"
-                                type={showPassword ? "text" : "password"}
-                                autoComplete="current-password"
-                                required
-                                value={password}
-                                onChange={(e) => {
-                                  setPassword(e.target.value);
-                                  handleInputChange();
-                                  if (errorMsg) setErrorMsg("");
-                                }}
-                                onFocus={() => setIsInputFocused(true)}
-                                onBlur={() => setIsInputFocused(false)}
-                                className="w-full h-11 pl-10 pr-10 bg-[#0f172a]/80 border border-white/15 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/80 focus:ring-1 focus:ring-cyan-400/50 transition-all shadow-inner"
-                                placeholder="••••••••"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-white/40 hover:text-white transition-colors cursor-pointer"
-                                aria-label={showPassword ? t.hidePassword : t.showPassword}
-                              >
-                                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                              </button>
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/40">
+                              <Lock className="w-4 h-4 text-cyan-400/70" />
                             </div>
-                          </div>
-                          
-                          {/* Enter Orion Submit Button */}
-                          <motion.button
-                            whileHover={{ scale: 1.01 }}
-                            whileTap={{ scale: 0.98 }}
-                            type="submit"
-                            disabled={isSubmitting}
-                            className="h-[48px] w-full px-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-semibold text-sm transition-all duration-200 rounded-[14px] shadow-[0_0_24px_rgba(6,182,212,0.35)] hover:shadow-[0_0_32px_rgba(6,182,212,0.5)] disabled:opacity-50 cursor-pointer border border-cyan-400/40 flex items-center justify-center gap-2 mt-4"
-                          >
-                            {isSubmitting ? (
-                              <>
-                                <Loader2 className="w-4 h-4 animate-spin text-white" />
-                                <span>{t.enteringOrion}</span>
-                              </>
-                            ) : (
-                              <>
-                                <span>{t.enterOrionBtn}</span>
-                                <ArrowRight className="w-4 h-4" />
-                              </>
-                            )}
-                          </motion.button>
-
-                          {/* Form Link Options */}
-                          <div className="flex items-center justify-between pt-1 select-none text-xs">
-                            <label className="flex items-center gap-2 cursor-pointer group text-white/70 hover:text-white transition-colors">
-                              <input 
-                                type="checkbox" 
-                                className="rounded border-white/20 bg-white/10 text-cyan-500 focus:ring-0 w-3.5 h-3.5 cursor-pointer accent-cyan-500"
-                                checked={rememberMe}
-                                onChange={(e) => setRememberMe(e.target.checked)}
-                              />
-                              <span>{t.rememberMe}</span>
-                            </label>
-                            
-                            <button type="button" className="text-white/60 hover:text-white transition-colors cursor-pointer">
-                              {t.forgotPassword}
-                            </button>
-                          </div>
-
-                          {/* Other User Button */}
-                          <div className="pt-2 flex justify-center">
+                            <input
+                              ref={passwordInputRef}
+                              id="password"
+                              name="password"
+                              type={showPassword ? "text" : "password"}
+                              autoComplete="current-password"
+                              required
+                              value={password}
+                              onChange={(e) => {
+                                setPassword(e.target.value);
+                                handleInputChange();
+                                if (errorMsg) setErrorMsg("");
+                              }}
+                              onFocus={() => setIsInputFocused(true)}
+                              onBlur={() => setIsInputFocused(false)}
+                              className="w-full h-11 pl-10 pr-10 bg-[#0f172a]/80 border border-white/15 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/80 focus:ring-1 focus:ring-cyan-400/50 transition-all shadow-inner"
+                              placeholder="••••••••"
+                            />
                             <button
                               type="button"
-                              onClick={handleBackToStage1}
-                              className="flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition-colors cursor-pointer group py-1 px-3 rounded-lg hover:bg-white/5"
+                              onClick={() => setShowPassword(!showPassword)}
+                              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-white/40 hover:text-white transition-colors cursor-pointer"
+                              aria-label={showPassword ? t.hidePassword : t.showPassword}
                             >
-                              <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-                              <span>{t.otherUser}</span>
+                              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                             </button>
                           </div>
-                        </form>
-                      </div>
-                    )}
-                  </motion.div>
-                )}
+                        </div>
+                        
+                        {/* Enter Orion Submit Button */}
+                        <motion.button
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.98 }}
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="h-[48px] w-full px-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-semibold text-sm transition-all duration-200 rounded-[14px] shadow-[0_0_24px_rgba(6,182,212,0.35)] hover:shadow-[0_0_32px_rgba(6,182,212,0.5)] disabled:opacity-50 cursor-pointer border border-cyan-400/40 flex items-center justify-center gap-2 mt-4"
+                        >
+                          {isSubmitting ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin text-white" />
+                              <span>{t.enteringOrion}</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>{t.enterOrionBtn}</span>
+                              <ArrowRight className="w-4 h-4" />
+                            </>
+                          )}
+                        </motion.button>
 
-                {/* SIGNUP MODE (FlowSignup) */}
-                {authMode === 'signup' && (
-                  <motion.div
-                    key="signup-mode"
-                    initial={{ opacity: 0, x: 12 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -12 }}
-                    transition={{ duration: 0.25 }}
-                    className="w-full"
-                  >
-                    <div className="flex flex-col items-center justify-center mb-5 select-none text-center">
-                      <BrandLogo variant="mark" sizePreset="lg" width={110} className="mx-auto mb-3" />
-                      <h1 className="text-white font-bold tracking-normal text-[20px] sm:text-[21px] leading-tight">
-                        Create Account
-                      </h1>
-                      <p className="text-white/60 text-[12.5px] font-normal mt-1 max-w-[320px] leading-relaxed">
-                        Join Orion-9 AI Supply Chain Platform
-                      </p>
+                        {/* Form Link Options */}
+                        <div className="flex items-center justify-between pt-1 select-none text-xs">
+                          <label className="flex items-center gap-2 cursor-pointer group text-white/70 hover:text-white transition-colors">
+                            <input 
+                              type="checkbox" 
+                              className="rounded border-white/20 bg-white/10 text-cyan-500 focus:ring-0 w-3.5 h-3.5 cursor-pointer accent-cyan-500"
+                              checked={rememberMe}
+                              onChange={(e) => setRememberMe(e.target.checked)}
+                            />
+                            <span>{t.rememberMe}</span>
+                          </label>
+                          
+                          <button type="button" className="text-white/60 hover:text-white transition-colors cursor-pointer">
+                            {t.forgotPassword}
+                          </button>
+                        </div>
+
+                        {/* Other User Button */}
+                        <div className="pt-2 flex justify-center">
+                          <button
+                            type="button"
+                            onClick={handleBackToStage1}
+                            className="flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition-colors cursor-pointer group py-1 px-3 rounded-lg hover:bg-white/5"
+                          >
+                            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
+                            <span>{t.otherUser}</span>
+                          </button>
+                        </div>
+                      </form>
                     </div>
-
-                    <form className="space-y-3.5" onSubmit={handleSignupSubmit} noValidate>
-                      <AnimatePresence>
-                        {errorMsg && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -6, height: 0 }}
-                            animate={{ opacity: 1, y: 0, height: 'auto' }}
-                            exit={{ opacity: 0, y: -6, height: 0 }}
-                            className="p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-white text-xs flex items-start gap-2 font-medium backdrop-blur-md overflow-hidden"
-                          >
-                            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
-                            <span>{errorMsg}</span>
-                          </motion.div>
-                        )}
-                        {successMsg && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -6, height: 0 }}
-                            animate={{ opacity: 1, y: 0, height: 'auto' }}
-                            exit={{ opacity: 0, y: -6, height: 0 }}
-                            className="p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs flex items-start gap-2 font-medium backdrop-blur-md overflow-hidden"
-                          >
-                            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
-                            <span>{successMsg}</span>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-
-                      {/* Full Name Input */}
-                      <div>
-                        <label htmlFor="signupName" className="block text-xs font-medium text-white/75 mb-1 select-none">
-                          Full Name
-                        </label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/40">
-                            <User className="w-4 h-4 text-cyan-400/70" />
-                          </div>
-                          <input
-                            id="signupName"
-                            type="text"
-                            value={signupName}
-                            onChange={(e) => setSignupName(e.target.value)}
-                            className="w-full h-10 pl-10 pr-4 bg-[#0f172a]/80 border border-white/15 rounded-xl text-xs text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/80 focus:ring-1 focus:ring-cyan-400/50 transition-all shadow-inner"
-                            placeholder="John Doe"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Email / User ID Input */}
-                      <div>
-                        <label htmlFor="signupEmail" className="block text-xs font-medium text-white/75 mb-1 select-none">
-                          Email Address / User ID
-                        </label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/40">
-                            <Mail className="w-4 h-4 text-cyan-400/70" />
-                          </div>
-                          <input
-                            id="signupEmail"
-                            type="email"
-                            required
-                            value={signupEmail}
-                            onChange={(e) => setSignupEmail(e.target.value)}
-                            className="w-full h-10 pl-10 pr-4 bg-[#0f172a]/80 border border-white/15 rounded-xl text-xs text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/80 focus:ring-1 focus:ring-cyan-400/50 transition-all shadow-inner"
-                            placeholder="name@company.com"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Password Input */}
-                      <div>
-                        <label htmlFor="signupPassword" className="block text-xs font-medium text-white/75 mb-1 select-none">
-                          Password
-                        </label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/40">
-                            <Lock className="w-4 h-4 text-cyan-400/70" />
-                          </div>
-                          <input
-                            id="signupPassword"
-                            type={showSignupPassword ? "text" : "password"}
-                            required
-                            value={signupPassword}
-                            onChange={(e) => setSignupPassword(e.target.value)}
-                            className="w-full h-10 pl-10 pr-10 bg-[#0f172a]/80 border border-white/15 rounded-xl text-xs text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/80 focus:ring-1 focus:ring-cyan-400/50 transition-all shadow-inner"
-                            placeholder="••••••••"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowSignupPassword(!showSignupPassword)}
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-white/40 hover:text-white transition-colors cursor-pointer"
-                          >
-                            {showSignupPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
-
-                        {/* FLOWSIGNUP Password Strength Meter */}
-                        {signupPassword && (
-                          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mt-1.5 space-y-1">
-                            <div className="flex items-center justify-between text-[10px] font-mono">
-                              <span className="text-white/50">Password Strength</span>
-                              <span className={`font-semibold ${
-                                signupStrength.score === 1 ? 'text-red-400' :
-                                signupStrength.score === 2 ? 'text-amber-400' :
-                                signupStrength.score === 3 ? 'text-yellow-300' : 'text-emerald-400'
-                              }`}>{signupStrength.label}</span>
-                            </div>
-                            <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
-                              <motion.div
-                                animate={{ width: signupStrength.widthPct }}
-                                className={`h-full transition-all duration-300 ${signupStrength.color}`}
-                              />
-                            </div>
-                          </motion.div>
-                        )}
-                      </div>
-
-                      {/* Confirm Password Input */}
-                      <div>
-                        <label htmlFor="signupConfirmPassword" className="block text-xs font-medium text-white/75 mb-1 select-none">
-                          Confirm Password
-                        </label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/40">
-                            <ShieldCheck className="w-4 h-4 text-cyan-400/70" />
-                          </div>
-                          <input
-                            id="signupConfirmPassword"
-                            type={showSignupConfirmPassword ? "text" : "password"}
-                            required
-                            value={signupConfirmPassword}
-                            onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                            className="w-full h-10 pl-10 pr-10 bg-[#0f172a]/80 border border-white/15 rounded-xl text-xs text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/80 focus:ring-1 focus:ring-cyan-400/50 transition-all shadow-inner"
-                            placeholder="••••••••"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowSignupConfirmPassword(!showSignupConfirmPassword)}
-                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-white/40 hover:text-white transition-colors cursor-pointer"
-                          >
-                            {showSignupConfirmPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Submit Button */}
-                      <motion.button
-                        whileHover={{ scale: 1.01 }}
-                        whileTap={{ scale: 0.98 }}
-                        type="submit"
-                        disabled={isSigningUp}
-                        className="h-[46px] w-full px-4 bg-gradient-to-r from-cyan-600 via-blue-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white font-semibold text-xs sm:text-sm transition-all duration-200 rounded-[14px] shadow-[0_0_24px_rgba(6,182,212,0.35)] hover:shadow-[0_0_32px_rgba(6,182,212,0.5)] disabled:opacity-50 cursor-pointer border border-cyan-400/40 flex items-center justify-center gap-2 mt-3"
-                      >
-                        {isSigningUp ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin text-white" />
-                            <span>Creating Account...</span>
-                          </>
-                        ) : (
-                          <>
-                            <UserPlus className="w-4 h-4" />
-                            <span>Create Account</span>
-                          </>
-                        )}
-                      </motion.button>
-                    </form>
-                  </motion.div>
-                )}
+                  )}
+                </motion.div>
               </AnimatePresence>
 
             </div>

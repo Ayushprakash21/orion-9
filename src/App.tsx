@@ -152,7 +152,7 @@ function UnauthenticatedApplication() {
       <Route path="/admin-login" element={<Navigate to="/login" replace state={{ from: location }} />} />
       <Route path="/admin/login" element={<Navigate to="/login" replace state={{ from: location }} />} />
       <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Login initialTab="signup" />} />
+      <Route path="/signup" element={<Navigate to="/login" replace state={{ from: location }} />} />
       <Route
         path="/admin"
         element={<Navigate to="/login" replace state={{ from: location }} />}

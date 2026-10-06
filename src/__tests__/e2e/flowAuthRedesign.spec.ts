@@ -1,20 +1,20 @@
 /**
- * ORION-9 FLOWLOGIN & FLOWSIGNUP AUTHENTICATION E2E TEST SUITE
+ * ORION-9 ENTERPRISE AUTHENTICATION E2E TEST SUITE — LOGIN ONLY
  *
  * Verifies:
- * 1. FlowLogin & FlowSignup visual card rendering with Framer Motion.
- * 2. Tab switching between Sign In and Sign Up modes.
- * 3. Two-stage login flow (Stage 1 ID -> Stage 2 Password).
- * 4. Password visibility toggle (Eye/EyeOff).
- * 5. Demo User and Demo Admin login authentication & role verification.
- * 6. FlowSignup form inputs, Password Strength Meter, and submit behavior.
- * 7. Route /signup rendering directly into Signup tab.
+ * 1. FlowLogin enterprise visual card rendering with Framer Motion.
+ * 2. Public self-registration (Sign Up) is COMPLETELY REMOVED from the UI.
+ * 3. Route /signup safely redirects to /login.
+ * 4. Two-stage login flow (Stage 1 ID -> Stage 2 Password).
+ * 5. Password visibility toggle (Eye/EyeOff).
+ * 6. Demo User and Demo Admin login authentication & role verification.
+ * 7. Invalid credentials show authentication error message.
  * 8. Language selector dropdown and Environment switcher.
  */
 
 import { test, expect } from '@playwright/test';
 
-test.describe('Orion-9 FlowLogin & FlowSignup Authentication Redesign E2E', () => {
+test.describe('Orion-9 Enterprise Authentication (No Public Signup - Login Only) E2E', () => {
 
   test.beforeEach(async ({ page }) => {
     // Clear browser storage and set OS power-on state cleanly before navigation
@@ -27,13 +27,9 @@ test.describe('Orion-9 FlowLogin & FlowSignup Authentication Redesign E2E', () =
     });
   });
 
-  // TEST 1: Login page loads with FlowLogin card and tab switcher
-  test('TEST 1: renders FlowLogin card and tab switcher on /login', async ({ page }) => {
+  // TEST 1: Enterprise Login page loads cleanly on /login
+  test('TEST 1: renders FlowLogin enterprise card on /login', async ({ page }) => {
     await page.goto('/login');
-
-    // Tab buttons for Sign In and Sign Up visible
-    await expect(page.locator('button:has-text("Sign In")')).toBeVisible();
-    await expect(page.locator('button:has-text("Sign Up")')).toBeVisible();
 
     // Stage 1 User ID input visible
     await expect(page.locator('input#username')).toBeVisible();
@@ -45,32 +41,34 @@ test.describe('Orion-9 FlowLogin & FlowSignup Authentication Redesign E2E', () =
     await expect(page.locator('img.orion-brand-image').first()).toBeVisible();
   });
 
-  // TEST 2: Tab switching between Sign In and Sign Up
-  test('TEST 2: switches between Sign In and Sign Up tabs smoothly', async ({ page }) => {
+  // TEST 2: Public self-registration (Sign Up) is NOT exposed in the UI
+  test('TEST 2: public self-registration (Sign Up) tab, button, and forms are NOT exposed in UI', async ({ page }) => {
     await page.goto('/login');
 
-    // Click Sign Up tab
-    await page.click('button:has-text("Sign Up")');
+    // Verify NO Sign Up tab button exists
+    await expect(page.locator('button:has-text("Sign Up")')).toHaveCount(0);
 
-    // Verify Signup form fields appear
-    await expect(page.locator('input#signupEmail')).toBeVisible();
-    await expect(page.locator('input#signupPassword')).toBeVisible();
-    await expect(page.locator('input#signupConfirmPassword')).toBeVisible();
-    await expect(page.locator('button:has-text("Create Account")')).toBeVisible();
+    // Verify NO Create Account button exists
+    await expect(page.locator('button:has-text("Create Account")')).toHaveCount(0);
 
-    // Click Sign In tab back
-    await page.click('button:has-text("Sign In")');
-
-    // Verify Login form field appears
-    await expect(page.locator('input#username')).toBeVisible();
+    // Verify NO Register button or public registration link exists
+    await expect(page.locator('text=/Create your account/i')).toHaveCount(0);
+    await expect(page.locator('input#signupEmail')).toHaveCount(0);
+    await expect(page.locator('input#signupPassword')).toHaveCount(0);
   });
 
-  // TEST 3: Route /signup opens Signup tab directly
-  test('TEST 3: route /signup loads directly into Sign Up tab', async ({ page }) => {
+  // TEST 3: Route /signup redirects to /login
+  test('TEST 3: route /signup redirects safely to /login', async ({ page }) => {
     await page.goto('/signup');
 
-    await expect(page.locator('input#signupEmail')).toBeVisible();
-    await expect(page.locator('button:has-text("Create Account")')).toBeVisible();
+    // Should redirect to /login
+    await expect(page).toHaveURL(/\/login/);
+
+    // Login form should be visible
+    await expect(page.locator('input#username')).toBeVisible();
+
+    // Signup form must NOT be present
+    await expect(page.locator('input#signupEmail')).toHaveCount(0);
   });
 
   // TEST 4: Demo User authenticates using two-stage flow
@@ -125,19 +123,19 @@ test.describe('Orion-9 FlowLogin & FlowSignup Authentication Redesign E2E', () =
     }, { timeout: 10000 }).toBe('platform_admin');
   });
 
-  // TEST 6: FlowSignup Password Strength Meter dynamically updates
-  test('TEST 6: updates password strength meter in FlowSignup', async ({ page }) => {
-    await page.goto('/signup');
+  // TEST 6: Invalid credentials display error message
+  test('TEST 6: invalid password shows error message', async ({ page }) => {
+    await page.goto('/login');
 
-    const passInput = page.locator('input#signupPassword');
-    
-    // Type weak password
-    await passInput.fill('123');
-    await expect(page.locator('text=Weak')).toBeVisible();
+    await page.fill('input#username', 'user');
+    await page.click('button[type="submit"]');
 
-    // Type strong password
-    await passInput.fill('OrionSuperSecret2026!');
-    await expect(page.locator('text=Strong')).toBeVisible();
+    await expect(page.locator('input#password')).toBeVisible();
+    await page.fill('input#password', 'wrong-invalid-password-123');
+    await page.click('button[type="submit"]');
+
+    // Error message container should appear
+    await expect(page.locator('text=/Invalid password/i')).toBeVisible();
   });
 
   // TEST 7: Password visibility toggle works
