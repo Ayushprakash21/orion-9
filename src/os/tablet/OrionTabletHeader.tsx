@@ -54,7 +54,7 @@ export const OrionTabletHeader: React.FC = () => {
           onClick={() => navigateToTab('home')}
           className="flex items-center gap-2 cursor-pointer active:scale-95 transition-transform"
         >
-          <div className="w-7 h-7 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+          <div className="w-7 h-7 rounded-lg bg-white/[0.08] border border-white/[0.1] flex items-center justify-center text-os-text-primary">
             <Infinity size={16} />
           </div>
           <span className="font-mono text-sm font-bold tracking-wider text-os-text-primary">
@@ -77,7 +77,7 @@ export const OrionTabletHeader: React.FC = () => {
 
         {/* Workspace Context Tag */}
         <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-os-surface-secondary border border-os-border text-[11px] font-mono text-os-text-secondary">
-          <Layers size={12} className="text-cyan-400" />
+          <Layers size={12} className="text-os-text-muted" />
           <span>OPERATIONS WORKSPACE</span>
         </div>
       </div>
@@ -99,11 +99,11 @@ export const OrionTabletHeader: React.FC = () => {
         <button
           type="button"
           onClick={() => openOrionAI()}
-          className="px-3 h-10 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 flex items-center gap-1.5 text-xs font-mono font-bold active:scale-95 transition-all cursor-pointer"
+          className="px-3 h-10 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-os-text-primary flex items-center gap-1.5 text-xs font-mono font-medium active:scale-95 transition-all cursor-pointer"
           aria-label="Launch ORION AI"
           title="Open ORION AI"
         >
-          <Sparkles size={14} />
+          <Sparkles size={14} className="text-os-accent" />
           <span className="hidden sm:inline">AI</span>
         </button>
 
@@ -148,7 +148,7 @@ export const OrionTabletHeader: React.FC = () => {
 
         {/* User Identity / Avatar */}
         <div className="flex items-center gap-2 pl-1">
-          <div className="w-8 h-8 rounded-full bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-cyan-400 font-mono text-xs font-bold shadow-xs">
+          <div className="w-8 h-8 rounded-full bg-white/[0.08] border border-white/[0.12] flex items-center justify-center text-os-text-primary font-mono text-xs font-semibold shadow-xs">
             {currentUser?.fullName?.charAt(0) || 'A'}
           </div>
         </div>

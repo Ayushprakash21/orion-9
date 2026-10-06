@@ -185,12 +185,12 @@ export const OrionTabletHome: React.FC = () => {
       {/* 3. ORION AI ASSISTANT QUICK BANNER */}
       <div 
         onClick={() => openOrionAI()}
-        className="bg-gradient-to-r from-cyan-950/40 via-os-surface to-os-surface border border-cyan-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 active:scale-[0.99] transition-transform cursor-pointer shadow-sm group"
+        className="bg-white/[0.03] border border-white/[0.08] hover:border-white/[0.14] rounded-2xl p-4 flex items-center justify-between gap-4 active:scale-[0.99] transition-transform cursor-pointer shadow-xs group"
         role="button"
         aria-label="Launch ORION AI"
       >
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 shadow-[0_0_12px_rgba(6,182,212,0.2)]">
+          <div className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-os-accent shrink-0">
             <Sparkles size={20} />
           </div>
           <div className="min-w-0">
@@ -207,7 +207,7 @@ export const OrionTabletHome: React.FC = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-bold shrink-0 group-hover:bg-cyan-500/20 transition-colors">
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/[0.06] border border-white/[0.08] text-os-text-primary text-xs font-mono font-medium shrink-0 group-hover:bg-white/[0.1] transition-colors">
           <span>Ask Orion AI</span>
           <ArrowRight size={14} />
         </div>

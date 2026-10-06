@@ -65,9 +65,9 @@ export const OrionTabletNavRail: React.FC<{ isLandscapeMode: boolean }> = ({ isL
                 onClick={() => handleSelectTab(item.id)}
                 className={`relative w-12 h-12 rounded-2xl flex flex-col items-center justify-center gap-0.5 active:scale-95 transition-all cursor-pointer min-h-[48px] min-w-[48px] ${
                   isActive
-                    ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/40 shadow-xs'
+                    ? 'bg-white/[0.12] text-white border border-white/[0.1] shadow-xs'
                     : item.highlight
-                    ? 'text-cyan-400 hover:bg-cyan-500/10'
+                    ? 'text-os-accent hover:bg-white/[0.06]'
                     : 'text-os-text-muted hover:text-os-text-primary hover:bg-os-surface-hover'
                 }`}
                 aria-label={item.label}
@@ -88,7 +88,7 @@ export const OrionTabletNavRail: React.FC<{ isLandscapeMode: boolean }> = ({ isL
 
                 {/* Active Indicator Pip */}
                 {isActive && (
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r bg-cyan-400" />
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r bg-os-accent" />
                 )}
               </button>
             );
@@ -120,9 +120,9 @@ export const OrionTabletNavRail: React.FC<{ isLandscapeMode: boolean }> = ({ isL
             onClick={() => handleSelectTab(item.id)}
             className={`relative flex flex-col items-center justify-center gap-1 py-1 px-4 rounded-xl active:scale-95 transition-all cursor-pointer min-h-[48px] ${
               isActive
-                ? 'text-cyan-400 font-bold'
+                ? 'text-white font-bold'
                 : item.highlight
-                ? 'text-cyan-400'
+                ? 'text-os-accent'
                 : 'text-os-text-muted hover:text-os-text-primary'
             }`}
             aria-label={item.label}
@@ -142,7 +142,7 @@ export const OrionTabletNavRail: React.FC<{ isLandscapeMode: boolean }> = ({ isL
 
             {/* Active Bottom Glow Pip */}
             {isActive && (
-              <span className="absolute -bottom-1 w-6 h-1 rounded-full bg-cyan-400" />
+              <span className="absolute -bottom-1 w-6 h-1 rounded-full bg-os-accent" />
             )}
           </button>
         );
