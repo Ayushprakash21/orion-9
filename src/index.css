@@ -575,16 +575,23 @@ html, body, #root {
   grid-template-columns: minmax(0, 1fr) !important;
   overflow: hidden !important;
   isolation: isolate !important;
+  background-color: #02050a !important;
 }
 
-/* OS Layer 0: Wallpaper background */
+/* OS Layer 0: Wallpaper background — Full-bleed zero-gap canvas across entire shell */
 .orion-desktop-shell > .orion-desktop-wallpaper-layer {
-  grid-row: 2 !important;
+  grid-row: 1 / -1 !important;
   grid-column: 1 !important;
   position: absolute !important;
   inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
   width: 100% !important;
   height: 100% !important;
+  max-width: 100vw !important;
+  max-height: 100dvh !important;
   overflow: hidden !important;
   z-index: 0 !important;
   pointer-events: none !important;
@@ -914,43 +921,23 @@ html, body, #root {
 }
 
 
-/* FINAL BUG FIX — wallpaper is physically constrained to the workspace row.
-   Absolute positioning alone does not honor CSS grid-row for its containing block,
-   so the previous inset:0 allowed the logo/canvas to start at the shell top. */
+/* ORION-9 DESKTOP WALLPAPER SYSTEM — FULL-BLEED ZERO-GAP CONTAINMENT */
 .orion-desktop-shell > .orion-desktop-wallpaper-layer {
-  top: 48px !important;
+  grid-row: 1 / -1 !important;
+  grid-column: 1 !important;
+  position: absolute !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
   right: 0 !important;
   bottom: 0 !important;
-  left: 0 !important;
   width: 100% !important;
-  height: calc(100% - 48px) !important;
-  max-height: calc(100% - 48px) !important;
+  height: 100% !important;
+  max-width: 100vw !important;
+  max-height: 100dvh !important;
   overflow: hidden !important;
   z-index: 0 !important;
-}
-
-/* Use a clean cropped fallback asset; no negative source-image offsets. */
-.orion-desktop-shell > .orion-desktop-wallpaper-layer .orion-wallpaper-brand {
-  top: 12px !important;
-  left: clamp(24px, 3vw, 48px) !important;
-  width: 170px !important;
-  height: 118px !important;
-  overflow: hidden !important;
-}
-.orion-desktop-shell > .orion-desktop-wallpaper-layer .orion-wallpaper-logo-frame {
-  width: 170px !important;
-  height: 118px !important;
-  overflow: hidden !important;
-}
-.orion-desktop-shell > .orion-desktop-wallpaper-layer .orion-wallpaper-logo-master {
-  position: absolute !important;
-  left: 0 !important;
-  top: 0 !important;
-  width: 170px !important;
-  height: auto !important;
-  max-width: 170px !important;
-  object-fit: contain !important;
-  mix-blend-mode: screen !important;
+  pointer-events: none !important;
 }
 
 /* Launcher view toggle */
@@ -961,162 +948,6 @@ html, body, #root {
 }
 
 
-/* ==========================================================================
-   ORION-9 HOME WALLPAPER — FINAL LOGO GEOMETRY
-   The Home wallpaper uses a dedicated transparent/cropped asset. Do not use the
-   configurable square master here; its 1254px canvas contains large source margins.
-   ========================================================================== */
-.orion-desktop-shell > .orion-desktop-wallpaper-layer {
-  top: 48px !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100% !important;
-  height: calc(100% - 48px) !important;
-  max-height: calc(100% - 48px) !important;
-  overflow: hidden !important;
-}
-
-.orion-desktop-shell > .orion-desktop-wallpaper-layer .orion-wallpaper-brand {
-  position: absolute !important;
-  top: 14px !important;
-  left: clamp(28px, 3vw, 48px) !important;
-  width: 176px !important;
-  height: 122px !important;
-  overflow: hidden !important;
-  z-index: 8 !important;
-}
-
-.orion-desktop-shell > .orion-desktop-wallpaper-layer .orion-wallpaper-logo-frame {
-  width: 176px !important;
-  height: 122px !important;
-  overflow: hidden !important;
-}
-
-.orion-desktop-shell > .orion-desktop-wallpaper-layer .orion-wallpaper-logo-master {
-  display: block !important;
-  position: absolute !important;
-  inset: 0 !important;
-  width: 176px !important;
-  height: 122px !important;
-  max-width: none !important;
-  max-height: none !important;
-  object-fit: fill !important;
-  object-position: center !important;
-  mix-blend-mode: normal !important;
-  filter: drop-shadow(0 0 10px rgba(0, 170, 255, .14)) !important;
-}
-
-.orion-desktop-shell > .orion-desktop-wallpaper-layer .orion-wallpaper-tagline {
-  position: absolute !important;
-  left: clamp(28px, 3vw, 48px) !important;
-  bottom: clamp(76px, 9vh, 96px) !important;
-  top: auto !important;
-  width: min(360px, 32vw) !important;
-  z-index: 8 !important;
-}
-
-/* ==========================================================================
-   ORION-9 FINAL HOME WALLPAPER CONTAINMENT
-   The live wallpaper is a child of the workspace viewport. Its coordinate
-   system therefore starts exactly at the bottom edge of the 48px top bar.
-   Never add another 48px offset to this layer.
-   ========================================================================== */
-.orion-desktop-shell > .orion-app-viewport > .orion-desktop-wallpaper-layer {
-  position: absolute !important;
-  top: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: none !important;
-  max-height: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-  z-index: 0 !important;
-}
-
-/* Wallpaper branding is positioned relative to the workspace, never the
-   browser viewport/top-bar row. */
-.orion-desktop-shell > .orion-app-viewport > .orion-desktop-wallpaper-layer .orion-wallpaper-brand {
-  top: 12px !important;
-  left: clamp(28px, 3vw, 48px) !important;
-}
-
-/* Keep the requested lower-left statement in the workspace above the dock. */
-.orion-desktop-shell > .orion-app-viewport > .orion-desktop-wallpaper-layer .orion-wallpaper-tagline {
-  top: auto !important;
-  left: clamp(28px, 3vw, 48px) !important;
-  bottom: clamp(76px, 9vh, 96px) !important;
-}
-
-/* FINAL WALLPAPER LOGO RENDER CONTRACT — use the full transparent logo at its
-   native aspect ratio. Never scale/crop the master into a square frame. */
-.orion-desktop-shell > .orion-app-viewport > .orion-desktop-wallpaper-layer .orion-wallpaper-brand {
-  position: absolute !important;
-  top: 14px !important;
-  left: clamp(28px, 3vw, 48px) !important;
-  width: 180px !important;
-  height: 126px !important;
-  overflow: hidden !important;
-  z-index: 6 !important;
-}
-.orion-desktop-shell > .orion-app-viewport > .orion-desktop-wallpaper-layer .orion-wallpaper-logo-frame {
-  position: relative !important;
-  width: 180px !important;
-  height: 126px !important;
-  overflow: hidden !important;
-}
-.orion-desktop-shell > .orion-app-viewport > .orion-desktop-wallpaper-layer .orion-wallpaper-logo-master {
-  position: absolute !important;
-  left: 0 !important;
-  top: 0 !important;
-  width: 180px !important;
-  height: auto !important;
-  max-width: none !important;
-  object-fit: contain !important;
-  object-position: left top !important;
-  mix-blend-mode: screen !important;
-  filter: drop-shadow(0 0 12px rgba(0,170,255,.14)) !important;
-}
-
-
-
-/* ========================================================================
-   ORION-9 REFERENCE WALLPAPER — FINAL VISUAL SOURCE OF TRUTH
-   The supplied reference artwork is the base. Live motion is an overlay only.
-   This prevents generated canvas geometry, logos, or text from drifting away
-   from the approved ORION-9 composition.
-   ======================================================================== */
-.orion-desktop-shell > .orion-app-viewport > .orion-desktop-wallpaper-layer {
-  overflow: hidden !important;
-}
-.orion-desktop-shell > .orion-app-viewport > .orion-desktop-wallpaper-layer .orion-live-wallpaper {
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  overflow: hidden !important;
-  z-index: 0 !important;
-}
-.orion-desktop-shell > .orion-app-viewport > .orion-desktop-wallpaper-layer .orion-live-wallpaper-reference {
-  object-fit: cover !important;
-  object-position: center center !important;
-  user-select: none !important;
-  -webkit-user-drag: none !important;
-  pointer-events: none !important;
-}
-.orion-desktop-shell > .orion-app-viewport > .orion-desktop-wallpaper-layer .orion-live-wallpaper > canvas {
-  z-index: 1 !important;
-  pointer-events: none !important;
-}
-/* The reference image already contains the approved logo and tagline. */
-.orion-desktop-shell > .orion-app-viewport > .orion-desktop-wallpaper-layer .orion-wallpaper-brand,
-.orion-desktop-shell > .orion-app-viewport > .orion-desktop-wallpaper-layer .orion-wallpaper-tagline {
-  display: none !important;
-}
 
 
 /* HARD OPAQUE APPLICATION CHROME: no wallpaper, blur, alpha, or blend mode may

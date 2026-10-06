@@ -49,7 +49,7 @@ export const en: TranslationSchema = {
     invalidCredentials: 'Invalid password or credentials.',
     rememberMe: 'Remember me',
     forgotPassword: 'Forgot password?',
-    otherUser: 'Back',
+    otherUser: 'Other user',
     switchUser: 'Switch User',
     lock: 'Lock',
     signOut: 'Sign Out',

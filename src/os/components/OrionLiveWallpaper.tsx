@@ -187,7 +187,10 @@ export function OrionLiveWallpaper({
             src={imgSrc}
             alt={activeWallpaper?.name || `${target} Wallpaper`}
             onError={handleImageError}
-            className="orion-static-wallpaper-img absolute inset-0 w-full h-full object-cover object-center scale-100 filter-none"
+            draggable={false}
+            loading="eager"
+            decoding="async"
+            className="orion-static-wallpaper-img absolute inset-0 w-full h-full object-cover object-center scale-100 filter-none select-none pointer-events-none"
           />
         )}
 
