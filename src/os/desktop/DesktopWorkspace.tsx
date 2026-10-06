@@ -471,7 +471,7 @@ export function DesktopWorkspace() {
         session.moved = true;
         cancelLongPress();
         if (session.element) {
-          session.element.classList.add('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-2', 'ring-cyan-400');
+          session.element.classList.add('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-1', 'ring-sky-500/50');
           session.element.classList.remove('cursor-grab');
         }
         setActiveDraggingId(session.shortcutId);
@@ -557,7 +557,7 @@ export function DesktopWorkspace() {
             session.element.releasePointerCapture(session.pointerId);
           }
         } catch (err) {}
-        session.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-2', 'ring-cyan-400');
+        session.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-1', 'ring-sky-500/50', 'ring-2', 'ring-cyan-400');
         session.element.classList.add('cursor-grab');
       }
 
@@ -656,7 +656,7 @@ export function DesktopWorkspace() {
         } catch (err) {}
         session.element.style.transform = '';
         session.element.style.zIndex = '';
-        session.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-2', 'ring-cyan-400');
+        session.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-1', 'ring-sky-500/50', 'ring-2', 'ring-cyan-400');
         session.element.classList.add('cursor-grab');
       }
       dragRef.current = null;
@@ -962,17 +962,17 @@ export function DesktopWorkspace() {
     >
       {/* Edit Mode Top Governance Banner */}
       {isEditMode && (
-        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[2147483600] bg-[#091322]/95 border border-cyan-400/60 shadow-[0_0_40px_rgba(34,211,238,0.3)] rounded-2xl px-6 py-2.5 flex items-center gap-4 backdrop-blur-xl animate-in fade-in slide-in-from-top-4 select-none pointer-events-auto">
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-[2147483600] bg-[#12151a]/95 border border-white/[0.12] shadow-2xl rounded-2xl px-5 py-2 flex items-center gap-4 backdrop-blur-xl animate-in fade-in slide-in-from-top-4 select-none pointer-events-auto">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
-            <span className="text-xs font-bold text-white uppercase tracking-wider">Spatial Edit Mode</span>
+            <span className="w-2 h-2 rounded-full bg-sky-400" />
+            <span className="text-xs font-semibold text-os-text-primary tracking-wide">Spatial Edit Mode</span>
           </div>
-          <div className="h-4 w-px bg-white/20" />
+          <div className="h-4 w-px bg-white/10" />
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setIsWidgetGalleryOpen(true)}
-              className="px-3.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs flex items-center gap-1.5 transition-all shadow-md active:scale-95 cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Widget</span>
@@ -980,9 +980,9 @@ export function DesktopWorkspace() {
             <button
               type="button"
               onClick={handleCreateDesktopShortcut}
-              className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-3 py-1.5 rounded-lg bg-white/[0.08] hover:bg-white/[0.14] text-os-text-primary font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5 text-blue-400" />
+              <Plus className="w-3.5 h-3.5 text-os-text-secondary" />
               <span>Add Shortcut</span>
             </button>
             <button
@@ -1050,12 +1050,12 @@ export function DesktopWorkspace() {
                   width: `${DEFAULT_GRID_CONFIG.cellWidth}px`,
                   minHeight: `${DEFAULT_GRID_CONFIG.cellHeight}px`,
                 }}
-                className="absolute top-0 left-0 flex flex-col items-center justify-start p-2 rounded-xl border-2 border-dashed border-cyan-400/40 bg-cyan-500/10 opacity-50 pointer-events-none z-10 animate-pulse"
+                className="absolute top-0 left-0 flex flex-col items-center justify-start p-2 rounded-xl border-2 border-dashed border-white/20 bg-white/[0.04] opacity-50 pointer-events-none z-10"
               >
                 <div className="opacity-30 grayscale">
                   {renderShortcutIcon(shortcut, false)}
                 </div>
-                <div className="mt-1.5 w-full max-w-[140px] px-1 text-center text-[10px] font-mono text-cyan-300/60 truncate">
+                <div className="mt-1.5 w-full max-w-[140px] px-1 text-center text-[10px] font-mono text-os-text-muted truncate">
                   {shortcut.name}
                 </div>
               </div>
@@ -1090,7 +1090,7 @@ export function DesktopWorkspace() {
                   } catch {}
                   dragRef.current.element.style.transform = '';
                   dragRef.current.element.style.zIndex = '';
-                  dragRef.current.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-2', 'ring-cyan-400');
+                  dragRef.current.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-1', 'ring-sky-500/50', 'ring-2', 'ring-cyan-400');
                   dragRef.current.element.classList.add('cursor-grab');
                 }
                 dragRef.current = null;
@@ -1102,9 +1102,9 @@ export function DesktopWorkspace() {
                 setItemMenu({ x: e.clientX, y: e.clientY, shortcut });
               }}
               className={cn(
-                "absolute top-0 left-0 flex flex-col items-center justify-start p-2 rounded-xl transition-all duration-150 select-none group touch-none min-h-[44px] min-w-[44px] cursor-grab focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400",
-                isBeingDragged && "cursor-grabbing z-[1000] opacity-90 scale-105 shadow-2xl ring-2 ring-cyan-400 backdrop-blur-md",
-                isDropTarget && "bg-cyan-500/30 ring-2 ring-cyan-400 scale-110 shadow-xl z-30",
+                "absolute top-0 left-0 flex flex-col items-center justify-start p-2 rounded-xl transition-all duration-150 select-none group touch-none min-h-[44px] min-w-[44px] cursor-grab focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-os-accent",
+                isBeingDragged && "cursor-grabbing z-[1000] opacity-90 scale-105 shadow-2xl ring-1 ring-sky-500/50 backdrop-blur-md",
+                isDropTarget && "bg-sky-500/20 ring-2 ring-sky-500/40 scale-105 shadow-lg z-30",
                 isSelected && !isBeingDragged
                   ? "bg-os-accent/20 border border-os-accent/50 shadow-md backdrop-blur-xs z-25"
                   : "hover:bg-os-surface-hover/30 hover:scale-[1.04] active:scale-[0.96] border border-transparent"
@@ -1180,7 +1180,7 @@ export function DesktopWorkspace() {
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <ArrowUpDown size={14} className="text-cyan-400 pointer-events-none shrink-0" />
+            <ArrowUpDown size={14} className="text-os-text-secondary pointer-events-none shrink-0" />
             <span className="pointer-events-none">Sort by Name</span>
           </button>
 
@@ -1193,7 +1193,7 @@ export function DesktopWorkspace() {
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Layers size={14} className="text-amber-400 pointer-events-none shrink-0" />
+            <Layers size={14} className="text-os-text-secondary pointer-events-none shrink-0" />
             <span className="pointer-events-none">Sort by Item Type</span>
           </button>
 
@@ -1206,7 +1206,7 @@ export function DesktopWorkspace() {
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Sliders size={14} className="text-purple-400 pointer-events-none shrink-0" />
+            <Sliders size={14} className="text-os-text-secondary pointer-events-none shrink-0" />
             <span className="pointer-events-none">Sort by Date Modified</span>
           </button>
 
@@ -1222,7 +1222,7 @@ export function DesktopWorkspace() {
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Plus size={14} className="text-amber-400 pointer-events-none shrink-0" />
+            <Plus size={14} className="text-os-text-secondary pointer-events-none shrink-0" />
             <span className="pointer-events-none">New Folder</span>
           </button>
 
@@ -1235,7 +1235,7 @@ export function DesktopWorkspace() {
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Plus size={14} className="text-blue-400 pointer-events-none shrink-0" />
+            <Plus size={14} className="text-os-text-secondary pointer-events-none shrink-0" />
             <span className="pointer-events-none">New Document (.docx)</span>
           </button>
 
@@ -1248,7 +1248,7 @@ export function DesktopWorkspace() {
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Plus size={14} className="text-emerald-400 pointer-events-none shrink-0" />
+            <Plus size={14} className="text-os-text-secondary pointer-events-none shrink-0" />
             <span className="pointer-events-none">New Spreadsheet (.xlsx)</span>
           </button>
 
@@ -1261,7 +1261,7 @@ export function DesktopWorkspace() {
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Plus size={14} className="text-amber-500 pointer-events-none shrink-0" />
+            <Plus size={14} className="text-os-text-secondary pointer-events-none shrink-0" />
             <span className="pointer-events-none">New Presentation (.pptx)</span>
           </button>
 
@@ -1274,7 +1274,7 @@ export function DesktopWorkspace() {
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Plus size={14} className="text-cyan-400 pointer-events-none shrink-0" />
+            <Plus size={14} className="text-os-text-secondary pointer-events-none shrink-0" />
             <span className="pointer-events-none">New Text Document (.txt)</span>
           </button>
 
@@ -1290,7 +1290,7 @@ export function DesktopWorkspace() {
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <LayoutGrid size={14} className="text-cyan-400 pointer-events-none shrink-0" />
+            <LayoutGrid size={14} className="text-os-text-secondary pointer-events-none shrink-0" />
             <span className="pointer-events-none font-medium">Widgets</span>
           </button>
 
@@ -1303,7 +1303,7 @@ export function DesktopWorkspace() {
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Sliders size={14} className="text-purple-400 pointer-events-none shrink-0" />
+            <Sliders size={14} className="text-os-text-secondary pointer-events-none shrink-0" />
             <span className="pointer-events-none font-medium">Customize Desktop</span>
           </button>
 
@@ -1382,7 +1382,7 @@ export function DesktopWorkspace() {
               }}
               className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
             >
-              <FileText size={14} className="text-cyan-400 pointer-events-none shrink-0" />
+              <FileText size={14} className="text-os-text-secondary pointer-events-none shrink-0" />
               <span className="pointer-events-none">Edit / View Content</span>
             </button>
           )}
@@ -1413,7 +1413,7 @@ export function DesktopWorkspace() {
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >
-            <Copy size={14} className="text-cyan-400 pointer-events-none shrink-0" />
+            <Copy size={14} className="text-os-text-secondary pointer-events-none shrink-0" />
             <span className="pointer-events-none">Create Shortcut</span>
           </button>
 
@@ -1457,7 +1457,7 @@ export function DesktopWorkspace() {
         >
           <div className="bg-os-surface border border-os-border rounded-xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-3 animate-in fade-in zoom-in-95">
             <h3 className="text-sm font-semibold text-os-text-primary flex items-center gap-2">
-              <Edit2 size={16} className="text-cyan-400" />
+              <Edit2 size={16} className="text-os-accent" />
               Rename Desktop Shortcut
             </h3>
             <input
@@ -1482,7 +1482,7 @@ export function DesktopWorkspace() {
               <button
                 type="button"
                 onClick={handleExecuteRename}
-                className="px-4 py-2 rounded-lg bg-os-accent text-black font-semibold text-xs min-h-[44px]"
+                className="px-4 py-2 rounded-lg bg-os-accent text-white font-semibold text-xs min-h-[44px]"
               >
                 Rename
               </button>
@@ -1501,7 +1501,7 @@ export function DesktopWorkspace() {
           <div className="bg-os-surface border border-os-border rounded-xl shadow-2xl w-full max-w-sm p-5 flex flex-col gap-4 animate-in fade-in zoom-in-95">
             <div className="flex items-center justify-between border-b border-os-border/60 pb-3">
               <h3 className="text-sm font-semibold text-os-text-primary flex items-center gap-2">
-                <Info size={16} className="text-cyan-400" />
+                <Info size={16} className="text-os-accent" />
                 Shortcut Properties
               </h3>
             </div>

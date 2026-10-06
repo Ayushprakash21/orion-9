@@ -278,16 +278,16 @@ export const InventoryOptimization: React.FC = () => {
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => setShowReplenishModal(true)}
-              className="px-3.5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-semibold rounded-lg shadow-lg shadow-cyan-900/30 flex items-center gap-2 transition-all"
+              className="px-3.5 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
             >
               <Plus size={15} />
               New Replenishment Requisition
             </button>
             <button
               onClick={() => setShowTransferModal(true)}
-              className="px-3.5 py-2 bg-slate-800/90 hover:bg-slate-700/90 border border-slate-700 text-slate-200 text-xs font-medium rounded-lg flex items-center gap-2 transition-colors"
+              className="px-3.5 py-2 bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.1] text-slate-200 text-xs font-medium rounded-lg flex items-center gap-2 transition-colors cursor-pointer"
             >
-              <ArrowLeftRight size={15} className="text-cyan-400" />
+              <ArrowLeftRight size={15} className="text-slate-400" />
               Inter-Echelon STO Transfer
             </button>
           </div>
@@ -638,7 +638,7 @@ export const InventoryOptimization: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <button
                       onClick={handleRecalculate}
-                      className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-semibold rounded-lg shadow-md flex items-center gap-2 transition-all"
+                      className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-2 cursor-pointer shadow-sm"
                     >
                       <RefreshCw size={14} />
                       Recalculate & Persist Buffer
@@ -789,7 +789,7 @@ export const InventoryOptimization: React.FC = () => {
 
                 <button
                   onClick={() => setShowReplenishModal(true)}
-                  className="px-3.5 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-semibold rounded-lg shadow-md flex items-center gap-1.5 transition-all"
+                  className="px-3.5 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-sm"
                 >
                   <Plus size={14} />
                   New Autonomous Requisition
@@ -1263,7 +1263,7 @@ export const InventoryOptimization: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-lg shadow-md"
+                  className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-medium rounded-lg transition-colors cursor-pointer shadow-sm"
                 >
                   Dispatch Requisition
                 </button>
@@ -1279,7 +1279,7 @@ export const InventoryOptimization: React.FC = () => {
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
             <div className="p-5 border-b border-slate-800 flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-mono text-cyan-400 uppercase">Inter-Echelon Rebalancing</span>
+                <span className="text-[10px] font-mono text-os-text-secondary uppercase">Inter-Echelon Rebalancing</span>
                 <h3 className="text-base font-bold text-white">Execute Stock Transfer Order (STO)</h3>
               </div>
               <button 
@@ -1333,7 +1333,7 @@ export const InventoryOptimization: React.FC = () => {
                 />
               </div>
 
-              <div className="p-3 bg-cyan-500/10 border border-cyan-500/20 rounded-lg text-slate-300 text-[11px]">
+              <div className="p-3 bg-white/[0.04] border border-white/[0.08] rounded-lg text-slate-300 text-[11px]">
                 Inter-echelon transfer directly moves inventory from donor node to recipient in-transit pool, mitigating local stockout risk without generating new supplier procurement lead-time delays.
               </div>
 
@@ -1341,13 +1341,13 @@ export const InventoryOptimization: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowTransferModal(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg"
+                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-lg shadow-md"
+                  className="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-medium rounded-lg transition-colors cursor-pointer shadow-sm"
                 >
                   Confirm Inter-Echelon Transfer
                 </button>

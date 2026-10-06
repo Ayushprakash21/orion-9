@@ -300,7 +300,7 @@ export const LogisticsIntelligence: React.FC = () => {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowBookingModal(true)}
-              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-medium shadow-lg shadow-cyan-900/30 transition-all cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium transition-colors cursor-pointer shadow-sm"
             >
               <Plus size={14} />
               <span>Book Multimodal Freight</span>
@@ -311,7 +311,7 @@ export const LogisticsIntelligence: React.FC = () => {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.1] text-slate-200 text-xs font-medium transition-colors cursor-pointer"
               title="Ping all active IoT telemetry beacons"
             >
-              <RefreshCw size={13} className="text-cyan-400" />
+              <RefreshCw size={13} className="text-slate-400" />
               <span>Sensor Ping</span>
             </button>
           </div>
@@ -1186,7 +1186,7 @@ export const LogisticsIntelligence: React.FC = () => {
                             await dispatchConsolidationPlan(plan.id);
                             showToast(`Plan ${plan.id} dispatched to Approval Center under POL-LOG-001.`, 'warning');
                           }}
-                          className="w-full py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-semibold shadow-md transition-all cursor-pointer"
+                          className="w-full py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium transition-colors cursor-pointer shadow-sm"
                         >
                           Dispatch to Approval Center
                         </button>
@@ -1470,7 +1470,7 @@ export const LogisticsIntelligence: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-semibold shadow-lg shadow-cyan-900/30 transition-all cursor-pointer"
+                  className="px-5 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium transition-colors cursor-pointer shadow-sm"
                 >
                   Confirm & Dispatch
                 </button>

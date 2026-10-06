@@ -218,12 +218,12 @@ export function OrionSystemBar() {
         <button 
           onClick={() => openApplication('ai-copilot')}
           data-testid="orion-copilot-button"
-          className="flex items-center gap-1.5 px-2.5 py-1 text-sky-400 hover:text-sky-300 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 rounded-lg transition-all cursor-pointer text-[11px] font-medium"
+          className="flex items-center gap-1.5 px-2.5 py-1 text-os-text-primary hover:text-white bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] rounded-lg transition-colors cursor-pointer text-[11px] font-medium"
           title="Open Orion AI Copilot"
           aria-label="Open Orion AI Copilot"
           type="button"
         >
-          <Brain className="w-3.5 h-3.5" />
+          <Brain className="w-3.5 h-3.5 text-os-accent" />
           <span className="hidden sm:inline">Copilot</span>
         </button>
 
@@ -243,7 +243,7 @@ export function OrionSystemBar() {
             onClick={() => setNotificationsOpen(v => !v)}
             className={cn(
               "relative flex items-center justify-center w-8 h-8 hover:bg-white/[0.06] hover:text-os-text-primary rounded-lg transition-colors cursor-pointer outline-none",
-              hasCriticalExceptions ? "text-red-400" : "text-os-text-muted",
+              hasCriticalExceptions ? "text-rose-400" : "text-os-text-muted",
               notificationsOpen && "bg-white/[0.12] text-os-text-primary"
             )}
             title={hasCriticalExceptions ? "Critical exceptions detected" : "Notifications"}
@@ -254,8 +254,8 @@ export function OrionSystemBar() {
             {(unreadCount > 0 || hasCriticalExceptions) && (
               <span
                 className={cn(
-                  "absolute top-1.5 right-1.5 w-2 h-2 rounded-full",
-                  hasCriticalExceptions ? "bg-red-500 shadow-sm shadow-red-500/50 animate-pulse" : "bg-sky-500 shadow-sm shadow-sky-500/50"
+                  "absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full",
+                  hasCriticalExceptions ? "bg-rose-500" : "bg-sky-500"
                 )}
               />
             )}

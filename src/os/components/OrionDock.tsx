@@ -524,8 +524,8 @@ export function OrionDock() {
           }}
           title={`${t('desktop.startMenu')} (All Applications)`}
         >
-          <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-400 transition-colors shadow-xs">
-            <Grid className="w-5 h-5 transition-transform duration-300 group-hover:scale-110" />
+          <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-os-text-primary hover:text-white transition-colors">
+            <Grid className="w-5 h-5 transition-transform duration-300 group-hover:scale-105" />
           </div>
 
           <div className="absolute -top-11 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#12151a]/95 backdrop-blur-xl text-white text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/[0.08] shadow-xl z-50">

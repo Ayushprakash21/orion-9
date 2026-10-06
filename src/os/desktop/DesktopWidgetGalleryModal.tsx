@@ -42,7 +42,7 @@ export const WIDGET_GALLERY_CATALOG: WidgetGalleryItem[] = [
     type: 'clock',
     title: 'System Clock',
     description: 'Live digital clock with OS uptime and local date.',
-    icon: <Clock className="w-5 h-5 text-cyan-400" />,
+    icon: <Clock className="w-5 h-5 text-sky-400" />,
     defaultSize: 'MEDIUM',
     dimensions: { width: 340, height: 150 },
   },
@@ -50,7 +50,7 @@ export const WIDGET_GALLERY_CATALOG: WidgetGalleryItem[] = [
     type: 'calendar',
     title: 'Enterprise Calendar',
     description: 'Monthly calendar view with today highlight & milestones.',
-    icon: <Calendar className="w-5 h-5 text-blue-400" />,
+    icon: <Calendar className="w-5 h-5 text-sky-400" />,
     defaultSize: 'MEDIUM',
     dimensions: { width: 340, height: 220 },
   },
@@ -90,7 +90,7 @@ export const WIDGET_GALLERY_CATALOG: WidgetGalleryItem[] = [
     type: 'system_health',
     title: 'OS Telemetry',
     description: 'Database latency, database environment & memory probes.',
-    icon: <Cpu className="w-5 h-5 text-cyan-400" />,
+    icon: <Cpu className="w-5 h-5 text-sky-400" />,
     defaultSize: 'MEDIUM',
     dimensions: { width: 340, height: 160 },
   },
@@ -106,7 +106,7 @@ export const WIDGET_GALLERY_CATALOG: WidgetGalleryItem[] = [
     type: 'quick_actions',
     title: 'Quick Office Actions',
     description: 'Instant launchers for New Doc, Sheet, Slide & Settings.',
-    icon: <Zap className="w-5 h-5 text-cyan-400" />,
+    icon: <Zap className="w-5 h-5 text-sky-400" />,
     defaultSize: 'MEDIUM',
     dimensions: { width: 340, height: 180 },
   },
@@ -133,24 +133,24 @@ export function DesktopWidgetGalleryModal({
     >
       <div
         data-testid="widget-gallery"
-        className="bg-[#091322] border border-cyan-500/30 rounded-2xl shadow-[0_0_60px_rgba(0,0,0,0.85)] w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95"
+        className="bg-[#12151a] border border-white/[0.12] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95"
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-white/5">
+        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-white/[0.03]">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+            <div className="p-2 rounded-xl bg-white/[0.06] border border-white/[0.08] text-os-text-primary">
               <Plus className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white tracking-wide">Orion Widget Gallery</h2>
-              <p className="text-xs text-white/50">Add spatial OS widgets to your desktop workspace</p>
+              <h2 className="text-base font-semibold text-white tracking-wide">Orion Widget Gallery</h2>
+              <p className="text-xs text-os-text-muted">Add spatial OS widgets to your desktop workspace</p>
             </div>
           </div>
           <button
             type="button"
             data-action="close-gallery"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 text-white/70 hover:text-white flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 text-white/70 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
@@ -162,22 +162,22 @@ export function DesktopWidgetGalleryModal({
             <div
               key={item.type}
               data-gallery-item={item.type}
-              className="bg-white/5 border border-white/10 hover:border-cyan-500/40 rounded-xl p-4 flex flex-col justify-between gap-3 transition-all duration-200 hover:bg-white/10 group"
+              className="bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.16] rounded-xl p-4 flex flex-col justify-between gap-3 transition-all duration-200 hover:bg-white/[0.07] group"
             >
               <div className="flex items-start gap-3">
                 <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 shrink-0 group-hover:scale-105 transition-transform">
                   {item.icon}
                 </div>
                 <div>
-                  <h3 className="text-sm font-semibold text-white group-hover:text-cyan-400 transition-colors">
+                  <h3 className="text-sm font-semibold text-white group-hover:text-sky-300 transition-colors">
                     {item.title}
                   </h3>
-                  <p className="text-xs text-white/60 mt-0.5 leading-relaxed">{item.description}</p>
+                  <p className="text-xs text-os-text-muted mt-0.5 leading-relaxed">{item.description}</p>
                 </div>
               </div>
 
               <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 uppercase font-semibold">
+                <span className="text-[10px] font-mono text-os-text-secondary bg-white/[0.06] px-2 py-0.5 rounded border border-white/[0.08] uppercase font-medium">
                   Size: {item.defaultSize}
                 </span>
                 <button
@@ -187,7 +187,7 @@ export function DesktopWidgetGalleryModal({
                     onAddWidget(item);
                     onClose();
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold text-xs flex items-center gap-1.5 shadow-md transition-all active:scale-95"
+                  className="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer active:scale-95"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add to Desktop</span>
@@ -198,11 +198,11 @@ export function DesktopWidgetGalleryModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-white/10 bg-white/5 flex justify-end">
+        <div className="px-6 py-3 border-t border-white/10 bg-white/[0.02] flex justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-medium transition-colors"
+            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-medium transition-colors cursor-pointer"
           >
             Close
           </button>

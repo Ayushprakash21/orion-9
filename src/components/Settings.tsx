@@ -973,13 +973,13 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                   key={item.id}
                   onClick={() => setActiveSection(item.id as SettingsSection)}
                   className={cn(
-                    "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all text-left cursor-pointer",
+                    "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left cursor-pointer",
                     activeSection === item.id 
-                      ? "bg-sky-500/15 text-sky-400 border border-sky-500/30 font-semibold shadow-sm" 
-                      : "text-slate-400 hover:bg-white/[0.05] hover:text-white border border-transparent"
+                      ? "bg-white/[0.10] text-white font-semibold border border-white/[0.08]" 
+                      : "text-slate-400 hover:bg-white/[0.04] hover:text-white border border-transparent"
                   )}
                 >
-                  <item.icon size={15} className={activeSection === item.id ? "text-sky-400" : "text-slate-400"} /> 
+                  <item.icon size={15} className={activeSection === item.id ? "text-os-accent" : "text-slate-400"} /> 
                   <span>{item.label}</span>
                 </button>
               ))}
@@ -996,10 +996,10 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                     key={item.id}
                     onClick={() => setActiveSection(item.id as SettingsSection)}
                     className={cn(
-                      "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all text-left cursor-pointer",
+                      "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left cursor-pointer",
                       activeSection === item.id 
-                        ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-semibold shadow-sm" 
-                        : "text-slate-400 hover:bg-white/[0.05] hover:text-white border border-transparent"
+                        ? "bg-white/[0.10] text-white font-semibold border border-white/[0.08]" 
+                        : "text-slate-400 hover:bg-white/[0.04] hover:text-white border border-transparent"
                     )}
                   >
                     <item.icon size={15} className={activeSection === item.id ? "text-emerald-400" : "text-slate-400"} /> 

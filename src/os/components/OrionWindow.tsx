@@ -464,8 +464,8 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
         isMinimized && "pointer-events-none",
         isMaximized ? "rounded-none border-none shadow-none" : "aurora-window-shadow rounded-xl border border-white/[0.08] bg-[#0c0e11]",
         isActive && !isMaximized
-          ? "ring-1 ring-sky-500/30 border-white/[0.15]"
-          : ""
+          ? "border-white/[0.18] shadow-[0_20px_50px_rgba(0,0,0,0.7)]"
+          : "shadow-[0_12px_36px_rgba(0,0,0,0.5)]"
       )}
     >
       {/* Title Bar / Chrome */}

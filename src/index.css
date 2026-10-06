@@ -8,28 +8,43 @@
   --color-os-surface-hover: var(--os-surface-hover);
   --color-os-surface-active: var(--os-surface-active);
   --color-os-border: var(--os-border);
+  --color-os-border-subtle: var(--os-border-subtle);
+  --color-os-border-strong: var(--os-border-strong);
   --color-os-border-inverse: var(--os-border-inverse);
   --color-os-text-primary: var(--os-text-primary);
   --color-os-text-secondary: var(--os-text-secondary);
+  --color-os-text-tertiary: var(--os-text-tertiary);
   --color-os-text-muted: var(--os-text-muted);
+  --color-os-text-disabled: var(--os-text-disabled);
   --color-os-text-primary-inverse: var(--os-text-primary-inverse);
   --color-os-surface-secondary: var(--os-surface-secondary);
-  --color-os-border-strong: var(--os-border-strong);
   --color-os-input-bg: var(--os-input-bg);
   --color-os-accent: var(--os-accent);
+  --color-os-accent-subtle: var(--os-accent-subtle);
 
-  /* Semantic --orion-* token mappings */
-  --color-orion-bg: var(--orion-background);
+  /* Semantic --orion-* token mappings (Design System Specification) */
+  --color-orion-bg: var(--orion-bg);
   --color-orion-surface: var(--orion-surface);
   --color-orion-surface-elevated: var(--orion-surface-elevated);
-  --color-orion-text: var(--orion-text);
-  --color-orion-text-secondary: var(--orion-text-secondary);
-  --color-orion-text-muted: var(--orion-text-muted);
+  --color-orion-surface-secondary: var(--orion-surface-secondary);
+  --color-orion-surface-hover: var(--orion-surface-hover);
+  --color-orion-surface-active: var(--orion-surface-active);
   --color-orion-border: var(--orion-border);
+  --color-orion-border-subtle: var(--orion-border-subtle);
+  --color-orion-border-strong: var(--orion-border-strong);
+  --color-orion-text: var(--orion-text);
+  --color-orion-text-primary: var(--orion-text-primary);
+  --color-orion-text-secondary: var(--orion-text-secondary);
+  --color-orion-text-tertiary: var(--orion-text-tertiary);
+  --color-orion-text-muted: var(--orion-text-muted);
+  --color-orion-text-disabled: var(--orion-text-disabled);
   --color-orion-accent: var(--orion-accent);
+  --color-orion-accent-subtle: var(--orion-accent-subtle);
   --color-orion-success: var(--orion-success);
   --color-orion-warning: var(--orion-warning);
-  --color-orion-critical: var(--orion-critical);
+  --color-orion-danger: var(--orion-danger);
+  --color-orion-info: var(--orion-info);
+  --color-orion-focus: var(--orion-focus);
 }
 
 :root, :root.dark {
@@ -42,16 +57,21 @@
   --os-surface-hover: #262c36;
   --os-surface-active: #313845;
   --os-border: rgba(255, 255, 255, 0.08);
+  --os-border-subtle: rgba(255, 255, 255, 0.04);
   --os-border-strong: rgba(255, 255, 255, 0.16);
   --os-border-inverse: #E1E4E2;
   --os-text-primary: #F0F3F6;
   --os-text-secondary: #94A3B8;
+  --os-text-tertiary: #64748B;
   --os-text-muted: #64748B;
+  --os-text-disabled: #475569;
   --os-text-primary-inverse: #0A0A0A;
   --os-input-bg: #12151a;
   --os-accent: #0284C7;
+  --os-accent-subtle: rgba(2, 132, 199, 0.12);
 
   /* Semantic --orion-* Tokens */
+  --orion-bg: #0c0e11;
   --orion-background: #0c0e11;
   --orion-surface: #12151a;
   --orion-surface-secondary: #181c22;
@@ -59,14 +79,22 @@
   --orion-surface-hover: #262c36;
   --orion-surface-active: #313845;
   --orion-text: #F0F3F6;
+  --orion-text-primary: #F0F3F6;
   --orion-text-secondary: #94A3B8;
+  --orion-text-tertiary: #64748B;
   --orion-text-muted: #64748B;
+  --orion-text-disabled: #475569;
   --orion-border: rgba(255, 255, 255, 0.08);
+  --orion-border-subtle: rgba(255, 255, 255, 0.04);
   --orion-border-strong: rgba(255, 255, 255, 0.16);
   --orion-accent: #0284C7;
+  --orion-accent-subtle: rgba(2, 132, 199, 0.12);
   --orion-success: #10B981;
   --orion-warning: #F59E0B;
+  --orion-danger: #EF4444;
   --orion-critical: #EF4444;
+  --orion-info: #3B82F6;
+  --orion-focus: #0284C7;
   --orion-radius: 12px;
   --orion-blur: blur(20px);
 
@@ -86,16 +114,21 @@
   --os-surface-hover: #E2E8F0;
   --os-surface-active: #CBD5E1;
   --os-border: rgba(0, 0, 0, 0.08);
+  --os-border-subtle: rgba(0, 0, 0, 0.04);
   --os-border-strong: rgba(0, 0, 0, 0.16);
   --os-border-inverse: #0F172A;
   --os-text-primary: #0F172A;
   --os-text-secondary: #475569;
+  --os-text-tertiary: #94A3B8;
   --os-text-muted: #94A3B8;
+  --os-text-disabled: #CBD5E1;
   --os-text-primary-inverse: #F8FAFC;
   --os-input-bg: #FFFFFF;
   --os-accent: #0284C7;
+  --os-accent-subtle: rgba(2, 132, 199, 0.08);
 
   /* Semantic --orion-* Tokens */
+  --orion-bg: #F8FAFC;
   --orion-background: #F8FAFC;
   --orion-surface: #FFFFFF;
   --orion-surface-secondary: #F1F5F9;
@@ -103,14 +136,22 @@
   --orion-surface-hover: #E2E8F0;
   --orion-surface-active: #CBD5E1;
   --orion-text: #0F172A;
+  --orion-text-primary: #0F172A;
   --orion-text-secondary: #475569;
+  --orion-text-tertiary: #94A3B8;
   --orion-text-muted: #94A3B8;
+  --orion-text-disabled: #CBD5E1;
   --orion-border: rgba(0, 0, 0, 0.08);
+  --orion-border-subtle: rgba(0, 0, 0, 0.04);
   --orion-border-strong: rgba(0, 0, 0, 0.16);
   --orion-accent: #0284C7;
+  --orion-accent-subtle: rgba(2, 132, 199, 0.08);
   --orion-success: #10B981;
   --orion-warning: #F59E0B;
+  --orion-danger: #EF4444;
   --orion-critical: #EF4444;
+  --orion-info: #3B82F6;
+  --orion-focus: #0284C7;
   --orion-radius: 12px;
   --orion-blur: blur(20px);
 

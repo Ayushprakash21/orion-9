@@ -82,8 +82,8 @@ export function OrionComputer() {
       {/* Top Header Banner */}
       <div className="flex flex-wrap items-center justify-between bg-os-surface-tint border border-os-border/60 rounded-2xl p-5 shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/20 text-white">
-            <HardDrive size={26} />
+          <div className="w-12 h-12 rounded-2xl bg-white/[0.08] border border-white/[0.1] flex items-center justify-center text-os-text-primary">
+            <HardDrive size={24} />
           </div>
           <div>
             <h2 className="text-lg font-bold text-os-text-primary flex items-center gap-2">
@@ -104,7 +104,7 @@ export function OrionComputer() {
         <button
           type="button"
           onClick={loadStorage}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-os-surface hover:bg-os-surface-hover border border-os-border/50 text-xs font-medium text-os-text-secondary transition-colors"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-os-surface hover:bg-os-surface-hover border border-os-border/50 text-xs font-medium text-os-text-secondary transition-colors cursor-pointer"
         >
           <RefreshCw size={13} className={isLoading ? "animate-spin text-os-accent" : ""} />
           <span>Refresh Hardware</span>
@@ -125,7 +125,7 @@ export function OrionComputer() {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 group-hover:scale-110 transition-transform">
+                <div className="p-2.5 rounded-xl bg-white/[0.06] text-os-accent group-hover:scale-105 transition-transform">
                   <HardDrive size={22} />
                 </div>
                 <div>
@@ -140,7 +140,7 @@ export function OrionComputer() {
 
             <div className="w-full bg-os-surface rounded-full h-2 overflow-hidden">
               <div
-                className="bg-gradient-to-r from-cyan-500 to-blue-500 h-full rounded-full transition-all duration-500"
+                className="bg-sky-500 h-full rounded-full transition-all duration-500"
                 style={{ width: `${Math.max(4, usedPercentage)}%` }}
               />
             </div>

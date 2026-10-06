@@ -111,14 +111,14 @@ export function DesktopWidgetSystem({
       case 'clock':
         return (
           <div className="flex flex-col justify-center items-center h-full text-center select-none">
-            <div className="flex items-center gap-2 text-cyan-400 font-mono text-xs uppercase tracking-widest mb-1">
+            <div className="flex items-center gap-2 text-os-text-secondary font-mono text-xs uppercase tracking-widest mb-1">
               <Clock className="w-3.5 h-3.5" />
               <span>SYSTEM TIME</span>
             </div>
-            <div className="text-2xl sm:text-3xl font-bold font-mono tracking-tight text-white drop-shadow-sm">
+            <div className="text-2xl sm:text-3xl font-semibold font-mono tracking-tight text-white drop-shadow-sm">
               {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
             </div>
-            <div className="text-xs text-white/60 font-medium mt-1">
+            <div className="text-xs text-os-text-muted font-medium mt-1">
               {currentTime.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
             </div>
           </div>
@@ -129,10 +129,10 @@ export function DesktopWidgetSystem({
           <div className="flex flex-col h-full justify-between p-1">
             <div className="flex items-center justify-between border-b border-white/10 pb-1.5 text-xs">
               <span className="font-semibold text-white flex items-center gap-1.5">
-                <CalendarIcon className="w-3.5 h-3.5 text-blue-400" />
+                <CalendarIcon className="w-3.5 h-3.5 text-sky-400" />
                 {currentTime.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
               </span>
-              <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-1.5 py-0.5 rounded border border-cyan-500/20">
+              <span className="text-[10px] font-mono text-os-text-secondary bg-white/[0.06] px-1.5 py-0.5 rounded border border-white/[0.08]">
                 Today: {currentTime.getDate()}
               </span>
             </div>
@@ -189,7 +189,7 @@ export function DesktopWidgetSystem({
             <button
               type="button"
               onClick={() => openApplication('control-tower')}
-              className="w-full py-1.5 text-center text-xs text-cyan-400 hover:text-cyan-300 font-medium bg-cyan-500/10 hover:bg-cyan-500/20 rounded-lg border border-cyan-500/20 transition-colors"
+              className="w-full py-1.5 text-center text-xs text-os-text-primary hover:text-white font-medium bg-white/[0.08] hover:bg-white/[0.14] rounded-lg border border-white/[0.1] transition-colors"
             >
               Open Control Tower Workspace →
             </button>
@@ -219,10 +219,10 @@ export function DesktopWidgetSystem({
               <div>
                 <div className="flex justify-between text-[11px] text-white/70 mb-1">
                   <span>Inventory Velocity Index</span>
-                  <span className="font-mono text-cyan-400 font-semibold">94.2%</span>
+                  <span className="font-mono text-sky-400 font-semibold">94.2%</span>
                 </div>
                 <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-cyan-500 h-full rounded-full" style={{ width: '94.2%' }} />
+                  <div className="bg-sky-500 h-full rounded-full" style={{ width: '94.2%' }} />
                 </div>
               </div>
             </div>
@@ -298,7 +298,7 @@ export function DesktopWidgetSystem({
           <div className="flex flex-col h-full justify-between text-xs">
             <div className="flex items-center justify-between border-b border-white/10 pb-2">
               <span className="font-semibold text-white flex items-center gap-1.5">
-                <Cpu className="w-4 h-4 text-cyan-400" />
+                <Cpu className="w-4 h-4 text-sky-400" />
                 OS Runtime Telemetry
               </span>
               <span className="text-emerald-400 font-mono text-[10px] font-semibold">ONLINE</span>
@@ -306,7 +306,7 @@ export function DesktopWidgetSystem({
             <div className="grid grid-cols-2 gap-2 my-auto text-center">
               <div className="bg-white/5 border border-white/10 rounded-lg p-2">
                 <span className="text-[10px] text-white/50 block">DB Latency</span>
-                <span className="text-sm font-bold font-mono text-cyan-400">{healthData.latency}ms</span>
+                <span className="text-sm font-bold font-mono text-sky-400">{healthData.latency}ms</span>
               </div>
               <div className="bg-white/5 border border-white/10 rounded-lg p-2">
                 <span className="text-[10px] text-white/50 block">Environment</span>
@@ -342,7 +342,7 @@ export function DesktopWidgetSystem({
           <div className="flex flex-col h-full justify-between">
             <div className="flex items-center justify-between border-b border-white/10 pb-2 text-xs">
               <span className="font-semibold text-white flex items-center gap-1.5">
-                <Zap className="w-4 h-4 text-cyan-400" />
+                <Zap className="w-4 h-4 text-sky-400" />
                 Quick Office Actions
               </span>
             </div>
@@ -406,17 +406,17 @@ export function DesktopWidgetSystem({
         height: `${widget.height}px`,
         zIndex: widget.zIndex || 10,
       }}
-      className={`rounded-2xl backdrop-blur-2xl bg-[#091322]/80 border transition-all duration-200 p-3.5 flex flex-col justify-between shadow-[0_8px_32px_rgba(0,0,0,0.45)] select-none group ${
+      className={`rounded-2xl backdrop-blur-2xl bg-[#12151a]/90 border transition-all duration-200 p-3.5 flex flex-col justify-between shadow-2xl select-none group ${
         isEditMode
-          ? 'border-cyan-400/80 ring-2 ring-cyan-400/50 shadow-[0_0_24px_rgba(34,211,238,0.35)]'
-          : 'border-white/15 hover:border-white/25'
+          ? 'border-sky-500/60 ring-1 ring-sky-500/40 shadow-xl'
+          : 'border-white/[0.08] hover:border-white/[0.16]'
       }`}
     >
       {/* Widget Drag Header */}
       {isEditMode && (
         <div
           onPointerDown={(e) => onMoveStart(e, widget)}
-          className="absolute -top-3 left-1/2 -translate-x-1/2 bg-cyan-500 text-black px-3 py-0.5 rounded-full text-[10px] font-bold tracking-wider flex items-center gap-1 cursor-grab active:cursor-grabbing z-30 shadow-md"
+          className="absolute -top-3 left-1/2 -translate-x-1/2 bg-sky-600 text-white px-3 py-0.5 rounded-full text-[10px] font-semibold tracking-wider flex items-center gap-1 cursor-grab active:cursor-grabbing z-30 shadow-md"
         >
           <GripHorizontal className="w-3 h-3" />
           <span>DRAG</span>
