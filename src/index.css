@@ -1143,3 +1143,65 @@ body, button, input, textarea, select {
     max-width: none !important;
   }
 }
+
+
+/* ============================================================
+   ORION-9 ACCESSIBILITY & THEME ENGINE GLOBAL RULES
+   ============================================================ */
+
+/* Reduced Motion Override */
+[data-reduced-motion="true"] *,
+[data-reduced-motion="true"] *::before,
+[data-reduced-motion="true"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Reduced Transparency Override */
+[data-reduced-transparency="true"] *,
+[data-reduced-transparency="true"] *::before,
+[data-reduced-transparency="true"] *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Color Filters */
+[data-color-filter="grayscale"] {
+  filter: grayscale(100%);
+}
+[data-color-filter="protanopia"] {
+  filter: hue-rotate(-20deg) saturate(1.2);
+}
+[data-color-filter="deuteranopia"] {
+  filter: hue-rotate(20deg) saturate(1.1);
+}
+[data-color-filter="tritanopia"] {
+  filter: hue-rotate(180deg) saturate(1.3);
+}
+
+/* Corner Style Utility Classes */
+[data-corner-style="square"] .orion-card,
+[data-corner-style="square"] .orion-window,
+[data-corner-style="square"] button,
+[data-corner-style="square"] input,
+[data-corner-style="square"] select {
+  border-radius: 4px !important;
+}
+
+[data-corner-style="subtle"] .orion-card,
+[data-corner-style="subtle"] .orion-window,
+[data-corner-style="subtle"] button,
+[data-corner-style="subtle"] input,
+[data-corner-style="subtle"] select {
+  border-radius: 8px !important;
+}
+
+[data-corner-style="rounded"] .orion-card,
+[data-corner-style="rounded"] .orion-window,
+[data-corner-style="rounded"] button,
+[data-corner-style="rounded"] input,
+[data-corner-style="rounded"] select {
+  border-radius: 12px !important;
+}

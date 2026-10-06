@@ -1,3 +1,6 @@
+import { PersonalizationSettings } from '../theme/themeTypes';
+import { DEFAULT_PERSONALIZATION_SETTINGS } from '../theme/themePresets';
+
 export type UserExperienceMode = 'SIMPLE' | 'ADVANCED';
 
 export interface SystemSettings {
@@ -11,6 +14,7 @@ export interface SystemSettings {
   displayScale?: number; // Windows-style UI scale: 100, 125, 150, 175, 200
   textSize?: number; // Independent text size: 90 - 140%
   fontFamily?: 'ROBOTO' | 'LATO' | 'ARIAL';
+  personalization?: PersonalizationSettings;
   
   // Audio
   soundEnabled?: boolean;
@@ -68,6 +72,7 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   displayScale: 100,
   textSize: 100,
   fontFamily: 'ROBOTO',
+  personalization: { ...DEFAULT_PERSONALIZATION_SETTINGS },
   soundEnabled: true,
   soundVolume: 75,
   
@@ -202,8 +207,10 @@ export function normalizeSettings(raw?: Partial<SystemSettings> | Record<string,
     textSize: validTextSize,
     fontFamily: validFontFamily,
     reducedMotion: raw.reducedMotion !== undefined ? !!raw.reducedMotion : DEFAULT_SETTINGS.reducedMotion,
-    
-    
+    personalization: {
+      ...DEFAULT_PERSONALIZATION_SETTINGS,
+      ...(raw.personalization || {})
+    }
   };
 }
 

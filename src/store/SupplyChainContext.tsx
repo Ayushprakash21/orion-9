@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
+import { applyThemeToDocument } from '../theme/themeResolver';
+import { DEFAULT_PERSONALIZATION_SETTINGS } from '../theme/themePresets';
 import {
   Product, Warehouse, Inventory, Supplier, PurchaseOrder, Shipment, Exception,
   ImportHistory, Action, Decision, DecisionAuditEvent, UserProfile, OrganizationProfile,
@@ -401,6 +403,12 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
       setIsInitializing(false);
     });
   }, []);
+
+  // Sync Orion Theme to Document DOM
+  useEffect(() => {
+    const pers = settings.personalization || DEFAULT_PERSONALIZATION_SETTINGS;
+    applyThemeToDocument(pers);
+  }, [settings.personalization, settings.theme]);
 
   // Real-time Authoritative Firestore Subscription Integration
   const effectiveTenantId = organizationProfile?.id || (userProfile as any)?.organizationId || (userProfile as any)?.tenantId || 'ORION_PLATFORM';

@@ -24,6 +24,10 @@ import { GlobalNetworkTimeMatrix } from './time/GlobalNetworkTimeMatrix';
 import { useI18n } from '../store/LanguageContext';
 import { LanguageSettingsPanel } from './settings/LanguageSettingsPanel';
 import { TimeDateSettingsPanel } from './settings/TimeDateSettingsPanel';
+import { AppearanceSettingsPanel } from './settings/AppearanceSettingsPanel';
+import { PersonalizationSettingsPanel } from './settings/PersonalizationSettingsPanel';
+import { AccessibilitySettingsPanel } from './settings/AccessibilitySettingsPanel';
+import { DEFAULT_PERSONALIZATION_SETTINGS } from '../theme/themePresets';
 
 // Admin Components
 import { AdminOverview } from './admin/AdminOverview';
@@ -48,6 +52,7 @@ export type SettingsSection =
   | 'appearance'
   | 'wallpaper_studio'
   | 'desktop'
+  | 'accessibility'
   | 'language_region'
   | 'time_date'
   | 'time_region'
@@ -281,6 +286,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
     { id: 'appearance', label: t('navigation.appearance'), icon: Eye, group: 'system' },
     { id: 'wallpaper_studio', label: t('navigation.wallpaperStudio'), icon: SparklesIcon, group: 'system' },
     { id: 'desktop', label: t('navigation.desktopWindows'), icon: Monitor, group: 'system' },
+    { id: 'accessibility', label: 'Accessibility & Display', icon: Eye, group: 'system' },
     { id: 'language_region', label: 'Language & Region', icon: Globe, group: 'system' },
     { id: 'time_date', label: 'Time & Date', icon: Clock, group: 'system' },
     { id: 'notifications', label: t('navigation.notifications'), icon: Volume2, group: 'system' },
@@ -625,219 +631,50 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
       case 'wallpaper_studio':
         return <UserWallpaperStudio />;
 
-      case 'appearance':
+      case 'appearance': {
+        const currentPers = localSettings.personalization || DEFAULT_PERSONALIZATION_SETTINGS;
         return (
-          <OrionSettingsSplitLayout
-            title="Appearance"
-            subtitle="Theme, Font, Display Scale & Glass Translucency"
-            badge="VISUAL SYSTEM"
-            primary={
-              <div className="space-y-4">
-                {/* User Experience Mode Card */}
-                <div className="bg-[#12151a] border border-white/[0.08] rounded-xl p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">User Experience Mode</span>
-                      <p className="text-[11px] text-slate-400 mt-0.5">Choose between simplified business workflows or full technical SCM controls.</p>
-                    </div>
-                    <span className={cn(
-                      "px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase",
-                      (settings?.userExperienceMode ?? 'SIMPLE') === 'SIMPLE'
-                        ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                        : "bg-sky-500/10 text-sky-400 border border-sky-500/20"
-                    )}>
-                      {settings?.userExperienceMode ?? 'SIMPLE'} MODE
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        updateSettings({ userExperienceMode: 'SIMPLE' });
-                        setLocalSettings(prev => ({ ...prev, userExperienceMode: 'SIMPLE' }));
-                        showToast('Switched to Simple Mode UX', 'info');
-                      }}
-                      className={cn(
-                        "p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between",
-                        (settings?.userExperienceMode ?? 'SIMPLE') === 'SIMPLE'
-                          ? "bg-emerald-500/10 border-emerald-500/40 text-white shadow-xs"
-                          : "bg-white/[0.02] border-white/[0.06] text-slate-400 hover:text-white hover:bg-white/[0.04]"
-                      )}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-semibold text-white flex items-center gap-1.5">
-                          <CheckCircle2 size={14} className={cn((settings?.userExperienceMode ?? 'SIMPLE') === 'SIMPLE' ? "text-emerald-400" : "text-slate-500")} />
-                          Simple Mode (Default)
-                        </span>
-                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-slate-300">Action-First</span>
-                      </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        Guided 5-step workflows, clean 8-module navigation, automated smart sourcing, and proactive operational alerts.
-                      </p>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        updateSettings({ userExperienceMode: 'ADVANCED' });
-                        setLocalSettings(prev => ({ ...prev, userExperienceMode: 'ADVANCED' }));
-                        showToast('Switched to Advanced SCM Mode', 'info');
-                      }}
-                      className={cn(
-                        "p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between",
-                        settings?.userExperienceMode === 'ADVANCED'
-                          ? "bg-sky-500/10 border-sky-500/40 text-white shadow-xs"
-                          : "bg-white/[0.02] border-white/[0.06] text-slate-400 hover:text-white hover:bg-white/[0.04]"
-                      )}
-                    >
-                      <div className="flex items-center justify-between mb-1.5">
-                        <span className="text-xs font-semibold text-white flex items-center gap-1.5">
-                          <BrainCircuit size={14} className={cn(settings?.userExperienceMode === 'ADVANCED' ? "text-sky-400" : "text-slate-500")} />
-                          Advanced SCM Mode
-                        </span>
-                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-white/[0.06] text-slate-300">Full Power</span>
-                      </div>
-                      <p className="text-[11px] text-slate-400 leading-relaxed">
-                        50+ canonical modules, PR/RFQ/PO/ASN/GRN pipeline, digital twin telemetry, decision engines, and real-time event fabric.
-                      </p>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="bg-[#12151a] border border-white/[0.08] rounded-xl p-4 space-y-3">
-                  <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">Theme Mode</span>
-                  <div className="grid grid-cols-3 gap-2.5">
-                    {['light', 'dark', 'system'].map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => updateSettings({ theme: t as any })}
-                        className={cn(
-                          "p-2.5 rounded-xl border text-xs font-semibold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer",
-                          (settings?.theme || 'dark') === t 
-                            ? "bg-sky-500/15 border-sky-500/40 text-sky-400 shadow-sm" 
-                            : "bg-white/[0.03] border-white/[0.08] text-slate-400 hover:text-white"
-                        )}
-                      >
-                        {t === 'light' && <Sun size={14} />}
-                        {t === 'dark' && <Moon size={14} />}
-                        {t === 'system' && <Laptop size={14} />}
-                        {t}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="bg-[#12151a] border border-white/[0.08] rounded-xl p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-xs font-medium text-white">Reduced Motion</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">Disables heavy CSS animations across OS windows.</div>
-                    </div>
-                    <button 
-                      type="button" 
-                      onClick={() => updateSettings({ reducedMotion: !settings?.reducedMotion })}
-                      className={cn(
-                        "px-3 py-1 rounded-lg border text-xs font-semibold transition-all cursor-pointer",
-                        settings?.reducedMotion ? "bg-sky-500/20 border-sky-500/40 text-sky-400" : "bg-white/[0.05] border-white/10 text-slate-400"
-                      )}
-                    >
-                      {settings?.reducedMotion ? 'ON' : 'OFF'}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="bg-[#12151a] border border-white/[0.08] rounded-xl p-4">
-                  <DisplayPreferencesControls />
-                </div>
-              </div>
-            }
-            secondary={
-              <div className="space-y-4">
-                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider font-mono block">
-                  REAL-TIME OS APPEARANCE PREVIEW
-                </span>
-
-                {/* Simulated Floating Orion Window Card showing theme/font/scale */}
-                <div className="p-5 rounded-2xl border border-white/15 bg-[#0c0e11]/90 backdrop-blur-xl shadow-2xl space-y-3">
-                  <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-red-500/80" />
-                      <div className="w-3 h-3 rounded-full bg-amber-500/80" />
-                      <div className="w-3 h-3 rounded-full bg-emerald-500/80" />
-                      <span className="text-xs font-semibold text-white ml-2">Sample Window</span>
-                    </div>
-                    <span className="text-[10px] font-mono text-sky-400">Glass Backdrop</span>
-                  </div>
-
-                  <div className="space-y-2 text-xs">
-                    <p className="text-slate-300">
-                      This preview reflects current theme mode <b className="text-sky-400">({settings?.theme || 'dark'})</b>, selected font family, text scaling, and backdrop translucency.
-                    </p>
-                    <div className="p-3 rounded-lg bg-sky-500/10 border border-sky-500/20 text-sky-300 font-mono text-[11px]">
-                      Orion OS Glass & Depth Architecture
-                    </div>
-                  </div>
-                </div>
-              </div>
-            }
+          <AppearanceSettingsPanel
+            settings={currentPers}
+            onChange={(updated) => {
+              const newPers = { ...currentPers, ...updated };
+              const newSettings = { ...localSettings, personalization: newPers };
+              setLocalSettings(newSettings);
+              updateSettings(newSettings);
+            }}
           />
         );
+      }
 
-      case 'desktop':
+      case 'desktop': {
+        const currentPers = localSettings.personalization || DEFAULT_PERSONALIZATION_SETTINGS;
         return (
-          <OrionSettingsSplitLayout
-            title="Desktop & Windows"
-            subtitle="Window Management, Spatial Grid & Shortcuts"
-            badge="WORKSPACE"
-            primary={
-              <div className="space-y-4">
-                <div className="bg-[#12151a] border border-white/[0.08] rounded-xl p-4 space-y-3 text-xs">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-semibold text-white">Desktop Grid Snap</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">Align shortcuts to 80px spatial desktop grid.</div>
-                    </div>
-                    <span className="text-sky-400 font-mono font-semibold">ENABLED</span>
-                  </div>
-                </div>
-
-                <div className="bg-[#12151a] border border-white/[0.08] rounded-xl p-4 space-y-3 text-xs">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="font-semibold text-white">Persist Window Geometry</div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">Saves position, size, and z-index across boots.</div>
-                    </div>
-                    <span className="text-emerald-400 font-mono font-semibold">ACTIVE</span>
-                  </div>
-                </div>
-              </div>
-            }
-            secondary={
-              <div className="space-y-4">
-                <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider font-mono block">
-                  WINDOW MANAGER BEHAVIOR
-                </span>
-
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3 font-mono text-xs">
-                  <div className="flex justify-between border-b border-white/[0.06] pb-2">
-                    <span className="text-[10px] text-slate-400 uppercase">Titlebar Double Click</span>
-                    <span className="text-sky-400 font-bold">Maximize / Restore</span>
-                  </div>
-                  <div className="flex justify-between border-b border-white/[0.06] pb-2">
-                    <span className="text-[10px] text-slate-400 uppercase">Traffic Light Ordering</span>
-                    <span className="text-slate-200">Red (Close) • Yellow (Min) • Green (Max)</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[10px] text-slate-400 uppercase">Window Shadows</span>
-                    <span className="text-emerald-400">Soft Aurora Spatial Shadow</span>
-                  </div>
-                </div>
-              </div>
-            }
+          <PersonalizationSettingsPanel
+            settings={currentPers}
+            onChange={(updated) => {
+              const newPers = { ...currentPers, ...updated };
+              const newSettings = { ...localSettings, personalization: newPers };
+              setLocalSettings(newSettings);
+              updateSettings(newSettings);
+            }}
           />
         );
+      }
+
+      case 'accessibility': {
+        const currentPers = localSettings.personalization || DEFAULT_PERSONALIZATION_SETTINGS;
+        return (
+          <AccessibilitySettingsPanel
+            settings={currentPers}
+            onChange={(updated) => {
+              const newPers = { ...currentPers, ...updated };
+              const newSettings = { ...localSettings, personalization: newPers };
+              setLocalSettings(newSettings);
+              updateSettings(newSettings);
+            }}
+          />
+        );
+      }
 
       case 'language_region':
         return (
