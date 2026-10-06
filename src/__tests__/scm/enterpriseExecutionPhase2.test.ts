@@ -150,16 +150,15 @@ describe('Orion-9 Phase 2 — Enterprise Execution & Autonomous Intelligence Sui
         supplierId,
         currency: 'USD',
         paymentTerms: 'NET30',
-        shippingAddress: '100 Orion Way, Tech Park',
-        billingAddress: '100 Orion Way, Tech Park',
-        items: [{ lineId: '1', productId: 'CHIP-GPU-800', description: 'AI GPU Chip', quantity: 50, unitOfMeasure: 'EA', unitPrice: 480, totalPrice: 24000 }],
+        deliveryLocation: '100 Orion Way, Tech Park',
+        items: [{ lineId: '1', productId: 'CHIP-GPU-800', quantity: 50, unitPrice: 480, totalPrice: 24000, unitOfMeasure: 'EA', expectedDeliveryDate: '2026-10-25' }],
       });
       expect(po.success).toBe(true);
       const poId = po.data.poId;
 
       await poLifecycleEngine.approvePO(tenantAlpha, poId, adminActor);
       await poLifecycleEngine.releasePO(tenantAlpha, poId, buyerActor);
-      await poLifecycleEngine.confirmPO(tenantAlpha, poId, buyerActor, supplierId);
+      await poLifecycleEngine.confirmPO(tenantAlpha, poId, buyerActor);
 
       // 4. ASN & GRN
       const asn = await inboundLogisticsEngine.createASN({
@@ -207,7 +206,7 @@ describe('Orion-9 Phase 2 — Enterprise Execution & Autonomous Intelligence Sui
         taxAmount: 1920,
         freightAmount: 150,
         currency: 'USD',
-        lineItems: [{ productId: 'CHIP-GPU-800', quantity: 50, unitPrice: 480, totalPrice: 24000 }],
+        lineItems: [{ productId: 'CHIP-GPU-800', quantity: 50, unitPrice: 480, lineTotal: 24000 }],
       });
       expect(inv.success).toBe(true);
 
