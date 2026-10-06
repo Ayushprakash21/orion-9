@@ -84,29 +84,30 @@ export function OrionLiveWallpaper({
   tenantId,
   className
 }: OrionLiveWallpaperProps) {
-  const defaultRecord = target === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
-  
+  const getDefaultRecord = useCallback((): WallpaperRecord => {
+    return target === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
+  }, [target]);
+
   // Safe initial record fallback
-  const getInitialRecord = (): WallpaperRecord => {
+  const getInitialRecord = useCallback((): WallpaperRecord => {
     if (overrideWallpaper && typeof overrideWallpaper === 'object') return overrideWallpaper;
-    return defaultRecord;
-  };
+    return getDefaultRecord();
+  }, [overrideWallpaper, getDefaultRecord]);
 
   const [activeWallpaper, setActiveWallpaper] = useState<WallpaperRecord>(getInitialRecord);
   const [imgSrc, setImgSrc] = useState<string>(() => {
     const init = getInitialRecord();
-    return init.assetUrl || defaultRecord.assetUrl;
+    return init.assetUrl || getDefaultRecord().assetUrl;
   });
   const [fallbackAttempted, setFallbackAttempted] = useState<boolean>(false);
-  const [imgLoadFailed, setImgLoadFailed] = useState<boolean>(false);
 
   // Sync state when activeWallpaper changes
   useEffect(() => {
-    const nextUrl = activeWallpaper?.assetUrl || defaultRecord.assetUrl;
+    const defaultWp = getDefaultRecord();
+    const nextUrl = activeWallpaper?.assetUrl || defaultWp.assetUrl;
     setImgSrc(nextUrl);
     setFallbackAttempted(false);
-    setImgLoadFailed(false);
-  }, [activeWallpaper, defaultRecord.assetUrl]);
+  }, [activeWallpaper, getDefaultRecord]);
 
   useEffect(() => {
     if (overrideWallpaper) {
@@ -122,12 +123,13 @@ export function OrionLiveWallpaper({
       try {
         const wp = await wallpaperRepository.getActiveWallpaper(activeUserId, activeTenantId, target);
         if (mounted && wp && typeof wp === 'object') {
-          setActiveWallpaper(wp);
+          setActiveWallpaper(prev => (prev?.wallpaperId === wp.wallpaperId && prev?.assetUrl === wp.assetUrl ? prev : wp));
         }
       } catch (err) {
         console.warn(`[ORION-9] Failed to load active ${target} wallpaper, using system default:`, err);
         if (mounted) {
-          setActiveWallpaper(defaultRecord);
+          const defaultWp = getDefaultRecord();
+          setActiveWallpaper(prev => (prev?.wallpaperId === defaultWp.wallpaperId ? prev : defaultWp));
         }
       }
     };
@@ -155,20 +157,22 @@ export function OrionLiveWallpaper({
         window.removeEventListener('orion-active-wallpaper-changed', handleActiveChange as EventListener);
       }
     };
-  }, [overrideWallpaper, target, userId, tenantId, defaultRecord]);
+  }, [overrideWallpaper, target, userId, tenantId, getDefaultRecord]);
 
   // Non-looping, safe image error handler
   const handleImageError = useCallback(() => {
-    if (!fallbackAttempted && imgSrc !== defaultRecord.assetUrl) {
+    const defaultWp = getDefaultRecord();
+    if (!fallbackAttempted && imgSrc !== defaultWp.assetUrl) {
       // First attempt: fallback to the default system asset
       setFallbackAttempted(true);
-      setImgSrc(defaultRecord.assetUrl);
+      setImgSrc(defaultWp.assetUrl);
     } else {
-      // Second attempt or already on default: stop loading to avoid infinite request loops
-      setImgLoadFailed(true);
-      console.warn(`[ORION-9] Wallpaper image failed to load for ${target}, rendering cosmic canvas fallback.`);
+      console.warn(`[ORION-9] Wallpaper image load fallback to default asset for ${target}.`);
+      if (imgSrc !== defaultWp.assetUrl) {
+        setImgSrc(defaultWp.assetUrl);
+      }
     }
-  }, [fallbackAttempted, imgSrc, defaultRecord.assetUrl, target]);
+  }, [fallbackAttempted, imgSrc, target, getDefaultRecord]);
 
   return (
     <WallpaperErrorBoundary>
@@ -181,18 +185,16 @@ export function OrionLiveWallpaper({
         )}
         aria-hidden="true"
       >
-        {/* 1. Base Static Image Asset (only rendered if not failed) */}
-        {!imgLoadFailed && (
-          <img
-            src={imgSrc}
-            alt={activeWallpaper?.name || `${target} Wallpaper`}
-            onError={handleImageError}
-            draggable={false}
-            loading="eager"
-            decoding="async"
-            className="orion-static-wallpaper-img absolute inset-0 w-full h-full object-cover object-center scale-100 filter-none select-none pointer-events-none"
-          />
-        )}
+        {/* 1. Base Static Image Asset */}
+        <img
+          src={imgSrc}
+          alt={activeWallpaper?.name || `${target} Wallpaper`}
+          onError={handleImageError}
+          draggable={false}
+          loading="eager"
+          decoding="async"
+          className="orion-static-wallpaper-img absolute inset-0 w-full h-full object-cover object-center scale-100 filter-none select-none pointer-events-none"
+        />
 
         {/* 2. Pure Static Vignette & Cinematic Darkening */}
         <div 

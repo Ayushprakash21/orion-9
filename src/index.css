@@ -858,21 +858,7 @@ html, body, #root {
    ORION-9 VVIP FINAL SHELL / WALLPAPER / TRANSPARENCY CONTRACT
    ========================================================================== */
 
-/* The wallpaper is a workspace-row layer. It MUST never participate in the
-   48px chrome row. This prevents the master logo from being clipped into the
-   system bar when the shell is rendered by AI Studio. */
-.orion-desktop-shell > .orion-desktop-wallpaper-layer {
-  grid-row: 2 !important;
-  grid-column: 1 !important;
-  position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: 100% !important;
-  max-height: 100% !important;
-  overflow: hidden !important;
-  z-index: 0 !important;
-}
+/* Wallpaper container layout is governed by full-bleed zero-gap containment rule below */
 
 /* Branding uses the actual visible region of the supplied square master.
    240px source => visible logo is ~157x108 and stays fully inside the frame. */

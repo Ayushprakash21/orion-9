@@ -155,7 +155,6 @@ interface IconBaseProps {
 export const OrionSquircleBase: React.FC<IconBaseProps> = ({
   size = 48,
   className = '',
-  active = false,
   gradientId,
   from,
   to,
@@ -174,34 +173,22 @@ export const OrionSquircleBase: React.FC<IconBaseProps> = ({
     >
       <defs>
         {/* Main Body Gradient */}
-        <linearGradient id={`${gradientId}-bg`} x1="16" y1="8" x2="112" y2="120" gradientUnits="userSpaceOnUse">
+        <linearGradient id={`${gradientId}-bg`} x1="64" y1="8" x2="64" y2="120" gradientUnits="userSpaceOnUse">
           <stop offset="0%" stopColor={from} />
           <stop offset="100%" stopColor={to} />
         </linearGradient>
 
-        {/* Specular Top Sheen */}
-        <linearGradient id={`${gradientId}-sheen`} x1="64" y1="10" x2="64" y2="64" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.18" />
-          <stop offset="60%" stopColor="#FFFFFF" stopOpacity="0.04" />
-          <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
-        </linearGradient>
-
-        {/* Inner Border Rim */}
+        {/* Precision Inner Rim Stroke */}
         <linearGradient id={`${gradientId}-rim`} x1="64" y1="10" x2="64" y2="118" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.35" />
-          <stop offset="45%" stopColor="#FFFFFF" stopOpacity="0.08" />
-          <stop offset="100%" stopColor="#000000" stopOpacity="0.25" />
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
+          <stop offset="50%" stopColor="#FFFFFF" stopOpacity="0.08" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0.20" />
         </linearGradient>
 
-        {/* Drop Shadow Filter */}
-        <filter id={`${gradientId}-shadow`} x="-15%" y="-10%" width="130%" height="135%" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#000000" floodOpacity="0.28" />
-          <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="#000000" floodOpacity="0.15" />
-        </filter>
-
-        {/* Glyph Shadow */}
-        <filter id={`${gradientId}-glyph-shadow`} x="-20%" y="-20%" width="140%" height="140%">
-          <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#000000" floodOpacity="0.25" />
+        {/* Soft Modern Ground Shadow Filter */}
+        <filter id={`${gradientId}-shadow`} x="-20%" y="-15%" width="140%" height="140%" filterUnits="userSpaceOnUse">
+          <feDropShadow dx="0" dy="5" stdDeviation="5" floodColor="#000000" floodOpacity="0.24" />
+          <feDropShadow dx="0" dy="1.5" stdDeviation="1.5" floodColor="#000000" floodOpacity="0.12" />
         </filter>
       </defs>
 
@@ -214,16 +201,6 @@ export const OrionSquircleBase: React.FC<IconBaseProps> = ({
         rx="26"
         fill={`url(#${gradientId}-bg)`}
         filter={`url(#${gradientId}-shadow)`}
-      />
-
-      {/* Subtle Top Specular / Ambient Illumination */}
-      <rect
-        x="10"
-        y="10"
-        width="108"
-        height="54"
-        rx="26"
-        fill={`url(#${gradientId}-sheen)`}
       />
 
       {/* Inner Precision Rim Stroke */}
@@ -239,7 +216,7 @@ export const OrionSquircleBase: React.FC<IconBaseProps> = ({
       />
 
       {/* Central Artwork Foreground */}
-      <g filter={`url(#${gradientId}-glyph-shadow)`}>
+      <g>
         {children}
       </g>
     </svg>
