@@ -1,7 +1,7 @@
 /**
  * ORION-9 PERSISTENT CLOUD SCHEDULER & DEMO GENERATION SERVICE
  * Authoritative backend cloud worker for automated, persistent, deterministic
- * generation of exactly 25 complete synthetic enterprise data packages every hour.
+ * generation of exactly 30 complete synthetic enterprise data packages every hour.
  * 
  * Guarantees:
  * - Operates independently of user browser, phone, or laptop status (Persistent Cloud Daemon)
@@ -13,7 +13,7 @@
  */
 
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
-import { demoSyntheticDataEngine, GenerationBatchAudit } from '../../core/database/DemoSyntheticDataEngine';
+import { demoSyntheticDataEngine, DEMO_PACKAGES_PER_HOUR, GenerationBatchAudit } from '../../core/database/DemoSyntheticDataEngine';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 export type DemoSchedulerStatus = 'NOT_STARTED' | 'RUNNING' | 'PAUSED' | 'ERROR';
@@ -32,7 +32,7 @@ export interface DemoGenerationLease {
 
 export interface DemoSchedulerState {
   status: DemoSchedulerStatus;
-  hourlyRate: number; // 25
+  hourlyRate: number; // 30
   lastScheduledHour: string | null;
   lastSuccessfulRun: string | null;
   lastBatchId: string | null;
@@ -54,7 +54,7 @@ export class DemoPersistentSchedulerService {
   private memoryLeases: Map<string, DemoGenerationLease> = new Map();
   private schedulerState: DemoSchedulerState = {
     status: 'NOT_STARTED',
-    hourlyRate: 25,
+    hourlyRate: DEMO_PACKAGES_PER_HOUR,
     lastScheduledHour: null,
     lastSuccessfulRun: null,
     lastBatchId: null,
@@ -87,7 +87,7 @@ export class DemoPersistentSchedulerService {
 
     this.schedulerState = {
       status: 'NOT_STARTED',
-      hourlyRate: 25,
+      hourlyRate: DEMO_PACKAGES_PER_HOUR,
       lastScheduledHour: null,
       lastSuccessfulRun: null,
       lastBatchId: null,
@@ -317,7 +317,7 @@ export class DemoPersistentSchedulerService {
 
   /**
    * Authoritative backend hourly generation job.
-   * Generates EXACTLY 25 complete enterprise data packages into DEMO Firestore.
+   * Generates EXACTLY 30 complete enterprise data packages into DEMO Firestore.
    */
   public async generateDemoHourlyBatch(
     scheduledHourInput?: string,
@@ -376,11 +376,11 @@ export class DemoPersistentSchedulerService {
       }
 
       console.log(`[ORION-SCHEDULER] invocation environment=DEMO scheduledHour=${scheduledHour} batchId=${batchId} lease=acquired`);
-      console.log(`[ORION-SCHEDULER] generation=start targetPackages=25`);
+      console.log(`[ORION-SCHEDULER] generation=start targetPackages=${DEMO_PACKAGES_PER_HOUR}`);
 
-      // 6. Generate EXACTLY 25 Complete Enterprise Packages
+      // 6. Generate EXACTLY 30 Complete Enterprise Packages
       const audit = await demoSyntheticDataEngine.generateEnterpriseBatch(
-        25,
+        DEMO_PACKAGES_PER_HOUR,
         batchId,
         options?.tenantId || 'DEMO_TENANT_ORION',
         options?.organizationId || 'DEMO_ORG_GLOBAL'
@@ -397,11 +397,11 @@ export class DemoPersistentSchedulerService {
       this.schedulerState = {
         ...this.schedulerState,
         status: 'RUNNING',
-        hourlyRate: 25,
+        hourlyRate: DEMO_PACKAGES_PER_HOUR,
         lastScheduledHour: scheduledHour,
         lastSuccessfulRun: new Date().toISOString(),
         lastBatchId: batchId,
-        lastBatchResult: `${audit.packageCount} / 25 packages`,
+        lastBatchResult: `${audit.packageCount} / ${DEMO_PACKAGES_PER_HOUR} packages`,
         nextScheduledRun: nextHour,
         totalBatchesCompleted: this.schedulerState.totalBatchesCompleted + 1,
         totalPackagesGenerated: this.schedulerState.totalPackagesGenerated + audit.packageCount,

@@ -37,7 +37,7 @@ describe('Orion-9 Cloudflare Worker Scheduled Runtime & DEMO Scheduler Architect
       const state = demoPersistentSchedulerService.getSchedulerState();
 
       expect(state.status).toBe('NOT_STARTED');
-      expect(state.hourlyRate).toBe(25);
+      expect(state.hourlyRate).toBe(30);
       expect(state.lastSuccessfulRun).toBeNull();
       expect(state.lastBatchId).toBeNull();
       expect(state.lastBatchResult).toBeNull();
@@ -49,24 +49,24 @@ describe('Orion-9 Cloudflare Worker Scheduled Runtime & DEMO Scheduler Architect
   });
 
   // TEST 2 — RATE
-  describe('TEST 2: Generation Rate (25 Packages / Hour)', () => {
-    it('generates exactly 25 complete enterprise packages per scheduled batch', async () => {
+  describe('TEST 2: Generation Rate (30 Packages / Hour)', () => {
+    it('generates exactly 30 complete enterprise packages per scheduled batch', async () => {
       const targetHour = '2026-09-27T10:00:00.000Z';
       const audit = await demoPersistentSchedulerService.executeScheduledHourlyGeneration(targetHour, true);
 
       expect(audit).toBeDefined();
-      expect(audit.packagesCount).toBe(25);
+      expect(audit.packagesCount).toBe(30);
       expect(audit.status).toBe('COMPLETED');
       expect(audit.environment).toBe('DEMO');
       expect(audit.batchId).toBe('DEMO-20260927T1000Z-BATCH');
-      expect(audit.breakdown.companies).toBe(25);
-      expect(audit.breakdown.suppliers).toBeGreaterThanOrEqual(50);
-      expect(audit.breakdown.products).toBeGreaterThanOrEqual(75);
-      expect(audit.breakdown.purchaseOrders).toBeGreaterThanOrEqual(75);
-      expect(audit.breakdown.shipments).toBeGreaterThanOrEqual(50);
-      expect(audit.breakdown.inventoryItems).toBeGreaterThanOrEqual(75);
-      expect(audit.breakdown.invoices).toBeGreaterThanOrEqual(25);
-      expect(audit.breakdown.totalRecords).toBeGreaterThanOrEqual(300);
+      expect(audit.breakdown.companies).toBe(30);
+      expect(audit.breakdown.suppliers).toBeGreaterThanOrEqual(60);
+      expect(audit.breakdown.products).toBeGreaterThanOrEqual(90);
+      expect(audit.breakdown.purchaseOrders).toBeGreaterThanOrEqual(90);
+      expect(audit.breakdown.shipments).toBeGreaterThanOrEqual(60);
+      expect(audit.breakdown.inventoryItems).toBeGreaterThanOrEqual(90);
+      expect(audit.breakdown.invoices).toBeGreaterThanOrEqual(30);
+      expect(audit.breakdown.totalRecords).toBeGreaterThanOrEqual(360);
     });
   });
 
@@ -128,13 +128,13 @@ describe('Orion-9 Cloudflare Worker Scheduled Runtime & DEMO Scheduler Architect
       const fixedHour = '2026-09-27T14:00:00.000Z';
 
       const firstRun = await demoPersistentSchedulerService.executeScheduledHourlyGeneration(fixedHour, true);
-      expect(firstRun.packagesCount).toBe(25);
+      expect(firstRun.packagesCount).toBe(30);
       expect(firstRun.status).toBe('COMPLETED');
 
       // Second run on same hour returns COMPLETED without duplicate creation
       const secondRun = await demoPersistentSchedulerService.executeScheduledHourlyGeneration(fixedHour, false);
       expect(secondRun.batchId).toBe(firstRun.batchId);
-      expect(secondRun.packagesCount).toBe(25);
+      expect(secondRun.packagesCount).toBe(30);
       expect(secondRun.status).toBe('COMPLETED');
       expect(secondRun.completedAt).toBe(firstRun.completedAt);
     });
@@ -236,7 +236,7 @@ describe('Orion-9 Cloudflare Worker Scheduled Runtime & DEMO Scheduler Architect
 
       const audit = await demoPersistentSchedulerService.executeScheduledHourlyGeneration('2026-09-27T19:00:00.000Z', false);
       expect(audit.status).toBe('COMPLETED');
-      expect(audit.packagesCount).toBe(25);
+      expect(audit.packagesCount).toBe(30);
     });
   });
 
@@ -261,7 +261,7 @@ describe('Orion-9 Cloudflare Worker Scheduled Runtime & DEMO Scheduler Architect
       expect(ctx.waitUntil).toHaveBeenCalled();
       const state = demoPersistentSchedulerService.getSchedulerState();
       expect(state.lastBatchId).toBe('DEMO-20260927T2000Z-BATCH');
-      expect(state.totalPackagesGenerated).toBeGreaterThanOrEqual(25);
+      expect(state.totalPackagesGenerated).toBeGreaterThanOrEqual(30);
     });
   });
 

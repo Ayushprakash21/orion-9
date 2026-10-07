@@ -10,6 +10,7 @@ import { useToast } from '../../store/ToastContext';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { 
   demoSyntheticDataEngine, 
+  DEMO_PACKAGES_PER_HOUR,
   GenerationBatchAudit 
 } from '../../core/database/DemoSyntheticDataEngine';
 import { 
@@ -113,11 +114,11 @@ export const AdminDemoData: React.FC = () => {
       }
 
       if (!audit) {
-        audit = await demoSyntheticDataEngine.generateEnterpriseBatch(25);
+        audit = await demoSyntheticDataEngine.generateEnterpriseBatch(DEMO_PACKAGES_PER_HOUR);
       }
 
       showToast(
-        `Generated batch ${audit.generationBatchId || audit.batchId}: ${audit.packageCount || audit.packagesCount || 25} enterprise packages (${audit.recordCounts?.companies || 25} companies, ${audit.recordCounts?.products || 100} products, ${audit.recordCounts?.purchaseOrders || 100} POs) in ${audit.durationMs || 0}ms`,
+        `Generated batch ${audit.generationBatchId || audit.batchId}: ${audit.packageCount || audit.packagesCount || DEMO_PACKAGES_PER_HOUR} enterprise packages (${audit.recordCounts?.companies || DEMO_PACKAGES_PER_HOUR} companies, ${audit.recordCounts?.products || 120} products, ${audit.recordCounts?.purchaseOrders || 120} POs) in ${audit.durationMs || 0}ms`,
         'success'
       );
       setBatchHistory(demoSyntheticDataEngine.getBatchHistory());
@@ -148,7 +149,7 @@ export const AdminDemoData: React.FC = () => {
         showToast('Persistent Cloud Scheduler & Simulation Engine paused', 'info');
       } else {
         demoLiveSimulationEngine.resume();
-        showToast('Persistent Cloud Scheduler & Simulation Engine resumed (25 pkgs/hr)', 'success');
+        showToast(`Persistent Cloud Scheduler & Simulation Engine resumed (${DEMO_PACKAGES_PER_HOUR} pkgs/hr)`, 'success');
       }
       setSimState(demoLiveSimulationEngine.getState());
       fetchCloudSchedulerStatus();
@@ -235,7 +236,7 @@ export const AdminDemoData: React.FC = () => {
                 </span>
               </h1>
               <p className="text-xs text-os-text-secondary mt-0.5">
-                Continuous AI-Generated Enterprise Ecosystems (25 Packages/Hour) & Authoritative Demo Firestore Daemon
+                Continuous AI-Generated Enterprise Ecosystems ({DEMO_PACKAGES_PER_HOUR} Packages/Hour) & Authoritative Demo Firestore Daemon
               </p>
             </div>
           </div>
@@ -263,7 +264,7 @@ export const AdminDemoData: React.FC = () => {
             className="flex items-center gap-2 px-3 py-1.5 text-xs font-mono font-bold rounded bg-amber-600 hover:bg-amber-500 text-black transition-colors cursor-pointer disabled:opacity-50"
           >
             <Zap className={cn("w-3.5 h-3.5", isGenerating && "animate-spin")} />
-            {isGenerating ? 'Generating 25 Packages...' : 'Generate Now (25 Packages)'}
+            {isGenerating ? `Generating ${DEMO_PACKAGES_PER_HOUR} Packages...` : `Generate Now (${DEMO_PACKAGES_PER_HOUR} Packages)`}
           </button>
 
           <button
@@ -296,7 +297,7 @@ export const AdminDemoData: React.FC = () => {
         <div className="p-3.5 rounded-xl border border-os-border bg-os-surface/60">
           <span className="text-[10px] font-mono text-os-text-muted block mb-1">RATE TARGET</span>
           <span className="text-sm font-mono font-bold text-amber-400">
-            25 packages / hr
+            {cloudSchedulerState?.hourlyRate ?? DEMO_PACKAGES_PER_HOUR} packages / hr
           </span>
         </div>
 
@@ -315,7 +316,7 @@ export const AdminDemoData: React.FC = () => {
         <div className="p-3.5 rounded-xl border border-os-border bg-os-surface/60">
           <span className="text-[10px] font-mono text-os-text-muted block mb-1">PACKAGES PERSISTED</span>
           <span className="text-sm font-mono font-bold text-emerald-400">
-            {cloudSchedulerState?.totalPackagesGenerated ?? (batchHistory.length * 25)}
+            {cloudSchedulerState?.totalPackagesGenerated ?? (batchHistory.length * DEMO_PACKAGES_PER_HOUR)}
           </span>
         </div>
 
@@ -336,7 +337,7 @@ export const AdminDemoData: React.FC = () => {
             <h3 className="font-mono font-bold text-sm text-white">CLIENT TELEMETRY SPEED</h3>
           </div>
           <p className="text-xs text-os-text-secondary">
-            Controls UI visual step rate for active sessions without altering the 25 pkg/hr cloud daemon.
+            Controls UI visual step rate for active sessions without altering the {DEMO_PACKAGES_PER_HOUR} pkg/hr cloud daemon.
           </p>
 
           <div className="grid grid-cols-4 gap-2">
@@ -517,7 +518,7 @@ export const AdminDemoData: React.FC = () => {
               ) : (
                 <tr>
                   <td colSpan={9} className="p-4 text-center text-os-text-muted">
-                    No generation batches recorded in this session. Click "Generate Now (25 Packages)" or let the cloud scheduler daemon run automatically.
+                    No generation batches recorded in this session. Click "Generate Now ({DEMO_PACKAGES_PER_HOUR} Packages)" or let the cloud scheduler daemon run automatically.
                   </td>
                 </tr>
               )}
@@ -545,7 +546,7 @@ export const AdminDemoData: React.FC = () => {
                 <strong className="text-white">Safety Check:</strong> This action is only permitted in DEMO mode. LIVE database records can never be touched or reset.
               </p>
               <p>
-                <strong className="text-white">Result:</strong> All synthetic demo companies, orders, shipments, and exceptions will be purged and re-initialized with a pristine 25-package baseline ecosystem.
+                <strong className="text-white">Result:</strong> All synthetic demo companies, orders, shipments, and exceptions will be purged and re-initialized with a pristine {DEMO_PACKAGES_PER_HOUR}-package baseline ecosystem.
               </p>
             </div>
 

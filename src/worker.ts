@@ -7,6 +7,7 @@
 
 import { checkCloudflareWallpaperStatus, generateCloudflareWallpapers } from "./server/cloudflareAiBackend";
 import { demoPersistentSchedulerService } from "./services/demo/DemoPersistentSchedulerService";
+import { DEMO_PACKAGES_PER_HOUR } from "./core/database/DemoSyntheticDataEngine";
 import { dbManager } from "./core/database/DatabaseConnectionManager";
 import { GoogleGenAI } from "@google/genai";
 
@@ -420,7 +421,7 @@ ${JSON.stringify(dataContext || {}, null, 2)}`;
           scheduler: {
             mode: "CLOUDFLARE_CRON",
             cron: "0 * * * *",
-            hourlyRate: 25,
+            hourlyRate: DEMO_PACKAGES_PER_HOUR,
             state: demoPersistentSchedulerService.getSchedulerState(),
           },
         }),
@@ -437,7 +438,7 @@ ${JSON.stringify(dataContext || {}, null, 2)}`;
   /**
    * CLOUDFLARE WORKER CRON TRIGGER HANDLER (0 * * * *)
    * Runs once every hour at minute 0 UTC.
-   * Generates EXACTLY 25 enterprise synthetic packages into DEMO Firestore.
+   * Generates EXACTLY 30 enterprise synthetic packages into DEMO Firestore.
    */
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     const scheduledTime = controller.scheduledTime ? new Date(controller.scheduledTime) : new Date();

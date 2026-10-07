@@ -99,20 +99,20 @@ describe('ORION-9 — Unified System Status & Runtime Health Fabric', () => {
   // 3, 4, 5: SCHEDULER HEALTH
   // =========================================================================
   describe('Scheduler Health', () => {
-    it('3. reports scheduler healthy when DEMO scheduler is RUNNING at 25 pkgs/hr', () => {
+    it('3. reports scheduler healthy when DEMO scheduler is RUNNING at 30 pkgs/hr', () => {
       systemStatusRegistry.setSchedulerProvider(() => ({
         status: 'HEALTHY',
         configured: true,
         enabled: true,
         schedulerMode: 'CLOUDFLARE_CRON',
         totalPackagesGenerated: 150,
-        message: 'Demo scheduler running — hourly batch rate: 25 pkgs/hr',
+        message: 'Demo scheduler running — hourly batch rate: 30 pkgs/hr',
       }));
 
       const snapshot = systemStatusEngine.getSnapshot(TENANT_A, 'DEMO');
       expect(snapshot.scheduler.status).toBe('HEALTHY');
       expect(snapshot.scheduler.enabled).toBe(true);
-      expect(snapshot.scheduler.message).toContain('hourly batch rate: 25 pkgs/hr');
+      expect(snapshot.scheduler.message).toContain('hourly batch rate: 30 pkgs/hr');
     });
 
     it('4. reports scheduler ERROR with sanitized error message when scheduler fails', () => {

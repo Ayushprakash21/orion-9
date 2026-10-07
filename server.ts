@@ -6,6 +6,7 @@ import { GoogleGenAI } from "@google/genai";
 import * as firebaseAdmin from "firebase-admin";
 import dotenv from "dotenv";
 import { demoPersistentSchedulerService } from "./src/services/demo/DemoPersistentSchedulerService";
+import { DEMO_PACKAGES_PER_HOUR } from "./src/core/database/DemoSyntheticDataEngine";
 import { checkCloudflareWallpaperStatus, generateCloudflareWallpapers } from "./src/server/cloudflareAiBackend";
 
 dotenv.config({ path: ['.env.local', '.env'] });
@@ -214,7 +215,7 @@ async function startServer() {
     }
   });
 
-  // Authoritative Hourly Batch Trigger (Exact 25 Packages)
+  // Authoritative Hourly Batch Trigger (Exact 30 Packages)
   app.post("/api/demo/generate-hourly-batch", async (req, res) => {
     try {
       const { demoPersistentSchedulerService } = await import("./src/services/demo/DemoPersistentSchedulerService");
@@ -445,7 +446,7 @@ async function startServer() {
   });
 
   // ============================================================================
-  // ORION-9 DEMO PERSISTENT SCHEDULER & 25-PACKAGE HOURLY GENERATION API
+  // ORION-9 DEMO PERSISTENT SCHEDULER & 30-PACKAGE HOURLY GENERATION API
   // ============================================================================
   app.get("/api/demo/scheduler-status", async (req, res) => {
     try {
@@ -455,7 +456,7 @@ async function startServer() {
         success: true,
         scheduler: state,
         isSchedulerActive: isActive,
-        engineRate: "25 packages / hour",
+        engineRate: `${DEMO_PACKAGES_PER_HOUR} packages / hour`,
         schedulerMode: "CLOUD_PERSISTENT",
         targetDatabase: "demo-orion9-db-2026"
       });
@@ -1062,7 +1063,7 @@ Analyze the supplied document and return a strict JSON object with:
   if (process.env.ORION_ENABLE_LOCAL_SCHEDULER === 'true') {
     try {
       demoPersistentSchedulerService.startPersistentScheduler(60000);
-      console.log("[DEMO-SCHEDULER] Local development timer started (ORION_ENABLE_LOCAL_SCHEDULER=true, Rate: 25 packages/hour)");
+      console.log(`[DEMO-SCHEDULER] Local development timer started (ORION_ENABLE_LOCAL_SCHEDULER=true, Rate: ${DEMO_PACKAGES_PER_HOUR} packages/hour)`);
     } catch (err) {
       console.warn("[DEMO-SCHEDULER] Local daemon startup warning:", err);
     }

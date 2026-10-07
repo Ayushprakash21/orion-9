@@ -470,7 +470,7 @@ describe('ORION-9 — TRACK 5 ENTERPRISE CERTIFICATION SUITE', () => {
       });
     });
 
-    it('generates exactly 25 synthetic packages per hour when executed in DEMO mode', async () => {
+    it('generates exactly 30 synthetic packages per hour when executed in DEMO mode', async () => {
       const scheduledHour = new Date().toISOString();
 
       const demoResult = await demoPersistentSchedulerService.executeScheduledHourlyGeneration(
@@ -479,7 +479,7 @@ describe('ORION-9 — TRACK 5 ENTERPRISE CERTIFICATION SUITE', () => {
       );
 
       expect(demoResult.status).toBe('COMPLETED');
-      expect(demoResult.packagesCount).toBe(25);
+      expect(demoResult.packagesCount).toBe(30);
     });
   });
 

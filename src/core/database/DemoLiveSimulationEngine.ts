@@ -11,7 +11,7 @@
  */
 
 import { dbManager } from './DatabaseConnectionManager';
-import { demoSyntheticDataEngine } from './DemoSyntheticDataEngine';
+import { demoSyntheticDataEngine, DEMO_PACKAGES_PER_HOUR } from './DemoSyntheticDataEngine';
 import { collection, getDocs, doc, writeBatch, query, where, limit } from 'firebase/firestore';
 
 export type SimulationSpeed = '1x' | '5x' | '20x' | 'PAUSED';
@@ -19,7 +19,7 @@ export type DemoRetentionPolicy = '7_DAYS' | '30_DAYS' | '90_DAYS' | 'UNLIMITED'
 
 export interface SimulationConfig {
   speed: SimulationSpeed;
-  hourlyGenerationRate: number; // exactly 25
+  hourlyGenerationRate: number; // exactly 30
   retentionPolicy: DemoRetentionPolicy;
   exceptionProbabilities: {
     supplierDelayProbability: number; // 0..1
@@ -52,7 +52,7 @@ export class DemoLiveSimulationEngine {
 
   private config: SimulationConfig = {
     speed: '1x',
-    hourlyGenerationRate: 25,
+    hourlyGenerationRate: DEMO_PACKAGES_PER_HOUR,
     retentionPolicy: '30_DAYS',
     exceptionProbabilities: {
       supplierDelayProbability: 0.15,
@@ -73,11 +73,11 @@ export class DemoLiveSimulationEngine {
     totalCyclesExecuted: 0,
     totalEventsProcessed: 0,
     exceptionsGeneratedToday: 0,
-    activeCompaniesCount: 25,
-    activeSuppliersCount: 62,
-    activeProductsCount: 100,
-    activePOsCount: 80,
-    activeShipmentsCount: 50,
+    activeCompaniesCount: DEMO_PACKAGES_PER_HOUR,
+    activeSuppliersCount: 75,
+    activeProductsCount: 120,
+    activePOsCount: 95,
+    activeShipmentsCount: 60,
   };
 
   private tickerTimer: any = null;
@@ -231,7 +231,7 @@ export class DemoLiveSimulationEngine {
   }
 
   /**
-   * Governed Demo Reset: Purges synthetic data and restores clean 25-package baseline dataset
+   * Governed Demo Reset: Purges synthetic data and restores clean 30-package baseline dataset
    */
   public async resetDemoData(actorUserId: string, isPlatformAdmin: boolean): Promise<{ success: boolean; message: string }> {
     const activeEnv = dbManager.getEnvironment();
@@ -247,9 +247,9 @@ export class DemoLiveSimulationEngine {
 
     console.info(`[DEMO-RESET] Administrator ${actorUserId} triggered governed Demo data reset.`);
 
-    // 1. Generate clean 25-package baseline dataset
+    // 1. Generate clean 30-package baseline dataset
     await demoSyntheticDataEngine.generateEnterpriseBatch(
-      25,
+      DEMO_PACKAGES_PER_HOUR,
       `DEMO-BASELINE-RESET-${Date.now()}`
     );
 
@@ -264,7 +264,7 @@ export class DemoLiveSimulationEngine {
 
     return {
       success: true,
-      message: 'Demo dataset successfully reset. Restored 25 fresh synthetic enterprise ecosystems.',
+      message: 'Demo dataset successfully reset. Restored 30 fresh synthetic enterprise ecosystems.',
     };
   }
 
