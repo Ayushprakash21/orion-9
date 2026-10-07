@@ -6,7 +6,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { worldEntryContainerVariants } from '../motion/OrionMotionVariants';
-import { useIsReducedMotion, ORION_EASE, ORION_BOOT_MOTION_SCALE } from '../motion/OrionMotion';
+import { useIsReducedMotion, ORION_EASE, ORION_BOOT_MOTION_SCALE, ORION_WORLD_ENTRY_DURATION_MS } from '../motion/OrionMotion';
 import { OrionLifecycleBackdrop } from '../lifecycle/OrionLifecycleBackdrop';
 import { OrionLifecycleCore } from '../lifecycle/OrionLifecycleCore';
 import { OrionLifecycleStatusList, LifecycleStatusItem } from '../lifecycle/OrionLifecycleStatusList';
@@ -18,7 +18,7 @@ interface Props {
 }
 
 // Measured post-login world entry visual pacing scaled to ~80% speed (1.25x durations)
-const TOTAL_WORLD_ENTRY_MS = Math.round(1600 * ORION_BOOT_MOTION_SCALE); // 2000ms
+const TOTAL_WORLD_ENTRY_MS = ORION_WORLD_ENTRY_DURATION_MS; // 2000ms
 const WORLD_ENTRY_READY_THRESHOLD_MS = Math.round(1400 * ORION_BOOT_MOTION_SCALE); // 1750ms
 
 const WORLD_ENTRY_STAGES = [

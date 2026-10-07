@@ -1,26 +1,23 @@
 import React, { useEffect, useCallback, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  X,
-  ShieldCheck,
-  Cpu,
-  Database,
-  Activity,
-  Bell,
-  Wifi,
-  WifiOff,
-  Clock,
-  Radio,
-  BarChart3,
-  Server,
-  Zap,
-  CheckCircle2,
-  AlertTriangle,
-  RefreshCw,
-  Layers,
-  Calendar,
-  Layers3
-} from 'lucide-react';
+  SysIconRuntime,
+  SysIconDatabase,
+  SysIconClock,
+  SysIconListeners,
+  SysIconPulse,
+  SysIconWaveform,
+  SysIconAutomation,
+  SysIconCheckCircle,
+  SysIconAlertTriangle,
+  SysIconRefresh,
+  SysIconActivity,
+  SysIconShield,
+  SysIconBell,
+  SysIconWifi,
+  SysIconWifiOff,
+  SysIconWindowClose as SysCloseIcon,
+} from '../../os/icons/OrionSystemIcons';
 import { useConnectivity } from '../../store/ConnectivityContext';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { DemoPersistentSchedulerService } from '../../services/demo/DemoPersistentSchedulerService';
@@ -136,15 +133,15 @@ export const SystemStatusModal: React.FC<SystemStatusModalProps> = ({ isOpen, on
       name: 'Network Connectivity',
       status: isLocalMode ? 'Local / Demo Mode' : (isOnline ? 'Online (Operational)' : 'Offline / Degraded'),
       latency: isLocalMode ? 'Local (0ms)' : (isOnline ? '38ms' : 'N/A'),
-      icon: isOnline ? Wifi : WifiOff,
-      color: isLocalMode ? 'text-cyan-400' : (isOnline ? 'text-emerald-400' : 'text-red-400')
+      icon: isOnline ? SysIconWifi : SysIconWifiOff,
+      color: isLocalMode ? 'text-[var(--orion-text-secondary)]' : (isOnline ? 'text-[var(--orion-success,#5FAF8A)]' : 'text-[var(--orion-danger,#C96B72)]')
     },
-    { name: 'Application Core', status: 'Operational', latency: '12ms', icon: Cpu, color: 'text-emerald-400' },
-    { name: 'Data Store (IndexedDB / Local)', status: 'Operational', latency: '4ms', icon: Database, color: 'text-emerald-400' },
-    { name: 'External Cloud Sync', status: 'Optional / Standby', latency: 'N/A', icon: Activity, color: 'text-neutral-400' },
-    { name: 'AI Decision Engine (Gemini 3.6)', status: 'Operational', latency: '240ms', icon: ShieldCheck, color: 'text-emerald-400' },
-    { name: 'Sync Engine', status: 'Operational', latency: 'Idle', icon: Activity, color: 'text-emerald-400' },
-    { name: 'Notification Engine', status: 'Operational', latency: 'Active', icon: Bell, color: 'text-emerald-400' },
+    { name: 'Application Core', status: 'Operational', latency: '12ms', icon: SysIconRuntime, color: 'text-[var(--orion-success,#5FAF8A)]' },
+    { name: 'Data Store (IndexedDB / Local)', status: 'Operational', latency: '4ms', icon: SysIconDatabase, color: 'text-[var(--orion-success,#5FAF8A)]' },
+    { name: 'External Cloud Sync', status: 'Optional / Standby', latency: 'N/A', icon: SysIconActivity, color: 'text-[var(--orion-text-muted)]' },
+    { name: 'AI Decision Engine (Gemini 3.6)', status: 'Operational', latency: '240ms', icon: SysIconShield, color: 'text-[var(--orion-success,#5FAF8A)]' },
+    { name: 'Sync Engine', status: 'Operational', latency: 'Idle', icon: SysIconActivity, color: 'text-[var(--orion-success,#5FAF8A)]' },
+    { name: 'Notification Engine', status: 'Operational', latency: 'Active', icon: SysIconBell, color: 'text-[var(--orion-success,#5FAF8A)]' },
   ];
 
   if (!isOpen) return null;
@@ -152,7 +149,7 @@ export const SystemStatusModal: React.FC<SystemStatusModalProps> = ({ isOpen, on
   const modalContent = (
     <div
       data-testid="system-status-modal-overlay"
-      className="fixed inset-0 z-[2147483640] flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-in fade-in duration-150 select-none"
+      className="fixed inset-0 z-[2147483640] flex items-center justify-center p-4 sm:p-6 bg-black/75 backdrop-blur-md animate-in fade-in duration-150 select-none"
       onClick={onClose}
     >
       <div
@@ -160,13 +157,13 @@ export const SystemStatusModal: React.FC<SystemStatusModalProps> = ({ isOpen, on
         aria-modal="true"
         aria-label="System Health & Diagnostics"
         data-testid="system-status-modal-dialog"
-        className="relative w-full max-w-2xl max-h-[min(90vh,680px)] rounded-xl bg-os-surface border border-os-border shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9),inset_0_1px_1px_rgba(255,255,255,0.06)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
+        className="relative w-full max-w-2xl max-h-[min(90vh,680px)] rounded-xl bg-os-surface border border-os-border shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-os-surface-elevated/60 border-b border-os-border shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 bg-os-surface-elevated/70 border-b border-os-border shrink-0">
           <div className="flex items-center gap-3">
-            <span className={`h-2.5 w-2.5 rounded-full ${overallSystemStatus === 'OPERATIONAL' ? 'bg-emerald-400 shadow-[0_0_8px_#34D399]' : overallSystemStatus === 'DEGRADED' ? 'bg-amber-400 shadow-[0_0_8px_#FBBF24]' : 'bg-red-400 shadow-[0_0_8px_#F87171]'} animate-pulse`} />
+            <span className={`h-2.5 w-2.5 rounded-full ${overallSystemStatus === 'OPERATIONAL' ? 'bg-[var(--orion-success,#5FAF8A)]' : overallSystemStatus === 'DEGRADED' ? 'bg-[var(--orion-warning,#C6A15B)]' : 'bg-[var(--orion-danger,#C96B72)]'} animate-pulse`} />
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold tracking-wide text-os-text-primary">System Health & Diagnostics</span>
@@ -189,9 +186,9 @@ export const SystemStatusModal: React.FC<SystemStatusModalProps> = ({ isOpen, on
             type="button"
             onClick={onClose}
             aria-label="Close Diagnostics Modal"
-            className="text-os-text-muted hover:text-os-text-primary p-1 rounded-md hover:bg-os-surface-active transition-colors cursor-pointer"
+            className="text-os-text-muted hover:text-os-text-primary p-1.5 rounded-md hover:bg-os-surface-active transition-colors cursor-pointer"
           >
-            <X size={16} />
+            <SysCloseIcon size={14} />
           </button>
         </div>
 
@@ -202,7 +199,7 @@ export const SystemStatusModal: React.FC<SystemStatusModalProps> = ({ isOpen, on
             onClick={() => setActiveTab('overview')}
             className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer flex items-center gap-1.5 ${activeTab === 'overview' ? 'bg-os-surface-elevated text-os-text-primary border border-os-border/80 shadow-sm' : 'text-os-text-secondary hover:text-os-text-primary'}`}
           >
-            <Activity size={13} />
+            <SysIconActivity size={13} />
             <span>Overview & Subsystems</span>
           </button>
           <button
@@ -210,7 +207,7 @@ export const SystemStatusModal: React.FC<SystemStatusModalProps> = ({ isOpen, on
             onClick={() => setActiveTab('firestore_listeners')}
             className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer flex items-center gap-1.5 ${activeTab === 'firestore_listeners' ? 'bg-os-surface-elevated text-os-text-primary border border-os-border/80 shadow-sm' : 'text-os-text-secondary hover:text-os-text-primary'}`}
           >
-            <Radio size={13} />
+            <SysIconListeners size={13} />
             <span>Firestore & Listeners</span>
           </button>
           <button
@@ -218,7 +215,7 @@ export const SystemStatusModal: React.FC<SystemStatusModalProps> = ({ isOpen, on
             onClick={() => setActiveTab('scheduler')}
             className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer flex items-center gap-1.5 ${activeTab === 'scheduler' ? 'bg-os-surface-elevated text-os-text-primary border border-os-border/80 shadow-sm' : 'text-os-text-secondary hover:text-os-text-primary'}`}
           >
-            <Clock size={13} />
+            <SysIconClock size={13} />
             <span>Cloud Scheduler</span>
           </button>
           <button
@@ -226,7 +223,7 @@ export const SystemStatusModal: React.FC<SystemStatusModalProps> = ({ isOpen, on
             onClick={() => setActiveTab('freshness_graphs')}
             className={`px-3 py-1.5 rounded-md transition-colors cursor-pointer flex items-center gap-1.5 ${activeTab === 'freshness_graphs' ? 'bg-os-surface-elevated text-os-text-primary border border-os-border/80 shadow-sm' : 'text-os-text-secondary hover:text-os-text-primary'}`}
           >
-            <BarChart3 size={13} />
+            <SysIconWaveform size={13} />
             <span>Data Freshness & Graphs</span>
           </button>
         </div>
@@ -239,57 +236,57 @@ export const SystemStatusModal: React.FC<SystemStatusModalProps> = ({ isOpen, on
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                 <div className="p-2.5 rounded-lg bg-os-surface-secondary border border-os-border/70">
                   <div className="text-[10px] font-mono text-os-text-muted uppercase">1. Runtime</div>
-                  <div className="text-xs font-semibold text-emerald-400 mt-1 flex items-center gap-1">
-                    <CheckCircle2 size={12} />
+                  <div className="text-xs font-semibold text-[var(--orion-success,#5FAF8A)] mt-1 flex items-center gap-1">
+                    <SysIconCheckCircle size={12} />
                     <span>{runtimeHealth}</span>
                   </div>
                 </div>
                 <div className="p-2.5 rounded-lg bg-os-surface-secondary border border-os-border/70">
                   <div className="text-[10px] font-mono text-os-text-muted uppercase">2. Firestore</div>
-                  <div className="text-xs font-semibold text-emerald-400 mt-1 flex items-center gap-1">
-                    <Database size={12} />
+                  <div className="text-xs font-semibold text-[var(--orion-success,#5FAF8A)] mt-1 flex items-center gap-1">
+                    <SysIconDatabase size={12} />
                     <span>{isDemo ? 'DEMO FIRESTORE' : 'LIVE FIRESTORE'}</span>
                   </div>
                 </div>
                 <div className="p-2.5 rounded-lg bg-os-surface-secondary border border-os-border/70">
                   <div className="text-[10px] font-mono text-os-text-muted uppercase">3. Cloud Scheduler</div>
-                  <div className={`text-xs font-semibold mt-1 flex items-center gap-1 ${schedulerState.status === 'RUNNING' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    <Clock size={12} />
+                  <div className={`text-xs font-semibold mt-1 flex items-center gap-1 ${schedulerState.status === 'RUNNING' ? 'text-[var(--orion-success,#5FAF8A)]' : 'text-[var(--orion-warning,#C6A15B)]'}`}>
+                    <SysIconClock size={12} />
                     <span>{schedulerState.status}</span>
                   </div>
                 </div>
                 <div className="p-2.5 rounded-lg bg-os-surface-secondary border border-os-border/70">
                   <div className="text-[10px] font-mono text-os-text-muted uppercase">4. Listeners</div>
-                  <div className="text-xs font-semibold text-emerald-400 mt-1 flex items-center gap-1">
-                    <Radio size={12} />
+                  <div className="text-xs font-semibold text-[var(--orion-success,#5FAF8A)] mt-1 flex items-center gap-1">
+                    <SysIconListeners size={12} />
                     <span>{domainStates.filter(s => s.status === 'LIVE').length}/{domainStates.length} LIVE</span>
                   </div>
                 </div>
                 <div className="p-2.5 rounded-lg bg-os-surface-secondary border border-os-border/70">
                   <div className="text-[10px] font-mono text-os-text-muted uppercase">5. Data Freshness</div>
-                  <div className="text-xs font-semibold text-emerald-400 mt-1 flex items-center gap-1">
-                    <Zap size={12} />
+                  <div className="text-xs font-semibold text-[var(--orion-success,#5FAF8A)] mt-1 flex items-center gap-1">
+                    <SysIconPulse size={12} />
                     <span>{dataFreshnessHealth}</span>
                   </div>
                 </div>
                 <div className="p-2.5 rounded-lg bg-os-surface-secondary border border-os-border/70">
                   <div className="text-[10px] font-mono text-os-text-muted uppercase">6. Real-Time Graphs</div>
-                  <div className="text-xs font-semibold text-cyan-400 mt-1 flex items-center gap-1">
-                    <BarChart3 size={12} />
+                  <div className="text-xs font-semibold text-[var(--orion-text-primary)] mt-1 flex items-center gap-1">
+                    <SysIconWaveform size={12} />
                     <span>6 SUITES LIVE</span>
                   </div>
                 </div>
                 <div className="p-2.5 rounded-lg bg-os-surface-secondary border border-os-border/70">
                   <div className="text-[10px] font-mono text-os-text-muted uppercase">7. Automation</div>
-                  <div className="text-xs font-semibold text-emerald-400 mt-1 flex items-center gap-1">
-                    <Layers size={12} />
+                  <div className="text-xs font-semibold text-[var(--orion-success,#5FAF8A)] mt-1 flex items-center gap-1">
+                    <SysIconAutomation size={12} />
                     <span>ACTIVE</span>
                   </div>
                 </div>
                 <div className="p-2.5 rounded-lg bg-os-surface-secondary border border-os-border/70">
                   <div className="text-[10px] font-mono text-os-text-muted uppercase">8. System Status</div>
-                  <div className={`text-xs font-semibold mt-1 flex items-center gap-1 ${overallSystemStatus === 'OPERATIONAL' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    <ShieldCheck size={12} />
+                  <div className={`text-xs font-semibold mt-1 flex items-center gap-1 ${overallSystemStatus === 'OPERATIONAL' ? 'text-[var(--orion-success,#5FAF8A)]' : 'text-[var(--orion-warning,#C6A15B)]'}`}>
+                    <SysIconShield size={12} />
                     <span>{overallSystemStatus}</span>
                   </div>
                 </div>
@@ -318,7 +315,7 @@ export const SystemStatusModal: React.FC<SystemStatusModalProps> = ({ isOpen, on
                         </div>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 ml-3">
-                        <span className={`h-2 w-2 rounded-full ${svc.color.includes('emerald') ? 'bg-emerald-500 shadow-[0_0_6px_#10B981]' : svc.color.includes('cyan') ? 'bg-cyan-400 shadow-[0_0_6px_#00F2FE]' : svc.color.includes('red') ? 'bg-red-500 shadow-[0_0_6px_#EF4444]' : 'bg-neutral-500'}`} />
+                        <span className={`h-2 w-2 rounded-full ${svc.color.includes('orion-success') || svc.color.includes('emerald') ? 'bg-[var(--orion-success,#5FAF8A)]' : svc.color.includes('orion-danger') || svc.color.includes('red') ? 'bg-[var(--orion-danger,#C96B72)]' : 'bg-neutral-500'}`} />
                         <span className={`text-xs font-mono font-medium ${svc.color}`}>{svc.status}</span>
                       </div>
                     </div>
@@ -334,21 +331,21 @@ export const SystemStatusModal: React.FC<SystemStatusModalProps> = ({ isOpen, on
               <div className="p-4 rounded-xl bg-os-surface-secondary border border-os-border/80 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                 <div>
                   <div className="text-xs font-semibold text-os-text-primary flex items-center gap-2">
-                    <Database size={15} className="text-cyan-400" />
+                    <SysIconDatabase size={15} className="text-os-text-secondary" />
                     <span>Authoritative Firestore Connection</span>
                   </div>
                   <div className="text-[11px] text-os-text-secondary mt-1">
-                    Mode: <span className="font-mono text-emerald-400 font-semibold">{env} ENVIRONMENT</span> | Protocol: WebChannel / WebSocket
+                    Mode: <span className="font-mono text-[var(--orion-success,#5FAF8A)] font-semibold">{env} ENVIRONMENT</span> | Protocol: WebChannel / WebSocket
                   </div>
                   <div className="text-[10px] text-os-text-muted mt-0.5">
                     {systemStatus.firestore.message}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 text-xs font-mono">
-                  <div className="px-2.5 py-1 rounded bg-os-surface-elevated border border-os-border text-emerald-400">
+                  <div className="px-2.5 py-1 rounded bg-os-surface-elevated border border-os-border text-[var(--orion-success,#5FAF8A)]">
                     {systemStatus.firestore.status}
                   </div>
-                  <div className="px-2.5 py-1 rounded bg-os-surface-elevated border border-os-border text-cyan-400">
+                  <div className="px-2.5 py-1 rounded bg-os-surface-elevated border border-os-border text-os-text-secondary">
                     ~{systemStatus.firestore.latencyMs || 38}ms Latency
                   </div>
                 </div>
@@ -371,11 +368,11 @@ export const SystemStatusModal: React.FC<SystemStatusModalProps> = ({ isOpen, on
                     <div key={label} className="p-3 flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <span className={`h-2 w-2 rounded-full ${
-                          state.status === 'CONNECTED' ? 'bg-emerald-400 shadow-[0_0_6px_#34D399]' :
+                          state.status === 'CONNECTED' ? 'bg-[var(--orion-success,#5FAF8A)]' :
                           state.status === 'EMPTY' ? 'bg-slate-400' :
-                          state.status === 'LOADING' ? 'bg-blue-400 animate-pulse' :
-                          state.status === 'STALE' ? 'bg-purple-400' :
-                          'bg-red-400'
+                          state.status === 'LOADING' ? 'bg-[var(--orion-text-muted)] animate-pulse' :
+                          state.status === 'STALE' ? 'bg-[var(--orion-warning,#C6A15B)]' :
+                          'bg-[var(--orion-danger,#C96B72)]'
                         }`} />
                         <div>
                           <div className="font-medium text-os-text-primary font-mono text-[11px]">
@@ -394,10 +391,10 @@ export const SystemStatusModal: React.FC<SystemStatusModalProps> = ({ isOpen, on
                           </div>
                         </div>
                         <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                          state.status === 'CONNECTED' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' :
+                          state.status === 'CONNECTED' ? 'bg-[var(--orion-success,#5FAF8A)]/10 text-[var(--orion-success,#5FAF8A)] border border-[var(--orion-success,#5FAF8A)]/30' :
                           state.status === 'EMPTY' ? 'bg-slate-800 text-slate-400 border border-slate-700' :
-                          state.status === 'LOADING' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30' :
-                          'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                          state.status === 'LOADING' ? 'bg-white/5 text-os-text-secondary border border-os-border' :
+                          'bg-[var(--orion-warning,#C6A15B)]/10 text-[var(--orion-warning,#C6A15B)] border border-[var(--orion-warning,#C6A15B)]/30'
                         }`}>
                           {state.status}
                         </span>
@@ -415,10 +412,10 @@ export const SystemStatusModal: React.FC<SystemStatusModalProps> = ({ isOpen, on
               <div className="p-4 rounded-xl bg-os-surface-secondary border border-os-border/80 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="text-xs font-semibold text-os-text-primary flex items-center gap-2">
-                    <Clock size={15} className="text-amber-400" />
+                    <SysIconClock size={15} className="text-[var(--orion-warning,#C6A15B)]" />
                     <span>Cloudflare Persistent Worker & Demo Scheduler</span>
                   </div>
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${schedulerState.status === 'RUNNING' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'}`}>
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold ${schedulerState.status === 'RUNNING' ? 'bg-[var(--orion-success,#5FAF8A)]/10 text-[var(--orion-success,#5FAF8A)] border border-[var(--orion-success,#5FAF8A)]/30' : 'bg-[var(--orion-warning,#C6A15B)]/10 text-[var(--orion-warning,#C6A15B)] border border-[var(--orion-warning,#C6A15B)]/30'}`}>
                     {schedulerState.status}
                   </span>
                 </div>
@@ -429,11 +426,11 @@ export const SystemStatusModal: React.FC<SystemStatusModalProps> = ({ isOpen, on
                   </div>
                   <div className="p-2 rounded bg-os-surface-elevated border border-os-border/70">
                     <div className="text-[10px] text-os-text-muted">Expected Rate</div>
-                    <div className="text-cyan-400 font-semibold mt-0.5">{schedulerState.hourlyRate} pkgs/hr</div>
+                    <div className="text-os-text-primary font-semibold mt-0.5">{schedulerState.hourlyRate} pkgs/hr</div>
                   </div>
                   <div className="p-2 rounded bg-os-surface-elevated border border-os-border/70">
                     <div className="text-[10px] text-os-text-muted">Total Generated</div>
-                    <div className="text-emerald-400 font-semibold mt-0.5">{schedulerState.totalPackagesGenerated} pkgs</div>
+                    <div className="text-[var(--orion-success,#5FAF8A)] font-semibold mt-0.5">{schedulerState.totalPackagesGenerated} pkgs</div>
                   </div>
                   <div className="p-2 rounded bg-os-surface-elevated border border-os-border/70">
                     <div className="text-[10px] text-os-text-muted">Catch-Up Limit</div>
@@ -451,11 +448,11 @@ export const SystemStatusModal: React.FC<SystemStatusModalProps> = ({ isOpen, on
                 </div>
                 <div className="flex justify-between py-1 border-b border-os-border/50">
                   <span className="text-os-text-muted">Last Successful Run:</span>
-                  <span className="text-emerald-400">{schedulerState.lastSuccessfulRun || 'None recorded'}</span>
+                  <span className="text-[var(--orion-success,#5FAF8A)]">{schedulerState.lastSuccessfulRun || 'None recorded'}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-os-border/50">
                   <span className="text-os-text-muted">Last Batch Identifier:</span>
-                  <span className="text-cyan-400 truncate max-w-xs">{schedulerState.lastBatchId || 'Awaiting execution'}</span>
+                  <span className="text-os-text-secondary truncate max-w-xs">{schedulerState.lastBatchId || 'Awaiting execution'}</span>
                 </div>
                 <div className="flex justify-between py-1 border-b border-os-border/50">
                   <span className="text-os-text-muted">Next Scheduled Execution:</span>
@@ -512,33 +509,33 @@ export const SystemStatusModal: React.FC<SystemStatusModalProps> = ({ isOpen, on
               {/* Real-time Visualization Fabric Graph Suites */}
               <div className="p-4 rounded-xl bg-os-surface-secondary border border-os-border/80 space-y-3">
                 <div className="text-xs font-semibold text-os-text-primary flex items-center gap-2">
-                  <BarChart3 size={15} className="text-cyan-400" />
+                  <SysIconWaveform size={15} className="text-os-text-secondary" />
                   <span>Real-Time Visualization Fabric Subsystems</span>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 text-xs font-mono">
                   <div className="p-2.5 rounded bg-os-surface-elevated border border-os-border/70 flex justify-between items-center">
                     <span>Inventory (5 Graphs)</span>
-                    <span className="text-emerald-400 font-semibold">{systemStatus.graphs.status === 'READY' ? 'LIVE' : systemStatus.graphs.status}</span>
+                    <span className="text-[var(--orion-success,#5FAF8A)] font-semibold">{systemStatus.graphs.status === 'READY' ? 'LIVE' : systemStatus.graphs.status}</span>
                   </div>
                   <div className="p-2.5 rounded bg-os-surface-elevated border border-os-border/70 flex justify-between items-center">
                     <span>Procurement (5 Graphs)</span>
-                    <span className="text-emerald-400 font-semibold">{systemStatus.graphs.status === 'READY' ? 'LIVE' : systemStatus.graphs.status}</span>
+                    <span className="text-[var(--orion-success,#5FAF8A)] font-semibold">{systemStatus.graphs.status === 'READY' ? 'LIVE' : systemStatus.graphs.status}</span>
                   </div>
                   <div className="p-2.5 rounded bg-os-surface-elevated border border-os-border/70 flex justify-between items-center">
                     <span>Logistics (3 Graphs)</span>
-                    <span className="text-emerald-400 font-semibold">{systemStatus.graphs.status === 'READY' ? 'LIVE' : systemStatus.graphs.status}</span>
+                    <span className="text-[var(--orion-success,#5FAF8A)] font-semibold">{systemStatus.graphs.status === 'READY' ? 'LIVE' : systemStatus.graphs.status}</span>
                   </div>
                   <div className="p-2.5 rounded bg-os-surface-elevated border border-os-border/70 flex justify-between items-center">
                     <span>Manufacturing (3 Graphs)</span>
-                    <span className="text-emerald-400 font-semibold">{systemStatus.graphs.status === 'READY' ? 'LIVE' : systemStatus.graphs.status}</span>
+                    <span className="text-[var(--orion-success,#5FAF8A)] font-semibold">{systemStatus.graphs.status === 'READY' ? 'LIVE' : systemStatus.graphs.status}</span>
                   </div>
                   <div className="p-2.5 rounded bg-os-surface-elevated border border-os-border/70 flex justify-between items-center">
                     <span>Finance (3 Graphs)</span>
-                    <span className="text-emerald-400 font-semibold">{systemStatus.graphs.status === 'READY' ? 'LIVE' : systemStatus.graphs.status}</span>
+                    <span className="text-[var(--orion-success,#5FAF8A)] font-semibold">{systemStatus.graphs.status === 'READY' ? 'LIVE' : systemStatus.graphs.status}</span>
                   </div>
                   <div className="p-2.5 rounded bg-os-surface-elevated border border-os-border/70 flex justify-between items-center">
                     <span>Control Tower (3 Graphs)</span>
-                    <span className="text-emerald-400 font-semibold">{systemStatus.graphs.status === 'READY' ? 'LIVE' : systemStatus.graphs.status}</span>
+                    <span className="text-[var(--orion-success,#5FAF8A)] font-semibold">{systemStatus.graphs.status === 'READY' ? 'LIVE' : systemStatus.graphs.status}</span>
                   </div>
                 </div>
               </div>

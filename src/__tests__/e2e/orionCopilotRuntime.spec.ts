@@ -202,8 +202,8 @@ test('COPILOT-08: Copilot window can be closed and reopened', async ({ page }) =
   let aiWindow = page.locator('[data-window-id="orion-ai"]');
   await expect(aiWindow).toBeVisible({ timeout: 8000 });
   
-  // Close window via title bar close button
-  const closeBtn = aiWindow.locator('[data-window-controls] button').last();
+  // Close window via title bar close button (macOS traffic light: close is first button)
+  const closeBtn = aiWindow.locator('[data-window-controls] button').first();
   await closeBtn.click();
   
   // Window should be gone

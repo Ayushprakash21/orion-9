@@ -169,6 +169,86 @@ export const SysIconWindowMaximize: React.FC<SystemIconProps> = ({ size = 12, cl
   </svg>
 );
 
+export const SysIconRuntime: React.FC<SystemIconProps> = ({ size = 16, className = '', color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <rect x="4" y="4" width="16" height="16" rx="3" />
+    <rect x="9" y="9" width="6" height="6" rx="1" />
+    <path d="M9 1v3M15 1v3M9 20v3M15 20v3M1 9h3M1 15h3M20 9h3M20 15h3" />
+  </svg>
+);
+
+export const SysIconDatabase: React.FC<SystemIconProps> = ({ size = 16, className = '', color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <ellipse cx="12" cy="5" rx="9" ry="3" />
+    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+    <path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3" />
+  </svg>
+);
+
+export const SysIconClock: React.FC<SystemIconProps> = ({ size = 16, className = '', color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="12" cy="12" r="9" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+);
+
+export const SysIconListeners: React.FC<SystemIconProps> = ({ size = 16, className = '', color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M4.9 19.1C1 15.2 1 8.8 4.9 4.9" />
+    <path d="M7.8 16.2c-2.3-2.3-2.3-6.1 0-8.5" />
+    <circle cx="12" cy="12" r="2" />
+    <path d="M16.2 7.8c2.3 2.3 2.3 6.1 0 8.5" />
+    <path d="M19.1 4.9C23 8.8 23 15.2 19.1 19.1" />
+  </svg>
+);
+
+export const SysIconPulse: React.FC<SystemIconProps> = ({ size = 16, className = '', color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+  </svg>
+);
+
+export const SysIconWaveform: React.FC<SystemIconProps> = ({ size = 16, className = '', color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <line x1="3" y1="12" x2="3" y2="12.01" strokeWidth="2.5" />
+    <line x1="7" y1="8" x2="7" y2="16" />
+    <line x1="11" y1="5" x2="11" y2="19" />
+    <line x1="15" y1="10" x2="15" y2="14" />
+    <line x1="19" y1="7" x2="19" y2="17" />
+    <line x1="22" y1="12" x2="22" y2="12.01" strokeWidth="2.5" />
+  </svg>
+);
+
+export const SysIconAutomation: React.FC<SystemIconProps> = ({ size = 16, className = '', color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z" />
+  </svg>
+);
+
+export const SysIconCheckCircle: React.FC<SystemIconProps> = ({ size = 16, className = '', color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <circle cx="12" cy="12" r="9" />
+    <polyline points="9 12 11 14 15 10" />
+  </svg>
+);
+
+export const SysIconAlertTriangle: React.FC<SystemIconProps> = ({ size = 16, className = '', color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+    <line x1="12" y1="9" x2="12" y2="13" />
+    <line x1="12" y1="17" x2="12.01" y2="17" strokeWidth="2.5" />
+  </svg>
+);
+
+export const SysIconRefresh: React.FC<SystemIconProps> = ({ size = 16, className = '', color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M21 2v6h-6" />
+    <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+    <path d="M3 22v-6h6" />
+    <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+  </svg>
+);
+
 export const SYSTEM_ICONS = {
   wifi: SysIconWifi,
   wifiOff: SysIconWifiOff,
@@ -190,7 +270,17 @@ export const SYSTEM_ICONS = {
   sparkles: SysIconSparkles,
   windowClose: SysIconWindowClose,
   windowMinimize: SysIconWindowMinimize,
-  windowMaximize: SysIconWindowMaximize
+  windowMaximize: SysIconWindowMaximize,
+  runtime: SysIconRuntime,
+  database: SysIconDatabase,
+  clock: SysIconClock,
+  listeners: SysIconListeners,
+  pulse: SysIconPulse,
+  waveform: SysIconWaveform,
+  automation: SysIconAutomation,
+  checkCircle: SysIconCheckCircle,
+  alertTriangle: SysIconAlertTriangle,
+  refresh: SysIconRefresh,
 };
 
 // ============================================================================

@@ -49,59 +49,58 @@ describe('OrionWindow Global Controls Layout', () => {
     openedAt: Date.now(),
   };
 
-  it('renders window controls on the right side of the title bar', () => {
+  it('renders window controls on the top-left of the title bar before application identity', () => {
     const element = React.createElement(OrionWindow, { window: mockWindow, isActive: true });
     const html = renderToString(element);
 
     // 1. Title bar is rendered
     expect(html).toContain('data-window-titlebar="true"');
 
-    // 2. Window controls group is rendered with ml-auto (anchored to the right)
+    // 2. Window controls group is rendered
     expect(html).toContain('data-window-controls="true"');
-    expect(html).toContain('ml-auto');
 
-    // 3. App Identity appears BEFORE window controls in DOM order
+    // 3. Window controls appear BEFORE App Identity in DOM order (Top-Left placement)
     const appNameIndex = html.indexOf('Inventory');
     const controlsIndex = html.indexOf('data-window-controls="true"');
     expect(appNameIndex).toBeGreaterThan(-1);
     expect(controlsIndex).toBeGreaterThan(-1);
-    expect(appNameIndex).toBeLessThan(controlsIndex);
+    expect(controlsIndex).toBeLessThan(appNameIndex);
   });
 
-  it('preserves the exact canonical order of controls: Maximize (Green), Minimize (Yellow), Close (Red)', () => {
+  it('preserves the canonical macOS order of controls: Close (Red) -> Minimize (Yellow) -> Maximize (Green)', () => {
     const element = React.createElement(OrionWindow, { window: mockWindow, isActive: true });
     const html = renderToString(element);
 
-    const maximizeIdx = html.indexOf('aria-label="Maximize Inventory"');
-    const minimizeIdx = html.indexOf('aria-label="Minimize Inventory"');
     const closeIdx = html.indexOf('aria-label="Close Inventory"');
+    const minimizeIdx = html.indexOf('aria-label="Minimize Inventory"');
+    const maximizeIdx = html.indexOf('aria-label="Maximize Inventory"');
 
-    expect(maximizeIdx).toBeGreaterThan(-1);
-    expect(minimizeIdx).toBeGreaterThan(-1);
     expect(closeIdx).toBeGreaterThan(-1);
+    expect(minimizeIdx).toBeGreaterThan(-1);
+    expect(maximizeIdx).toBeGreaterThan(-1);
 
-    // Canonical Orion-9 order: Maximize (Green) < Minimize (Yellow) < Close (Red) (Left -> Right)
-    expect(maximizeIdx).toBeLessThan(minimizeIdx);
-    expect(minimizeIdx).toBeLessThan(closeIdx);
+    // Canonical macOS order: Close (Red) < Minimize (Yellow) < Maximize (Green) (Left -> Right)
+    expect(closeIdx).toBeLessThan(minimizeIdx);
+    expect(minimizeIdx).toBeLessThan(maximizeIdx);
   });
 
-  it('preserves circular shape and visual styling classes for all three controls', () => {
+  it('preserves circular shape and traffic-light colors without square wrappers', () => {
     const element = React.createElement(OrionWindow, { window: mockWindow, isActive: true });
     const html = renderToString(element);
 
-    // Close button has red theme
-    expect(html).toContain('bg-red-500/80');
-    expect(html).toContain('border-red-600/40');
+    // Close button has traffic-light red (#FF5F57)
+    expect(html).toContain('background-color:#FF5F57');
 
-    // Minimize button has amber theme
-    expect(html).toContain('bg-amber-500/80');
-    expect(html).toContain('border-amber-600/40');
+    // Minimize button has traffic-light yellow (#FEBC2E)
+    expect(html).toContain('background-color:#FEBC2E');
 
-    // Maximize button has emerald theme
-    expect(html).toContain('bg-emerald-500/80');
-    expect(html).toContain('border-emerald-600/40');
+    // Maximize button has traffic-light green (#28C840)
+    expect(html).toContain('background-color:#28C840');
 
     // All controls use rounded-full circular styling
     expect(html).toContain('rounded-full');
+
+    // No square container
+    expect(html).not.toContain('bg-[#171b21]');
   });
 });

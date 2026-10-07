@@ -6,7 +6,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { useIsReducedMotion, ORION_EASE, ORION_BOOT_MOTION_SCALE } from '../motion/OrionMotion';
+import { useIsReducedMotion, ORION_EASE, ORION_BOOT_MOTION_SCALE, ORION_BOOT_DURATION_MS } from '../motion/OrionMotion';
 import { OrionLifecycleBackdrop } from '../lifecycle/OrionLifecycleBackdrop';
 import { OrionLifecycleCore } from '../lifecycle/OrionLifecycleCore';
 import { OrionLifecycleStatusList, LifecycleStatusItem } from '../lifecycle/OrionLifecycleStatusList';
@@ -25,7 +25,7 @@ interface BootServiceStage {
 }
 
 // Measured boot sequence visual pacing scaled to ~80% speed (1.25x durations)
-const TOTAL_BOOT_MS = Math.round(2800 * ORION_BOOT_MOTION_SCALE); // 3500ms
+const TOTAL_BOOT_MS = ORION_BOOT_DURATION_MS; // 3500ms
 const BOOT_READY_THRESHOLD_MS = Math.round(2600 * ORION_BOOT_MOTION_SCALE); // 3250ms
 
 const BOOT_SERVICES: BootServiceStage[] = [

@@ -74,25 +74,29 @@ describe('Orion-9 Title Bar / Window Chrome Visual Repair', () => {
     expect(html).toContain('·');
   });
 
-  it('3. Window control buttons have opaque dark backgrounds (#171b21) housing colored indicators', () => {
+  it('3. Window control buttons are genuine circular traffic lights without square boxes', () => {
     const element = React.createElement(OrionWindow, { window: mockWindow, isActive: true });
     const html = renderToString(element);
 
     expect(html).toContain('data-window-controls="true"');
-    // All buttons have opaque dark surface class bg-[#171b21]
-    expect(html).toContain('bg-[#171b21]');
+    // Pure circular traffic-light colors
+    expect(html).toContain('background-color:#FF5F57'); // Close (Red)
+    expect(html).toContain('background-color:#FEBC2E'); // Minimize (Yellow)
+    expect(html).toContain('background-color:#28C840'); // Maximize (Green)
 
-    // Minimize button has amber indicator
-    expect(html).toContain('bg-amber-500/80');
-    expect(html).toContain('aria-label="Minimize User Profile"');
+    // No square container classes on controls
+    expect(html).not.toContain('w-8 h-8 rounded-lg bg-[#171b21]');
 
-    // Maximize button has emerald indicator
-    expect(html).toContain('bg-emerald-500/80');
-    expect(html).toContain('aria-label="Maximize User Profile"');
+    // Order: Close before Minimize before Maximize
+    const closeIdx = html.indexOf('aria-label="Close User Profile"');
+    const minIdx = html.indexOf('aria-label="Minimize User Profile"');
+    const maxIdx = html.indexOf('aria-label="Maximize User Profile"');
 
-    // Close button has red indicator
-    expect(html).toContain('bg-red-500/80');
-    expect(html).toContain('aria-label="Close User Profile"');
+    expect(closeIdx).toBeGreaterThan(-1);
+    expect(minIdx).toBeGreaterThan(-1);
+    expect(maxIdx).toBeGreaterThan(-1);
+    expect(closeIdx).toBeLessThan(minIdx);
+    expect(minIdx).toBeLessThan(maxIdx);
   });
 
   it('4. Settings Application Header in OrionSettingsSplitLayout is opaque (#0c0e11) with clean separation', () => {
@@ -112,7 +116,7 @@ describe('Orion-9 Title Bar / Window Chrome Visual Repair', () => {
     expect(html).toContain('|');
   });
 
-  it('5. Global index.css contains opaque chrome contract and button styling rules', () => {
+  it('5. Global index.css contains opaque chrome contract and transparent button rules', () => {
     const cssPath = path.resolve(__dirname, '../../index.css');
     const cssSource = fs.readFileSync(cssPath, 'utf-8');
 
@@ -121,7 +125,6 @@ describe('Orion-9 Title Bar / Window Chrome Visual Repair', () => {
     expect(cssSource).toContain('[data-window-controls="true"] button');
     expect(cssSource).toContain('#080a0d !important');
     expect(cssSource).toContain('#0c0e11 !important');
-    expect(cssSource).toContain('#171b21 !important');
   });
 
   it('6. Settings.tsx sidebar is opaque #101318 with border-r separation', () => {

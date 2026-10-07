@@ -33,9 +33,15 @@ export const ORION_MOTION_DURATIONS = {
 
 /**
  * Pacing scale factor for pre-login and post-login boot & lifecycle sequences.
- * Slows visual progression to ~80% speed (duration * 1.25).
+ * Slows visual progression to ~80% speed (duration * 1.25, approximately 25% slower).
  */
 export const ORION_BOOT_MOTION_SCALE = 1.25;
+
+export const BASE_BOOT_DURATION_MS = 2800;
+export const BASE_WORLD_ENTRY_DURATION_MS = 1600;
+
+export const ORION_BOOT_DURATION_MS = Math.round(BASE_BOOT_DURATION_MS * ORION_BOOT_MOTION_SCALE); // 3500ms
+export const ORION_WORLD_ENTRY_DURATION_MS = Math.round(BASE_WORLD_ENTRY_DURATION_MS * ORION_BOOT_MOTION_SCALE); // 2000ms
 
 /**
  * Determines whether reduced motion should be enforced

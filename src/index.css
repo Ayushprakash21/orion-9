@@ -969,37 +969,35 @@ html, body, #root {
   border-bottom: 1px solid rgba(255, 255, 255, 0.07) !important;
 }
 
-/* OPAQUE WINDOW CONTROLS CONTRACT: opaque dark buttons housing colored state indicators */
+/* CANONICAL MACOS WINDOW CONTROLS CONTRACT: Pure circular traffic lights with zero box wrappers */
 [data-window-controls="true"] {
   display: flex !important;
   align-items: center !important;
   background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   opacity: 1 !important;
 }
 
 [data-window-controls="true"] button {
-  background: #171b21 !important;
-  background-color: #171b21 !important;
-  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
   opacity: 1 !important;
   box-sizing: border-box !important;
 }
 
 [data-window-controls="true"] button:hover {
-  background: #20252e !important;
-  background-color: #20252e !important;
-  border-color: rgba(255, 255, 255, 0.20) !important;
+  background: transparent !important;
+  background-color: transparent !important;
+  border: none !important;
 }
 
 [data-window-controls="true"] button:active {
-  background: #121519 !important;
-  background-color: #121519 !important;
-}
-
-[data-window-controls="true"] button[aria-label*="Close"]:hover {
-  background: rgba(239, 68, 68, 0.20) !important;
-  background-color: rgba(239, 68, 68, 0.20) !important;
-  border-color: rgba(239, 68, 68, 0.40) !important;
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 /* FINAL GLOBAL TASK-BAR CONTRACT: opaque in User and Admin shells. */

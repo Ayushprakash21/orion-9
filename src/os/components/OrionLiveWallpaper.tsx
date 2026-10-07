@@ -4,7 +4,7 @@
  * All WebGL, 3D Earth, Canvas2D, Three.js, particles, and animation loops have been removed.
  */
 
-import React, { Component, ErrorInfo, ReactNode, useEffect, useState, useCallback } from 'react';
+import React, { Component, ErrorInfo, ReactNode, useEffect, useState, useCallback, useRef } from 'react';
 import { cn } from '../../lib/utils';
 import { 
   wallpaperRepository, 
@@ -82,8 +82,6 @@ export interface OrionLiveWallpaperProps {
 }
 
 export function OrionLiveWallpaper({
-  hasOpenWindows = false,
-  showLogo = false,
   overrideWallpaper,
   target = 'desktop',
   userId,
@@ -105,75 +103,101 @@ export function OrionLiveWallpaper({
     const init = getInitialRecord();
     return init.assetUrl || getDefaultRecord().assetUrl;
   });
-  const [fallbackAttempted, setFallbackAttempted] = useState<boolean>(false);
 
-  // Sync state when activeWallpaper changes
-  useEffect(() => {
-    const defaultWp = getDefaultRecord();
-    const nextUrl = activeWallpaper?.assetUrl || defaultWp.assetUrl;
-    setImgSrc(nextUrl);
-    setFallbackAttempted(false);
-  }, [activeWallpaper, getDefaultRecord]);
+  // Architectural Refs for Single Source of Truth & Atomic Commit
+  const wallpaperGenerationRef = useRef<number>(0);
+  const displayedWallpaperRef = useRef<WallpaperRecord>(getInitialRecord());
+  const lastKnownGoodWallpaperRef = useRef<WallpaperRecord>(getInitialRecord());
 
-  useEffect(() => {
-    if (overrideWallpaper) {
-      setActiveWallpaper(overrideWallpaper);
+  // Explicit preload & decode function
+  const preloadAndDecodeWallpaper = useCallback(async (url: string): Promise<void> => {
+    if (typeof window === 'undefined') return;
+    const image = new Image();
+    image.src = url;
+    if (typeof image.decode === 'function') {
+      await image.decode();
+    } else {
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = reject;
+      });
+    }
+  }, []);
+
+  // Atomic commit function - guarantees screen is never blanked and stale requests are ignored
+  const commitWallpaperAtomically = useCallback((candidate: WallpaperRecord, generation: number) => {
+    if (generation !== wallpaperGenerationRef.current) {
+      // Stale request, discard
       return;
     }
+    displayedWallpaperRef.current = candidate;
+    lastKnownGoodWallpaperRef.current = candidate;
+    setActiveWallpaper(candidate);
+    setImgSrc(candidate.assetUrl);
+  }, []);
+
+  // Sync override wallpaper if explicitly provided as prop
+  useEffect(() => {
+    if (overrideWallpaper && typeof overrideWallpaper === 'object') {
+      const gen = ++wallpaperGenerationRef.current;
+      preloadAndDecodeWallpaper(overrideWallpaper.assetUrl)
+        .then(() => commitWallpaperAtomically(overrideWallpaper, gen))
+        .catch(() => {
+          // If candidate fails, KEEP current wallpaper; never blank
+        });
+    }
+  }, [overrideWallpaper, preloadAndDecodeWallpaper, commitWallpaperAtomically]);
+
+  // Authoritative background loading and event synchronization
+  useEffect(() => {
+    if (overrideWallpaper) return;
 
     let mounted = true;
     const activeUserId = userId;
     const activeTenantId = tenantId || 'global';
-    const requestIdRef = { current: 0 }; // local mutable object for closure safety
-    const preloadCache = new Map<string, Promise<void>>();
 
-    const preloadWallpaper = (url: string) => {
-      if (preloadCache.has(url)) return preloadCache.get(url)!;
-      const promise = new Promise<void>((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => resolve();
-        img.onerror = () => reject(new Error('Failed to preload wallpaper'));
-        img.src = url;
-      });
-      preloadCache.set(url, promise);
-      return promise;
-    };
-
-    const loadActive = async () => {
+    const loadAuthoritativeActive = async () => {
+      const currentGen = ++wallpaperGenerationRef.current;
       try {
         const wp = await wallpaperRepository.getActiveWallpaper(activeUserId, activeTenantId, target);
-        if (!mounted || !wp || typeof wp !== 'object') return;
-        // Increment request ID for this fetch
-        const reqId = ++requestIdRef.current;
-        // Preload the new image before committing
-        await preloadWallpaper(wp.assetUrl);
-        // Only commit if still the latest request
-        if (mounted && reqId === requestIdRef.current) {
-          setActiveWallpaper(prev => (prev?.wallpaperId === wp.wallpaperId && prev?.assetUrl === wp.assetUrl ? prev : wp));
+        if (!mounted || !wp || typeof wp !== 'object' || !wp.assetUrl) return;
+
+        // If the repository returns the same wallpaper that is already displayed, no reload needed
+        if (wp.wallpaperId === displayedWallpaperRef.current.wallpaperId && wp.assetUrl === displayedWallpaperRef.current.assetUrl) {
+          return;
+        }
+
+        // Preload & decode before committing atomically
+        await preloadAndDecodeWallpaper(wp.assetUrl);
+
+        if (mounted && currentGen === wallpaperGenerationRef.current) {
+          commitWallpaperAtomically(wp, currentGen);
         }
       } catch (err) {
-        console.warn(`[ORION-9] Failed to load active ${target} wallpaper, using system default:`, err);
-        if (!mounted) return;
-        const defaultWp = getDefaultRecord();
-        setActiveWallpaper(prev => (prev?.wallpaperId === defaultWp.wallpaperId ? prev : defaultWp));
+        console.warn(`[ORION-9] Wallpaper load error for ${target}, preserving current wallpaper:`, err);
+        // Requirement 25: KEEP current wallpaper if future candidate fails. Never blank.
       }
     };
 
-    loadActive();
+    loadAuthoritativeActive();
 
+    // Event handler for wallpaper change events
     const handleActiveChange = (e: any) => {
       try {
         if (e.detail?.target === target && e.detail?.wallpaper && typeof e.detail.wallpaper === 'object') {
           const wp = e.detail.wallpaper as WallpaperRecord;
-          const reqId = ++requestIdRef.current;
-          preloadWallpaper(wp.assetUrl)
+          if (!wp.assetUrl) return;
+
+          const currentGen = ++wallpaperGenerationRef.current;
+          preloadAndDecodeWallpaper(wp.assetUrl)
             .then(() => {
-              if (reqId === requestIdRef.current) {
-                setActiveWallpaper(prev => (prev?.wallpaperId === wp.wallpaperId && prev?.assetUrl === wp.assetUrl ? prev : wp));
+              if (mounted && currentGen === wallpaperGenerationRef.current) {
+                commitWallpaperAtomically(wp, currentGen);
               }
             })
-            .catch(() => {
-              // ignore preload failures, keep current wallpaper
+            .catch((err) => {
+              console.warn('[ORION-9] Wallpaper candidate preload failed, keeping current wallpaper:', err);
+              // Requirement 25: KEEP the current wallpaper. Never blank the screen.
             });
         }
       } catch (evtErr) {
@@ -191,22 +215,23 @@ export function OrionLiveWallpaper({
         window.removeEventListener('orion-active-wallpaper-changed', handleActiveChange as EventListener);
       }
     };
-  }, [overrideWallpaper, target, userId, tenantId, getDefaultRecord]);
+  }, [overrideWallpaper, target, userId, tenantId, preloadAndDecodeWallpaper, commitWallpaperAtomically]);
 
-  // Non-looping, safe image error handler
+  // Safe Image Error Handler: never destroy valid current wallpaper; fallback only if no valid wallpaper exists
   const handleImageError = useCallback(() => {
-    const defaultWp = getDefaultRecord();
-    if (!fallbackAttempted && imgSrc !== defaultWp.assetUrl) {
-      // First attempt: fallback to the default system asset
-      setFallbackAttempted(true);
-      setImgSrc(defaultWp.assetUrl);
-    } else {
-      console.warn(`[ORION-9] Wallpaper image load fallback to default asset for ${target}.`);
-      if (imgSrc !== defaultWp.assetUrl) {
-        setImgSrc(defaultWp.assetUrl);
-      }
+    console.warn(`[ORION-9] Current wallpaper image error event for ${target}.`);
+    // If lastKnownGood exists and differs from failing URL, revert to lastKnownGood
+    if (lastKnownGoodWallpaperRef.current && lastKnownGoodWallpaperRef.current.assetUrl !== imgSrc) {
+      setImgSrc(lastKnownGoodWallpaperRef.current.assetUrl);
+      return;
     }
-  }, [fallbackAttempted, imgSrc, target, getDefaultRecord]);
+
+    // Only if there is no valid wallpaper at all, fallback to default
+    const defaultWp = getDefaultRecord();
+    if (imgSrc !== defaultWp.assetUrl) {
+      setImgSrc(defaultWp.assetUrl);
+    }
+  }, [imgSrc, target, getDefaultRecord]);
 
   return (
     <WallpaperErrorBoundary>

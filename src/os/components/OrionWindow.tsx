@@ -6,7 +6,8 @@ import { useOrionContextMenu, ContextMenuItem } from '../contextMenu/OrionContex
 import { useToast } from '../../store/ToastContext';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
 import { useResponsiveLayout } from '../../lib/useResponsiveLayout';
-import { Minus, Square, X, RotateCcw, AlertTriangle, Move, Maximize2 } from 'lucide-react';
+import { RotateCcw, AlertTriangle, Move, Maximize2, Minus, Square, X } from 'lucide-react';
+import { OrionWindowControls } from './OrionWindowControls';
 import { cn } from '../../lib/utils';
 import { motion } from 'motion/react';
 
@@ -108,7 +109,16 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
   const { openContextMenu } = useOrionContextMenu();
   const { showToast } = useToast();
 
-  const app = ORION_REGISTRY[win.id];
+  const rawApp = ORION_REGISTRY[win.id];
+  const app = rawApp || {
+    id: win.id,
+    name: win.id.charAt(0).toUpperCase() + win.id.slice(1),
+    route: `/${win.id}`,
+    category: 'Operations',
+    icon: null,
+    color: '#7BA3C9',
+    description: '',
+  };
   const Component = getAppComponent(win.id);
   const contentContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -499,87 +509,42 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
           isActive ? "text-os-text-primary" : "text-os-text-muted"
         )}
       >
-        {/* Left: App Identity */}
-        <div className="flex items-center gap-2 min-w-0 pr-3 pointer-events-none select-none pl-0.5">
-          <OrionAppIcon app={win.id} size={16} showContainer={false} />
-          <span className={cn(
-            "text-[12.5px] font-semibold tracking-normal truncate leading-none",
-            isActive ? "text-slate-100" : "text-slate-400"
-          )}>
-            {app.name}
-          </span>
-          <span className="text-white/20 text-xs font-mono select-none">·</span>
-          <span className="text-[9.5px] text-slate-500 font-mono font-medium uppercase tracking-[0.1em] hidden sm:inline-block truncate leading-none">
-            {app.category}
-          </span>
+        {/* Left Section: macOS Traffic-Light Window Controls (Red -> Yellow -> Green) & App Identity */}
+        <div className="flex items-center gap-3.5 min-w-0 pointer-events-auto select-none">
+          {/* Traffic-light Controls (Top-Left) */}
+          <OrionWindowControls
+            appName={app.name}
+            isMaximized={win.state === 'maximized'}
+            onClose={() => closeApplication(win.id)}
+            onMinimize={() => minimizeApplication(win.id)}
+            onMaximize={() => {
+              if (win.state === 'maximized') {
+                restoreApplication(win.id);
+              } else {
+                maximizeApplication(win.id);
+              }
+            }}
+          />
+
+          {/* App Identity (Right of traffic lights) */}
+          <div className="flex items-center gap-2 min-w-0 pointer-events-none select-none pl-1">
+            <OrionAppIcon app={win.id} size={16} showContainer={false} />
+            <span className={cn(
+              "text-[12.5px] font-semibold tracking-normal truncate leading-none",
+              isActive ? "text-slate-100" : "text-slate-400"
+            )}>
+              {app.name}
+            </span>
+            <span className="text-white/20 text-xs font-mono select-none">·</span>
+            <span className="text-[9.5px] text-slate-500 font-mono font-medium uppercase tracking-[0.1em] hidden sm:inline-block truncate leading-none">
+              {app.category}
+            </span>
+          </div>
         </div>
 
-        {/* Right: Window Controls: GREEN -> YELLOW -> RED */}
-        <div 
-          data-window-controls="true"
-          className="flex items-center gap-1.5 sm:gap-2 group/controls ml-auto z-30 pointer-events-auto h-full shrink-0 pr-1"
-          onPointerDown={(e) => e.stopPropagation()}
-          onMouseDown={(e) => e.stopPropagation()}
-          onContextMenu={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
-          onDoubleClick={(e) => e.stopPropagation()}
-        >
-          {/* 1. Maximize / Restore Button (Green / Emerald) */}
-          {!isMobile && (
-            <button
-              type="button"
-              aria-label={win.state === 'maximized' ? `Restore ${app.name}` : `Maximize ${app.name}`}
-              title={win.state === 'maximized' ? "Restore (Maximize)" : "Maximize"}
-              onClick={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                if (win.state === 'maximized') {
-                  restoreApplication(win.id);
-                } else {
-                  maximizeApplication(win.id);
-                }
-              }}
-              className="w-8 h-8 rounded-lg bg-[#171b21] hover:bg-[#20252e] active:bg-[#121519] border border-white/[0.10] hover:border-white/[0.20] flex items-center justify-center transition-all cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-emerald-400 group/btn"
-            >
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 hover:bg-emerald-500 border border-emerald-600/40 flex items-center justify-center shadow-sm">
-                <Maximize2 className="w-1.5 h-1.5 text-black opacity-0 group-hover/controls:opacity-100 transition-opacity" />
-              </span>
-            </button>
-          )}
-
-          {/* 2. Minimize Button (Yellow / Amber) */}
-          <button
-            type="button"
-            aria-label={`Minimize ${app.name}`}
-            title="Minimize"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              minimizeApplication(win.id);
-            }}
-            className="w-8 h-8 rounded-lg bg-[#171b21] hover:bg-[#20252e] active:bg-[#121519] border border-white/[0.10] hover:border-white/[0.20] flex items-center justify-center transition-all cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-amber-400 group/btn"
-          >
-            <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 hover:bg-amber-500 border border-amber-600/40 flex items-center justify-center shadow-sm">
-              <Minus className="w-1.5 h-1.5 text-black opacity-0 group-hover/controls:opacity-100 transition-opacity" />
-            </span>
-          </button>
-
-          {/* 3. Close Button (Red) */}
-          <button
-            type="button"
-            aria-label={`Close ${app.name}`}
-            title="Close (⌘W)"
-            onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              closeApplication(win.id);
-            }}
-            className="w-8 h-8 rounded-lg bg-[#171b21] hover:bg-red-500/20 active:bg-[#121519] border border-white/[0.10] hover:border-red-500/40 flex items-center justify-center transition-all cursor-pointer shadow-xs focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-400 group/btn"
-          >
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500/80 hover:bg-red-500 border border-red-600/40 flex items-center justify-center shadow-sm">
-              <X className="w-1.5 h-1.5 text-black opacity-0 group-hover/controls:opacity-100 transition-opacity" />
-            </span>
-          </button>
+        {/* Right Section: Clean status or minimal spacer */}
+        <div className="flex items-center gap-2 ml-auto z-20 pointer-events-none pr-1">
+          {/* Reserved for subtle state indicators if needed */}
         </div>
       </div>
 

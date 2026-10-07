@@ -2,9 +2,9 @@
  * ORION-9 GLOBAL UI DESIGN: WINDOW CONTROL BUTTONS PLACEMENT E2E SUITE
  *
  * Verifies that window controls:
- * 1. Are positioned on the TOP-RIGHT of application windows
- * 2. Maintain strict left-to-right order: CLOSE, MINIMIZE, MAXIMIZE / RESTORE
- * 3. Have circular shape (rounded-full) and respective color themes
+ * 1. Are positioned on the TOP-LEFT of application windows (macOS convention)
+ * 2. Maintain strict left-to-right order: CLOSE (Red #FF5F57), MINIMIZE (Yellow #FEBC2E), MAXIMIZE / RESTORE (Green #28C840)
+ * 3. Have circular shape (12x12px, rounded-full) and respective color themes
  * 4. Maintain proper accessible labels and titles
  * 5. Work consistently across multiple simultaneous windows
  * 6. Interactive functionality: close, minimize, maximize
@@ -24,7 +24,7 @@ test.describe('Orion-9 Global Window Controls Placement E2E Suite', () => {
     await page.goto('/login');
   });
 
-  test('verifies window controls are on the top-right in standard application windows', async ({ page }) => {
+  test('verifies window controls are on the top-left in standard application windows', async ({ page }) => {
     // 1. Authenticate
     await page.fill('input#username', 'user');
     await page.fill('input#password', 'user');
@@ -48,7 +48,7 @@ test.describe('Orion-9 Global Window Controls Placement E2E Suite', () => {
     const controls = windowLocator.locator('[data-window-controls="true"]');
     await expect(controls).toBeVisible();
 
-    // 5. Measure bounding boxes to verify TOP-RIGHT positioning
+    // 5. Measure bounding boxes to verify TOP-LEFT positioning
     const titlebarBox = await titlebar.boundingBox();
     const controlsBox = await controls.boundingBox();
 
@@ -56,53 +56,46 @@ test.describe('Orion-9 Global Window Controls Placement E2E Suite', () => {
     expect(controlsBox).not.toBeNull();
 
     if (titlebarBox && controlsBox) {
-      // Controls must be in the right half of the titlebar
+      // Controls must be in the left half of the titlebar
       const titlebarMidX = titlebarBox.x + titlebarBox.width / 2;
-      expect(controlsBox.x).toBeGreaterThan(titlebarMidX);
+      expect(controlsBox.x).toBeLessThan(titlebarMidX);
 
-      // Controls right edge must be close to titlebar right edge (within padding margin)
-      const controlsRightEdge = controlsBox.x + controlsBox.width;
-      const titlebarRightEdge = titlebarBox.x + titlebarBox.width;
-      expect(titlebarRightEdge - controlsRightEdge).toBeLessThanOrEqual(30);
-      expect(titlebarRightEdge - controlsRightEdge).toBeGreaterThanOrEqual(0);
+      // Controls left edge must be close to titlebar left edge (within padding margin)
+      expect(controlsBox.x - titlebarBox.x).toBeLessThanOrEqual(30);
+      expect(controlsBox.x - titlebarBox.x).toBeGreaterThanOrEqual(0);
     }
 
-    // 6. Verify internal button order: MAXIMIZE (GREEN), MINIMIZE (YELLOW), CLOSE (RED) (Left -> Right)
+    // 6. Verify internal button order: CLOSE (RED), MINIMIZE (YELLOW), MAXIMIZE (GREEN) (Left -> Right)
     const buttons = controls.locator('button');
     const buttonCount = await buttons.count();
     expect(buttonCount).toBeGreaterThanOrEqual(2);
 
     if (buttonCount >= 3) {
-      const maxBtn = buttons.nth(0);
+      const closeBtn = buttons.nth(0);
       const minimizeBtn = buttons.nth(1);
-      const closeBtn = buttons.nth(2);
+      const maxBtn = buttons.nth(2);
 
+      await expect(closeBtn).toHaveAttribute('aria-label', /Close/i);
+      await expect(minimizeBtn).toHaveAttribute('aria-label', /Minimize/i);
       await expect(maxBtn).toHaveAttribute('aria-label', /Maximize|Restore/i);
-      await expect(minimizeBtn).toHaveAttribute('aria-label', /Minimize/i);
-      await expect(closeBtn).toHaveAttribute('aria-label', /Close/i);
 
-      const maxBox = await maxBtn.boundingBox();
-      const minBox = await minimizeBtn.boundingBox();
       const closeBox = await closeBtn.boundingBox();
+      const minBox = await minimizeBtn.boundingBox();
+      const maxBox = await maxBtn.boundingBox();
 
-      expect(maxBox).not.toBeNull();
-      expect(minBox).not.toBeNull();
       expect(closeBox).not.toBeNull();
+      expect(minBox).not.toBeNull();
+      expect(maxBox).not.toBeNull();
 
-      if (maxBox && minBox && closeBox) {
-        // Canonical Orion-9 order: Maximize (Green) < Minimize (Yellow) < Close (Red)
-        expect(maxBox.x).toBeLessThan(minBox.x);
-        expect(minBox.x).toBeLessThan(closeBox.x);
+      if (closeBox && minBox && maxBox) {
+        // macOS traffic-light order: Close (Red) < Minimize (Yellow) < Maximize (Green)
+        expect(closeBox.x).toBeLessThan(minBox.x);
+        expect(minBox.x).toBeLessThan(maxBox.x);
       }
-    } else {
-      const minimizeBtn = buttons.nth(0);
-      const closeBtn = buttons.nth(1);
-      await expect(minimizeBtn).toHaveAttribute('aria-label', /Minimize/i);
-      await expect(closeBtn).toHaveAttribute('aria-label', /Close/i);
     }
   });
 
-  test('verifies right-aligned window controls across multiple concurrent windows', async ({ page }) => {
+  test('verifies left-aligned window controls across multiple concurrent windows', async ({ page }) => {
     // 1. Authenticate as Admin
     await page.fill('input#username', 'admin');
     await page.fill('input#password', 'admin');
@@ -120,7 +113,7 @@ test.describe('Orion-9 Global Window Controls Placement E2E Suite', () => {
     const procWindow = page.locator('[data-orion-window][data-window-id="procurement"]');
     await expect(procWindow).toBeVisible({ timeout: 10000 });
 
-    // 4. Verify both windows have controls on the right
+    // 4. Verify both windows have controls on the left
     for (const win of [invWindow, procWindow]) {
       const tb = win.locator('[data-window-titlebar="true"]');
       const ctrl = win.locator('[data-window-controls="true"]');
@@ -132,8 +125,9 @@ test.describe('Orion-9 Global Window Controls Placement E2E Suite', () => {
       expect(ctrlBox).not.toBeNull();
 
       if (tbBox && ctrlBox) {
-        expect(ctrlBox.x).toBeGreaterThan(tbBox.x + tbBox.width / 2);
+        expect(ctrlBox.x).toBeLessThan(tbBox.x + tbBox.width / 2);
       }
     }
   });
 });
+
