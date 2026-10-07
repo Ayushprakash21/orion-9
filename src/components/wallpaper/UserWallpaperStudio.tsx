@@ -65,15 +65,25 @@ const WallpaperCardImage: React.FC<{ src: string; alt: string }> = ({ src, alt }
   );
 };
 
-export const UserWallpaperStudio: React.FC = () => {
+export interface UserWallpaperStudioProps {
+  initialTarget?: WallpaperTarget;
+}
+
+export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
+  initialTarget = TARGETS.DESKTOP
+}) => {
   const { showToast } = useToast();
   const { currentUser, organization } = useAuth();
   const { t } = useI18n();
   const tenantId = organization?.id || 'global';
   const userId = currentUser?.id || 'default_user';
 
-  // Target Selection State ('login' vs 'desktop') - Strict Isolation
-  const [selectedTarget, setSelectedTarget] = useState<WallpaperTarget>(TARGETS.LOGIN);
+  // Target Selection State ('login' vs 'desktop') - Strict Isolation (defaults to desktop when in OS)
+  const [selectedTarget, setSelectedTarget] = useState<WallpaperTarget>(initialTarget);
+
+  // Synchronous initial fallback resolution for zero-flash render
+  const initialFallback = initialTarget === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
+  const initialActive = wallpaperRepository.getActiveWallpaperSync(userId, initialTarget) || initialFallback;
 
   // Studio Lifecycle State
   const [studioState, setStudioState] = useState<StudioLifecycleState>('LOADING');
@@ -84,7 +94,7 @@ export const UserWallpaperStudio: React.FC = () => {
   
   // Available Gallery Wallpapers & Active Wallpaper
   const [galleryWallpapers, setGalleryWallpapers] = useState<WallpaperRecord[]>(SYSTEM_DEFAULT_WALLPAPERS);
-  const [activeWallpaper, setActiveWallpaperState] = useState<WallpaperRecord>(DEFAULT_LOGIN_WALLPAPER);
+  const [activeWallpaper, setActiveWallpaperState] = useState<WallpaperRecord>(initialActive);
 
   // Deletion Modal State
   const [wallpaperToDelete, setWallpaperToDelete] = useState<WallpaperRecord | null>(null);
@@ -100,9 +110,9 @@ export const UserWallpaperStudio: React.FC = () => {
   const [selectedCandidate, setSelectedCandidate] = useState<WallpaperCandidate | null>(null);
 
   // Preview & Selection State (Static Image Only)
-  const [selectedAssetUrl, setSelectedAssetUrl] = useState<string>(DEFAULT_LOGIN_WALLPAPER.assetUrl);
-  const [selectedName, setSelectedName] = useState<string>(DEFAULT_LOGIN_WALLPAPER.name);
-  const [selectedWallpaperId, setSelectedWallpaperId] = useState<string>(DEFAULT_LOGIN_WALLPAPER.wallpaperId);
+  const [selectedAssetUrl, setSelectedAssetUrl] = useState<string>(initialActive.assetUrl);
+  const [selectedName, setSelectedName] = useState<string>(initialActive.name);
+  const [selectedWallpaperId, setSelectedWallpaperId] = useState<string>(initialActive.wallpaperId);
   const [isApplying, setIsApplying] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);

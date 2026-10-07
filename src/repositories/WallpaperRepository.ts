@@ -278,11 +278,8 @@ export class WallpaperRepository {
 
     const normalizeUrl = (url: string) => url.trim().split('?')[0];
 
-    // 1. First pass: Add canonical system default wallpapers matching target (or all if target not specified)
+    // 1. First pass: Add canonical system default wallpapers (available for all targets)
     for (const sysWp of SYSTEM_DEFAULT_WALLPAPERS) {
-      if (target && sysWp.target && sysWp.target !== target) {
-        continue;
-      }
       const norm = normalizeUrl(sysWp.assetUrl);
       seenAssets.add(norm);
       seenIds.add(sysWp.wallpaperId);
@@ -408,7 +405,7 @@ export class WallpaperRepository {
             const wp = await this.getWallpaperById(selData.wallpaperId);
             if (wp && wp.assetUrl) {
               this.memoryActiveSelections.set(selectionKey, wp.wallpaperId);
-              return wp;
+              return { ...wp, target };
             }
           }
         }
@@ -439,15 +436,53 @@ export class WallpaperRepository {
     }
 
     if (savedId) {
-      const found = this.memoryWallpapers.get(savedId);
+      const found = (await this.getWallpaperById(savedId)) || this.memoryWallpapers.get(savedId);
       if (found && found.status === 'APPROVED' && found.assetUrl && found.assetUrl.trim() !== '') {
-        return found;
+        return { ...found, target };
       }
     }
 
     // Default target fallbacks:
     // LOGIN default: Dark Cinematic Earth Horizon (/wallpaper/orion9-earth-horizon-default.png)
     // DESKTOP default: Earth's Luminous Cosmic Horizon (/wallpaper/orion9-desktop-horizon-moon.png)
+    return target === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
+  }
+
+  /**
+   * Synchronously returns active wallpaper from memory or storage cache for immediate, zero-flash render.
+   */
+  public getActiveWallpaperSync(
+    userId?: string,
+    target: WallpaperTarget = 'desktop'
+  ): WallpaperRecord {
+    const selectionKey = this.getSelectionKey(userId, target);
+    let savedId = this.memoryActiveSelections.get(selectionKey);
+    if (!savedId && target === 'desktop') {
+      savedId = this.memoryActiveSelections.get('global_desktop');
+    }
+
+    if (!savedId && typeof window !== 'undefined') {
+      try {
+        if (target === 'login') {
+          savedId = localStorage?.getItem('orion_active_wallpaper_id_login') || 
+                    sessionStorage?.getItem('orion_active_wallpaper_id_login') || undefined;
+        } else {
+          const userKey = userId || 'global';
+          savedId = localStorage?.getItem(`orion_active_wallpaper_id_desktop_${userKey}`) || 
+                    localStorage?.getItem('orion_active_wallpaper_id_desktop_global') || 
+                    sessionStorage?.getItem(`orion_active_wallpaper_id_desktop_${userKey}`) || 
+                    sessionStorage?.getItem('orion_active_wallpaper_id_desktop_global') || undefined;
+        }
+      } catch (e) {}
+    }
+
+    if (savedId) {
+      const found = this.memoryWallpapers.get(savedId);
+      if (found && found.status === 'APPROVED' && found.assetUrl && found.assetUrl.trim() !== '') {
+        return { ...found, target };
+      }
+    }
+
     return target === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
   }
 
@@ -496,13 +531,18 @@ export class WallpaperRepository {
     }
     this.persistCache(userId, target);
 
+    const targetWp: WallpaperRecord = {
+      ...wp,
+      target
+    };
+
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('orion-active-wallpaper-changed', { 
-        detail: { wallpaper: wp, target, wallpaperId: wp.wallpaperId } 
+        detail: { wallpaper: targetWp, target, wallpaperId: wp.wallpaperId } 
       }));
     }
 
-    return wp;
+    return targetWp;
   }
 
   /**

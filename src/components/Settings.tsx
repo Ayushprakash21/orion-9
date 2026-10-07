@@ -642,7 +642,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
         );
 
       case 'wallpaper_studio':
-        return <UserWallpaperStudio />;
+        return <UserWallpaperStudio initialTarget="desktop" />;
 
       case 'appearance': {
         return <AppearanceSettingsPanel />;
