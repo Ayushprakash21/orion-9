@@ -124,29 +124,57 @@ export function OrionLiveWallpaper({
     let mounted = true;
     const activeUserId = userId;
     const activeTenantId = tenantId || 'global';
+    const requestIdRef = { current: 0 }; // local mutable object for closure safety
+    const preloadCache = new Map<string, Promise<void>>();
+
+    const preloadWallpaper = (url: string) => {
+      if (preloadCache.has(url)) return preloadCache.get(url)!;
+      const promise = new Promise<void>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve();
+        img.onerror = () => reject(new Error('Failed to preload wallpaper'));
+        img.src = url;
+      });
+      preloadCache.set(url, promise);
+      return promise;
+    };
 
     const loadActive = async () => {
       try {
         const wp = await wallpaperRepository.getActiveWallpaper(activeUserId, activeTenantId, target);
-        if (mounted && wp && typeof wp === 'object') {
+        if (!mounted || !wp || typeof wp !== 'object') return;
+        // Increment request ID for this fetch
+        const reqId = ++requestIdRef.current;
+        // Preload the new image before committing
+        await preloadWallpaper(wp.assetUrl);
+        // Only commit if still the latest request
+        if (mounted && reqId === requestIdRef.current) {
           setActiveWallpaper(prev => (prev?.wallpaperId === wp.wallpaperId && prev?.assetUrl === wp.assetUrl ? prev : wp));
         }
       } catch (err) {
         console.warn(`[ORION-9] Failed to load active ${target} wallpaper, using system default:`, err);
-        if (mounted) {
-          const defaultWp = getDefaultRecord();
-          setActiveWallpaper(prev => (prev?.wallpaperId === defaultWp.wallpaperId ? prev : defaultWp));
-        }
+        if (!mounted) return;
+        const defaultWp = getDefaultRecord();
+        setActiveWallpaper(prev => (prev?.wallpaperId === defaultWp.wallpaperId ? prev : defaultWp));
       }
     };
 
     loadActive();
 
-    // Target-isolated event listener: only updates when event matches this exact target
     const handleActiveChange = (e: any) => {
       try {
         if (e.detail?.target === target && e.detail?.wallpaper && typeof e.detail.wallpaper === 'object') {
-          setActiveWallpaper(e.detail.wallpaper);
+          const wp = e.detail.wallpaper as WallpaperRecord;
+          const reqId = ++requestIdRef.current;
+          preloadWallpaper(wp.assetUrl)
+            .then(() => {
+              if (reqId === requestIdRef.current) {
+                setActiveWallpaper(prev => (prev?.wallpaperId === wp.wallpaperId && prev?.assetUrl === wp.assetUrl ? prev : wp));
+              }
+            })
+            .catch(() => {
+              // ignore preload failures, keep current wallpaper
+            });
         }
       } catch (evtErr) {
         console.warn('[ORION-9] Error handling wallpaper change event:', evtErr);
