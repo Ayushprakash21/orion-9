@@ -31,7 +31,7 @@ export const OrionSettingsSplitLayout: React.FC<OrionSettingsSplitLayoutProps> =
         <div 
           data-orion-settings-header="true"
           style={{
-            backgroundColor: '#0c0e11',
+            backgroundColor: 'var(--orion-surface, #0c0e11)',
             opacity: 1,
             backgroundImage: 'none',
             backdropFilter: 'none',
@@ -39,7 +39,7 @@ export const OrionSettingsSplitLayout: React.FC<OrionSettingsSplitLayoutProps> =
             mixBlendMode: 'normal',
             isolation: 'isolate',
           }}
-          className="px-6 md:px-7 h-[50px] min-h-[48px] max-h-[56px] border-b border-white/[0.07] bg-[#0c0e11] flex items-center justify-between gap-4 shrink-0 z-10 min-w-0 select-none"
+          className="px-6 md:px-7 h-[50px] min-h-[48px] max-h-[56px] border-b border-[var(--orion-border,rgba(255,255,255,0.07))] bg-[var(--orion-surface,#0c0e11)] flex items-center justify-between gap-4 shrink-0 z-10 min-w-0 select-none"
         >
           <div className="flex items-center gap-3 min-w-0">
             {title && (

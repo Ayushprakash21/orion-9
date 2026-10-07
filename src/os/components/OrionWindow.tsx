@@ -472,7 +472,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
       className={cn(
         "orion-window-surface flex flex-col text-os-text-primary overflow-hidden select-text pointer-events-auto",
         isMinimized && "pointer-events-none",
-        isMaximized ? "rounded-none border-none shadow-none" : "aurora-window-shadow rounded-xl border border-white/[0.08] bg-[#0c0e11]",
+        isMaximized ? "rounded-none border-none shadow-none" : "aurora-window-shadow rounded-xl border border-white/[0.08] bg-[var(--orion-surface,#0c0e11)]",
         isActive && !isMaximized
           ? "border-white/[0.18] shadow-[0_20px_50px_rgba(0,0,0,0.7)]"
           : "shadow-[0_12px_36px_rgba(0,0,0,0.5)]"
@@ -496,7 +496,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
           }
         }}
         style={{
-          backgroundColor: '#080a0d',
+          backgroundColor: 'var(--orion-surface-elevated, #080a0d)',
           opacity: 1,
           backgroundImage: 'none',
           backdropFilter: 'none',
@@ -505,7 +505,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
           isolation: 'isolate',
         }}
         className={cn(
-          "orion-window-titlebar h-11 bg-[#080a0d] border-b border-white/[0.08] px-3.5 flex items-center justify-between select-none relative z-20 cursor-default",
+          "orion-window-titlebar h-11 bg-[var(--orion-surface-elevated,#080a0d)] border-b border-white/[0.08] px-3.5 flex items-center justify-between select-none relative z-20 cursor-default",
           isActive ? "text-os-text-primary" : "text-os-text-muted"
         )}
       >

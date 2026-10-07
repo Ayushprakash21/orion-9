@@ -59,7 +59,7 @@ describe('Orion-9 Title Bar / Window Chrome Visual Repair', () => {
     expect(html).toContain('data-window-titlebar="true"');
     expect(html).toContain('data-orion-window-titlebar="true"');
     expect(html).toContain('data-orion-app-topbar="true"');
-    expect(html).toContain('background-color:#080a0d');
+    expect(html).toMatch(/background-color:(#080a0d|var\(--orion-surface-elevated)/);
     expect(html).toContain('isolation:isolate');
     expect(html).toContain('border-b');
   });
@@ -109,7 +109,7 @@ describe('Orion-9 Title Bar / Window Chrome Visual Repair', () => {
     const html = renderToString(element);
 
     expect(html).toContain('data-orion-settings-header="true"');
-    expect(html).toContain('background-color:#0c0e11');
+    expect(html).toMatch(/background-color:(#0c0e11|var\(--orion-surface)/);
     expect(html).toContain('My Account');
     expect(html).toContain('AUTHENTICATED');
     expect(html).toContain('Operator Identity &amp; Security Clearance');
@@ -123,15 +123,15 @@ describe('Orion-9 Title Bar / Window Chrome Visual Repair', () => {
     expect(cssSource).toContain('[data-orion-window-titlebar="true"]');
     expect(cssSource).toContain('[data-orion-settings-header="true"]');
     expect(cssSource).toContain('[data-window-controls="true"] button');
-    expect(cssSource).toContain('#080a0d !important');
-    expect(cssSource).toContain('#0c0e11 !important');
+    expect(cssSource).toMatch(/(#080a0d !important|--orion-surface-elevated)/);
+    expect(cssSource).toMatch(/(#0c0e11 !important|--orion-surface)/);
   });
 
-  it('6. Settings.tsx sidebar is opaque #101318 with border-r separation', () => {
+  it('6. Settings.tsx sidebar is opaque with border-r separation', () => {
     const settingsPath = path.resolve(__dirname, '../../components/Settings.tsx');
     const settingsSource = fs.readFileSync(settingsPath, 'utf-8');
 
-    expect(settingsSource).toContain('bg-[#101318]');
+    expect(settingsSource).toMatch(/(bg-\[#101318\]|var\(--orion-surface-elevated)/);
     expect(settingsSource).not.toContain('bg-[#12151a] border-b md:border-b-0 md:border-r border-white/[0.08]');
   });
 });

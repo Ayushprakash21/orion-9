@@ -46,6 +46,10 @@ export class OrionThemeEngine {
   /** Updates the active theme ID */
   public setTheme(id: OrionThemeId): void {
     this.preferences.themeId = id;
+    const targetTheme = getTheme(id);
+    if (this.preferences.appearanceMode !== 'auto') {
+      this.preferences.appearanceMode = targetTheme.appearance.mode;
+    }
     this.persistAndApply();
   }
 

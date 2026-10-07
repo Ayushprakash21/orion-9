@@ -919,35 +919,35 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
   };
 
   return (
-    <div className="flex flex-col md:flex-row w-full h-full bg-[#0c0e11] text-white overflow-hidden font-sans select-none">
+    <div className="flex flex-col md:flex-row w-full h-full bg-[var(--orion-bg,#0c0e11)] text-[var(--orion-text-primary,#fff)] overflow-hidden font-sans select-none">
       {/* ─── LEFT SIDEBAR ─── */}
-      <div className="w-full md:w-[230px] max-h-[35vh] md:max-h-full shrink-0 bg-[#101318] border-b md:border-b-0 md:border-r border-white/[0.08] flex flex-col">
+      <div className="w-full md:w-[230px] max-h-[35vh] md:max-h-full shrink-0 bg-[var(--orion-surface-elevated,#101318)] border-b md:border-b-0 md:border-r border-[var(--orion-border,rgba(255,255,255,0.08))] flex flex-col">
         {/* Search */}
-        <div className="p-3.5 border-b border-white/[0.08] sticky top-0 z-10 bg-[#101318]">
+        <div className="p-3.5 border-b border-[var(--orion-border,rgba(255,255,255,0.08))] sticky top-0 z-10 bg-[var(--orion-surface-elevated,#101318)]">
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
+            <Search className="absolute left-3 top-2.5 text-[var(--orion-text-muted)]" size={14} />
             <input 
               type="text" 
               placeholder="Search Settings" 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-white/[0.04] border border-white/[0.08] rounded-xl pl-8 pr-3 py-1.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500/50 transition-colors"
+              className="w-full bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-xl pl-8 pr-3 py-1.5 text-xs text-[var(--orion-text-primary)] placeholder:text-[var(--orion-text-muted)] focus:outline-none focus:border-[var(--orion-accent)] transition-colors"
             />
           </div>
         </div>
 
         {/* User Badge */}
-        <div className="p-3.5 border-b border-white/[0.08] flex items-center gap-3 bg-white/[0.02]">
-          <div className="w-9 h-9 rounded-full overflow-hidden bg-white/[0.06] flex items-center justify-center shrink-0 border border-white/[0.1]">
+        <div className="p-3.5 border-b border-[var(--orion-border,rgba(255,255,255,0.08))] flex items-center gap-3 bg-[var(--orion-surface-hover)]">
+          <div className="w-9 h-9 rounded-full overflow-hidden bg-[var(--orion-surface)] flex items-center justify-center shrink-0 border border-[var(--orion-border)]">
             {avatarUrl ? (
               <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
-              <User size={16} className="text-slate-400" />
+              <User size={16} className="text-[var(--orion-text-secondary)]" />
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold text-white truncate">{profile?.fullName || 'Administrator'}</div>
-            <div className="text-[10px] text-sky-400 font-mono truncate uppercase tracking-wider">{profile?.role?.replace('_', ' ') || 'Platform Admin'}</div>
+            <div className="text-xs font-semibold text-[var(--orion-text-primary)] truncate">{profile?.fullName || 'Administrator'}</div>
+            <div className="text-[10px] text-[var(--orion-accent)] font-mono truncate uppercase tracking-wider">{profile?.role?.replace('_', ' ') || 'Platform Admin'}</div>
           </div>
         </div>
         
@@ -955,7 +955,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
         <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar">
           {/* USER & SYSTEM SECTIONS */}
           <div>
-            <div className="px-2.5 mb-1.5 text-[10px] font-semibold tracking-wider uppercase text-slate-400">System Preferences</div>
+            <div className="px-2.5 mb-1.5 text-[10px] font-semibold tracking-wider uppercase text-[var(--orion-text-muted)]">System Preferences</div>
             <div className="space-y-0.5">
               {filteredNav.map(item => (
                 <button
@@ -964,11 +964,11 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                   className={cn(
                     "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left cursor-pointer",
                     activeSection === item.id 
-                      ? "bg-white/[0.10] text-white font-semibold border border-white/[0.08]" 
-                      : "text-slate-400 hover:bg-white/[0.04] hover:text-white border border-transparent"
+                      ? "bg-[var(--orion-accent-soft)] text-[var(--orion-text-primary)] font-semibold border border-[var(--orion-border-strong)]" 
+                      : "text-[var(--orion-text-secondary)] hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] border border-transparent"
                   )}
                 >
-                  <item.icon size={15} className={activeSection === item.id ? "text-os-accent" : "text-slate-400"} /> 
+                  <item.icon size={15} className={activeSection === item.id ? "text-[var(--orion-accent)]" : "text-[var(--orion-text-muted)]"} /> 
                   <span>{item.label}</span>
                 </button>
               ))}
@@ -978,7 +978,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
           {/* ADMINISTRATION SECTIONS */}
           {isAdmin && filteredAdminNav.length > 0 && (
             <div>
-              <div className="px-2.5 mb-1.5 text-[10px] font-semibold tracking-wider uppercase text-slate-400">Administration</div>
+              <div className="px-2.5 mb-1.5 text-[10px] font-semibold tracking-wider uppercase text-[var(--orion-text-muted)]">Administration</div>
               <div className="space-y-0.5">
                 {filteredAdminNav.map(item => (
                   <button
@@ -987,11 +987,11 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                     className={cn(
                       "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left cursor-pointer",
                       activeSection === item.id 
-                        ? "bg-white/[0.10] text-white font-semibold border border-white/[0.08]" 
-                        : "text-slate-400 hover:bg-white/[0.04] hover:text-white border border-transparent"
+                        ? "bg-[var(--orion-accent-soft)] text-[var(--orion-text-primary)] font-semibold border border-[var(--orion-border-strong)]" 
+                        : "text-[var(--orion-text-secondary)] hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] border border-transparent"
                     )}
                   >
-                    <item.icon size={15} className={activeSection === item.id ? "text-emerald-400" : "text-slate-400"} /> 
+                    <item.icon size={15} className={activeSection === item.id ? "text-emerald-400" : "text-[var(--orion-text-muted)]"} /> 
                     <span className="truncate">{item.label}</span>
                   </button>
                 ))}
@@ -1002,7 +1002,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
       </div>
 
       {/* ─── MAIN CONTENT PANEL (FULL DESKTOP SPAN, TWO-PANE SPLIT) ─── */}
-      <div className="flex-1 flex flex-col overflow-hidden relative bg-[#0c0e11] w-full min-w-0 h-full">
+      <div className="flex-1 flex flex-col overflow-hidden relative bg-[var(--orion-bg,#0c0e11)] w-full min-w-0 h-full">
         <div className="flex-1 overflow-hidden relative flex flex-col">
           {renderSectionContent()}
         </div>

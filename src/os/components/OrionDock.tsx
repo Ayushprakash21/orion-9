@@ -495,7 +495,7 @@ export function OrionDock() {
       onMouseLeave={() => scheduleDockHide()}
     >
       <div 
-        className="flex items-center gap-2 p-2 backdrop-blur-2xl bg-[#12151a]/85 dark:bg-[#0c0e11]/90 border border-white/[0.08] shadow-[0_20px_50px_rgba(0,0,0,0.4)] rounded-2xl transition-all duration-300 overflow-x-auto max-w-[calc(100vw-24px)]"
+        className="flex items-center gap-2 p-2 backdrop-blur-2xl bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] shadow-[0_20px_50px_rgba(0,0,0,0.4)] rounded-2xl transition-all duration-300 overflow-x-auto max-w-[calc(100vw-24px)]"
         style={{ scrollbarWidth: 'none' }}
         onMouseLeave={() => { setHoveredApp(null); scheduleDockHide(); }}
       >

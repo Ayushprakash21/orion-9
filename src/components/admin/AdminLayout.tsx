@@ -96,7 +96,7 @@ export const AdminLayout = () => {
   return (
     <div className="orion-admin-shell flex flex-col h-screen w-full bg-os-bg text-os-text-secondary font-sans overflow-hidden box-border">
       {/* Global shell chrome: fixed 48px lane; admin content is always below it. */}
-      <header className="orion-global-topbar flex items-center justify-between h-[48px] min-h-[48px] max-h-[48px] px-3 md:px-4 bg-[#080a0d] border-b border-os-border shrink-0 box-border w-full z-[10000] relative">
+      <header className="orion-global-topbar flex items-center justify-between h-[48px] min-h-[48px] max-h-[48px] px-3 md:px-4 bg-[var(--orion-surface-elevated)] border-b border-os-border shrink-0 box-border w-full z-[10000] relative">
         <div className="flex items-center gap-4 sm:gap-6 shrink-0 justify-start">
           <button 
             type="button"

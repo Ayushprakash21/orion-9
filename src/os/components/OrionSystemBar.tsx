@@ -92,7 +92,7 @@ export function OrionSystemBar() {
   const activeApp = activeAppId ? ORION_REGISTRY[activeAppId] : null;
 
   return (
-    <header className="orion-global-topbar relative top-auto left-auto right-auto h-[44px] min-h-[44px] w-full z-[10000] flex items-center justify-between px-3 md:px-4 text-[12px] font-medium text-os-text-secondary select-none bg-[#12151a]/85 dark:bg-[#0c0e11]/90 backdrop-blur-2xl border-b border-white/[0.08] shadow-xs pointer-events-auto shrink-0 transition-colors">
+    <header className="orion-global-topbar relative top-auto left-auto right-auto h-[44px] min-h-[44px] w-full z-[10000] flex items-center justify-between px-3 md:px-4 text-[12px] font-medium text-os-text-secondary select-none bg-[var(--orion-surface-elevated)] border-b border-[var(--orion-border)] shadow-xs pointer-events-auto shrink-0 transition-colors">
       
       {/* LEFT: ORION HOME BUTTON & MENU */}
       <div className="flex items-center h-full min-w-0 gap-1.5" ref={menuRef}>

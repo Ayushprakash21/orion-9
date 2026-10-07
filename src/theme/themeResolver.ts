@@ -90,19 +90,38 @@ export function resolveThemeVariables(
   const uiScaleRatio = (settings.uiScale || 100) / 100;
 
   return {
+    '--orion-bg': baseColors.background,
     '--orion-background': baseColors.background,
     '--orion-background-secondary': baseColors.backgroundSecondary,
     '--orion-surface': baseColors.surface,
     '--orion-surface-secondary': baseColors.surfaceSecondary,
     '--orion-surface-elevated': baseColors.surfaceElevated,
     '--orion-surface-hover': baseColors.surfaceHover,
+    '--orion-surface-active': baseColors.surfaceHover,
     '--orion-border': baseColors.border,
     '--orion-border-strong': baseColors.borderStrong,
     '--orion-text': baseColors.text,
+    '--orion-text-primary': baseColors.text,
     '--orion-text-secondary': baseColors.textSecondary,
     '--orion-text-muted': baseColors.textMuted,
+    '--orion-text-disabled': baseColors.textMuted,
+
+    // Backward-compatible OS aliases
+    '--os-bg': baseColors.background,
+    '--os-surface': baseColors.surface,
+    '--os-surface-secondary': baseColors.surfaceSecondary,
+    '--os-surface-elevated': baseColors.surfaceElevated,
+    '--os-surface-hover': baseColors.surfaceHover,
+    '--os-border': baseColors.border,
+    '--os-border-strong': baseColors.borderStrong,
+    '--os-text-primary': baseColors.text,
+    '--os-text-secondary': baseColors.textSecondary,
+    '--os-text-muted': baseColors.textMuted,
+    '--os-accent': accentHex,
+    '--os-accent-subtle': accentSubtle,
 
     '--orion-accent': accentHex,
+    '--orion-accent-soft': accentSubtle,
     '--orion-accent-hover': accentHover,
     '--orion-accent-subtle': accentSubtle,
     '--orion-on-accent': textOnAccent,
@@ -154,6 +173,20 @@ export function applyThemeToDocument(settings: PersonalizationSettings): void {
   root.setAttribute('data-reduced-motion', settings.reducedMotion ? 'true' : 'false');
   root.setAttribute('data-reduced-transparency', settings.reducedTransparency ? 'true' : 'false');
   root.setAttribute('data-color-filter', settings.colorFilter || 'none');
+
+  // Toggle light/dark classes for Tailwind & system chrome
+  if (root.classList) {
+    root.classList.remove('light', 'dark');
+    root.classList.add(effectiveMode === 'light' ? 'light' : 'dark');
+  }
+  if (root.style) {
+    root.style.colorScheme = effectiveMode === 'light' ? 'light' : 'dark';
+  }
+
+  if (document.body) {
+    document.body.style.backgroundColor = vars['--orion-bg'] || vars['--os-bg'];
+    document.body.style.color = vars['--orion-text-primary'] || vars['--os-text-primary'];
+  }
 
   // Apply UI Scale transform variable if specified
   if (settings.uiScale && settings.uiScale !== 100) {
