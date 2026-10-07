@@ -155,14 +155,20 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   root.style.setProperty('--orion-morph-elevation-modal', morph.elevationModal);
 
   // Metadata attributes and classList toggle for light/dark Tailwind/OS styling
-  root.setAttribute('data-orion-theme', theme.id);
-  root.setAttribute('data-orion-mode', theme.appearance.mode);
-  root.setAttribute('data-orion-morphism', morph.mode);
-  root.setAttribute('data-window-control-position', preferences.windowControlPosition || 'left');
-  root.classList.remove('light', 'dark');
-  root.classList.add(theme.appearance.mode);
-  root.style.colorScheme = theme.appearance.mode;
-  if (document.body) {
+  if (root.setAttribute) {
+    root.setAttribute('data-orion-theme', theme.id);
+    root.setAttribute('data-orion-mode', theme.appearance.mode);
+    root.setAttribute('data-orion-morphism', morph.mode);
+    root.setAttribute('data-window-control-position', preferences.windowControlPosition || 'left');
+  }
+  if (root.classList) {
+    root.classList.remove('light', 'dark');
+    root.classList.add(theme.appearance.mode);
+  }
+  if (root.style) {
+    root.style.colorScheme = theme.appearance.mode;
+  }
+  if (typeof document !== 'undefined' && document.body && document.body.style) {
     document.body.style.backgroundColor = theme.colors.background;
     document.body.style.color = theme.colors.textPrimary;
   }

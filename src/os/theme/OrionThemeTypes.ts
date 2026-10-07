@@ -100,6 +100,8 @@ export interface OrionAppearancePreferences {
   dockPosition: OrionDockPosition;
   dockAlignment: OrionDockAlignment;
   dockAutoHide: boolean;
+  dockMagnification?: boolean;
+  dockSize?: 'small' | 'medium' | 'large';
   dockShowRunningIndicators: boolean;
   dockShowBadges: boolean;
   dockTransparency: boolean;
@@ -136,6 +138,8 @@ export const DEFAULT_PREFERENCES: OrionAppearancePreferences = {
   dockPosition: 'bottom',
   dockAlignment: 'center',
   dockAutoHide: false,
+  dockMagnification: true,
+  dockSize: 'medium',
   dockShowRunningIndicators: true,
   dockShowBadges: true,
   dockTransparency: true,

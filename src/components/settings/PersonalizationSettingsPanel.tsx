@@ -7,6 +7,7 @@ import { PersonalizationSettings, DesktopIconSize, DesktopIconLayout, DockPositi
 import { OrionWindowControls } from '../../os/components/OrionWindowControls';
 import { useToast } from '../../store/ToastContext';
 import { useOSGeometry } from '../../os/dock/DockGeometry';
+import { loadPreferences, savePreferences } from '../../os/theme/OrionThemeStorage';
 
 interface PersonalizationSettingsPanelProps {
   settings: PersonalizationSettings;
@@ -20,7 +21,41 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
   const handleUpdate = (updated: Partial<PersonalizationSettings>) => {
     // 1. Live preview immediately in OS Geometry & Theme Root
     previewSettings(updated);
-    // 2. Bubble up to settings editor state
+
+    // 2. Synchronize to authoritative OrionThemeStorage
+    try {
+      const prefs = loadPreferences();
+      let changed = false;
+      if (updated.dockAutoHide !== undefined && updated.dockAutoHide !== prefs.dockAutoHide) {
+        prefs.dockAutoHide = updated.dockAutoHide;
+        changed = true;
+      }
+      if (updated.dockPosition !== undefined && updated.dockPosition !== prefs.dockPosition) {
+        if (['bottom', 'left', 'right', 'top'].includes(updated.dockPosition)) {
+          prefs.dockPosition = updated.dockPosition as any;
+          changed = true;
+        }
+      }
+      if (updated.dockMagnification !== undefined && updated.dockMagnification !== prefs.dockMagnification) {
+        prefs.dockMagnification = updated.dockMagnification;
+        changed = true;
+      }
+      if (updated.dockTransparency !== undefined) {
+        prefs.transparencyIntensity = updated.dockTransparency;
+        changed = true;
+      }
+      if (updated.windowControlPosition !== undefined && updated.windowControlPosition !== prefs.windowControlPosition) {
+        prefs.windowControlPosition = updated.windowControlPosition;
+        changed = true;
+      }
+      if (changed) {
+        savePreferences(prefs);
+      }
+    } catch {
+      // safe fallback
+    }
+
+    // 3. Bubble up to settings editor state
     onChange(updated);
   };
 

@@ -307,7 +307,7 @@ export function OrionApplicationLauncher() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search applications, modules, intelligence..."
-              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl py-2.5 pl-10 pr-4 text-[13px] text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500/60 focus:bg-white/[0.08] transition-all"
+              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl py-2.5 pl-10 pr-4 text-[13px] text-white placeholder:text-slate-500 focus:outline-none focus:border-[var(--orion-accent)]/60 focus:bg-white/[0.08] transition-all"
               onKeyDown={e => {
                 if (e.key === 'Enter' && filteredApps.length > 0) {
                   handleOpen(filteredApps[0].id);
@@ -514,7 +514,7 @@ export function OrionApplicationLauncher() {
         <div className="flex items-center justify-between px-5 py-3.5 border-t border-white/[0.08] bg-white/[0.02] rounded-b-2xl shrink-0">
           {/* User Profile */}
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400 font-semibold text-[13px] shrink-0">
+            <div className="w-8 h-8 rounded-full bg-[var(--orion-accent)]/20 border border-[var(--orion-accent)]/30 flex items-center justify-center text-[var(--orion-accent)] font-semibold text-[13px] shrink-0">
               {currentUser?.fullName?.charAt(0) || 'U'}
             </div>
             <div className="flex flex-col min-w-0">
@@ -620,7 +620,7 @@ function AppGridCard({ app, onClick, onPointerDown, isPinned, pinToDock, unpinFr
     >
       <div className="flex items-start justify-between gap-2 pointer-events-none">
         <OrionAppIcon app={app.id} size={38} className="transition-transform duration-200 group-hover:scale-105 pointer-events-none" />
-        <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-md pointer-events-none", isOpen ? "bg-sky-500/20 text-sky-300" : "text-slate-400 bg-white/[0.04]")}>{isOpen ? 'Running' : 'Open'}</span>
+        <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-md pointer-events-none", isOpen ? "bg-[var(--orion-accent)]/20 text-[var(--orion-accent)]" : "text-slate-400 bg-white/[0.04]")}>{isOpen ? 'Running' : 'Open'}</span>
       </div>
       <div className="mt-2.5 min-w-0 pointer-events-none">
         <div className="text-[13px] font-semibold text-white truncate pointer-events-none">{app.name}</div>
@@ -683,7 +683,7 @@ function AppRow({ app, onClick, onPointerDown, isPinned, pinToDock, unpinFromDoc
       <div className="shrink-0 flex items-center pr-1 pointer-events-none">
         <span className={cn(
           "text-[10px] font-medium tracking-wide px-2.5 py-1 rounded-md transition-colors pointer-events-none",
-          isOpen ? "text-sky-300 bg-sky-500/20" : "text-slate-400 group-hover:text-slate-200"
+          isOpen ? "text-[var(--orion-accent)] bg-[var(--orion-accent)]/20" : "text-slate-400 group-hover:text-slate-200"
         )}>
           {isOpen ? 'Running' : 'Open'}
         </span>

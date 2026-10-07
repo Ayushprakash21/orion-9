@@ -359,7 +359,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
               <button 
                 type="submit" 
                 disabled={isUnlocking || !unlockPassword}
-                className="w-full bg-sky-500 hover:bg-sky-400 text-black font-semibold py-2.5 rounded-xl disabled:opacity-50 transition-all text-xs flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full bg-[var(--orion-accent,#D8DDE3)] hover:opacity-90 text-[var(--orion-bg,#0B0D0F)] font-semibold py-2.5 rounded-xl disabled:opacity-50 transition-all text-xs flex items-center justify-center gap-2 cursor-pointer shadow-sm"
               >
                 {isUnlocking ? 'Verifying Identity...' : <>Unlock Administration <Unlock size={14} /></>}
               </button>
@@ -469,7 +469,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                       </button>
                       <button 
                         onClick={saveProfileData}
-                        className="px-3.5 py-1.5 bg-sky-500 hover:bg-sky-400 text-black font-semibold rounded-xl text-xs transition-colors cursor-pointer"
+                        className="px-3.5 py-1.5 bg-[var(--orion-accent,#D8DDE3)] hover:opacity-90 text-[var(--orion-bg,#0B0D0F)] font-semibold rounded-xl text-xs transition-colors cursor-pointer shadow-sm"
                       >
                         Save
                       </button>
@@ -1016,15 +1016,15 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
 
       {/* ─── MAIN CONTENT PANEL (FULL DESKTOP SPAN, TWO-PANE SPLIT) ─── */}
       <div className="flex-1 flex flex-col overflow-hidden relative bg-[var(--orion-bg,#0c0e11)] w-full min-w-0 h-full">
-        <div className="flex-1 overflow-y-auto overflow-x-hidden relative flex flex-col min-h-0 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden relative flex flex-col min-h-0 custom-scrollbar pb-16 sm:pb-20">
           {renderSectionContent()}
         </div>
         
         {/* Compact Footer Action Bar for non-admin sections */}
         {!isAdminSection && (
-          <div className="px-4 py-2.5 sm:px-6 sm:py-3 border-t border-white/[0.08] bg-[#12151a]/95 backdrop-blur-xl shrink-0 flex items-center justify-between z-20 text-xs">
-            <span className="text-[11px] text-slate-400 font-mono">
-              Environment: <strong className="text-slate-200">{dataMode === 'real' ? 'LIVE' : 'DEMO'}</strong>
+          <div className="px-4 py-2.5 sm:px-6 sm:py-3 border-t border-[var(--orion-border,rgba(255,255,255,0.08))] bg-[var(--orion-surface,#12151a)]/95 backdrop-blur-xl shrink-0 flex items-center justify-between z-20 text-xs">
+            <span className="text-[11px] text-[var(--orion-text-muted,#94a3b8)] font-mono">
+              Environment: <strong className="text-[var(--orion-text-primary,#e2e8f0)]">{dataMode === 'real' ? 'LIVE' : 'DEMO'}</strong>
             </span>
             <div className="flex items-center gap-2 sm:gap-3">
               {saveError && (
@@ -1040,7 +1040,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
               <button 
                 onClick={handleResetSettings}
                 type="button"
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-slate-300 border border-white/[0.08] rounded-xl hover:bg-white/[0.06] hover:text-white transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-[var(--orion-text-secondary,#cbd5e1)] border border-[var(--orion-border,rgba(255,255,255,0.08))] rounded-xl hover:bg-[var(--orion-surface-hover,rgba(255,255,255,0.06))] hover:text-[var(--orion-text-primary,#ffffff)] transition-colors cursor-pointer"
               >
                 <RotateCcw size={12} /> Reset
               </button>
@@ -1048,7 +1048,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                 onClick={handleSaveSettings}
                 disabled={isSaving}
                 type="button"
-                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-black bg-sky-400 hover:bg-sky-300 rounded-xl disabled:opacity-50 transition-all cursor-pointer shadow-sm"
+                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-[var(--orion-bg,#0B0D0F)] bg-[var(--orion-accent,#D8DDE3)] hover:opacity-90 rounded-xl disabled:opacity-50 transition-all cursor-pointer shadow-sm"
               >
                 <Save size={13} />
                 {isSaving ? 'Saving...' : 'Apply Changes'}

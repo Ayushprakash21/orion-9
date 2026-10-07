@@ -693,6 +693,8 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
           appearanceMode: (normalized.personalization.appearanceMode as any) || activePrefs.appearanceMode,
           windowControlPosition: normalized.personalization.windowControlPosition || activePrefs.windowControlPosition,
           dockPosition: (normalized.personalization.dockPosition as any) || activePrefs.dockPosition,
+          dockAutoHide: normalized.personalization.dockAutoHide !== undefined ? normalized.personalization.dockAutoHide : activePrefs.dockAutoHide,
+          dockMagnification: normalized.personalization.dockMagnification !== undefined ? normalized.personalization.dockMagnification : activePrefs.dockMagnification,
         });
       }
     } catch (e) {

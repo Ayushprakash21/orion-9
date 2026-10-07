@@ -77,7 +77,7 @@ export function OrionTaskSwitcher({ isOpen, onClose }: OrionTaskSwitcherProps) {
       >
         <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5">
           <div className="flex items-center gap-2.5">
-            <Layers className="w-5 h-5 text-sky-400" />
+            <Layers className="w-5 h-5 text-[var(--orion-accent,#D8DDE3)]" />
             <h2 className="text-[15px] font-semibold text-white tracking-wide">
               Task Switcher
             </h2>
@@ -116,7 +116,7 @@ export function OrionTaskSwitcher({ isOpen, onClose }: OrionTaskSwitcherProps) {
                   className={cn(
                     "flex flex-col items-start p-4 rounded-xl border text-left transition-all duration-150 cursor-pointer outline-none relative group",
                     isSelected 
-                      ? "bg-sky-500/15 border-sky-500/50 shadow-lg shadow-sky-500/10 scale-[1.02]" 
+                      ? "bg-[var(--orion-accent,#D8DDE3)]/15 border-[var(--orion-accent,#D8DDE3)]/50 shadow-lg shadow-black/20 scale-[1.02]" 
                       : "bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.15]"
                   )}
                 >
@@ -127,7 +127,7 @@ export function OrionTaskSwitcher({ isOpen, onClose }: OrionTaskSwitcherProps) {
                       isMinimized 
                         ? "bg-amber-500/20 text-amber-300" 
                         : isFocused 
-                        ? "bg-sky-500/25 text-sky-300 font-semibold"
+                        ? "bg-[var(--orion-accent,#D8DDE3)]/25 text-[var(--orion-accent,#D8DDE3)] font-semibold"
                         : "bg-white/[0.06] text-slate-300"
                     )}>
                       {isMinimized ? 'Minimized' : isFocused ? 'Active' : 'Running'}

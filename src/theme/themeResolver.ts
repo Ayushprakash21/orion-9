@@ -3,6 +3,7 @@ import { APPEARANCE_PRESETS, ACCENT_PRESETS, DEFAULT_PERSONALIZATION_SETTINGS } 
 import { getTheme, ORION_THEMES, isValidThemeId } from '../os/theme/OrionThemeRegistry';
 import { loadPreferences } from '../os/theme/OrionThemeStorage';
 import { OrionThemeId } from '../os/theme/OrionThemeTypes';
+import { applyThemeToDOM } from '../os/theme/OrionThemeCSS';
 
 /**
  * Calculates WCAG relative luminance to determine optimal foreground text color (#FFFFFF or #0F172A).
@@ -67,7 +68,7 @@ export function resolveThemeVariables(
     effectiveMode = 'monochrome';
   }
 
-  // Base colors prioritize canonical theme palette when themeId is specified, otherwise fallback to APPEARANCE_PRESETS
+  // Base colors prioritize canonical theme palette
   const presetColors = APPEARANCE_PRESETS[effectiveMode as keyof typeof APPEARANCE_PRESETS] || APPEARANCE_PRESETS.dark;
 
   const baseColors = (effectiveMode === 'monochrome' || effectiveMode === 'oled')
@@ -96,10 +97,10 @@ export function resolveThemeVariables(
       );
 
   // 2. Resolve Accent Color
-  let accentHex = '#64748B'; // Default slate neutral
+  let accentHex = canonicalTheme.colors.accent; // Default to canonical theme accent
   if (settings.accentKey === 'custom' && settings.customAccentHex) {
     accentHex = settings.customAccentHex;
-  } else if (settings.accentKey && ACCENT_PRESETS[settings.accentKey as AccentPresetKey]) {
+  } else if (settings.accentKey && settings.accentKey !== 'neutral' && ACCENT_PRESETS[settings.accentKey as AccentPresetKey]) {
     accentHex = ACCENT_PRESETS[settings.accentKey as AccentPresetKey].hex;
   }
 
@@ -180,10 +181,10 @@ export function resolveThemeVariables(
     '--orion-wallpaper-blur': `${settings.wallpaperBlur ?? 0}px`,
     '--orion-wallpaper-dim': `${(settings.wallpaperDim ?? 0) / 100}`,
 
-    '--orion-success': '#10B981',
-    '--orion-warning': '#F59E0B',
-    '--orion-danger': '#EF4444',
-    '--orion-info': '#3B82F6'
+    '--orion-success': canonicalTheme.colors.success,
+    '--orion-warning': canonicalTheme.colors.warning,
+    '--orion-danger': canonicalTheme.colors.danger,
+    '--orion-info': canonicalTheme.colors.info
   };
 }
 
@@ -197,6 +198,20 @@ export function applyThemeToDocument(settings: PersonalizationSettings): void {
     ? window.matchMedia('(prefers-color-scheme: dark)').matches
     : true;
 
+  const activePrefs = loadPreferences();
+  const targetThemeId: OrionThemeId = (settings.themeId && isValidThemeId(settings.themeId))
+    ? settings.themeId
+    : (activePrefs.themeId || 'graphite');
+  const canonicalTheme = getTheme(targetThemeId);
+
+  // Synchronize canonical DOM tokens first
+  applyThemeToDOM(canonicalTheme, {
+    ...activePrefs,
+    themeId: targetThemeId,
+    windowControlPosition: settings.windowControlPosition || activePrefs.windowControlPosition,
+    reduceMotion: settings.reducedMotion ?? activePrefs.reduceMotion,
+  });
+
   const vars = resolveThemeVariables(settings, systemIsDark);
   const root = document.documentElement;
 
@@ -209,12 +224,6 @@ export function applyThemeToDocument(settings: PersonalizationSettings): void {
   let effectiveMode = settings.appearanceMode;
   if (effectiveMode === 'auto') effectiveMode = systemIsDark ? 'dark' : 'light';
   if (settings.highContrast) effectiveMode = 'monochrome';
-
-  const activePrefs = loadPreferences();
-  const targetThemeId: OrionThemeId = (settings.themeId && isValidThemeId(settings.themeId))
-    ? settings.themeId
-    : (activePrefs.themeId || 'graphite');
-  const canonicalTheme = getTheme(targetThemeId);
 
   root.setAttribute('data-theme', effectiveMode);
   root.setAttribute('data-orion-theme', canonicalTheme.id);

@@ -21,6 +21,8 @@ import {
   RefreshCw
 } from 'lucide-react';
 
+export type DockVisibilityState = 'visible' | 'hidden' | 'revealing' | 'hiding';
+
 export function OrionDock() {
   const { t } = useI18n();
   const { 
@@ -48,15 +50,23 @@ export function OrionDock() {
   const [hoveredApp, setHoveredApp] = useState<string | null>(null);
   const [draggedApp, setDraggedApp] = useState<string | null>(null);
   const [dragOverApp, setDragOverApp] = useState<string | null>(null);
-  const [dockVisible, setDockVisible] = useState(true);
-  const dockVisibleRef = useRef(true);
-  const dockRef = useRef<HTMLDivElement | null>(null);
-  const hideTimerRef = useRef<number | null>(null);
 
   const isVertical = dock.orientation === 'vertical';
   const dockPosition = dock.position;
   const autoHideEnabled = Boolean(settings.dockAutoHide);
   const magnificationEnabled = Boolean(settings.dockMagnification);
+
+  const [visibilityState, setVisibilityState] = useState<DockVisibilityState>(() => {
+    return autoHideEnabled ? 'hidden' : 'visible';
+  });
+  const visibilityStateRef = useRef<DockVisibilityState>(visibilityState);
+  visibilityStateRef.current = visibilityState;
+
+  const [dockVisible, setDockVisible] = useState(!autoHideEnabled);
+  const dockVisibleRef = useRef(!autoHideEnabled);
+  const dockRef = useRef<HTMLDivElement | null>(null);
+  const hideTimerRef = useRef<number | null>(null);
+  const revealTimerRef = useRef<number | null>(null);
 
   const openAppIdsForDock = Object.keys(windows).filter(id => id !== 'orion-ai' && windows[id]?.state !== 'closed' && windows[id]?.workspace === activeWorkspaceId);
   const hasOpenApplication = Object.values(windows).some(
@@ -65,14 +75,6 @@ export function OrionDock() {
   const activeWindow = activeAppId ? windows[activeAppId] : undefined;
   const hasActiveApplication = !!activeWindow && activeWindow.state !== 'closed' && activeWindow.workspace === activeWorkspaceId;
 
-  const setDockVisibility = useCallback((visible: boolean) => {
-    dockVisibleRef.current = visible;
-    setDockVisible(visible);
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('orion-dock-visibility-changed', { detail: { visible } }));
-    }
-  }, []);
-
   const clearDockHideTimer = useCallback(() => {
     if (hideTimerRef.current !== null) {
       window.clearTimeout(hideTimerRef.current);
@@ -80,32 +82,92 @@ export function OrionDock() {
     }
   }, []);
 
-  const scheduleDockHide = useCallback(() => {
+  const clearDockRevealTimer = useCallback(() => {
+    if (revealTimerRef.current !== null) {
+      window.clearTimeout(revealTimerRef.current);
+      revealTimerRef.current = null;
+    }
+  }, []);
+
+  const setDockState = useCallback((nextState: DockVisibilityState) => {
+    visibilityStateRef.current = nextState;
+    setVisibilityState(nextState);
+    const visible = !autoHideEnabled || nextState === 'visible' || nextState === 'revealing';
+    dockVisibleRef.current = visible;
+    setDockVisible(visible);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('orion-dock-visibility-changed', {
+        detail: { visible, state: nextState }
+      }));
+    }
+  }, [autoHideEnabled]);
+
+  const handleActivationTrigger = useCallback(() => {
     if (!autoHideEnabled) {
-      setDockVisibility(true);
+      setDockState('visible');
       return;
     }
     clearDockHideTimer();
+    clearDockRevealTimer();
+    setDockState('revealing');
+    revealTimerRef.current = window.setTimeout(() => {
+      setDockState('visible');
+    }, 40);
+  }, [autoHideEnabled, clearDockHideTimer, clearDockRevealTimer, setDockState]);
+
+  const handleDockEnter = useCallback(() => {
+    clearDockHideTimer();
+    clearDockRevealTimer();
+    setDockState('visible');
+  }, [clearDockHideTimer, clearDockRevealTimer, setDockState]);
+
+  const scheduleDockHide = useCallback(() => {
+    if (!autoHideEnabled) {
+      setDockState('visible');
+      return;
+    }
+    clearDockHideTimer();
+    clearDockRevealTimer();
+    // Do not hide if dock has keyboard focus (:focus-within)
+    if (dockRef.current?.matches(':focus-within')) {
+      return;
+    }
     hideTimerRef.current = window.setTimeout(() => {
       const el = dockRef.current;
-      if (!el?.matches(':hover')) setDockVisibility(false);
-    }, 900);
-  }, [clearDockHideTimer, autoHideEnabled, setDockVisibility]);
+      if (!el?.matches(':hover') && !el?.matches(':focus-within')) {
+        setDockState('hiding');
+        hideTimerRef.current = window.setTimeout(() => {
+          setDockState('hidden');
+        }, 200);
+      }
+    }, 250);
+  }, [autoHideEnabled, clearDockHideTimer, clearDockRevealTimer, setDockState]);
+
+  // Synchronize when autoHideEnabled preference changes
+  useEffect(() => {
+    clearDockHideTimer();
+    clearDockRevealTimer();
+    if (!autoHideEnabled) {
+      setDockState('visible');
+    } else {
+      if (!dockRef.current?.matches(':hover')) {
+        setDockState('hidden');
+      }
+    }
+  }, [autoHideEnabled, clearDockHideTimer, clearDockRevealTimer, setDockState]);
 
   // Pointer move detection across all 4 screen edges for auto-hide
   useEffect(() => {
     clearDockHideTimer();
+    clearDockRevealTimer();
 
-    // If auto-hide is off, or desktop is clean (home mode), Dock is always visible
-    if (!autoHideEnabled || !hasOpenApplication) {
-      setDockVisibility(true);
+    if (!autoHideEnabled) {
+      setDockState('visible');
       return;
     }
 
-    setDockVisibility(true);
-
     const onPointerMove = (e: PointerEvent) => {
-      const edgeThreshold = 24;
+      const edgeThreshold = 20;
       let atEdge = false;
 
       switch (dockPosition) {
@@ -127,35 +189,32 @@ export function OrionDock() {
 
       if (atEdge || hoveringDock) {
         clearDockHideTimer();
-        setDockVisibility(true);
+        if (visibilityStateRef.current === 'hidden' || visibilityStateRef.current === 'hiding') {
+          handleActivationTrigger();
+        }
       } else {
         scheduleDockHide();
       }
     };
 
     const onWindowBlur = () => {
-      clearDockHideTimer();
-      if (autoHideEnabled && hasOpenApplication) {
-        setDockVisibility(false);
+      if (autoHideEnabled) {
+        clearDockHideTimer();
+        clearDockRevealTimer();
+        setDockState('hidden');
       }
     };
 
     window.addEventListener('pointermove', onPointerMove, { passive: true });
     window.addEventListener('blur', onWindowBlur);
 
-    const initial = window.setTimeout(() => {
-      if (autoHideEnabled && hasOpenApplication && !dockRef.current?.matches(':hover')) {
-        setDockVisibility(false);
-      }
-    }, 1200);
-
     return () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('blur', onWindowBlur);
-      window.clearTimeout(initial);
       clearDockHideTimer();
+      clearDockRevealTimer();
     };
-  }, [hasOpenApplication, clearDockHideTimer, scheduleDockHide, setDockVisibility, autoHideEnabled, dockPosition, systemBarHeight]);
+  }, [autoHideEnabled, dockPosition, systemBarHeight, clearDockHideTimer, clearDockRevealTimer, handleActivationTrigger, scheduleDockHide, setDockState]);
 
   const openAppIds = openAppIdsForDock;
   const unpinnedOpenApps = openAppIds.filter(id => !dockPinnedApps.includes(id));
@@ -406,10 +465,10 @@ export function OrionDock() {
     setDraggedApp(null);
   };
 
-  // Compute outer container styles based on dockPosition and dockVisible
-  const containerPositionStyle: React.CSSProperties = useMemo(() => {
-    const isHidden = autoHideEnabled && hasOpenApplication && !dockVisible;
+  // Compute outer container styles based on dockPosition and visibilityState
+  const isHidden = autoHideEnabled && (visibilityState === 'hidden' || visibilityState === 'hiding');
 
+  const containerPositionStyle: React.CSSProperties = useMemo(() => {
     switch (dockPosition) {
       case 'bottom':
         return {
@@ -444,7 +503,7 @@ export function OrionDock() {
           maxHeight: `calc(100dvh - ${systemBarHeight + 24}px)`,
         };
     }
-  }, [dockPosition, dockVisible, autoHideEnabled, hasOpenApplication, dock.hiddenTransform, systemBarHeight]);
+  }, [dockPosition, isHidden, dock.hiddenTransform, systemBarHeight]);
 
   // Compute Reveal Handle Position
   const revealHandleStyle: React.CSSProperties = useMemo(() => {
@@ -506,17 +565,44 @@ export function OrionDock() {
 
   return (
     <>
-      {/* Contextual reveal handle: only shown while an application is open and the Dock is auto-hidden. */}
-      {autoHideEnabled && hasOpenApplication && !dockVisible && (
+      {/* Screen edge activation zone for Dock auto-hide */}
+      {autoHideEnabled && (
         <div
+          data-testid="dock-activation-zone"
+          aria-label="Dock Activation Zone"
+          className={cn(
+            "fixed z-[9999] pointer-events-auto",
+            dockPosition === 'bottom' && "bottom-0 left-0 w-full h-[14px]",
+            dockPosition === 'top' && "left-0 w-full h-[14px]",
+            dockPosition === 'left' && "top-0 left-0 w-[14px] h-full",
+            dockPosition === 'right' && "top-0 right-0 w-[14px] h-full"
+          )}
+          style={dockPosition === 'top' ? { top: `${systemBarHeight}px` } : undefined}
+          onPointerEnter={handleActivationTrigger}
+          onMouseEnter={handleActivationTrigger}
+          onTouchStart={handleActivationTrigger}
+        />
+      )}
+
+      {/* Contextual reveal handle: visible when auto-hide is on and dock is hidden */}
+      {autoHideEnabled && isHidden && (
+        <div
+          data-testid="dock-reveal-handle"
           aria-label="Reveal Dock"
           role="button"
           tabIndex={0}
-          className="fixed z-[61] bg-white/20 border border-white/10 backdrop-blur-md cursor-pointer transition-all duration-200 hover:bg-sky-500/50"
+          className="fixed z-[9998] bg-white/20 border border-white/10 backdrop-blur-md cursor-pointer transition-all duration-200 hover:bg-[var(--orion-accent,#4A5056)]/50"
           style={revealHandleStyle}
-          onMouseEnter={() => { clearDockHideTimer(); setDockVisibility(true); }}
-          onPointerEnter={() => { clearDockHideTimer(); setDockVisibility(true); }}
-          onFocus={() => { clearDockHideTimer(); setDockVisibility(true); }}
+          onClick={handleActivationTrigger}
+          onMouseEnter={handleActivationTrigger}
+          onPointerEnter={handleActivationTrigger}
+          onFocus={handleActivationTrigger}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleActivationTrigger();
+            }
+          }}
         />
       )}
 
@@ -525,16 +611,23 @@ export function OrionDock() {
         data-dock="true"
         data-dock-position={dockPosition}
         data-dock-orientation={dock.orientation}
-        data-dock-visible={dockVisible ? 'true' : 'false'}
-        aria-hidden={!dockVisible}
+        data-dock-visible={!isHidden ? 'true' : 'false'}
+        data-dock-visibility-state={visibilityState}
+        aria-hidden={isHidden}
         className={cn(
-          "z-[10000] select-none transition-transform duration-300 ease-out will-change-transform",
-          (!autoHideEnabled || !hasOpenApplication || dockVisible) ? "pointer-events-auto" : "pointer-events-none"
+          "z-[10000] select-none transition-transform duration-200 ease-out will-change-transform",
+          !isHidden ? "pointer-events-auto" : "pointer-events-none"
         )}
         style={containerPositionStyle}
         onContextMenu={handleDockSurfaceContextMenu}
-        onMouseEnter={() => { clearDockHideTimer(); setDockVisibility(true); }}
-        onMouseLeave={() => scheduleDockHide()}
+        onMouseEnter={handleDockEnter}
+        onMouseLeave={scheduleDockHide}
+        onFocus={handleDockEnter}
+        onBlur={(e) => {
+          if (!dockRef.current?.contains(e.relatedTarget as Node)) {
+            scheduleDockHide();
+          }
+        }}
       >
         <div 
           className={cn(
@@ -676,7 +769,7 @@ export function OrionDock() {
                 onContextMenu={(e) => handleDockItemContextMenu(e, id)}
                 onMouseEnter={() => setHoveredApp(id)}
                 className={cn(
-                  "relative group flex flex-col items-center justify-center transition-all duration-150 cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500",
+                  "relative group flex flex-col items-center justify-center transition-all duration-150 cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--orion-accent,#4A5056)]",
                   draggedApp === id && "opacity-50",
                   dragOverApp === id && (isVertical ? "scale-110 my-4" : "scale-110 mx-4")
                 )}

@@ -123,7 +123,7 @@ export function OrionSystemBar() {
               dbEnv === 'LIVE'
                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                 : "bg-amber-500/10 text-amber-400 border-amber-500/30",
-              isAdmin && "hover:border-sky-400 hover:text-white"
+              isAdmin && "hover:border-[var(--orion-accent)] hover:text-white"
             )}
             title={isAdmin ? `Database: ${dbEnv}. Click to open Control Plane.` : `Database: ${dbEnv}`}
           >
@@ -255,7 +255,7 @@ export function OrionSystemBar() {
               <span
                 className={cn(
                   "absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full",
-                  hasCriticalExceptions ? "bg-rose-500" : "bg-sky-500"
+                  hasCriticalExceptions ? "bg-rose-500" : "bg-[var(--orion-accent)]"
                 )}
               />
             )}
@@ -297,7 +297,7 @@ export function OrionSystemBar() {
           <span className="pointer-events-none absolute right-0 top-[calc(100%+7px)] z-[2147483600] min-w-[190px] rounded-xl border border-white/[0.08] bg-[#12151a]/95 backdrop-blur-2xl px-3.5 py-2.5 text-left opacity-0 translate-y-[-3px] group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 shadow-2xl">
             <span className="block font-mono text-[12px] font-medium text-os-text-primary">{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
             <span className="block mt-1 text-[11px] text-os-text-secondary">{new Intl.DateTimeFormat(undefined, { timeZoneName: 'long' }).formatToParts(currentTime).find(p => p.type === 'timeZoneName')?.value || 'Local Time'}</span>
-            <span className="block mt-0.5 text-[10px] text-sky-400">{Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
+            <span className="block mt-0.5 text-[10px] text-[var(--orion-accent)]">{Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
           </span>
         </button>
 
