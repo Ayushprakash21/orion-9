@@ -28,6 +28,7 @@ import { AppearanceSettingsPanel } from './settings/AppearanceSettingsPanel';
 import { PersonalizationSettingsPanel } from './settings/PersonalizationSettingsPanel';
 import { AccessibilitySettingsPanel } from './settings/AccessibilitySettingsPanel';
 import { DEFAULT_PERSONALIZATION_SETTINGS } from '../theme/themePresets';
+import { useOSGeometry } from '../os/dock/DockGeometry';
 
 // Admin Components
 import { AdminOverview } from './admin/AdminOverview';
@@ -87,6 +88,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
 
   const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
   const [localSettings, setLocalSettings] = useState<SystemSettings>(() => normalizeSettings(settings));
+  const { previewSettings } = useOSGeometry();
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -196,24 +198,35 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
     return () => clearInterval(interval);
   }, [privilegedUntil]);
 
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const handleSaveSettings = async () => {
     setIsSaving(true);
+    setSaveError(null);
+    setIsSaved(false);
     try {
       const normalized = normalizeSettings(localSettings);
       await updateSettings(normalized);
+      // Persisted: clear temporary preview overrides so engine adheres to persistent state
+      previewSettings(null);
       setIsSaved(true);
       showToast('System settings updated successfully', 'success');
       setTimeout(() => setIsSaved(false), 2500);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving settings:', error);
-      showToast('Failed to save settings', 'error');
+      const msg = error?.message || 'Failed to save settings';
+      setSaveError(msg);
+      showToast(msg, 'error');
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleResetSettings = () => {
-    setLocalSettings({ ...DEFAULT_SYSTEM_SETTINGS });
+    const defaults = { ...DEFAULT_SYSTEM_SETTINGS };
+    setLocalSettings(defaults);
+    // Reset preview to defaults immediately
+    previewSettings(defaults.personalization);
     showToast('Settings reset to system defaults', 'info');
   };
 
@@ -1003,7 +1016,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
 
       {/* ─── MAIN CONTENT PANEL (FULL DESKTOP SPAN, TWO-PANE SPLIT) ─── */}
       <div className="flex-1 flex flex-col overflow-hidden relative bg-[var(--orion-bg,#0c0e11)] w-full min-w-0 h-full">
-        <div className="flex-1 overflow-hidden relative flex flex-col">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden relative flex flex-col min-h-0 custom-scrollbar">
           {renderSectionContent()}
         </div>
         
@@ -1014,7 +1027,12 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
               Environment: <strong className="text-slate-200">{dataMode === 'real' ? 'LIVE' : 'DEMO'}</strong>
             </span>
             <div className="flex items-center gap-2 sm:gap-3">
-              {isSaved && (
+              {saveError && (
+                <span className="text-rose-400 text-xs font-semibold flex items-center gap-1 mr-1 animate-in fade-in">
+                  Failed to save
+                </span>
+              )}
+              {isSaved && !saveError && (
                 <span className="text-emerald-400 text-xs font-semibold flex items-center gap-1 mr-1 animate-in fade-in">
                   <CheckCircle2 size={13} /> Saved
                 </span>

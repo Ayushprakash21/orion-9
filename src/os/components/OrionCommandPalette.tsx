@@ -335,7 +335,10 @@ export function OrionCommandPalette() {
 
   return (
     <div 
-      className="fixed inset-0 z-[2147483620] bg-black/60 backdrop-blur-md flex items-start justify-center pt-8 sm:pt-[12vh] p-2 sm:p-4 animate-in fade-in duration-150 select-none"
+      style={{
+        paddingTop: 'calc(var(--orion-dock-workspace-top, 0px) + 56px)',
+      }}
+      className="fixed inset-0 z-[2147483620] bg-black/60 backdrop-blur-md flex items-start justify-center p-2 sm:p-4 animate-in fade-in duration-150 select-none"
       onClick={() => setCommandPaletteOpen(false)}
     >
       <div 

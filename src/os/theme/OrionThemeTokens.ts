@@ -30,7 +30,33 @@ export const ORION_CSS_VARS = {
   chart4: 'var(--orion-chart-4)',
   chart5: 'var(--orion-chart-5)',
   transitionSpeed: 'var(--orion-transition-speed)',
+
+  // Morphic Tokens
+  morphMode: 'var(--orion-morph-mode)',
+  morphSurface: 'var(--orion-morph-surface)',
+  morphSurfaceSubtle: 'var(--orion-morph-surface-subtle)',
+  morphSurfaceElevated: 'var(--orion-morph-surface-elevated)',
+  morphSurfaceHover: 'var(--orion-morph-surface-hover)',
+  morphSurfaceActive: 'var(--orion-morph-surface-active)',
+  morphSurfacePressed: 'var(--orion-morph-surface-pressed)',
+  morphSurfaceDisabled: 'var(--orion-morph-surface-disabled)',
+  morphBorder: 'var(--orion-morph-border)',
+  morphBorderStrong: 'var(--orion-morph-border-strong)',
+  morphBlur: 'var(--orion-morph-blur)',
+  morphBackdrop: 'var(--orion-morph-backdrop)',
+  morphSaturation: 'var(--orion-morph-saturation)',
+  morphShadow: 'var(--orion-morph-shadow)',
+  morphShadowSoft: 'var(--orion-morph-shadow-soft)',
+  morphShadowDeep: 'var(--orion-morph-shadow-deep)',
+  morphShadowInset: 'var(--orion-morph-shadow-inset)',
+  morphHighlight: 'var(--orion-morph-highlight)',
+  morphElevation0: 'var(--orion-morph-elevation-0)',
+  morphElevation1: 'var(--orion-morph-elevation-1)',
+  morphElevation2: 'var(--orion-morph-elevation-2)',
+  morphElevation3: 'var(--orion-morph-elevation-3)',
+  morphElevationModal: 'var(--orion-morph-elevation-modal)',
 };
+
 
 /**
  * Returns the CSS variable string for a given token name

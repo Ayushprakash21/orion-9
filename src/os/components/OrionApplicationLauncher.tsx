@@ -288,7 +288,12 @@ export function OrionApplicationLauncher() {
       
       <div 
         ref={containerRef}
-        className="relative w-[calc(100%-16px)] sm:w-full max-w-3xl max-h-[82vh] mb-16 md:mb-20 flex flex-col bg-[#12151a]/95 backdrop-blur-2xl rounded-2xl border border-white/[0.1] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.85)] animate-in fade-in slide-in-from-bottom-6 duration-200 pointer-events-auto"
+        style={{
+          marginBottom: 'calc(var(--orion-dock-workspace-bottom, 0px) + 24px)',
+          marginLeft: 'var(--orion-dock-workspace-left, 0px)',
+          marginRight: 'var(--orion-dock-workspace-right, 0px)',
+        }}
+        className="relative w-[calc(100%-16px)] sm:w-full max-w-3xl max-h-[82vh] flex flex-col bg-[#12151a]/95 backdrop-blur-2xl rounded-2xl border border-white/[0.1] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.85)] animate-in fade-in slide-in-from-bottom-6 duration-200 pointer-events-auto transition-all"
         onClick={e => e.stopPropagation()}
         role="dialog"
         aria-label="Application Launcher"

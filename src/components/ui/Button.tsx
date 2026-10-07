@@ -15,12 +15,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const baseStyles = 'inline-flex items-center justify-center font-medium transition-all duration-150 ease-out rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-os-accent/50 disabled:opacity-50 disabled:cursor-not-allowed select-none';
     
     const variants = {
-      primary: 'bg-os-accent text-white hover:brightness-110 active:brightness-95 shadow-sm',
-      secondary: 'bg-os-surface-active text-os-text-primary hover:bg-os-surface-hover border border-os-border',
-      ghost: 'text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-hover',
-      danger: 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20',
-      outline: 'border border-os-border text-os-text-primary hover:bg-os-surface-hover',
+      primary: 'bg-os-accent text-white hover:brightness-110 active:brightness-95 shadow-[var(--orion-morph-shadow-soft,0_2px_6px_rgba(0,0,0,0.2))] active:shadow-[var(--orion-morph-shadow-inset,none)] active:translate-y-px',
+      secondary: 'bg-[var(--orion-morph-surface,var(--os-surface-active))] text-os-text-primary hover:bg-[var(--orion-morph-surface-hover,var(--os-surface-hover))] border border-[var(--orion-morph-border,var(--os-border))] shadow-[var(--orion-morph-shadow-soft,none)] active:shadow-[var(--orion-morph-shadow-inset,none)] active:translate-y-px',
+      ghost: 'text-os-text-secondary hover:text-os-text-primary hover:bg-[var(--orion-morph-surface-hover,var(--os-surface-hover))]',
+      danger: 'bg-red-500/10 text-red-400 hover:bg-red-500/20 border border-red-500/20 shadow-[var(--orion-morph-shadow-soft,none)] active:translate-y-px',
+      outline: 'border border-[var(--orion-morph-border,var(--os-border))] text-os-text-primary hover:bg-[var(--orion-morph-surface-hover,var(--os-surface-hover))] shadow-[var(--orion-morph-shadow-soft,none)] active:shadow-[var(--orion-morph-shadow-inset,none)] active:translate-y-px',
     };
+
     
     const sizes = {
       sm: 'h-7 px-2.5 text-xs gap-1.5',

@@ -14,7 +14,17 @@ export function migratePreferences(raw: unknown): OrionAppearancePreferences {
   const prefs = { ...DEFAULT_PREFERENCES, ...raw } as OrionAppearancePreferences;
   
   if (!isValidThemeId(prefs.themeId)) {
-    prefs.themeId = 'graphite';
+    // If an appearanceMode was specified in raw or legacy config
+    if ((raw as any).appearanceMode === 'light') {
+      prefs.themeId = 'silver';
+    } else {
+      prefs.themeId = 'graphite';
+    }
+  }
+
+  // Validate morphismMode
+  if (!['glass', 'clay', 'neumorphic'].includes(prefs.morphismMode)) {
+    prefs.morphismMode = 'glass';
   }
   
   // Ensure version is correct
@@ -23,21 +33,47 @@ export function migratePreferences(raw: unknown): OrionAppearancePreferences {
   return prefs;
 }
 
+
 /**
  * Loads preferences from localStorage
  */
 export function loadPreferences(): OrionAppearancePreferences {
-  if (typeof window === 'undefined') {
+  const storage = typeof localStorage !== 'undefined' ? localStorage : (typeof window !== 'undefined' ? window.localStorage : undefined);
+  if (!storage) {
     return { ...DEFAULT_PREFERENCES };
   }
   
   try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (!data) {
-      return { ...DEFAULT_PREFERENCES };
+    const data = storage.getItem(STORAGE_KEY);
+    if (data) {
+      const parsed = JSON.parse(data);
+      return migratePreferences(parsed);
     }
-    const parsed = JSON.parse(data);
-    return migratePreferences(parsed);
+
+    // Secondary fallback: check 'orion_settings' legacy config
+    const legacyData = storage.getItem('orion_settings');
+    if (legacyData) {
+      const parsedLegacy = JSON.parse(legacyData);
+      if (parsedLegacy && parsedLegacy.personalization) {
+        const p = parsedLegacy.personalization;
+        return migratePreferences({
+          themeId: p.themeId || (p.appearanceMode === 'light' ? 'silver' : 'graphite'),
+          appearanceMode: p.appearanceMode || 'dark',
+          customAccentEnabled: p.accentKey === 'custom',
+          customAccent: p.customAccentHex,
+          transparencyEnabled: !p.reducedTransparency,
+          transparencyIntensity: p.dockTransparency ?? 70,
+          blurEnabled: (p.wallpaperBlur ?? 0) > 0,
+          reduceMotion: Boolean(p.reducedMotion),
+          windowStyle: p.windowStyle || 'standard',
+          windowControlPosition: p.windowControlPosition || 'left',
+          morphismMode: p.morphismMode || 'glass',
+          dockPosition: p.dockPosition || 'bottom',
+        });
+      }
+    }
+
+    return { ...DEFAULT_PREFERENCES };
   } catch (error) {
     console.warn('Failed to load Orion theme preferences', error);
     return { ...DEFAULT_PREFERENCES };
@@ -48,9 +84,13 @@ export function loadPreferences(): OrionAppearancePreferences {
  * Saves preferences to localStorage
  */
 export function savePreferences(prefs: OrionAppearancePreferences): void {
-  if (typeof window === 'undefined') return;
+  const storage = typeof localStorage !== 'undefined' ? localStorage : (typeof window !== 'undefined' ? window.localStorage : undefined);
+  if (!storage) return;
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    storage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('orion-appearance-preferences-changed', { detail: prefs }));
+    }
   } catch (error) {
     console.error('Failed to save Orion theme preferences', error);
   }
@@ -60,10 +100,12 @@ export function savePreferences(prefs: OrionAppearancePreferences): void {
  * Clears preferences from localStorage
  */
 export function clearPreferences(): void {
-  if (typeof window === 'undefined') return;
+  const storage = typeof localStorage !== 'undefined' ? localStorage : (typeof window !== 'undefined' ? window.localStorage : undefined);
+  if (!storage) return;
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    storage.removeItem(STORAGE_KEY);
   } catch (error) {
     console.error('Failed to clear Orion theme preferences', error);
   }
 }
+

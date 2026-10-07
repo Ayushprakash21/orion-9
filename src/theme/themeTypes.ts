@@ -31,14 +31,18 @@ export type DockSize = 'small' | 'medium' | 'large';
 
 export type ColorFilterMode = 'none' | 'protanopia' | 'deuteranopia' | 'tritanopia' | 'grayscale';
 
+export type WindowControlPosition = 'left' | 'right';
+
 export interface PersonalizationSettings {
   // Theme & Appearance
+  themeId?: 'graphite' | 'silver' | 'midnight' | 'forest' | 'warm';
   appearanceMode: AppearanceMode;
   accentKey: AccentPresetKey;
   customAccentHex: string;
   windowStyle: WindowStyle;
   cornerStyle: CornerStyle;
   density: DensityMode;
+  windowControlPosition?: WindowControlPosition;
 
   // Wallpaper & Background
   wallpaperType: 'solid' | 'gradient' | 'builtin' | 'custom';

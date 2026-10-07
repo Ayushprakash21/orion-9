@@ -85,4 +85,31 @@ describe('ORION-9 Wallpaper Stability & Atomic Commit Subsystem', () => {
     expect(html).toContain('data-target="login"');
     expect(html).toContain(DEFAULT_LOGIN_WALLPAPER.assetUrl);
   });
+
+  it('5. Rendered wallpaper image uses eager loading, async decoding, and high fetchPriority', () => {
+    const html = renderToString(
+      React.createElement(OrionLiveWallpaper, { target: 'desktop' })
+    );
+
+    expect(html).toContain('loading="eager"');
+    expect(html).toContain('decoding="async"');
+    expect(html.toLowerCase()).toContain('fetchpriority="high"');
+  });
+
+  it('6. Candidate failure preserves current wallpaper and never produces empty or null src', () => {
+    const html = renderToString(
+      React.createElement(OrionLiveWallpaper, { 
+        target: 'desktop',
+        overrideWallpaper: {
+          ...DEFAULT_DESKTOP_WALLPAPER,
+          assetUrl: '/wallpaper/custom-valid-a.png',
+        }
+      })
+    );
+
+    expect(html).not.toContain('src=""');
+    expect(html).not.toContain('src="null"');
+    expect(html).not.toContain('src="undefined"');
+    expect(html).toContain('/wallpaper/custom-valid-a.png');
+  });
 });

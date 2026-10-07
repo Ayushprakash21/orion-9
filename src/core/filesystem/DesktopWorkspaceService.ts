@@ -12,11 +12,12 @@ import { DatabaseConnectionManager } from '../database/DatabaseConnectionManager
 export interface GridConfig {
   cellWidth: number;   // 96px
   cellHeight: number;  // 96px
-  paddingX: number;    // 16px
-  paddingY: number;    // 48px top bar offset
+  paddingX: number;    // 16px (left padding)
+  paddingY: number;    // 52px (top padding)
   gapX: number;        // 12px
   gapY: number;        // 12px
-  bottomPadding: number; // 80px dock offset
+  bottomPadding: number; // 84px
+  rightPadding?: number; // default matches paddingX
 }
 
 export const DEFAULT_GRID_CONFIG: GridConfig = {
@@ -27,6 +28,7 @@ export const DEFAULT_GRID_CONFIG: GridConfig = {
   gapX: 12,
   gapY: 12,
   bottomPadding: 84,
+  rightPadding: 16,
 };
 
 export class DesktopWorkspaceService {
@@ -64,6 +66,7 @@ export class DesktopWorkspaceService {
   ): { x: number; y: number } {
     const effectiveWidth = grid.cellWidth + grid.gapX;
     const effectiveHeight = grid.cellHeight + grid.gapY;
+    const rightPadding = grid.rightPadding !== undefined ? grid.rightPadding : grid.paddingX;
 
     // Relative to padding
     const relX = Math.max(0, x - grid.paddingX);
@@ -76,7 +79,7 @@ export class DesktopWorkspaceService {
     let snappedY = grid.paddingY + row * effectiveHeight;
 
     // Bounds clamp
-    const maxX = Math.max(grid.paddingX, viewportWidth - grid.cellWidth - grid.paddingX);
+    const maxX = Math.max(grid.paddingX, viewportWidth - grid.cellWidth - rightPadding);
     const maxY = Math.max(grid.paddingY, viewportHeight - grid.cellHeight - grid.bottomPadding);
 
     snappedX = Math.min(Math.max(grid.paddingX, snappedX), maxX);
@@ -289,7 +292,8 @@ export class DesktopWorkspaceService {
     viewportWidth: number = 1920,
     viewportHeight: number = 1080,
     tenantId?: string,
-    environment?: 'DEMO' | 'LIVE'
+    environment?: 'DEMO' | 'LIVE',
+    gridConfig: GridConfig = DEFAULT_GRID_CONFIG
   ): Promise<DesktopShortcut> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     let existing = await scmPersistenceService.getRecord<DesktopShortcut>('desktop_items', activeTenant, shortcutId);
@@ -298,7 +302,7 @@ export class DesktopWorkspaceService {
       existing = all.find(s => s.id === shortcutId) || null;
     }
 
-    const snapped = this.snapToGrid(x, y, DEFAULT_GRID_CONFIG, viewportWidth, viewportHeight);
+    const snapped = this.snapToGrid(x, y, gridConfig, viewportWidth, viewportHeight);
 
     if (!existing) {
       const fallbackShortcut: DesktopShortcut = {
@@ -347,7 +351,8 @@ export class DesktopWorkspaceService {
     sortBy: 'name' | 'type' | 'date',
     viewportHeight: number = 900,
     tenantId?: string,
-    environment?: 'DEMO' | 'LIVE'
+    environment?: 'DEMO' | 'LIVE',
+    gridConfig: GridConfig = DEFAULT_GRID_CONFIG
   ): Promise<DesktopShortcut[]> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const shortcuts = await this.listShortcuts(workspaceId, activeTenant, activeEnv);
@@ -359,9 +364,9 @@ export class DesktopWorkspaceService {
       return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
     });
 
-    const effectiveHeight = DEFAULT_GRID_CONFIG.cellHeight + DEFAULT_GRID_CONFIG.gapY;
-    const effectiveWidth = DEFAULT_GRID_CONFIG.cellWidth + DEFAULT_GRID_CONFIG.gapX;
-    const maxRows = Math.max(1, Math.floor((viewportHeight - DEFAULT_GRID_CONFIG.paddingY - DEFAULT_GRID_CONFIG.bottomPadding) / effectiveHeight));
+    const effectiveHeight = gridConfig.cellHeight + gridConfig.gapY;
+    const effectiveWidth = gridConfig.cellWidth + gridConfig.gapX;
+    const maxRows = Math.max(1, Math.floor((viewportHeight - gridConfig.paddingY - gridConfig.bottomPadding) / effectiveHeight));
 
     const updatedShortcuts: DesktopShortcut[] = [];
     for (let i = 0; i < shortcuts.length; i++) {
@@ -369,8 +374,8 @@ export class DesktopWorkspaceService {
       const col = Math.floor(i / maxRows);
       const row = i % maxRows;
 
-      const x = DEFAULT_GRID_CONFIG.paddingX + col * effectiveWidth;
-      const y = DEFAULT_GRID_CONFIG.paddingY + row * effectiveHeight;
+      const x = gridConfig.paddingX + col * effectiveWidth;
+      const y = gridConfig.paddingY + row * effectiveHeight;
 
       const updated: DesktopShortcut = {
         ...s,

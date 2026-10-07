@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useWindowManager } from '../WindowManagerContext';
 import { ORION_REGISTRY } from '../OrionApplicationRegistry';
 import { useOrionContextMenu, ContextMenuItem } from '../contextMenu/OrionContextMenuContext';
@@ -6,6 +6,7 @@ import { useToast } from '../../store/ToastContext';
 import { useI18n } from '../../store/LanguageContext';
 import { cn } from '../../lib/utils';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
+import { useOSGeometry } from '../dock/DockGeometry';
 import { 
   Grid, 
   Pin, 
@@ -42,6 +43,7 @@ export function OrionDock() {
 
   const { openContextMenu } = useOrionContextMenu();
   const { showToast } = useToast();
+  const { dock, settings, usableRect, viewportWidth, viewportHeight, systemBarHeight } = useOSGeometry();
 
   const [hoveredApp, setHoveredApp] = useState<string | null>(null);
   const [draggedApp, setDraggedApp] = useState<string | null>(null);
@@ -51,28 +53,26 @@ export function OrionDock() {
   const dockRef = useRef<HTMLDivElement | null>(null);
   const hideTimerRef = useRef<number | null>(null);
 
+  const isVertical = dock.orientation === 'vertical';
+  const dockPosition = dock.position;
+  const autoHideEnabled = Boolean(settings.dockAutoHide);
+  const magnificationEnabled = Boolean(settings.dockMagnification);
+
   const openAppIdsForDock = Object.keys(windows).filter(id => id !== 'orion-ai' && windows[id]?.state !== 'closed' && windows[id]?.workspace === activeWorkspaceId);
-  // Dock visibility is contextual to the OS workspace, not the focused window.
-  // Home/Desktop (no open windows) ALWAYS shows the Dock. Any open application
-  // enables contextual auto-hide, including when the active window is minimized.
   const hasOpenApplication = Object.values(windows).some(
     win => win?.id !== 'orion-ai' && win?.state !== 'closed'
   );
   const activeWindow = activeAppId ? windows[activeAppId] : undefined;
   const hasActiveApplication = !!activeWindow && activeWindow.state !== 'closed' && activeWindow.workspace === activeWorkspaceId;
+
   const setDockVisibility = useCallback((visible: boolean) => {
     dockVisibleRef.current = visible;
     setDockVisible(visible);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('orion-dock-visibility-changed', { detail: { visible } }));
+    }
   }, []);
 
-  useEffect(() => {
-    const safeHeight = dockVisible ? '76px' : '12px';
-    document.documentElement.style.setProperty('--orion-dock-safe-height', safeHeight);
-    window.dispatchEvent(new CustomEvent('orion-dock-geometry-changed', { detail: { visible: dockVisible, safeHeight } }));
-  }, [dockVisible]);
-
-  // OS-style contextual auto-hide. Home/Desktop always shows the Dock;
-  // application mode uses the bottom-edge reveal handle.
   const clearDockHideTimer = useCallback(() => {
     if (hideTimerRef.current !== null) {
       window.clearTimeout(hideTimerRef.current);
@@ -81,32 +81,51 @@ export function OrionDock() {
   }, []);
 
   const scheduleDockHide = useCallback(() => {
+    if (!autoHideEnabled) {
+      setDockVisibility(true);
+      return;
+    }
     clearDockHideTimer();
     hideTimerRef.current = window.setTimeout(() => {
       const el = dockRef.current;
       if (!el?.matches(':hover')) setDockVisibility(false);
     }, 900);
-  }, [clearDockHideTimer]);
+  }, [clearDockHideTimer, autoHideEnabled, setDockVisibility]);
 
+  // Pointer move detection across all 4 screen edges for auto-hide
   useEffect(() => {
     clearDockHideTimer();
 
-    // HOME MODE: the Dock is a permanent part of the desktop. Never hide it.
-    if (!hasOpenApplication) {
+    // If auto-hide is off, or desktop is clean (home mode), Dock is always visible
+    if (!autoHideEnabled || !hasOpenApplication) {
       setDockVisibility(true);
       return;
     }
 
-    // APPLICATION MODE: reveal immediately while entering an application, then
-    // allow the edge-triggered auto-hide behavior to take over.
     setDockVisibility(true);
 
     const onPointerMove = (e: PointerEvent) => {
-      const edge = Math.max(20, Math.min(40, Math.round(window.innerHeight * 0.02)));
-      const atBottomEdge = e.clientY >= window.innerHeight - edge;
+      const edgeThreshold = 24;
+      let atEdge = false;
+
+      switch (dockPosition) {
+        case 'bottom':
+          atEdge = e.clientY >= window.innerHeight - edgeThreshold;
+          break;
+        case 'top':
+          atEdge = e.clientY <= (systemBarHeight + edgeThreshold) && e.clientY >= systemBarHeight - 10;
+          break;
+        case 'left':
+          atEdge = e.clientX <= edgeThreshold;
+          break;
+        case 'right':
+          atEdge = e.clientX >= window.innerWidth - edgeThreshold;
+          break;
+      }
+
       const hoveringDock = !!dockRef.current?.matches(':hover');
 
-      if (atBottomEdge || hoveringDock) {
+      if (atEdge || hoveringDock) {
         clearDockHideTimer();
         setDockVisibility(true);
       } else {
@@ -116,14 +135,16 @@ export function OrionDock() {
 
     const onWindowBlur = () => {
       clearDockHideTimer();
-      setDockVisibility(false);
+      if (autoHideEnabled && hasOpenApplication) {
+        setDockVisibility(false);
+      }
     };
 
     window.addEventListener('pointermove', onPointerMove, { passive: true });
     window.addEventListener('blur', onWindowBlur);
 
     const initial = window.setTimeout(() => {
-      if (hasOpenApplication && !dockRef.current?.matches(':hover')) {
+      if (autoHideEnabled && hasOpenApplication && !dockRef.current?.matches(':hover')) {
         setDockVisibility(false);
       }
     }, 1200);
@@ -134,9 +155,8 @@ export function OrionDock() {
       window.clearTimeout(initial);
       clearDockHideTimer();
     };
-  }, [hasOpenApplication, clearDockHideTimer, scheduleDockHide, setDockVisibility]);
+  }, [hasOpenApplication, clearDockHideTimer, scheduleDockHide, setDockVisibility, autoHideEnabled, dockPosition, systemBarHeight]);
 
-  // Combine pinned apps and unpinned open apps (excluding closed)
   const openAppIds = openAppIdsForDock;
   const unpinnedOpenApps = openAppIds.filter(id => !dockPinnedApps.includes(id));
   const dockApps = [...dockPinnedApps.filter(id => id !== 'orion-ai'), ...unpinnedOpenApps];
@@ -199,202 +219,103 @@ export function OrionDock() {
       });
     }
 
-    items.push({
-      id: 'sep-pin',
-      label: '',
-      separator: true,
-    });
-
-    items.push({
-      id: 'dock-pin',
-      label: isPinned ? 'Remove from Dock' : 'Pin to Dock',
-      icon: isPinned ? PinOff : Pin,
-      action: () => {
-        if (isPinned) {
-          unpinFromDock(id);
-          showToast(`Removed ${app.name} from Dock`, 'info', 'Dock');
-        } else {
-          pinToDock(id);
-          showToast(`Pinned ${app.name} to Dock`, 'success', 'Dock');
-        }
-      },
-    });
+    if (isPinned) {
+      items.push({
+        id: 'dock-unpin',
+        label: 'Unpin from Dock',
+        icon: PinOff,
+        action: () => unpinFromDock(id),
+      });
+    } else {
+      items.push({
+        id: 'dock-pin',
+        label: 'Pin to Dock',
+        icon: Pin,
+        action: () => pinToDock(id),
+      });
+    }
 
     if (isRunning) {
-      items.push({
-        id: 'sep-close',
-        label: '',
-        separator: true,
-      });
-
+      items.push({ id: 'dock-sep', label: '', separator: true });
       items.push({
         id: 'dock-close',
-        label: 'Close Window',
+        label: 'Quit',
         icon: X,
         danger: true,
-        action: () => {
-          closeApplication(id);
-        },
+        action: () => closeApplication(id),
       });
     }
 
     return items;
-  }, [
-    windows, 
-    dockPinnedApps, 
-    openApplication, 
-    restoreApplication, 
-    minimizeApplication, 
-    maximizeApplication, 
-    focusApplication, 
-    pinToDock, 
-    unpinFromDock, 
-    closeApplication, 
-    showToast
-  ]);
+  }, [windows, dockPinnedApps, restoreApplication, minimizeApplication, openApplication, maximizeApplication, unpinFromDock, pinToDock, closeApplication]);
 
   const handleDockItemContextMenu = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     e.stopPropagation();
-    
     const app = ORION_REGISTRY[id];
     if (!app) return;
 
-    const win = windows[id];
-    const isRunning = !!win && win.state !== 'closed';
-    const isMinimized = isRunning && win.state === 'minimized';
-
-    const items = getDockContextMenuItems(id);
-
-    // Windows-style taskbar behavior: right-clicking an app icon opens its
-    // window actions at the pointer. The context-menu renderer handles
-    // viewport clamping/flip so the menu never gets pushed off-screen.
     openContextMenu({
       x: e.clientX,
       y: e.clientY,
       targetType: 'dock',
       targetId: id,
       title: app.name,
-      subtitle: isMinimized ? 'Minimized application' : (isRunning ? 'Running application' : 'Pinned application'),
-      items,
+      subtitle: `${app.category} • ${windows[id]?.state || 'closed'}`,
+      items: getDockContextMenuItems(id),
     });
   };
 
   const handleLauncherContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
     openContextMenu({
-      x: e.clientX - 60,
-      y: e.clientY - 100,
+      x: e.clientX,
+      y: e.clientY,
       targetType: 'dock',
       targetId: 'launcher',
+      title: t('desktop.startMenu'),
+      subtitle: 'Applications & System Tools',
       items: [
-      {
-        id: 'launch-all',
-        label: 'Open Applications...',
-        icon: Grid,
-        shortcut: 'F4',
-        action: () => setLauncherOpen(true),
-      },
-      {
-        id: 'launch-palette',
-        label: 'Command Palette...',
-        icon: Search,
-        shortcut: '⌘K',
-        action: () => setCommandPaletteOpen(true),
-      },
-      {
-        id: 'sep-l1',
-        label: '',
-        separator: true,
-      },
-      {
-        id: 'launch-refresh',
-        label: 'Refresh Desktop',
-        icon: RefreshCw,
-        shortcut: 'F5',
-        action: () => {
-          window.dispatchEvent(new CustomEvent('orion:desktop-refresh', { detail: { timestamp: Date.now() } }));
-          showToast('Desktop telemetry refreshed', 'success', 'Desktop');
+        {
+          id: 'launcher-open',
+          label: 'Open Launcher',
+          icon: Grid,
+          action: () => setLauncherOpen(true),
         },
-      },
-    ]});
-  };
-
-  const onDragStart = (e: React.DragEvent, id: string) => {
-    if (!dockPinnedApps.includes(id)) {
-      e.preventDefault();
-      return;
-    }
-    setDraggedApp(id);
-    e.dataTransfer.effectAllowed = 'move';
-    // Small delay to allow drag image to render before applying styles
-    setTimeout(() => {
-      // Any specific styling can go here if needed via classes, but React state takes care of most
-    }, 0);
-  };
-
-  const onDragOver = (e: React.DragEvent, id: string) => {
-    e.preventDefault();
-    if (!draggedApp || draggedApp === id) return;
-    if (!dockPinnedApps.includes(id)) return;
-    
-    setDragOverApp(id);
-  };
-
-  const onDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOverApp(null);
+        {
+          id: 'launcher-search',
+          label: 'Command Palette',
+          icon: Search,
+          shortcut: '⌘K',
+          action: () => setCommandPaletteOpen(true),
+        },
+        { id: 'launcher-sep', label: '', separator: true },
+        {
+          id: 'launcher-settings',
+          label: 'Personalization...',
+          action: () => openApplication('settings'),
+        }
+      ],
+    });
   };
 
   const handleDockSurfaceContextMenu = (e: React.MouseEvent) => {
-    // The ORION Dock owns its own Windows-style context menu. Never allow the
-    // browser's native context menu to leak through when the user right-clicks
-    // the dock background/gaps. Individual app buttons have their own menu.
     e.preventDefault();
     e.stopPropagation();
-
-    const activeWin = activeAppId ? windows[activeAppId] : undefined;
     const activeApp = activeAppId ? ORION_REGISTRY[activeAppId] : undefined;
-    const activeIsRunning = !!activeWin && activeWin.state !== 'closed';
-    const activeIsMinimized = activeIsRunning && activeWin?.state === 'minimized';
-    const activeIsMaximized = activeIsRunning && activeWin?.state === 'maximized';
+    const activeWin = activeAppId ? windows[activeAppId] : undefined;
 
     const items: ContextMenuItem[] = [];
 
-    if (activeApp && activeIsRunning) {
-      if (activeIsMinimized) {
-        items.push({
-          id: 'surface-restore',
-          label: 'Restore',
-          icon: RotateCcw,
-          action: () => restoreApplication(activeAppId!),
-        });
-      } else {
-        items.push({
-          id: 'surface-minimize',
-          label: 'Minimize',
-          icon: Minus,
-          action: () => minimizeApplication(activeAppId!),
-        });
-        items.push({
-          id: 'surface-maximize',
-          label: activeIsMaximized ? 'Maximize (Already Full Screen)' : 'Maximize',
-          icon: Square,
-          disabled: !!activeIsMaximized,
-          action: () => maximizeApplication(activeAppId!),
-        });
-      }
-
+    if (activeApp && activeWin && activeWin.state !== 'closed') {
       items.push({
-        id: 'surface-close',
-        label: `Close ${activeApp.name}`,
-        icon: X,
-        danger: true,
-        action: () => closeApplication(activeAppId!),
+        id: 'surface-active-app',
+        label: `${activeApp.name} (${activeWin.state})`,
+        icon: Play,
+        disabled: true,
       });
-      items.push({ id: 'surface-window-sep', label: '', separator: true });
+      items.push({ id: 'surface-active-sep', label: '', separator: true });
     }
 
     items.push({
@@ -434,6 +355,24 @@ export function OrionDock() {
     });
   };
 
+  const onDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedApp(id);
+    e.dataTransfer.setData('text/plain', id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const onDragOver = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverApp !== id) {
+      setDragOverApp(id);
+    }
+  };
+
+  const onDragLeave = () => {
+    setDragOverApp(null);
+  };
+
   const onDrop = (e: React.DragEvent, id: string) => {
     e.preventDefault();
     setDragOverApp(null);
@@ -467,219 +406,372 @@ export function OrionDock() {
     setDraggedApp(null);
   };
 
+  // Compute outer container styles based on dockPosition and dockVisible
+  const containerPositionStyle: React.CSSProperties = useMemo(() => {
+    const isHidden = autoHideEnabled && hasOpenApplication && !dockVisible;
+
+    switch (dockPosition) {
+      case 'bottom':
+        return {
+          position: 'fixed',
+          bottom: '12px',
+          left: '50%',
+          transform: isHidden ? dock.hiddenTransform : 'translate3d(-50%, 0, 0)',
+          maxWidth: 'calc(100vw - 24px)',
+        };
+      case 'top':
+        return {
+          position: 'fixed',
+          top: `${systemBarHeight + 8}px`,
+          left: '50%',
+          transform: isHidden ? dock.hiddenTransform : 'translate3d(-50%, 0, 0)',
+          maxWidth: 'calc(100vw - 24px)',
+        };
+      case 'left':
+        return {
+          position: 'fixed',
+          left: '12px',
+          top: `calc(${systemBarHeight}px + (100dvh - ${systemBarHeight}px) / 2)`,
+          transform: isHidden ? dock.hiddenTransform : 'translate3d(0, -50%, 0)',
+          maxHeight: `calc(100dvh - ${systemBarHeight + 24}px)`,
+        };
+      case 'right':
+        return {
+          position: 'fixed',
+          right: '12px',
+          top: `calc(${systemBarHeight}px + (100dvh - ${systemBarHeight}px) / 2)`,
+          transform: isHidden ? dock.hiddenTransform : 'translate3d(0, -50%, 0)',
+          maxHeight: `calc(100dvh - ${systemBarHeight + 24}px)`,
+        };
+    }
+  }, [dockPosition, dockVisible, autoHideEnabled, hasOpenApplication, dock.hiddenTransform, systemBarHeight]);
+
+  // Compute Reveal Handle Position
+  const revealHandleStyle: React.CSSProperties = useMemo(() => {
+    switch (dockPosition) {
+      case 'bottom':
+        return {
+          bottom: 0,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '140px',
+          height: '6px',
+          borderRadius: '9999px 9999px 0 0'
+        };
+      case 'top':
+        return {
+          top: `${systemBarHeight}px`,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '140px',
+          height: '6px',
+          borderRadius: '0 0 9999px 9999px'
+        };
+      case 'left':
+        return {
+          left: 0,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: '6px',
+          height: '140px',
+          borderRadius: '0 9999px 9999px 0'
+        };
+      case 'right':
+        return {
+          right: 0,
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: '6px',
+          height: '140px',
+          borderRadius: '9999px 0 0 9999px'
+        };
+    }
+  }, [dockPosition, systemBarHeight]);
+
+  // Orientation-aware Tooltip position styling
+  const getTooltipStyle = (placement: 'top' | 'bottom' | 'left' | 'right'): { className: string; style?: React.CSSProperties } => {
+    switch (placement) {
+      case 'top':
+        return { className: 'absolute -top-11 left-1/2 -translate-x-1/2' };
+      case 'bottom':
+        return { className: 'absolute -bottom-11 left-1/2 -translate-x-1/2' };
+      case 'left':
+        return { className: 'absolute -left-28 top-1/2 -translate-y-1/2' };
+      case 'right':
+        return { className: 'absolute -right-28 top-1/2 -translate-y-1/2' };
+    }
+  };
+
+  const tooltipClasses = getTooltipStyle(dock.tooltipPlacement).className;
+
   return (
     <>
-      {/* Contextual reveal handle: only shown while an application is open and the Dock is hidden. */}
-      {hasOpenApplication && !dockVisible && (
+      {/* Contextual reveal handle: only shown while an application is open and the Dock is auto-hidden. */}
+      {autoHideEnabled && hasOpenApplication && !dockVisible && (
         <div
           aria-label="Reveal Dock"
           role="button"
           tabIndex={0}
-          className="fixed bottom-0 left-1/2 -translate-x-1/2 z-[61] w-[140px] h-[6px] rounded-t-full bg-white/20 border border-white/10 backdrop-blur-md cursor-pointer transition-all duration-200 hover:bg-sky-500/50 hover:h-[8px]"
+          className="fixed z-[61] bg-white/20 border border-white/10 backdrop-blur-md cursor-pointer transition-all duration-200 hover:bg-sky-500/50"
+          style={revealHandleStyle}
           onMouseEnter={() => { clearDockHideTimer(); setDockVisibility(true); }}
           onPointerEnter={() => { clearDockHideTimer(); setDockVisibility(true); }}
           onFocus={() => { clearDockHideTimer(); setDockVisibility(true); }}
         />
       )}
+
       <div
-      ref={dockRef}
-      data-dock="true"
-      data-dock-visible={dockVisible ? 'true' : 'false'}
-      aria-hidden={!dockVisible}
-      className={cn(
-        "fixed bottom-3 left-1/2 -translate-x-1/2 z-[60] select-none max-w-[calc(100vw-24px)] transition-transform duration-300 ease-out will-change-transform",
-        !hasOpenApplication || dockVisible ? "translate-y-0 pointer-events-auto" : "translate-y-[calc(100%+28px)] pointer-events-none"
-      )}
-      onContextMenu={handleDockSurfaceContextMenu}
-      onMouseEnter={() => { clearDockHideTimer(); setDockVisibility(true); }}
-      onMouseLeave={() => scheduleDockHide()}
-    >
-      <div 
-        className="flex items-center gap-2 p-2 backdrop-blur-2xl bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] shadow-[0_20px_50px_rgba(0,0,0,0.4)] rounded-2xl transition-all duration-300 overflow-x-auto max-w-[calc(100vw-24px)]"
-        style={{ scrollbarWidth: 'none' }}
-        onMouseLeave={() => { setHoveredApp(null); scheduleDockHide(); }}
+        ref={dockRef}
+        data-dock="true"
+        data-dock-position={dockPosition}
+        data-dock-orientation={dock.orientation}
+        data-dock-visible={dockVisible ? 'true' : 'false'}
+        aria-hidden={!dockVisible}
+        className={cn(
+          "z-[10000] select-none transition-transform duration-300 ease-out will-change-transform",
+          (!autoHideEnabled || !hasOpenApplication || dockVisible) ? "pointer-events-auto" : "pointer-events-none"
+        )}
+        style={containerPositionStyle}
+        onContextMenu={handleDockSurfaceContextMenu}
+        onMouseEnter={() => { clearDockHideTimer(); setDockVisibility(true); }}
+        onMouseLeave={() => scheduleDockHide()}
       >
-        {/* WINDOWS TASKBAR: START / LAUNCHER BUTTON */}
-        <button
-          type="button"
-          data-testid="dock-start-menu-button"
-          aria-label={`${t('desktop.startMenu')} (All Applications)`}
-          tabIndex={0}
-          onClick={(e) => {
-            e.stopPropagation();
-            setLauncherOpen(true);
+        <div 
+          className={cn(
+            "p-2 border transition-all duration-300 rounded-2xl shadow-2xl",
+            isVertical ? "flex flex-col items-center gap-2 overflow-y-auto max-h-[80vh]" : "flex items-center gap-2 overflow-x-auto max-w-[calc(100vw-24px)]"
+          )}
+          style={{ 
+            backgroundColor: `color-mix(in srgb, var(--orion-dock-bg, rgba(241, 236, 226, 0.94)) calc(var(--orion-dock-opacity, 0.85) * 100%), transparent)`,
+            backdropFilter: 'var(--orion-morph-backdrop, blur(var(--orion-dock-blur, 24px)) saturate(140%))',
+            WebkitBackdropFilter: 'var(--orion-morph-backdrop, blur(var(--orion-dock-blur, 24px)) saturate(140%))',
+            borderColor: 'var(--orion-dock-border, rgba(70, 65, 55, 0.16))',
+            boxShadow: 'var(--orion-morph-shadow-deep, var(--orion-dock-shadow, 0 20px 48px rgba(0,0,0,0.45)))',
+            scrollbarWidth: 'none' 
           }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
+          onMouseLeave={() => { setHoveredApp(null); scheduleDockHide(); }}
+        >
+
+          {/* WINDOWS TASKBAR: START / LAUNCHER BUTTON */}
+          <button
+            type="button"
+            data-testid="dock-start-menu-button"
+            aria-label={`${t('desktop.startMenu')} (All Applications)`}
+            tabIndex={0}
+            onClick={(e) => {
+              e.stopPropagation();
               setLauncherOpen(true);
-            }
-          }}
-          onContextMenu={handleLauncherContextMenu}
-          onMouseEnter={() => setHoveredApp('launcher')}
-          className="relative group flex flex-col items-center justify-center transition-all duration-300 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 hover:-translate-y-1"
-          style={{ 
-            transform: `scale(${hoveredApp === 'launcher' ? 1.05 : 1})`,
-            width: '48px', height: '48px' 
-          }}
-          title={`${t('desktop.startMenu')} (All Applications)`}
-        >
-          <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-os-text-primary hover:text-white transition-colors">
-            <Grid className="w-5 h-5 transition-transform duration-300 group-hover:scale-105" />
-          </div>
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setLauncherOpen(true);
+              }
+            }}
+            onContextMenu={handleLauncherContextMenu}
+            onMouseEnter={() => setHoveredApp('launcher')}
+            className={cn(
+              "relative group flex flex-col items-center justify-center transition-all duration-300 cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--orion-accent,#4A5056)]",
+              isVertical ? "hover:scale-105" : "hover:-translate-y-1"
+            )}
+            style={{ 
+              transformOrigin: dock.magnificationOrigin,
+              transform: `scale(${hoveredApp === 'launcher' && magnificationEnabled ? 1.05 : 1})`,
+              width: `${dock.iconContainerSize}px`, 
+              height: `${dock.iconContainerSize}px` 
+            }}
+            title={`${t('desktop.startMenu')} (All Applications)`}
+          >
+            <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-black/[0.05] hover:bg-black/[0.10] border border-black/[0.08] text-[#25231F] hover:text-[#000000] transition-colors shadow-xs">
+              <Grid className="w-5 h-5 transition-transform duration-300 group-hover:scale-105" />
+            </div>
 
-          <div className="absolute -top-11 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#12151a]/95 backdrop-blur-xl text-white text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/[0.08] shadow-xl z-50">
-            {t('desktop.startMenu')}
-          </div>
-        </button>
+            <div className={cn(
+              tooltipClasses,
+              "px-3 py-1 bg-[#1A1815]/95 backdrop-blur-xl text-[#F3EBDD] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/[0.08] shadow-xl z-50"
+            )}>
+              {t('desktop.startMenu')}
+            </div>
+          </button>
 
-        {/* WINDOWS TASKBAR: SEARCH BUTTON */}
-        <button
-          type="button"
-          aria-label={t('common.search')}
-          tabIndex={0}
-          onClick={(e) => {
-            e.stopPropagation();
-            setCommandPaletteOpen(true);
-          }}
-          onMouseEnter={() => setHoveredApp('search')}
-          className="relative group flex flex-col items-center justify-center transition-all duration-300 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 hover:-translate-y-1"
-          style={{ 
-            transform: `scale(${hoveredApp === 'search' ? 1.05 : 1})`,
-            width: '48px', height: '48px' 
-          }}
-          title={`${t('common.search')} (Ctrl+Space / ⌘K)`}
-        >
-          <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-os-text-muted hover:text-white transition-colors">
-            <Search className="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-105" />
-          </div>
+          {/* WINDOWS TASKBAR: SEARCH BUTTON */}
+          <button
+            type="button"
+            aria-label={t('common.search')}
+            tabIndex={0}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCommandPaletteOpen(true);
+            }}
+            onMouseEnter={() => setHoveredApp('search')}
+            className={cn(
+              "relative group flex flex-col items-center justify-center transition-all duration-300 cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--orion-accent,#4A5056)]",
+              isVertical ? "hover:scale-105" : "hover:-translate-y-1"
+            )}
+            style={{ 
+              transformOrigin: dock.magnificationOrigin,
+              transform: `scale(${hoveredApp === 'search' && magnificationEnabled ? 1.05 : 1})`,
+              width: `${dock.iconContainerSize}px`, 
+              height: `${dock.iconContainerSize}px` 
+            }}
+            title={`${t('common.search')} (Ctrl+Space / ⌘K)`}
+          >
+            <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-black/[0.05] hover:bg-black/[0.10] border border-black/[0.08] text-[#5E5A52] hover:text-[#25231F] transition-colors shadow-xs">
+              <Search className="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-105" />
+            </div>
 
-          <div className="absolute -top-11 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#12151a]/95 backdrop-blur-xl text-white text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/[0.08] shadow-xl z-50">
-            {t('common.search')} (Ctrl+Space)
-          </div>
-        </button>
+            <div className={cn(
+              tooltipClasses,
+              "px-3 py-1 bg-[#1A1815]/95 backdrop-blur-xl text-[#F3EBDD] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/[0.08] shadow-xl z-50"
+            )}>
+              {t('common.search')} (Ctrl+Space)
+            </div>
+          </button>
 
-        <div className="w-px h-7 bg-white/[0.1] mx-0.5 shrink-0" />
+          <div className={cn(
+            "bg-black/[0.12] shrink-0",
+            isVertical ? "w-7 h-px my-0.5" : "w-px h-7 mx-0.5"
+          )} />
 
-        {/* PINNED & RUNNING APPLICATIONS */}
-        {dockApps.map((id, index) => {
-          const app = ORION_REGISTRY[id];
-          if (!app) return null;
-          
-          const isOpen = !!windows[id] && windows[id]?.state !== 'closed';
-          const isMinimized = isOpen && windows[id]?.state === 'minimized';
-          const isActive = isOpen && activeAppId === id && !isMinimized;
-          const isPinned = dockPinnedApps.includes(id);
+          {/* PINNED & RUNNING APPLICATIONS */}
+          {dockApps.map((id, index) => {
+            const app = ORION_REGISTRY[id];
+            if (!app) return null;
+            
+            const isOpen = !!windows[id] && windows[id]?.state !== 'closed';
+            const isMinimized = isOpen && windows[id]?.state === 'minimized';
+            const isActive = isOpen && activeAppId === id && !isMinimized;
+            const isPinned = dockPinnedApps.includes(id);
 
-          // Smooth magnification
-          const hoveredIndex = hoveredApp ? dockApps.indexOf(hoveredApp) : -1;
-          const distance = hoveredIndex !== -1 ? Math.abs(hoveredIndex - index) : 100;
-          const scale = distance === 0 ? 1.15 : distance === 1 ? 1.08 : distance === 2 ? 1.03 : 1;
+            // Orientation-aware magnification
+            const hoveredIndex = hoveredApp ? dockApps.indexOf(hoveredApp) : -1;
+            const distance = hoveredIndex !== -1 ? Math.abs(hoveredIndex - index) : 100;
+            const scale = magnificationEnabled
+              ? (distance === 0 ? 1.15 : distance === 1 ? 1.08 : distance === 2 ? 1.03 : 1)
+              : 1;
 
-          return (
-            <button
-              type="button"
-              key={id}
-              data-dock-item={id}
-              aria-label={app.name}
-              tabIndex={0}
-              draggable={isPinned}
-              onDragStart={(e) => onDragStart(e, id)}
-              onDragOver={(e) => onDragOver(e, id)}
-              onDragLeave={onDragLeave}
-              onDrop={(e) => onDrop(e, id)}
-              onDragEnd={() => { setDraggedApp(null); setDragOverApp(null); }}
-              onClick={(e) => {
-                e.stopPropagation();
-                handleAppClick(id);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
+            return (
+              <button
+                type="button"
+                key={id}
+                data-dock-item={id}
+                aria-label={app.name}
+                tabIndex={0}
+                draggable={isPinned}
+                onDragStart={(e) => onDragStart(e, id)}
+                onDragOver={(e) => onDragOver(e, id)}
+                onDragLeave={onDragLeave}
+                onDrop={(e) => onDrop(e, id)}
+                onDragEnd={() => { setDraggedApp(null); setDragOverApp(null); }}
+                onClick={(e) => {
+                  e.stopPropagation();
                   handleAppClick(id);
-                }
-              }}
-              onContextMenu={(e) => handleDockItemContextMenu(e, id)}
-              onMouseEnter={() => setHoveredApp(id)}
-              className={cn(
-                "relative group flex flex-col items-center justify-center transition-all duration-150 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500",
-                draggedApp === id && "opacity-50",
-                dragOverApp === id && "scale-110 mx-4"
-              )}
-              style={{
-                transform: dragOverApp !== id && hoveredApp ? `scale(${scale})` : undefined,
-                marginBottom: dragOverApp !== id && hoveredIndex !== -1 ? `${(scale - 1) * 14}px` : "0px",
-                transformOrigin: "bottom center",
-                width: '48px',
-                height: '48px'
-              }}
-              title={app.name}
-            >
-              <div className={cn(
-                "flex items-center justify-center w-full h-full transition-all duration-200",
-                isMinimized && "opacity-50 saturate-50",
-                isActive && "scale-105"
-              )}>
-                <OrionAppIcon
-                  app={id}
-                  size={46}
-                  active={isActive}
-                  showContainer={true}
-                />
-              </div>
-              
-              {/* Active / Open / Minimized Indicator Dot */}
-              {isOpen && (
-                <div 
-                  className={cn(
-                    "absolute -bottom-1 transition-all duration-200",
-                    isActive 
-                      ? "w-2.5 h-1 rounded-full bg-sky-400 shadow-xs" 
-                      : isMinimized
-                      ? "w-1 h-1 rounded-full bg-white/30"
-                      : "w-1.5 h-1.5 rounded-full bg-white/60"
-                  )}
-                />
-              )}
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleAppClick(id);
+                  }
+                }}
+                onContextMenu={(e) => handleDockItemContextMenu(e, id)}
+                onMouseEnter={() => setHoveredApp(id)}
+                className={cn(
+                  "relative group flex flex-col items-center justify-center transition-all duration-150 cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500",
+                  draggedApp === id && "opacity-50",
+                  dragOverApp === id && (isVertical ? "scale-110 my-4" : "scale-110 mx-4")
+                )}
+                style={{
+                  transformOrigin: dock.magnificationOrigin,
+                  transform: dragOverApp !== id && hoveredApp ? `scale(${scale})` : undefined,
+                  marginBottom: !isVertical && dragOverApp !== id && hoveredIndex !== -1 ? `${(scale - 1) * 14}px` : "0px",
+                  marginRight: isVertical && dragOverApp !== id && hoveredIndex !== -1 ? `${(scale - 1) * 14}px` : "0px",
+                  width: `${dock.iconContainerSize}px`,
+                  height: `${dock.iconContainerSize}px`
+                }}
+                title={app.name}
+              >
+                <div className={cn(
+                  "flex items-center justify-center w-full h-full transition-all duration-200",
+                  isMinimized && "opacity-50 saturate-50",
+                  isActive && "scale-105"
+                )}>
+                  <OrionAppIcon
+                    app={id}
+                    size={dock.iconSize}
+                    active={isActive}
+                    showContainer={true}
+                  />
+                </div>
+                
+                {/* Active / Open / Minimized Indicator Dot */}
+                {isOpen && (
+                  <div 
+                    className={cn(
+                      "absolute transition-all duration-200",
+                      isVertical
+                        ? (dockPosition === 'left' ? "-left-1 top-1/2 -translate-y-1/2" : "-right-1 top-1/2 -translate-y-1/2")
+                        : (dockPosition === 'top' ? "-top-1 left-1/2 -translate-x-1/2" : "-bottom-1 left-1/2 -translate-x-1/2"),
+                      isActive 
+                        ? (isVertical ? "h-2.5 w-1 rounded-full bg-[var(--orion-accent,#4A5056)] shadow-xs" : "w-2.5 h-1 rounded-full bg-[var(--orion-accent,#4A5056)] shadow-xs")
+                        : isMinimized
+                        ? (isVertical ? "h-1 w-1 rounded-full bg-black/25" : "w-1 h-1 rounded-full bg-black/25")
+                        : (isVertical ? "h-1.5 w-1.5 rounded-full bg-black/45" : "w-1.5 h-1.5 rounded-full bg-black/45")
+                    )}
+                  />
+                )}
 
-              {/* Tooltip */}
-              <div className="absolute -top-11 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#12151a]/95 backdrop-blur-xl text-white text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/[0.08] shadow-xl z-50">
-                {app.name}
-                {isMinimized && <span className="text-white/50 ml-1.5 text-[10px]">(Minimized)</span>}
-              </div>
-            </button>
-          );
-        })}
+                {/* Tooltip */}
+                <div className={cn(
+                  tooltipClasses,
+                  "px-3 py-1 bg-[#1A1815]/95 backdrop-blur-xl text-[#F3EBDD] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/[0.08] shadow-xl z-50"
+                )}>
+                  {app.name}
+                  {isMinimized && <span className="text-[#F3EBDD]/60 ml-1.5 text-[10px]">(Minimized)</span>}
+                </div>
+              </button>
+            );
+          })}
 
-        <div className="w-px h-7 bg-white/[0.1] mx-0.5 shrink-0" />
+          <div className={cn(
+            "bg-black/[0.12] shrink-0",
+            isVertical ? "w-7 h-px my-0.5" : "w-px h-7 mx-0.5"
+          )} />
 
-        {/* WINDOWS TASKBAR: TASK SWITCHER BUTTON */}
-        <button
-          type="button"
-          aria-label="Task Switcher"
-          tabIndex={0}
-          onClick={(e) => {
-            e.stopPropagation();
-            window.dispatchEvent(new CustomEvent('orion:open-task-switcher'));
-          }}
-          onMouseEnter={() => setHoveredApp('switcher')}
-          className="relative group flex flex-col items-center justify-center transition-all duration-300 origin-bottom cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-500 hover:-translate-y-1"
-          style={{ 
-            transform: `scale(${hoveredApp === 'switcher' ? 1.05 : 1})`,
-            width: '48px', height: '48px' 
-          }}
-          title="Task Switcher (Alt+Tab)"
-        >
-          <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] text-os-text-muted hover:text-white transition-colors">
-            <Layers className="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-105" />
-          </div>
+          {/* WINDOWS TASKBAR: TASK SWITCHER BUTTON */}
+          <button
+            type="button"
+            aria-label="Task Switcher"
+            tabIndex={0}
+            onClick={(e) => {
+              e.stopPropagation();
+              window.dispatchEvent(new CustomEvent('orion:open-task-switcher'));
+            }}
+            onMouseEnter={() => setHoveredApp('switcher')}
+            className={cn(
+              "relative group flex flex-col items-center justify-center transition-all duration-300 cursor-pointer shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--orion-accent,#4A5056)]",
+              isVertical ? "hover:scale-105" : "hover:-translate-y-1"
+            )}
+            style={{ 
+              transformOrigin: dock.magnificationOrigin,
+              transform: `scale(${hoveredApp === 'switcher' && magnificationEnabled ? 1.05 : 1})`,
+              width: `${dock.iconContainerSize}px`, 
+              height: `${dock.iconContainerSize}px` 
+            }}
+            title="Task Switcher (Alt+Tab)"
+          >
+            <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-black/[0.05] hover:bg-black/[0.10] border border-black/[0.08] text-[#5E5A52] hover:text-[#25231F] transition-colors shadow-xs">
+              <Layers className="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-105" />
+            </div>
 
-          <div className="absolute -top-11 left-1/2 -translate-x-1/2 px-3 py-1 bg-[#12151a]/95 backdrop-blur-xl text-white text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/[0.08] shadow-xl z-50">
-            Task Switcher (Alt+Tab)
-          </div>
-        </button>
+            <div className={cn(
+              tooltipClasses,
+              "px-3 py-1 bg-[#1A1815]/95 backdrop-blur-xl text-[#F3EBDD] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/[0.08] shadow-xl z-50"
+            )}>
+              Task Switcher (Alt+Tab)
+            </div>
+          </button>
 
-      </div>
+        </div>
       </div>
     </>
   );

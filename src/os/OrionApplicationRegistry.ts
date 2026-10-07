@@ -26,6 +26,16 @@ export interface OrionApp {
 }
 
 export const ORION_REGISTRY: Record<string, OrionApp> = {
+  'executive-overview': {
+    id: 'executive-overview',
+    name: 'Executive Overview',
+    route: '/executive',
+    category: 'Operations',
+    icon: LayoutDashboard,
+    color: '#39C77A',
+    description: 'Unified executive command center, enterprise KPI posture, operational priorities, and system health status.',
+    dockDefault: true,
+  },
   'command-center': {
     id: 'command-center',
     name: 'Command Center',

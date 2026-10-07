@@ -77,6 +77,23 @@ export const AICopilot = () => {
     scrollToBottom();
   }, [messages, aiState]);
 
+  useEffect(() => {
+    const handleCopilotContext = (event: CustomEvent<{ query: string; autoSubmit?: boolean }>) => {
+      if (event.detail?.query) {
+        if (event.detail.autoSubmit) {
+          handleSubmit(undefined, event.detail.query);
+        } else {
+          setInput(event.detail.query);
+        }
+      }
+    };
+
+    window.addEventListener('orion:open-copilot-context' as any, handleCopilotContext);
+    return () => {
+      window.removeEventListener('orion:open-copilot-context' as any, handleCopilotContext);
+    };
+  }, []);
+
   const handleSubmit = async (e?: React.FormEvent, customPrompt?: string) => {
     if (e) e.preventDefault();
     const promptText = customPrompt || input;

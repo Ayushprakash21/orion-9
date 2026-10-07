@@ -17,6 +17,10 @@ import {
   Cpu,
   Database,
   BookOpen,
+  Activity,
+  AlertTriangle,
+  Package,
+  Truck,
   X
 } from 'lucide-react';
 import { formatCurrency, formatNumber } from '../../lib/formatters';
@@ -365,6 +369,30 @@ export const OrionMobileAICopilot: React.FC = () => {
 
 
 
+
+      {/* 2. SCM TELEMETRY INDICATOR BAR */}
+      <div className="bg-os-surface-secondary/80 border border-os-border/70 rounded-xl px-3 py-1.5 mb-2.5 shrink-0 flex items-center justify-between text-[10px] font-mono text-os-text-secondary overflow-x-auto no-scrollbar gap-3">
+        <div className="flex items-center gap-1 whitespace-nowrap">
+          <Activity size={12} className="text-os-accent" />
+          <span>Health:</span>
+          <span className="font-bold text-os-text-primary">{healthScore}%</span>
+        </div>
+        <div className="flex items-center gap-1 whitespace-nowrap">
+          <AlertTriangle size={12} className="text-red-400" />
+          <span>Critical:</span>
+          <span className="font-bold text-red-400">{criticalExceptions.length}</span>
+        </div>
+        <div className="flex items-center gap-1 whitespace-nowrap">
+          <Truck size={12} className="text-amber-400" />
+          <span>Delays:</span>
+          <span className="font-bold text-amber-400">{delayedShipments.length}</span>
+        </div>
+        <div className="flex items-center gap-1 whitespace-nowrap">
+          <Package size={12} className="text-emerald-400" />
+          <span>Stock:</span>
+          <span className="font-bold text-os-text-primary">{formatNumber(totalOnHandUnits)}</span>
+        </div>
+      </div>
 
       {/* 3. CONVERSATION MESSAGE LIST */}
       <div className="flex-1 min-h-0 overflow-y-auto space-y-3.5 pr-0.5 overscroll-contain">

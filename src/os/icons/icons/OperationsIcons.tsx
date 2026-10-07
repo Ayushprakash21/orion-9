@@ -398,3 +398,17 @@ export const IconBuyWorkflow: React.FC<{ size?: number; className?: string; acti
     <path d="M 64 62 L 64 74 M 58 68 L 70 68" stroke="#34D399" strokeWidth="2" strokeLinecap="round" />
   </OrionSquircleBase>
 );
+
+// 28. Executive Overview Command Center
+export const IconExecutiveOverview: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
+  <OrionSquircleBase gradientId="icon-executive-overview" from="#0B0C0C" to="#151616" {...props}>
+    {/* Executive Command Center Dashboard with Green Accent Indicator */}
+    <rect x="26" y="30" width="76" height="68" rx="8" fill="#1B1C1C" stroke="#39C77A" strokeWidth="1.5" strokeOpacity="0.6" />
+    <line x1="26" y1="48" x2="102" y2="48" stroke="#39C77A" strokeWidth="1" strokeOpacity="0.3" />
+    <rect x="34" y="56" width="28" height="16" rx="3" fill="#39C77A" fillOpacity="0.15" stroke="#39C77A" strokeWidth="1" />
+    <rect x="66" y="56" width="28" height="16" rx="3" fill="#2A2C2C" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
+    <circle cx="36" cy="39" r="3" fill="#39C77A" />
+    <circle cx="45" cy="39" r="3" fill="#64748B" />
+    <line x1="34" y1="84" x2="94" y2="84" stroke="#39C77A" strokeWidth="2" strokeLinecap="round" />
+  </OrionSquircleBase>
+);

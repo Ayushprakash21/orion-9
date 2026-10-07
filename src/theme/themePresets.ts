@@ -14,7 +14,10 @@ export interface ThemeColors {
   textMuted: string;
   windowHeaderBg: string;
   dockBg: string;
+  dockBorder?: string;
+  dockShadow?: string;
   cardBg: string;
+  desktopIconLabel?: string;
 }
 
 export const APPEARANCE_PRESETS: Record<Exclude<AppearanceMode, 'auto'>, ThemeColors> = {
@@ -31,8 +34,11 @@ export const APPEARANCE_PRESETS: Record<Exclude<AppearanceMode, 'auto'>, ThemeCo
     textSecondary: '#94A3B8',
     textMuted: '#64748B',
     windowHeaderBg: '#181C22',
-    dockBg: 'rgba(20, 23, 28, 0.85)',
-    cardBg: '#161A20'
+    dockBg: 'rgba(241, 236, 226, 0.94)', // Soft ivory / warm cream
+    dockBorder: 'rgba(70, 65, 55, 0.16)',
+    dockShadow: '0 20px 48px rgba(0, 0, 0, 0.45)',
+    cardBg: '#161A20',
+    desktopIconLabel: '#F3EBDD' // Warm off-white / cream
   },
   light: {
     background: '#F5F7FA',
@@ -47,8 +53,11 @@ export const APPEARANCE_PRESETS: Record<Exclude<AppearanceMode, 'auto'>, ThemeCo
     textSecondary: '#475569',
     textMuted: '#64748B',
     windowHeaderBg: '#E2E8F0',
-    dockBg: 'rgba(255, 255, 255, 0.88)',
-    cardBg: '#FFFFFF'
+    dockBg: 'rgba(245, 241, 233, 0.95)', // Soft warm porcelain
+    dockBorder: 'rgba(70, 65, 55, 0.14)',
+    dockShadow: '0 16px 40px rgba(0, 0, 0, 0.14)',
+    cardBg: '#FFFFFF',
+    desktopIconLabel: '#17191B' // Dark graphite
   },
   oled: {
     background: '#000000',
@@ -63,8 +72,11 @@ export const APPEARANCE_PRESETS: Record<Exclude<AppearanceMode, 'auto'>, ThemeCo
     textSecondary: '#A1A1AA',
     textMuted: '#71717A',
     windowHeaderBg: '#0A0A0C',
-    dockBg: 'rgba(10, 10, 12, 0.92)',
-    cardBg: '#0D0D10'
+    dockBg: 'rgba(240, 235, 225, 0.92)', // Soft ivory
+    dockBorder: 'rgba(70, 65, 55, 0.20)',
+    dockShadow: '0 24px 56px rgba(0, 0, 0, 0.65)',
+    cardBg: '#0D0D10',
+    desktopIconLabel: '#F3EBDD'
   },
   monochrome: {
     background: '#121212',
@@ -79,8 +91,11 @@ export const APPEARANCE_PRESETS: Record<Exclude<AppearanceMode, 'auto'>, ThemeCo
     textSecondary: '#CCCCCC',
     textMuted: '#999999',
     windowHeaderBg: '#1F1F1F',
-    dockBg: 'rgba(24, 24, 24, 0.90)',
-    cardBg: '#1A1A1A'
+    dockBg: 'rgba(242, 238, 230, 0.94)',
+    dockBorder: 'rgba(70, 65, 55, 0.18)',
+    dockShadow: '0 20px 48px rgba(0, 0, 0, 0.5)',
+    cardBg: '#1A1A1A',
+    desktopIconLabel: '#F3EBDD'
   }
 };
 
@@ -104,6 +119,7 @@ export const DEFAULT_PERSONALIZATION_SETTINGS: PersonalizationSettings = {
   windowStyle: 'standard',
   cornerStyle: 'subtle',
   density: 'comfortable',
+  windowControlPosition: 'left',
 
   wallpaperType: 'gradient',
   wallpaperValue: 'linear-gradient(135deg, #0F1115 0%, #1A1F29 50%, #0F1115 100%)',

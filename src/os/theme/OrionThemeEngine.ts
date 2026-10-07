@@ -17,6 +17,13 @@ export class OrionThemeEngine {
     this.preferences = loadPreferences();
   }
 
+  /** Reloads preferences from storage and reapplies */
+  public reloadFromStorage(): void {
+    this.preferences = loadPreferences();
+    this.apply();
+    this.notify();
+  }
+
   /** Gets the current preferences */
   public getPreferences(): OrionAppearancePreferences {
     return { ...this.preferences };

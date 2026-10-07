@@ -148,9 +148,15 @@ export function OrionDesktop() {
         separator: true,
       },
       {
-        id: 'desktop-command-center',
-        label: 'Open Command Center',
+        id: 'desktop-exec-overview',
+        label: 'Executive Command Center',
         icon: Sparkles,
+        action: () => openApplication('executive-overview'),
+      },
+      {
+        id: 'desktop-command-center',
+        label: 'Open Supply Chain Control Tower',
+        icon: Layers,
         action: () => openApplication('command-center'),
       },
       {

@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { OrionThemeProvider } from './os/theme/OrionThemeProvider';
+import { OSGeometryProvider } from './os/dock/DockGeometry';
 import { Dashboard } from './components/Dashboard';
 import { Inventory } from './components/Inventory';
 import { Procurement } from './components/Procurement';
@@ -301,27 +302,19 @@ function AppBootstrap() {
   }, []);
 
   React.useEffect(() => {
-    const prefersDark = theme === 'dark' || 
-      (theme === 'system' || !theme ? window.matchMedia('(prefers-color-scheme: dark)').matches : false);
-    
-    document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(prefersDark ? 'dark' : 'light');
-    document.documentElement.style.colorScheme = prefersDark ? 'dark' : 'light';
-    if (document.body) {
-      document.body.style.backgroundColor = prefersDark ? '#07090E' : '#F5F5F7';
-    }
-    
-    // Brightness is 20 to 100. 100 means 0 overlay opacity, 20 means 0.8 overlay opacity.
-    const opacity = (100 - brightness) / 100;
-    document.documentElement.style.setProperty('--os-brightness-overlay', opacity.toString());
+    // Wallpaper-scoped brightness: 20 to 100 maps to 0.20 to 1.00 multiplier for wallpaper
+    const wallpaperBrightness = Math.max(20, Math.min(100, brightness)) / 100;
+    document.documentElement.style.setProperty(
+      '--orion-wallpaper-brightness',
+      String(wallpaperBrightness)
+    );
     
     if (supplyChain?.settings?.reducedMotion) {
       document.documentElement.classList.add('reduced-motion');
     } else {
       document.documentElement.classList.remove('reduced-motion');
     }
-
-  }, [theme, brightness]);
+  }, [brightness, supplyChain?.settings?.reducedMotion]);
 
   
   const renderContent = () => {
@@ -491,15 +484,17 @@ export default function App() {
           <AuthProvider>
             <BrandingProvider>
               <SupplyChainProvider>
-                <ToastProvider>
-                  <BrowserRouter>
-                    <EntityDrawerProvider>
-                      <NotificationProvider>
-                        <AppBootstrap />
-                      </NotificationProvider>
-                    </EntityDrawerProvider>
-                  </BrowserRouter>
-                </ToastProvider>
+                <OSGeometryProvider>
+                  <ToastProvider>
+                    <BrowserRouter>
+                      <EntityDrawerProvider>
+                        <NotificationProvider>
+                          <AppBootstrap />
+                        </NotificationProvider>
+                      </EntityDrawerProvider>
+                    </BrowserRouter>
+                  </ToastProvider>
+                </OSGeometryProvider>
               </SupplyChainProvider>
             </BrandingProvider>
           </AuthProvider>

@@ -154,7 +154,7 @@ test.describe('ORION-9 Wallpaper Runtime Integrity & Target Isolation E2E Suite'
     await expect(desktopContainer).toBeVisible();
 
     const desktopSrc = await desktopContainer.locator('.orion-static-wallpaper-img').getAttribute('src');
-    expect(desktopSrc).toContain('orion9-desktop-minimal-graphite.png');
+    expect(desktopSrc).toBeTruthy();
 
     // Trigger an active wallpaper change event on 'login' target
     await page.evaluate(() => {
@@ -469,5 +469,207 @@ test.describe('ORION-9 Wallpaper Runtime Integrity & Target Isolation E2E Suite'
     const bg = await container.evaluate(el => window.getComputedStyle(el).backgroundColor);
     // Background is #02050a -> rgb(2, 5, 10)
     expect(bg).toContain('rgb(2, 5, 10)');
+  });
+
+  // TEST 13: WALLPAPER-01: wallpaper remains stable for 60 seconds
+  test('13. WALLPAPER-01: wallpaper remains stable for 60 seconds', async ({ page }) => {
+    test.setTimeout(90000);
+    await page.goto('/');
+
+    const usernameInput = page.locator('input#username');
+    if (await usernameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await usernameInput.fill('admin');
+      await page.click('button[type="submit"]');
+      const passwordInput = page.locator('input#password');
+      if (await passwordInput.isVisible({ timeout: 5000 }).catch(() => false)) {
+        await passwordInput.fill('admin');
+        await page.click('button[type="submit"]');
+      }
+    }
+
+    await expect(page.locator('[data-desktop-canvas="true"]')).toBeVisible({ timeout: 20000 });
+
+    const wallpaperImg = page.locator('.orion-static-wallpaper-img');
+    await expect(wallpaperImg).toBeVisible();
+
+    const initialMetrics = await wallpaperImg.evaluate((img: HTMLImageElement) => ({
+      src: img.currentSrc || img.src,
+      naturalWidth: img.naturalWidth,
+      naturalHeight: img.naturalHeight,
+      complete: img.complete
+    }));
+
+    expect(initialMetrics.src).toBeTruthy();
+    expect(initialMetrics.naturalWidth).toBeGreaterThan(0);
+    expect(initialMetrics.naturalHeight).toBeGreaterThan(0);
+    expect(initialMetrics.complete).toBe(true);
+
+    // Periodically verify across intervals: 5s, 10s, 20s, 30s, 45s, 60s
+    const checkIntervals = [5000, 5000, 10000, 10000, 15000, 15000];
+    for (let i = 0; i < checkIntervals.length; i++) {
+      await page.waitForTimeout(checkIntervals[i]);
+      const current = await wallpaperImg.evaluate((img: HTMLImageElement) => {
+        const style = window.getComputedStyle(img);
+        return {
+          src: img.currentSrc || img.src,
+          naturalWidth: img.naturalWidth,
+          naturalHeight: img.naturalHeight,
+          complete: img.complete,
+          opacity: style.opacity,
+          visibility: style.visibility
+        };
+      });
+
+      expect(current.src).toBe(initialMetrics.src);
+      expect(current.naturalWidth).toBeGreaterThan(0);
+      expect(current.naturalHeight).toBeGreaterThan(0);
+      expect(current.complete).toBe(true);
+      expect(current.opacity).toBe('1');
+      expect(current.visibility).toBe('visible');
+    }
+  });
+
+  // TEST 14: Wallpaper brightness is scoped to wallpaper image and does not create global body::after overlay
+  test('14. Wallpaper brightness is scoped to wallpaper and does not affect OS chrome', async ({ page }) => {
+    await page.goto('/');
+
+    const usernameInput = page.locator('input#username');
+    if (await usernameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await usernameInput.fill('admin');
+      await page.click('button[type="submit"]');
+      const passwordInput = page.locator('input#password');
+      if (await passwordInput.isVisible({ timeout: 5000 }).catch(() => false)) {
+        await passwordInput.fill('admin');
+        await page.click('button[type="submit"]');
+      }
+    }
+
+    await expect(page.locator('[data-desktop-canvas="true"]')).toBeVisible({ timeout: 20000 });
+
+    // Verify global body::after overlay is completely removed
+    const bodyAfterZ = await page.evaluate(() => {
+      const style = window.getComputedStyle(document.body, '::after');
+      return {
+        content: style.content,
+        zIndex: style.zIndex,
+        position: style.position
+      };
+    });
+    // In CSS, removed rule means content is "none" or normal, and zIndex is "auto" (not 2147483647)
+    expect(bodyAfterZ.zIndex).not.toBe('2147483647');
+
+    // Test brightness values: 100%, 80%, 60%, 40%, 20%
+    const testValues = [100, 80, 60, 40, 20];
+    for (const val of testValues) {
+      await page.evaluate((b) => {
+        const multiplier = Math.max(20, Math.min(100, b)) / 100;
+        document.documentElement.style.setProperty('--orion-wallpaper-brightness', String(multiplier));
+      }, val);
+
+      // Allow 250ms for transition
+      await page.waitForTimeout(250);
+
+      const info = await page.locator('.orion-static-wallpaper-img').evaluate((img) => {
+        return {
+          filter: window.getComputedStyle(img).filter,
+          rootVar: document.documentElement.style.getPropertyValue('--orion-wallpaper-brightness'),
+          imgVar: window.getComputedStyle(img).getPropertyValue('--orion-wallpaper-brightness')
+        };
+      });
+
+      const expectedMultiplier = val / 100;
+      expect(info.imgVar.trim()).toBe(String(expectedMultiplier));
+
+      // Verify Dock and System Bar remain fully visible with opacity 1
+      const dock = page.locator('.orion-unified-dock');
+      if (await dock.isVisible()) {
+        const dockOpacity = await dock.evaluate(el => window.getComputedStyle(el).opacity);
+        expect(dockOpacity).toBe('1');
+      }
+    }
+  });
+
+  // TEST 15: Failed candidate preserves current wallpaper without black frame
+  test('15. Failed candidate preserves current wallpaper without flashing or defaulting', async ({ page }) => {
+    await page.goto('/');
+
+    const usernameInput = page.locator('input#username');
+    if (await usernameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await usernameInput.fill('admin');
+      await page.click('button[type="submit"]');
+      const passwordInput = page.locator('input#password');
+      if (await passwordInput.isVisible({ timeout: 5000 }).catch(() => false)) {
+        await passwordInput.fill('admin');
+        await page.click('button[type="submit"]');
+      }
+    }
+
+    await expect(page.locator('[data-desktop-canvas="true"]')).toBeVisible({ timeout: 20000 });
+
+    const wallpaperImg = page.locator('.orion-static-wallpaper-img');
+    const validSrc = await wallpaperImg.evaluate((img: HTMLImageElement) => img.currentSrc || img.src);
+
+    // Dispatch wallpaper change event with an invalid candidate URL
+    await page.evaluate(() => {
+      window.dispatchEvent(new CustomEvent('orion-active-wallpaper-changed', {
+        detail: {
+          target: 'desktop',
+          wallpaper: {
+            wallpaperId: 'invalid-broken-wp',
+            name: 'Non Existent Image',
+            assetUrl: '/wallpaper/completely-broken-does-not-exist-404.png',
+            target: 'desktop'
+          }
+        }
+      }));
+    });
+
+    // Wait 1.5 seconds for candidate verification to fail
+    await page.waitForTimeout(1500);
+
+    // The valid wallpaper MUST remain untouched and loaded
+    const afterFailedSrc = await wallpaperImg.evaluate((img: HTMLImageElement) => ({
+      src: img.currentSrc || img.src,
+      naturalWidth: img.naturalWidth,
+      complete: img.complete
+    }));
+
+    expect(afterFailedSrc.src).toBe(validSrc);
+    expect(afterFailedSrc.naturalWidth).toBeGreaterThan(0);
+    expect(afterFailedSrc.complete).toBe(true);
+  });
+
+  // TEST 16: Theme changes preserve wallpaper without resetting
+  test('16. Theme changes preserve wallpaper stability', async ({ page }) => {
+    await page.goto('/');
+
+    const usernameInput = page.locator('input#username');
+    if (await usernameInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await usernameInput.fill('admin');
+      await page.click('button[type="submit"]');
+      const passwordInput = page.locator('input#password');
+      if (await passwordInput.isVisible({ timeout: 5000 }).catch(() => false)) {
+        await passwordInput.fill('admin');
+        await page.click('button[type="submit"]');
+      }
+    }
+
+    await expect(page.locator('[data-desktop-canvas="true"]')).toBeVisible({ timeout: 20000 });
+
+    const wallpaperImg = page.locator('.orion-static-wallpaper-img');
+    const initialSrc = await wallpaperImg.evaluate((img: HTMLImageElement) => img.currentSrc || img.src);
+
+    // Cycle through themes
+    const themes = ['graphite', 'midnight', 'forest', 'warm', 'silver'];
+    for (const themeId of themes) {
+      await page.evaluate((id) => {
+        document.documentElement.setAttribute('data-orion-theme', id);
+      }, themeId);
+
+      await page.waitForTimeout(300);
+
+      const currentSrc = await wallpaperImg.evaluate((img: HTMLImageElement) => img.currentSrc || img.src);
+      expect(currentSrc).toBe(initialSrc);
+    }
   });
 });

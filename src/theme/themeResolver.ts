@@ -1,5 +1,8 @@
 import { PersonalizationSettings, CustomThemeExport, AccentPresetKey } from './themeTypes';
 import { APPEARANCE_PRESETS, ACCENT_PRESETS, DEFAULT_PERSONALIZATION_SETTINGS } from './themePresets';
+import { getTheme, ORION_THEMES, isValidThemeId } from '../os/theme/OrionThemeRegistry';
+import { loadPreferences } from '../os/theme/OrionThemeStorage';
+import { OrionThemeId } from '../os/theme/OrionThemeTypes';
 
 /**
  * Calculates WCAG relative luminance to determine optimal foreground text color (#FFFFFF or #0F172A).
@@ -45,6 +48,14 @@ export function resolveThemeVariables(
   settings: PersonalizationSettings,
   systemIsDark: boolean = true
 ): Record<string, string> {
+  // Determine canonical theme if specified or active in storage
+  const activePrefs = loadPreferences();
+  const targetThemeId: OrionThemeId = (settings.themeId && isValidThemeId(settings.themeId))
+    ? settings.themeId
+    : (activePrefs.themeId || 'graphite');
+
+  const canonicalTheme = getTheme(targetThemeId);
+
   // 1. Resolve Effective Mode
   let effectiveMode = settings.appearanceMode;
   if (effectiveMode === 'auto') {
@@ -56,7 +67,33 @@ export function resolveThemeVariables(
     effectiveMode = 'monochrome';
   }
 
-  const baseColors = APPEARANCE_PRESETS[effectiveMode as keyof typeof APPEARANCE_PRESETS] || APPEARANCE_PRESETS.dark;
+  // Base colors prioritize canonical theme palette when themeId is specified, otherwise fallback to APPEARANCE_PRESETS
+  const presetColors = APPEARANCE_PRESETS[effectiveMode as keyof typeof APPEARANCE_PRESETS] || APPEARANCE_PRESETS.dark;
+
+  const baseColors = (effectiveMode === 'monochrome' || effectiveMode === 'oled')
+    ? presetColors
+    : (settings.themeId
+        ? {
+            background: canonicalTheme.colors.background,
+            backgroundSecondary: canonicalTheme.colors.surface,
+            surface: canonicalTheme.colors.surface,
+            surfaceSecondary: canonicalTheme.colors.surfaceElevated,
+            surfaceElevated: canonicalTheme.colors.surfaceElevated,
+            surfaceHover: canonicalTheme.colors.surfaceHover,
+            border: canonicalTheme.colors.border,
+            borderStrong: canonicalTheme.colors.borderStrong,
+            text: canonicalTheme.colors.textPrimary,
+            textSecondary: canonicalTheme.colors.textSecondary,
+            textMuted: canonicalTheme.colors.textMuted,
+            windowHeaderBg: canonicalTheme.colors.surface,
+            dockBg: canonicalTheme.colors.dockBg || 'rgba(241, 236, 226, 0.94)',
+            dockBorder: canonicalTheme.colors.dockBorder || canonicalTheme.colors.border,
+            dockShadow: canonicalTheme.colors.dockShadow || '0 20px 48px rgba(0,0,0,0.45)',
+            cardBg: canonicalTheme.colors.surfaceElevated,
+            desktopIconLabel: canonicalTheme.colors.desktopIconLabel || (canonicalTheme.appearance.mode === 'light' ? '#17191B' : '#F3EBDD')
+          }
+        : presetColors
+      );
 
   // 2. Resolve Accent Color
   let accentHex = '#64748B'; // Default slate neutral
@@ -134,7 +171,14 @@ export function resolveThemeVariables(
 
     '--orion-window-header-bg': baseColors.windowHeaderBg,
     '--orion-dock-bg': baseColors.dockBg,
+    '--orion-dock-opacity': `${(settings.dockTransparency ?? 85) / 100}`,
+    '--orion-dock-border': baseColors.dockBorder || baseColors.border,
+    '--orion-dock-shadow': baseColors.dockShadow || '0 20px 48px rgba(0,0,0,0.45)',
     '--orion-card-bg': baseColors.cardBg,
+    '--orion-desktop-icon-label': baseColors.desktopIconLabel || '#F3EBDD',
+
+    '--orion-wallpaper-blur': `${settings.wallpaperBlur ?? 0}px`,
+    '--orion-wallpaper-dim': `${(settings.wallpaperDim ?? 0) / 100}`,
 
     '--orion-success': '#10B981',
     '--orion-warning': '#F59E0B',
@@ -166,10 +210,19 @@ export function applyThemeToDocument(settings: PersonalizationSettings): void {
   if (effectiveMode === 'auto') effectiveMode = systemIsDark ? 'dark' : 'light';
   if (settings.highContrast) effectiveMode = 'monochrome';
 
+  const activePrefs = loadPreferences();
+  const targetThemeId: OrionThemeId = (settings.themeId && isValidThemeId(settings.themeId))
+    ? settings.themeId
+    : (activePrefs.themeId || 'graphite');
+  const canonicalTheme = getTheme(targetThemeId);
+
   root.setAttribute('data-theme', effectiveMode);
+  root.setAttribute('data-orion-theme', canonicalTheme.id);
+  root.setAttribute('data-orion-mode', canonicalTheme.appearance.mode);
   root.setAttribute('data-window-style', settings.windowStyle);
   root.setAttribute('data-corner-style', settings.cornerStyle);
   root.setAttribute('data-density', settings.density);
+  root.setAttribute('data-window-control-position', settings.windowControlPosition || 'left');
   root.setAttribute('data-reduced-motion', settings.reducedMotion ? 'true' : 'false');
   root.setAttribute('data-reduced-transparency', settings.reducedTransparency ? 'true' : 'false');
   root.setAttribute('data-color-filter', settings.colorFilter || 'none');
@@ -177,15 +230,15 @@ export function applyThemeToDocument(settings: PersonalizationSettings): void {
   // Toggle light/dark classes for Tailwind & system chrome
   if (root.classList) {
     root.classList.remove('light', 'dark');
-    root.classList.add(effectiveMode === 'light' ? 'light' : 'dark');
+    root.classList.add(canonicalTheme.appearance.mode);
   }
   if (root.style) {
-    root.style.colorScheme = effectiveMode === 'light' ? 'light' : 'dark';
+    root.style.colorScheme = canonicalTheme.appearance.mode;
   }
 
   if (document.body) {
-    document.body.style.backgroundColor = vars['--orion-bg'] || vars['--os-bg'];
-    document.body.style.color = vars['--orion-text-primary'] || vars['--os-text-primary'];
+    document.body.style.backgroundColor = canonicalTheme.colors.background;
+    document.body.style.color = canonicalTheme.colors.textPrimary;
   }
 
   // Apply UI Scale transform variable if specified
@@ -235,6 +288,9 @@ export function importThemeJSON(jsonString: string): PersonalizationSettings | n
       density: ['compact', 'comfortable', 'spacious'].includes(incoming.density as any)
         ? incoming.density!
         : 'comfortable',
+      windowControlPosition: ['left', 'right'].includes(incoming.windowControlPosition as any)
+        ? (incoming.windowControlPosition as 'left' | 'right')
+        : 'left',
       uiScale: typeof incoming.uiScale === 'number' && incoming.uiScale >= 80 && incoming.uiScale <= 150
         ? incoming.uiScale
         : 100

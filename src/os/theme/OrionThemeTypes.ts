@@ -1,6 +1,9 @@
 /** Theme identifiers */
 export type OrionThemeId = 'graphite' | 'silver' | 'midnight' | 'forest' | 'warm';
 
+/** Morphism material mode */
+export type OrionMorphismMode = 'glass' | 'clay' | 'neumorphic';
+
 /** Appearance mode */
 export type OrionAppearanceMode = 'light' | 'dark' | 'auto';
 
@@ -11,7 +14,7 @@ export type OrionWindowStyle = 'standard' | 'glass' | 'compact';
 export type OrionCornerRadius = 'compact' | 'standard' | 'rounded';
 
 /** Dock position */
-export type OrionDockPosition = 'bottom' | 'left' | 'right';
+export type OrionDockPosition = 'bottom' | 'top' | 'left' | 'right';
 
 /** Dock alignment */
 export type OrionDockAlignment = 'center' | 'left';
@@ -42,6 +45,10 @@ export interface OrionThemeColors {
   danger: string;
   info: string;
   focus: string;
+  desktopIconLabel?: string;
+  dockBg?: string;
+  dockBorder?: string;
+  dockShadow?: string;
 }
 
 /** Theme visual effects */
@@ -78,6 +85,7 @@ export interface OrionTheme {
 export interface OrionAppearancePreferences {
   version: 1;
   themeId: OrionThemeId;
+  morphismMode: OrionMorphismMode;
   appearanceMode: OrionAppearanceMode;
   customAccentEnabled: boolean;
   customAccent?: string;
@@ -88,6 +96,7 @@ export interface OrionAppearancePreferences {
   reduceMotion: boolean;
   windowStyle: OrionWindowStyle;
   cornerRadius: OrionCornerRadius;
+  windowControlPosition?: 'left' | 'right';
   dockPosition: OrionDockPosition;
   dockAlignment: OrionDockAlignment;
   dockAutoHide: boolean;
@@ -113,6 +122,7 @@ export interface OrionThemeContextValue {
 export const DEFAULT_PREFERENCES: OrionAppearancePreferences = {
   version: 1,
   themeId: 'graphite',
+  morphismMode: 'glass',
   appearanceMode: 'dark',
   customAccentEnabled: false,
   transparencyEnabled: true,
@@ -122,6 +132,7 @@ export const DEFAULT_PREFERENCES: OrionAppearancePreferences = {
   reduceMotion: false,
   windowStyle: 'standard',
   cornerRadius: 'standard',
+  windowControlPosition: 'left',
   dockPosition: 'bottom',
   dockAlignment: 'center',
   dockAutoHide: false,
@@ -131,3 +142,4 @@ export const DEFAULT_PREFERENCES: OrionAppearancePreferences = {
   iconStyle: 'default',
   widgetStyle: 'solid',
 };
+

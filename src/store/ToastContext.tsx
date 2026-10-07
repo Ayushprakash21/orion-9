@@ -140,7 +140,13 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <ToastContext.Provider value={{ showToast, addToast }}>
       {children}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col-reverse items-end pointer-events-none max-w-[380px] w-full sm:max-w-[380px]">
+      <div
+        style={{
+          bottom: 'calc(var(--orion-os-safe-bottom, 0px) + 24px)',
+          right: 'calc(var(--orion-os-safe-right, 0px) + 24px)',
+        }}
+        className="fixed z-50 flex flex-col-reverse items-end pointer-events-none w-[calc(100vw-24px)] max-w-[380px] transition-all duration-200"
+      >
         <AnimatePresence>
           {visibleToasts.map(toast => (
             <motion.div
@@ -150,7 +156,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               animate="animate"
               exit="exit"
               transition={{ duration: isReduced ? 0.1 : 0.25 }}
-              className="pointer-events-auto flex w-full max-w-[380px] min-w-[340px] gap-3 p-4 rounded-[12px] bg-[rgba(24,27,32,0.94)] border border-[rgba(255,255,255,0.08)] shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-[18px] text-xs text-white"
+              className="pointer-events-auto flex w-full max-w-[380px] min-w-0 gap-3 p-4 rounded-[12px] bg-[rgba(24,27,32,0.94)] border border-[rgba(255,255,255,0.08)] shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-[18px] text-xs text-white"
               onMouseEnter={() => {
                 // Refresh timestamp while hovered so it does not expire.
                 setToasts(prev =>

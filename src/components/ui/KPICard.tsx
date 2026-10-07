@@ -26,8 +26,9 @@ export const KPICard = ({
   return (
     <div 
       onClick={onClick}
-      className={`bg-os-surface border border-os-border rounded-xl p-4 flex flex-col justify-between hover:border-os-border-strong transition-colors relative overflow-hidden ${onClick ? 'cursor-pointer hover:bg-os-surface-hover' : ''}`}
+      className={`bg-[var(--orion-morph-surface,var(--os-surface))] border border-[var(--orion-morph-border,var(--os-border))] shadow-[var(--orion-morph-shadow-soft,0_2px_8px_rgba(0,0,0,0.1))] backdrop-blur-[var(--orion-morph-blur,10px)] rounded-xl p-4 flex flex-col justify-between hover:border-[var(--orion-morph-border-strong,var(--os-border-strong))] hover:shadow-[var(--orion-morph-shadow,0_6px_16px_rgba(0,0,0,0.15))] transition-all relative overflow-hidden ${onClick ? 'cursor-pointer hover:bg-[var(--orion-morph-surface-hover,var(--os-surface-hover))] hover:-translate-y-0.5' : ''}`}
     >
+
       {status === 'critical' && <div className="absolute top-0 left-0 w-full h-0.5 bg-red-500" />}
       {status === 'warning' && <div className="absolute top-0 left-0 w-full h-0.5 bg-amber-500" />}
       {status === 'healthy' && <div className="absolute top-0 left-0 w-full h-0.5 bg-emerald-500" />}

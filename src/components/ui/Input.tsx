@@ -30,18 +30,20 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={cn(
-              'w-full h-10 rounded-lg border bg-os-input-bg text-os-text-primary text-sm',
+              'w-full h-10 rounded-lg border bg-[var(--orion-morph-surface-subtle,var(--os-input-bg))] text-os-text-primary text-sm',
+              'shadow-[var(--orion-morph-shadow-inset,none)]',
               'placeholder:text-os-text-muted',
               'transition-all duration-150 ease-out',
               'focus:outline-none focus:ring-2 focus:ring-os-accent/40 focus:border-os-accent/60',
               'disabled:opacity-50 disabled:cursor-not-allowed',
-              error ? 'border-red-400/60 focus:ring-red-400/40' : 'border-os-border hover:border-os-border-strong',
+              error ? 'border-red-400/60 focus:ring-red-400/40' : 'border-[var(--orion-morph-border,var(--os-border))] hover:border-[var(--orion-morph-border-strong,var(--os-border-strong))]',
               icon ? 'pl-10' : 'pl-3',
               iconRight ? 'pr-10' : 'pr-3',
               className
             )}
             {...props}
           />
+
           {iconRight && (
             <div className="absolute right-3 top-1/2 -translate-y-1/2 text-os-text-muted">
               {iconRight}

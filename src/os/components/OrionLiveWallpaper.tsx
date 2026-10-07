@@ -109,19 +109,50 @@ export function OrionLiveWallpaper({
   const displayedWallpaperRef = useRef<WallpaperRecord>(getInitialRecord());
   const lastKnownGoodWallpaperRef = useRef<WallpaperRecord>(getInitialRecord());
 
-  // Explicit preload & decode function
-  const preloadAndDecodeWallpaper = useCallback(async (url: string): Promise<void> => {
-    if (typeof window === 'undefined') return;
-    const image = new Image();
-    image.src = url;
-    if (typeof image.decode === 'function') {
-      await image.decode();
-    } else {
-      await new Promise<void>((resolve, reject) => {
-        image.onload = () => resolve();
-        image.onerror = reject;
-      });
-    }
+  // Browser-rendered image source tracking:
+  const lastKnownGoodSrcRef = useRef<string>(imgSrc);
+  const failedSrcRef = useRef<string | null>(null);
+
+  // Robust preload and verification:
+  // Candidate is valid only when:
+  // 1. onload occurred
+  // 2. image.complete === true
+  // 3. image.naturalWidth > 0
+  // 4. image.naturalHeight > 0
+  const preloadAndVerifyWallpaper = useCallback((url: string): Promise<void> => {
+    if (typeof window === 'undefined') return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const image = new Image();
+      let settled = false;
+
+      const fail = () => {
+        if (settled) return;
+        settled = true;
+        reject(new Error(`Wallpaper failed to load: ${url}`));
+      };
+
+      const success = () => {
+        if (settled) return;
+        if (
+          image.complete &&
+          image.naturalWidth > 0 &&
+          image.naturalHeight > 0
+        ) {
+          settled = true;
+          resolve();
+        } else {
+          fail();
+        }
+      };
+
+      image.onload = success;
+      image.onerror = fail;
+      image.src = url;
+
+      if (image.complete) {
+        success();
+      }
+    });
   }, []);
 
   // Atomic commit function - guarantees screen is never blanked and stale requests are ignored
@@ -130,8 +161,13 @@ export function OrionLiveWallpaper({
       // Stale request, discard
       return;
     }
+    if (!candidate.assetUrl) return;
+
     displayedWallpaperRef.current = candidate;
     lastKnownGoodWallpaperRef.current = candidate;
+    lastKnownGoodSrcRef.current = candidate.assetUrl;
+    failedSrcRef.current = null;
+
     setActiveWallpaper(candidate);
     setImgSrc(candidate.assetUrl);
   }, []);
@@ -140,13 +176,13 @@ export function OrionLiveWallpaper({
   useEffect(() => {
     if (overrideWallpaper && typeof overrideWallpaper === 'object') {
       const gen = ++wallpaperGenerationRef.current;
-      preloadAndDecodeWallpaper(overrideWallpaper.assetUrl)
+      preloadAndVerifyWallpaper(overrideWallpaper.assetUrl)
         .then(() => commitWallpaperAtomically(overrideWallpaper, gen))
         .catch(() => {
           // If candidate fails, KEEP current wallpaper; never blank
         });
     }
-  }, [overrideWallpaper, preloadAndDecodeWallpaper, commitWallpaperAtomically]);
+  }, [overrideWallpaper, preloadAndVerifyWallpaper, commitWallpaperAtomically]);
 
   // Authoritative background loading and event synchronization
   useEffect(() => {
@@ -167,15 +203,15 @@ export function OrionLiveWallpaper({
           return;
         }
 
-        // Preload & decode before committing atomically
-        await preloadAndDecodeWallpaper(wp.assetUrl);
+        // Preload & verify before committing atomically
+        await preloadAndVerifyWallpaper(wp.assetUrl);
 
         if (mounted && currentGen === wallpaperGenerationRef.current) {
           commitWallpaperAtomically(wp, currentGen);
         }
       } catch (err) {
         console.warn(`[ORION-9] Wallpaper load error for ${target}, preserving current wallpaper:`, err);
-        // Requirement 25: KEEP current wallpaper if future candidate fails. Never blank.
+        // KEEP current wallpaper if future candidate fails. Never blank.
       }
     };
 
@@ -189,7 +225,7 @@ export function OrionLiveWallpaper({
           if (!wp.assetUrl) return;
 
           const currentGen = ++wallpaperGenerationRef.current;
-          preloadAndDecodeWallpaper(wp.assetUrl)
+          preloadAndVerifyWallpaper(wp.assetUrl)
             .then(() => {
               if (mounted && currentGen === wallpaperGenerationRef.current) {
                 commitWallpaperAtomically(wp, currentGen);
@@ -197,7 +233,7 @@ export function OrionLiveWallpaper({
             })
             .catch((err) => {
               console.warn('[ORION-9] Wallpaper candidate preload failed, keeping current wallpaper:', err);
-              // Requirement 25: KEEP the current wallpaper. Never blank the screen.
+              // KEEP the current wallpaper. Never blank the screen.
             });
         }
       } catch (evtErr) {
@@ -215,23 +251,58 @@ export function OrionLiveWallpaper({
         window.removeEventListener('orion-active-wallpaper-changed', handleActiveChange as EventListener);
       }
     };
-  }, [overrideWallpaper, target, userId, tenantId, preloadAndDecodeWallpaper, commitWallpaperAtomically]);
+  }, [overrideWallpaper, target, userId, tenantId, preloadAndVerifyWallpaper, commitWallpaperAtomically]);
 
-  // Safe Image Error Handler: never destroy valid current wallpaper; fallback only if no valid wallpaper exists
-  const handleImageError = useCallback(() => {
-    console.warn(`[ORION-9] Current wallpaper image error event for ${target}.`);
-    // If lastKnownGood exists and differs from failing URL, revert to lastKnownGood
-    if (lastKnownGoodWallpaperRef.current && lastKnownGoodWallpaperRef.current.assetUrl !== imgSrc) {
-      setImgSrc(lastKnownGoodWallpaperRef.current.assetUrl);
-      return;
-    }
+  // Image load handler: records successful source as last known good
+  const handleImageLoad = useCallback(
+    (event: React.SyntheticEvent<HTMLImageElement>) => {
+      const loadedSrc =
+        event.currentTarget.currentSrc ||
+        event.currentTarget.src;
 
-    // Only if there is no valid wallpaper at all, fallback to default
-    const defaultWp = getDefaultRecord();
-    if (imgSrc !== defaultWp.assetUrl) {
-      setImgSrc(defaultWp.assetUrl);
-    }
-  }, [imgSrc, target, getDefaultRecord]);
+      if (loadedSrc) {
+        lastKnownGoodSrcRef.current = loadedSrc;
+        failedSrcRef.current = null;
+      }
+    },
+    []
+  );
+
+  // Safe Image Error Handler: never destroy valid current wallpaper; fallback to lastKnownGoodSrcRef
+  const handleImageError = useCallback(
+    (event: React.SyntheticEvent<HTMLImageElement>) => {
+      const failedSrc =
+        event.currentTarget.currentSrc ||
+        event.currentTarget.src;
+
+      console.warn(
+        `[ORION-9] Wallpaper image failed for ${target}; preserving last known-good source.`,
+        failedSrc
+      );
+
+      if (failedSrcRef.current === failedSrc) {
+        return;
+      }
+
+      failedSrcRef.current = failedSrc;
+
+      const lastGoodSrc = lastKnownGoodSrcRef.current;
+
+      if (lastGoodSrc && lastGoodSrc !== failedSrc) {
+        setImgSrc(lastGoodSrc);
+        return;
+      }
+
+      const defaultSrc = getDefaultRecord().assetUrl;
+
+      if (failedSrc !== defaultSrc) {
+        lastKnownGoodSrcRef.current = defaultSrc;
+        setActiveWallpaper(getDefaultRecord());
+        setImgSrc(defaultSrc);
+      }
+    },
+    [target, getDefaultRecord]
+  );
 
   return (
     <WallpaperErrorBoundary>
@@ -249,11 +320,16 @@ export function OrionLiveWallpaper({
           src={imgSrc}
           alt={activeWallpaper?.name || `${target} Wallpaper`}
           data-orion-wallpaper-image="true"
+          onLoad={handleImageLoad}
           onError={handleImageError}
           draggable={false}
           loading="eager"
           decoding="async"
-          className="orion-desktop-wallpaper-image orion-static-wallpaper-img absolute inset-0 w-full h-full object-cover object-center scale-100 filter-none select-none pointer-events-none"
+          fetchPriority="high"
+          style={{
+            filter: 'blur(var(--orion-wallpaper-blur, 0px)) brightness(var(--orion-wallpaper-brightness, 1))',
+          }}
+          className="orion-desktop-wallpaper-image orion-static-wallpaper-img absolute inset-0 w-full h-full object-cover object-center scale-100 select-none pointer-events-none"
         />
 
         {/* 2. Pure Static Vignette & Cinematic Darkening */}
@@ -267,6 +343,12 @@ export function OrionLiveWallpaper({
           style={{
             background: 'radial-gradient(ellipse at center, transparent 40%, rgba(2, 6, 15, 0.65) 100%)'
           }}
+        />
+
+        {/* 4. Dynamic Dim Overlay controlled by Personalization Engine */}
+        <div 
+          data-testid="orion-wallpaper-dim-overlay"
+          className="orion-wallpaper-dim-overlay"
         />
       </div>
     </WallpaperErrorBoundary>

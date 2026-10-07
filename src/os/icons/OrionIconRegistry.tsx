@@ -26,7 +26,8 @@ import {
   IconDeliveryPod,
   IconWarrantyService,
   IconSupplierCollaboration,
-  IconBuyWorkflow
+  IconBuyWorkflow,
+  IconExecutiveOverview
 } from './icons/OperationsIcons';
 
 import {
@@ -238,6 +239,15 @@ export const IconOrionGeneric: React.FC<{ size?: number; className?: string; act
 // ---------------------------------------------------------------------------
 export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
   // === Operations ===
+  'executive-overview': {
+    appId: 'executive-overview',
+    iconId: 'icon-executive-overview',
+    name: 'Executive Overview',
+    category: 'Operations',
+    description: 'Executive Command Center, cross-enterprise KPI posture, and prioritized intelligence.',
+    palette: { from: '#0B0C0C', to: '#151616', accent: '#39C77A', surface: '#39C77A15' },
+    component: IconExecutiveOverview
+  },
   'command-center': {
     appId: 'command-center',
     iconId: 'icon-cmd-center',

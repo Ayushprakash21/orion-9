@@ -188,7 +188,9 @@ describe('Laptop Responsive UI & Copilot Layout Repair Suite', () => {
       );
 
       expect(html).toContain('data-window-id="orion-ai"');
-      expect(html).toContain('var(--orion-dock-safe-height, 76px)');
+      expect(html).toContain('width:100%');
+      expect(html).toContain('height:100%');
+      expect(html).not.toContain('var(--orion-dock-safe-height');
     });
 
     it('renders window titlebar and window controls (minimize, maximize, close)', () => {

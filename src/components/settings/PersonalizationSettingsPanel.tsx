@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { 
   Image as ImageIcon, Monitor, Sliders, LayoutGrid, Check, 
-  Eye, RefreshCcw, Sparkles, Layers, ArrowUpRight
+  Eye, RefreshCcw, Sparkles, Layers, ArrowUpRight, AppWindow
 } from 'lucide-react';
-import { PersonalizationSettings, DesktopIconSize, DesktopIconLayout, DockPosition, DockSize } from '../../theme/themeTypes';
+import { PersonalizationSettings, DesktopIconSize, DesktopIconLayout, DockPosition, DockSize, WindowControlPosition } from '../../theme/themeTypes';
+import { OrionWindowControls } from '../../os/components/OrionWindowControls';
 import { useToast } from '../../store/ToastContext';
+import { useOSGeometry } from '../../os/dock/DockGeometry';
 
 interface PersonalizationSettingsPanelProps {
   settings: PersonalizationSettings;
@@ -13,6 +15,14 @@ interface PersonalizationSettingsPanelProps {
 
 export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanelProps> = ({ settings, onChange }) => {
   const { showToast } = useToast();
+  const { previewSettings } = useOSGeometry();
+
+  const handleUpdate = (updated: Partial<PersonalizationSettings>) => {
+    // 1. Live preview immediately in OS Geometry & Theme Root
+    previewSettings(updated);
+    // 2. Bubble up to settings editor state
+    onChange(updated);
+  };
 
   const wallpapers = [
     { title: 'Graphite Mesh', value: 'linear-gradient(135deg, #0F1115 0%, #1A1F29 50%, #0F1115 100%)', type: 'gradient' },
@@ -24,7 +34,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
   ];
 
   return (
-    <div className="w-full space-y-8">
+    <div className="w-full space-y-8 pb-[140px] p-4 sm:p-5 md:p-6 min-w-0">
       {/* Banner */}
       <div className="bg-[var(--orion-surface-secondary)] border border-[var(--orion-border)] rounded-xl p-5">
         <h2 className="text-xl font-bold text-[var(--orion-text)] flex items-center gap-2">
@@ -58,7 +68,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
               <button
                 key={wp.title}
                 type="button"
-                onClick={() => onChange({ wallpaperType: wp.type as any, wallpaperValue: wp.value })}
+                onClick={() => handleUpdate({ wallpaperType: wp.type as any, wallpaperValue: wp.value })}
                 className={`group relative h-24 rounded-lg border overflow-hidden transition-all flex flex-col justify-end p-2 text-left ${
                   isSelected
                     ? 'border-[var(--orion-accent)] ring-2 ring-[var(--orion-accent)]/50'
@@ -91,7 +101,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
               min="0"
               max="20"
               value={settings.wallpaperBlur}
-              onChange={(e) => onChange({ wallpaperBlur: Number(e.target.value) })}
+              onChange={(e) => handleUpdate({ wallpaperBlur: Number(e.target.value) })}
               className="w-full accent-[var(--orion-accent)]"
             />
           </div>
@@ -106,7 +116,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
               min="0"
               max="80"
               value={settings.wallpaperDim}
-              onChange={(e) => onChange({ wallpaperDim: Number(e.target.value) })}
+              onChange={(e) => handleUpdate({ wallpaperDim: Number(e.target.value) })}
               className="w-full accent-[var(--orion-accent)]"
             />
           </div>
@@ -133,7 +143,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
                 <button
                   key={s.key}
                   type="button"
-                  onClick={() => onChange({ iconSize: s.key as DesktopIconSize })}
+                  onClick={() => handleUpdate({ iconSize: s.key as DesktopIconSize })}
                   className={`py-2 px-3 rounded-lg text-xs font-medium border transition-colors ${
                     settings.iconSize === s.key
                       ? 'border-[var(--orion-accent)] bg-[var(--orion-accent-subtle)] text-[var(--orion-text)] font-semibold'
@@ -157,7 +167,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
                 <button
                   key={l.key}
                   type="button"
-                  onClick={() => onChange({ iconLayout: l.key as DesktopIconLayout })}
+                  onClick={() => handleUpdate({ iconLayout: l.key as DesktopIconLayout })}
                   className={`py-2 px-3 rounded-lg text-xs font-medium border transition-colors ${
                     settings.iconLayout === l.key
                       ? 'border-[var(--orion-accent)] bg-[var(--orion-accent-subtle)] text-[var(--orion-text)] font-semibold'
@@ -178,7 +188,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
             <input
               type="checkbox"
               checked={settings.autoArrangeIcons}
-              onChange={(e) => onChange({ autoArrangeIcons: e.target.checked })}
+              onChange={(e) => handleUpdate({ autoArrangeIcons: e.target.checked })}
               className="w-4 h-4 rounded accent-[var(--orion-accent)]"
             />
           </label>
@@ -188,7 +198,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
             <input
               type="checkbox"
               checked={settings.snapToGrid}
-              onChange={(e) => onChange({ snapToGrid: e.target.checked })}
+              onChange={(e) => handleUpdate({ snapToGrid: e.target.checked })}
               className="w-4 h-4 rounded accent-[var(--orion-accent)]"
             />
           </label>
@@ -216,7 +226,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
                 <button
                   key={p.key}
                   type="button"
-                  onClick={() => onChange({ dockPosition: p.key as DockPosition })}
+                  onClick={() => handleUpdate({ dockPosition: p.key as DockPosition })}
                   className={`py-2 px-2 rounded-lg text-xs font-medium border text-center transition-colors ${
                     settings.dockPosition === p.key
                       ? 'border-[var(--orion-accent)] bg-[var(--orion-accent-subtle)] text-[var(--orion-text)] font-semibold'
@@ -241,7 +251,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
                 <button
                   key={ds.key}
                   type="button"
-                  onClick={() => onChange({ dockSize: ds.key as DockSize })}
+                  onClick={() => handleUpdate({ dockSize: ds.key as DockSize })}
                   className={`py-2 px-3 rounded-lg text-xs font-medium border text-center transition-colors ${
                     settings.dockSize === ds.key
                       ? 'border-[var(--orion-accent)] bg-[var(--orion-accent-subtle)] text-[var(--orion-text)] font-semibold'
@@ -263,7 +273,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
               <input
                 type="checkbox"
                 checked={settings.dockAutoHide}
-                onChange={(e) => onChange({ dockAutoHide: e.target.checked })}
+                onChange={(e) => handleUpdate({ dockAutoHide: e.target.checked })}
                 className="w-4 h-4 rounded accent-[var(--orion-accent)]"
               />
             </label>
@@ -273,7 +283,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
               <input
                 type="checkbox"
                 checked={settings.dockMagnification}
-                onChange={(e) => onChange({ dockMagnification: e.target.checked })}
+                onChange={(e) => handleUpdate({ dockMagnification: e.target.checked })}
                 className="w-4 h-4 rounded accent-[var(--orion-accent)]"
               />
             </label>
@@ -289,9 +299,141 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
               min="20"
               max="100"
               value={settings.dockTransparency}
-              onChange={(e) => onChange({ dockTransparency: Number(e.target.value) })}
+              onChange={(e) => handleUpdate({ dockTransparency: Number(e.target.value) })}
               className="w-full accent-[var(--orion-accent)]"
             />
+          </div>
+        </div>
+      </div>
+
+      {/* 4. WINDOW CONTROLS POSITION */}
+      <div className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-xl p-5 space-y-4">
+        <div>
+          <label className="text-xs font-bold uppercase tracking-wider text-[var(--orion-text-muted)] flex items-center gap-1.5">
+            <AppWindow className="w-4 h-4 text-[var(--orion-accent)]" />
+            Window Controls Position
+          </label>
+          <p className="text-xs text-[var(--orion-text-secondary)] mt-1">
+            Choose whether window traffic-light controls appear on the left (Mac style) or right (Windows style) side of application windows.
+          </p>
+        </div>
+
+        <div 
+          role="radiogroup" 
+          aria-label="Window control position"
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+        >
+          {/* Card 1: LEFT — Mac Style */}
+          <div
+            role="radio"
+            aria-checked={(settings.windowControlPosition || 'left') === 'left'}
+            tabIndex={0}
+            onClick={() => handleUpdate({ windowControlPosition: 'left' })}
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                handleUpdate({ windowControlPosition: 'left' });
+              }
+            }}
+            className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative space-y-3 flex flex-col justify-between ${
+              (settings.windowControlPosition || 'left') === 'left'
+                ? 'border-[var(--orion-accent)] bg-[var(--orion-surface-hover)] ring-2 ring-[var(--orion-accent)]/30'
+                : 'border-[var(--orion-border)] bg-[var(--orion-surface)] hover:border-[var(--orion-border-strong)] hover:bg-[var(--orion-surface-hover)]'
+            }`}
+          >
+            <div className="border border-[var(--orion-border)] rounded-lg overflow-hidden bg-[var(--orion-surface-elevated)] shadow-sm">
+              <div className="h-8 px-3 flex items-center justify-between border-b border-[var(--orion-border)] bg-[var(--orion-surface)]">
+                <div className="flex items-center gap-2">
+                  <OrionWindowControls appName="Preview" position="left" />
+                  <span className="text-[11px] font-semibold text-[var(--orion-text-primary)] pl-1">Application</span>
+                </div>
+                <div className="w-2 h-2 rounded-full bg-white/10" />
+              </div>
+              <div className="h-10 p-2 flex items-center justify-center bg-[var(--orion-surface)]/50">
+                <span className="text-[10px] text-[var(--orion-text-muted)] font-mono">Red • Yellow • Green</span>
+              </div>
+            </div>
+
+            <div className="flex items-start justify-between gap-3 pt-1">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-[var(--orion-text-primary)]">Left — Mac style</span>
+                  {(settings.windowControlPosition || 'left') === 'left' && (
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[var(--orion-accent)] text-[var(--os-text-primary-inverse)] font-bold">
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-[var(--orion-text-secondary)]">
+                  Close (Red), Minimize (Yellow), Maximize (Green) grouped on top-left.
+                </p>
+              </div>
+              <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                (settings.windowControlPosition || 'left') === 'left'
+                  ? 'border-[var(--orion-accent)] bg-[var(--orion-accent)]'
+                  : 'border-[var(--orion-border-strong)] bg-transparent'
+              }`}>
+                {(settings.windowControlPosition || 'left') === 'left' && (
+                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: RIGHT — Windows Style */}
+          <div
+            role="radio"
+            aria-checked={settings.windowControlPosition === 'right'}
+            tabIndex={0}
+            onClick={() => handleUpdate({ windowControlPosition: 'right' })}
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                handleUpdate({ windowControlPosition: 'right' });
+              }
+            }}
+            className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative space-y-3 flex flex-col justify-between ${
+              settings.windowControlPosition === 'right'
+                ? 'border-[var(--orion-accent)] bg-[var(--orion-surface-hover)] ring-2 ring-[var(--orion-accent)]/30'
+                : 'border-[var(--orion-border)] bg-[var(--orion-surface)] hover:border-[var(--orion-border-strong)] hover:bg-[var(--orion-surface-hover)]'
+            }`}
+          >
+            <div className="border border-[var(--orion-border)] rounded-lg overflow-hidden bg-[var(--orion-surface-elevated)] shadow-sm">
+              <div className="h-8 px-3 flex items-center justify-between border-b border-[var(--orion-border)] bg-[var(--orion-surface)]">
+                <span className="text-[11px] font-semibold text-[var(--orion-text-primary)]">Application</span>
+                <div className="flex items-center gap-2">
+                  <OrionWindowControls appName="Preview" position="right" />
+                </div>
+              </div>
+              <div className="h-10 p-2 flex items-center justify-center bg-[var(--orion-surface)]/50">
+                <span className="text-[10px] text-[var(--orion-text-muted)] font-mono">Green • Yellow • Red</span>
+              </div>
+            </div>
+
+            <div className="flex items-start justify-between gap-3 pt-1">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-[var(--orion-text-primary)]">Right — Windows style</span>
+                  {settings.windowControlPosition === 'right' && (
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[var(--orion-accent)] text-[var(--os-text-primary-inverse)] font-bold">
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-[var(--orion-text-secondary)]">
+                  Maximize (Green), Minimize (Yellow), Close (Red) grouped on top-right.
+                </p>
+              </div>
+              <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                settings.windowControlPosition === 'right'
+                  ? 'border-[var(--orion-accent)] bg-[var(--orion-accent)]'
+                  : 'border-[var(--orion-border-strong)] bg-transparent'
+              }`}>
+                {settings.windowControlPosition === 'right' && (
+                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>

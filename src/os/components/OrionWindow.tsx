@@ -8,6 +8,7 @@ import OrionAppIcon from '../../components/brand/OrionAppIcon';
 import { useResponsiveLayout } from '../../lib/useResponsiveLayout';
 import { RotateCcw, AlertTriangle, Move, Maximize2, Minus, Square, X } from 'lucide-react';
 import { OrionWindowControls } from './OrionWindowControls';
+import { useOSGeometry } from '../dock/DockGeometry';
 import { cn } from '../../lib/utils';
 import { motion } from 'motion/react';
 
@@ -108,6 +109,8 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
 
   const { openContextMenu } = useOrionContextMenu();
   const { showToast } = useToast();
+  const { settings: osSettings } = useOSGeometry();
+  const windowControlPosition = osSettings.windowControlPosition || 'left';
 
   const rawApp = ORION_REGISTRY[win.id];
   const app = rawApp || {
@@ -433,15 +436,17 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
   const isMinimized = win.state === 'minimized';
 
   // Floating or maximized geometry styles inside the desktop workspace stage
+  // In true macOS fashion, the Dock is an overlay layer that floats above applications.
+  // Maximized windows occupy the entire workspace (100% width and 100% height) without being compressed or inset by the Dock.
   const windowStyles: React.CSSProperties = isMaximized
     ? {
         position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
-        bottom: 'var(--orion-dock-safe-height, 76px)',
+        bottom: 0,
         width: '100%',
-        height: 'calc(100% - var(--orion-dock-safe-height, 76px))',
+        height: '100%',
         zIndex: win.zIndex,
       }
     : {
@@ -472,10 +477,10 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
       className={cn(
         "orion-window-surface flex flex-col text-os-text-primary overflow-hidden select-text pointer-events-auto",
         isMinimized && "pointer-events-none",
-        isMaximized ? "rounded-none border-none shadow-none" : "aurora-window-shadow rounded-xl border border-white/[0.08] bg-[var(--orion-surface,#0c0e11)]",
-        isActive && !isMaximized
-          ? "border-white/[0.18] shadow-[0_20px_50px_rgba(0,0,0,0.7)]"
-          : "shadow-[0_12px_36px_rgba(0,0,0,0.5)]"
+        isMaximized 
+          ? "rounded-none border-none shadow-none bg-[var(--orion-surface,#0c0e11)]" 
+          : "rounded-xl border border-[var(--orion-morph-border,rgba(255,255,255,0.08))] bg-[var(--orion-morph-surface,rgba(18,20,23,0.72))] backdrop-blur-[var(--orion-morph-blur,14px)] shadow-[var(--orion-morph-shadow,0_12px_36px_rgba(0,0,0,0.5))]",
+        isActive && !isMaximized && "border-[var(--orion-morph-border-strong,rgba(255,255,255,0.18))] shadow-[var(--orion-morph-shadow-deep,0_20px_50px_rgba(0,0,0,0.7))]"
       )}
     >
       {/* Title Bar / Chrome */}
@@ -509,24 +514,26 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
           isActive ? "text-os-text-primary" : "text-os-text-muted"
         )}
       >
-        {/* Left Section: macOS Traffic-Light Window Controls (Red -> Yellow -> Green) & App Identity */}
+        {/* Left Section: Either Traffic-Light Controls + App Identity OR Just App Identity */}
         <div className="flex items-center gap-3.5 min-w-0 pointer-events-auto select-none">
-          {/* Traffic-light Controls (Top-Left) */}
-          <OrionWindowControls
-            appName={app.name}
-            isMaximized={win.state === 'maximized'}
-            onClose={() => closeApplication(win.id)}
-            onMinimize={() => minimizeApplication(win.id)}
-            onMaximize={() => {
-              if (win.state === 'maximized') {
-                restoreApplication(win.id);
-              } else {
-                maximizeApplication(win.id);
-              }
-            }}
-          />
+          {windowControlPosition === 'left' && (
+            <OrionWindowControls
+              appName={app.name}
+              isMaximized={win.state === 'maximized'}
+              position="left"
+              onClose={() => closeApplication(win.id)}
+              onMinimize={() => minimizeApplication(win.id)}
+              onMaximize={() => {
+                if (win.state === 'maximized') {
+                  restoreApplication(win.id);
+                } else {
+                  maximizeApplication(win.id);
+                }
+              }}
+            />
+          )}
 
-          {/* App Identity (Right of traffic lights) */}
+          {/* App Identity */}
           <div className="flex items-center gap-2 min-w-0 pointer-events-none select-none pl-1">
             <OrionAppIcon app={win.id} size={16} showContainer={false} />
             <span className={cn(
@@ -542,9 +549,24 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
           </div>
         </div>
 
-        {/* Right Section: Clean status or minimal spacer */}
-        <div className="flex items-center gap-2 ml-auto z-20 pointer-events-none pr-1">
-          {/* Reserved for subtle state indicators if needed */}
+        {/* Right Section: Windows-Style Traffic Lights (if position === 'right') or clean spacer */}
+        <div className="flex items-center gap-2 ml-auto z-20 pointer-events-auto pr-1 select-none">
+          {windowControlPosition === 'right' && (
+            <OrionWindowControls
+              appName={app.name}
+              isMaximized={win.state === 'maximized'}
+              position="right"
+              onClose={() => closeApplication(win.id)}
+              onMinimize={() => minimizeApplication(win.id)}
+              onMaximize={() => {
+                if (win.state === 'maximized') {
+                  restoreApplication(win.id);
+                } else {
+                  maximizeApplication(win.id);
+                }
+              }}
+            />
+          )}
         </div>
       </div>
 

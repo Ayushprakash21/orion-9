@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
 import { applyThemeToDocument } from '../theme/themeResolver';
 import { DEFAULT_PERSONALIZATION_SETTINGS } from '../theme/themePresets';
+import { loadPreferences, savePreferences } from '../os/theme/OrionThemeStorage';
 import {
   Product, Warehouse, Inventory, Supplier, PurchaseOrder, Shipment, Exception,
   ImportHistory, Action, Decision, DecisionAuditEvent, UserProfile, OrganizationProfile,
@@ -406,7 +407,12 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   // Sync Orion Theme to Document DOM
   useEffect(() => {
-    const pers = settings.personalization || DEFAULT_PERSONALIZATION_SETTINGS;
+    const activePrefs = loadPreferences();
+    const pers = {
+      ...DEFAULT_PERSONALIZATION_SETTINGS,
+      ...settings.personalization,
+      themeId: settings.personalization?.themeId || activePrefs.themeId || 'graphite'
+    };
     applyThemeToDocument(pers);
   }, [settings.personalization, settings.theme]);
 
@@ -679,6 +685,16 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     try {
       localStorage.setItem('orion_settings', JSON.stringify(normalized));
+      if (normalized.personalization) {
+        const activePrefs = loadPreferences();
+        savePreferences({
+          ...activePrefs,
+          themeId: normalized.personalization.themeId || activePrefs.themeId,
+          appearanceMode: (normalized.personalization.appearanceMode as any) || activePrefs.appearanceMode,
+          windowControlPosition: normalized.personalization.windowControlPosition || activePrefs.windowControlPosition,
+          dockPosition: (normalized.personalization.dockPosition as any) || activePrefs.dockPosition,
+        });
+      }
     } catch (e) {
       console.warn('Could not save settings to localStorage', e);
     }

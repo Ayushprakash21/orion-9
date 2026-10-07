@@ -6,7 +6,7 @@
  * drag-and-drop into folders/Recycle Bin, and seamless file/app execution.
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useWindowManager, WorkspaceId } from '../WindowManagerContext';
 import { desktopWorkspaceService, DEFAULT_GRID_CONFIG } from '../../core/filesystem/DesktopWorkspaceService';
@@ -28,6 +28,7 @@ import { useOrionDeviceMode } from '../../lib/useOrionDeviceMode';
 import { useToast } from '../../store/ToastContext';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { cn } from '../../lib/utils';
+import { useOSGeometry } from '../dock/DockGeometry';
 import {
   FileText,
   Folder,
@@ -89,6 +90,24 @@ export function DesktopWorkspace() {
   const { activeWorkspaceId, openApplication } = useWindowManager();
   const { showToast } = useToast();
   const { isTablet, isTouch } = useOrionDeviceMode();
+  const { settings: osSettings, safeArea, dock, viewportWidth, viewportHeight } = useOSGeometry();
+
+  // Dynamic Grid Configuration based on iconSize setting and dock safe insets
+  const iconSizePreset = osSettings.iconSize || 'medium';
+  const iconPixelSize = iconSizePreset === 'small' ? 40 : (iconSizePreset === 'large' ? 56 : 48);
+  const cellWidth = iconSizePreset === 'small' ? 84 : (iconSizePreset === 'large' ? 108 : 96);
+  const cellHeight = iconSizePreset === 'small' ? 84 : (iconSizePreset === 'large' ? 108 : 96);
+
+  const dynamicGridConfig = useMemo<typeof DEFAULT_GRID_CONFIG>(() => ({
+    cellWidth,
+    cellHeight,
+    paddingX: Math.max(16, safeArea.left + 16),
+    paddingY: Math.max(52, safeArea.top + 8),
+    gapX: 12,
+    gapY: 12,
+    bottomPadding: Math.max(84, safeArea.bottom + 16),
+    rightPadding: Math.max(16, safeArea.right + 16),
+  }), [cellWidth, cellHeight, safeArea]);
 
   const [shortcuts, setShortcuts] = useState<DesktopShortcut[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -623,12 +642,12 @@ export function DesktopWorkspace() {
     const vWidth = typeof window !== 'undefined' ? window.innerWidth : 1920;
     const vHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
     const clampedX = Math.max(
-      DEFAULT_GRID_CONFIG.paddingX,
-      Math.min(vWidth - DEFAULT_GRID_CONFIG.cellWidth - DEFAULT_GRID_CONFIG.paddingX, session.startX + dx)
+      dynamicGridConfig.paddingX,
+      Math.min(vWidth - dynamicGridConfig.cellWidth - (dynamicGridConfig.rightPadding ?? dynamicGridConfig.paddingX), session.startX + dx)
     );
     const clampedY = Math.max(
-      DEFAULT_GRID_CONFIG.paddingY,
-      Math.min(vHeight - DEFAULT_GRID_CONFIG.cellHeight - DEFAULT_GRID_CONFIG.bottomPadding, session.startY + dy)
+      dynamicGridConfig.paddingY,
+      Math.min(vHeight - dynamicGridConfig.cellHeight - dynamicGridConfig.bottomPadding, session.startY + dy)
     );
 
     session.currentX = clampedX;
@@ -740,7 +759,10 @@ export function DesktopWorkspace() {
               finalX,
               finalY,
               vWidth,
-              vHeight
+              vHeight,
+              undefined,
+              undefined,
+              dynamicGridConfig
             );
             if (session.element) {
               session.element.style.transform = `translate3d(${updated.x}px, ${updated.y}px, 0)`;
@@ -876,7 +898,7 @@ export function DesktopWorkspace() {
   const handleAutoArrange = async (sortBy: 'name' | 'type' | 'date') => {
     try {
       const vHeight = typeof window !== 'undefined' ? window.innerHeight : 900;
-      const reordered = await desktopWorkspaceService.autoArrange(activeWorkspaceId, sortBy, vHeight);
+      const reordered = await desktopWorkspaceService.autoArrange(activeWorkspaceId, sortBy, vHeight, undefined, undefined, dynamicGridConfig);
       setShortcuts(reordered);
       setDesktopMenu(null);
       showToast(`Desktop arranged by ${sortBy}`, 'info', 'Desktop');
@@ -1041,7 +1063,7 @@ export function DesktopWorkspace() {
 
   // Icon Renderer Helper
   const renderShortcutIcon = (shortcut: DesktopShortcut, isSelected: boolean) => {
-    const iconSize = isTablet ? 54 : 48;
+    const iconSize = isTablet ? Math.round(iconPixelSize * 1.15) : iconPixelSize;
     const iconId = shortcut.iconId || shortcut.icon || shortcut.targetId;
 
     if (shortcut.targetId === 'documents-folder') {
@@ -1190,8 +1212,8 @@ export function DesktopWorkspace() {
                 data-testid={`desktop-shortcut-ghost-${shortcut.targetId}`}
                 style={{
                   transform: `translate3d(${shortcut.x}px, ${shortcut.y}px, 0)`,
-                  width: `${DEFAULT_GRID_CONFIG.cellWidth}px`,
-                  minHeight: `${DEFAULT_GRID_CONFIG.cellHeight}px`,
+                  width: `${dynamicGridConfig.cellWidth}px`,
+                  minHeight: `${dynamicGridConfig.cellHeight}px`,
                 }}
                 className="absolute top-0 left-0 flex flex-col items-center justify-start p-2 rounded-xl border-2 border-dashed border-white/20 bg-white/[0.04] opacity-50 pointer-events-none z-10"
               >
@@ -1210,8 +1232,8 @@ export function DesktopWorkspace() {
               data-testid={`desktop-shortcut-${shortcut.targetId}`}
               style={{
                 transform: `translate3d(${shortcut.x}px, ${shortcut.y}px, 0)`,
-                width: `${DEFAULT_GRID_CONFIG.cellWidth}px`,
-                minHeight: `${DEFAULT_GRID_CONFIG.cellHeight}px`,
+                width: `${dynamicGridConfig.cellWidth}px`,
+                minHeight: `${dynamicGridConfig.cellHeight}px`,
                 zIndex: isBeingDragged ? 1000 : (isSelected ? 25 : 20),
               }}
               onPointerDown={e => handleShortcutPointerDown(e, shortcut)}
@@ -1245,24 +1267,28 @@ export function DesktopWorkspace() {
                 setItemMenu({ x: e.clientX, y: e.clientY, shortcut });
               }}
               className={cn(
-                "absolute top-0 left-0 flex flex-col items-center justify-start p-2 rounded-xl transition-all duration-150 select-none group touch-none min-h-[44px] min-w-[44px] cursor-grab focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-os-accent",
-                isBeingDragged && "cursor-grabbing z-[1000] opacity-90 scale-105 shadow-2xl ring-1 ring-sky-500/50 backdrop-blur-md",
-                isDropTarget && "bg-sky-500/20 ring-2 ring-sky-500/40 scale-105 shadow-lg z-30",
+                "absolute top-0 left-0 flex flex-col items-center justify-start p-1.5 rounded-xl transition-all duration-150 select-none group touch-none min-h-[44px] min-w-[44px] cursor-grab focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-os-accent",
+                isBeingDragged && "cursor-grabbing z-[1000] opacity-90 scale-105 shadow-2xl ring-1 ring-white/20 backdrop-blur-md",
+                isDropTarget && "bg-white/[0.12] ring-2 ring-white/30 scale-105 shadow-lg z-30",
                 isSelected && !isBeingDragged
-                  ? "bg-os-accent/20 border border-os-accent/50 shadow-md backdrop-blur-xs z-25"
-                  : "hover:bg-os-surface-hover/30 hover:scale-[1.04] active:scale-[0.96] border border-transparent"
+                  ? "bg-white/[0.12] border border-white/20 shadow-md backdrop-blur-xs z-25 ring-1 ring-white/25"
+                  : "hover:bg-white/[0.06] hover:scale-[1.03] active:scale-[0.97] border border-transparent"
               )}
             >
-              <div className="group-hover:scale-105 transition-transform pointer-events-none">
+              <div className="group-hover:scale-105 transition-transform pointer-events-none shrink-0">
                 {renderShortcutIcon(shortcut, isSelected)}
               </div>
               <div
                 className={cn(
-                  "mt-1.5 w-full max-w-[140px] px-1 text-center text-[11px] font-medium leading-[15px] whitespace-normal break-words overflow-visible transition-colors drop-shadow-md pointer-events-none",
+                  "mt-1 w-full max-w-[140px] px-1.5 py-0.5 text-center text-[12px] font-medium leading-[1.3] whitespace-normal break-words line-clamp-3 overflow-visible transition-colors pointer-events-none rounded select-none",
                   isSelected
-                    ? "text-os-accent font-semibold bg-black/40 rounded"
-                    : "text-os-text-primary group-hover:text-os-text-primary"
+                    ? "bg-black/50 shadow-xs"
+                    : "hover:bg-black/25"
                 )}
+                style={{
+                  color: 'var(--orion-desktop-icon-label, #F3EBDD)',
+                  textShadow: '0 1px 3px rgba(0, 0, 0, 0.75)'
+                }}
                 title={shortcut.name}
               >
                 {shortcut.name}
@@ -1455,7 +1481,12 @@ export function DesktopWorkspace() {
             data-action="personalize"
             onClick={(e) => {
               e.stopPropagation();
-              handleMenuAction(() => openApplication('settings'));
+              handleMenuAction(() => {
+                openApplication('settings');
+                setTimeout(() => {
+                  window.dispatchEvent(new CustomEvent('orion-open-settings', { detail: { section: 'desktop' } }));
+                }, 100);
+              });
             }}
             className="flex items-center gap-2 px-3 py-2 hover:bg-os-surface-hover text-os-text-primary text-left min-h-[36px] transition-colors rounded-lg mx-1 cursor-pointer"
           >

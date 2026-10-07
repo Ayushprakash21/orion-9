@@ -110,12 +110,14 @@ import { OrionDocuments, OrionSheets, OrionSlides, OrionPdf } from '../component
 import { AutonomousCommandCenter } from '../components/autonomy/AutonomousCommandCenter';
 import { MultiPartyNetworkPortal } from '../network/MultiPartyNetworkPortal';
 import { GuidedBuyWorkflow } from '../components/guided/GuidedBuyWorkflow';
+import { ExecutiveOverview } from '../components/executive/ExecutiveOverview';
 
 
 const ProfileUserView: React.FC = () => <Profile initialTab="profile" />;
 const ProfileOrgView: React.FC = () => <Profile initialTab="organization" />;
 
 export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
+  'executive-overview': ExecutiveOverview,
   'command-center': Dashboard,
   'autonomous-command-center': AutonomousCommandCenter,
   'multi-party-network': MultiPartyNetworkPortal,

@@ -1,4 +1,5 @@
 import { OrionTheme, OrionAppearancePreferences, OrionCornerRadius } from './OrionThemeTypes';
+import { computeMorphismTokens } from './OrionMorphismTokens';
 
 /**
  * Maps corner radius preset to actual pixel value
@@ -114,12 +115,50 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   root.style.setProperty('--orion-chart-4', theme.chart.chart4);
   root.style.setProperty('--orion-chart-5', theme.chart.chart5);
 
+  // Desktop Icon Label & Dock styling
+  root.style.setProperty('--orion-desktop-icon-label', theme.colors.desktopIconLabel || (theme.appearance.mode === 'light' ? '#17191B' : '#F3EBDD'));
+  root.style.setProperty('--orion-dock-bg', theme.colors.dockBg || 'rgba(241, 236, 226, 0.94)');
+  root.style.setProperty('--orion-dock-border', theme.colors.dockBorder || 'rgba(70, 65, 55, 0.16)');
+  root.style.setProperty('--orion-dock-shadow', theme.colors.dockShadow || '0 20px 48px rgba(0, 0, 0, 0.45)');
+
   // Motion
   root.style.setProperty('--orion-transition-speed', preferences.reduceMotion ? '0ms' : '150ms');
+
+  // Compute and inject Canonical Morphic System Tokens
+  const morph = computeMorphismTokens(theme, preferences);
+  root.style.setProperty('--orion-morph-mode', morph.mode);
+  root.style.setProperty('--orion-morph-surface', morph.surface);
+  root.style.setProperty('--orion-morph-surface-subtle', morph.surfaceSubtle);
+  root.style.setProperty('--orion-morph-surface-elevated', morph.surfaceElevated);
+  root.style.setProperty('--orion-morph-surface-hover', morph.surfaceHover);
+  root.style.setProperty('--orion-morph-surface-active', morph.surfaceActive);
+  root.style.setProperty('--orion-morph-surface-pressed', morph.surfacePressed);
+  root.style.setProperty('--orion-morph-surface-disabled', morph.surfaceDisabled);
+
+  root.style.setProperty('--orion-morph-border', morph.border);
+  root.style.setProperty('--orion-morph-border-strong', morph.borderStrong);
+
+  root.style.setProperty('--orion-morph-blur', morph.blur);
+  root.style.setProperty('--orion-morph-backdrop', morph.backdrop);
+  root.style.setProperty('--orion-morph-saturation', morph.saturation);
+
+  root.style.setProperty('--orion-morph-shadow', morph.shadow);
+  root.style.setProperty('--orion-morph-shadow-soft', morph.shadowSoft);
+  root.style.setProperty('--orion-morph-shadow-deep', morph.shadowDeep);
+  root.style.setProperty('--orion-morph-shadow-inset', morph.shadowInset);
+  root.style.setProperty('--orion-morph-highlight', morph.highlight);
+
+  root.style.setProperty('--orion-morph-elevation-0', morph.elevation0);
+  root.style.setProperty('--orion-morph-elevation-1', morph.elevation1);
+  root.style.setProperty('--orion-morph-elevation-2', morph.elevation2);
+  root.style.setProperty('--orion-morph-elevation-3', morph.elevation3);
+  root.style.setProperty('--orion-morph-elevation-modal', morph.elevationModal);
 
   // Metadata attributes and classList toggle for light/dark Tailwind/OS styling
   root.setAttribute('data-orion-theme', theme.id);
   root.setAttribute('data-orion-mode', theme.appearance.mode);
+  root.setAttribute('data-orion-morphism', morph.mode);
+  root.setAttribute('data-window-control-position', preferences.windowControlPosition || 'left');
   root.classList.remove('light', 'dark');
   root.classList.add(theme.appearance.mode);
   root.style.colorScheme = theme.appearance.mode;
@@ -128,3 +167,4 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
     document.body.style.color = theme.colors.textPrimary;
   }
 }
+

@@ -45,11 +45,22 @@
   --color-orion-danger: var(--orion-danger);
   --color-orion-info: var(--orion-info);
   --color-orion-focus: var(--orion-focus);
+
+  /* Canonical Morphic System Tokens */
+  --color-orion-morph-surface: var(--orion-morph-surface);
+  --color-orion-morph-surface-subtle: var(--orion-morph-surface-subtle);
+  --color-orion-morph-surface-elevated: var(--orion-morph-surface-elevated);
+  --color-orion-morph-surface-hover: var(--orion-morph-surface-hover);
+  --color-orion-morph-surface-active: var(--orion-morph-surface-active);
+  --color-orion-morph-surface-pressed: var(--orion-morph-surface-pressed);
+  --color-orion-morph-border: var(--orion-morph-border);
+  --color-orion-morph-border-strong: var(--orion-morph-border-strong);
 }
+
 
 :root, :root.dark {
   --orion-boot-motion-scale: 1.25;
-  --orion-dock-safe-height: 76px;
+  --orion-dock-safe-height: 0px;
   --orion-mobile-nav-height: 56px;
   --orion-mobile-header-height: 54px;
   /* ORION GRAPHITE (Default OS Theme Foundation) */
@@ -107,6 +118,37 @@
   --orion-chart-4: #B07DA3;
   --orion-chart-5: #6DBAB0;
 
+  /* Desktop Icon Label & Dock Tokens (Enterprise Cream Foundation) */
+  --orion-desktop-icon-label: #F3EBDD;
+  --orion-dock-bg: rgba(241, 236, 226, 0.94);
+  --orion-dock-border: rgba(70, 65, 55, 0.16);
+  --orion-dock-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
+
+  /* Canonical Morphic Foundation Defaults (Glassmorphism Default) */
+  --orion-morph-mode: glass;
+  --orion-morph-surface: rgba(18, 20, 23, 0.72);
+  --orion-morph-surface-subtle: rgba(18, 20, 23, 0.60);
+  --orion-morph-surface-elevated: rgba(18, 20, 23, 0.82);
+  --orion-morph-surface-hover: rgba(18, 20, 23, 0.86);
+  --orion-morph-surface-active: rgba(18, 20, 23, 0.92);
+  --orion-morph-surface-pressed: rgba(18, 20, 23, 0.96);
+  --orion-morph-surface-disabled: rgba(18, 20, 23, 0.40);
+  --orion-morph-border: rgba(255, 255, 255, 0.09);
+  --orion-morph-border-strong: rgba(255, 255, 255, 0.18);
+  --orion-morph-blur: 14px;
+  --orion-morph-backdrop: blur(14px) saturate(125%);
+  --orion-morph-saturation: 125%;
+  --orion-morph-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --orion-morph-shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --orion-morph-shadow-deep: 0 16px 40px rgba(0, 0, 0, 0.65);
+  --orion-morph-shadow-inset: inset 0 1px 1px rgba(255, 255, 255, 0.10);
+  --orion-morph-highlight: rgba(255, 255, 255, 0.12);
+  --orion-morph-elevation-0: none;
+  --orion-morph-elevation-1: 0 4px 12px rgba(0, 0, 0, 0.45);
+  --orion-morph-elevation-2: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --orion-morph-elevation-3: 0 16px 36px rgba(0, 0, 0, 0.65);
+  --orion-morph-elevation-modal: 0 24px 54px rgba(0, 0, 0, 0.65);
+
   background-color: var(--os-bg);
   color: var(--os-text-primary);
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -114,7 +156,7 @@
 }
 
 :root.light {
-  --orion-dock-safe-height: 76px;
+  --orion-dock-safe-height: 0px;
   --orion-mobile-nav-height: 56px;
   --orion-mobile-header-height: 54px;
   /* ORION SILVER (Light OS Theme Foundation) */
@@ -172,6 +214,37 @@
   --orion-chart-4: #8E5E85;
   --orion-chart-5: #4A9E94;
 
+  /* Desktop Icon Label & Dock Tokens (Light Mode Foundation) */
+  --orion-desktop-icon-label: #17191B;
+  --orion-dock-bg: rgba(245, 241, 233, 0.95);
+  --orion-dock-border: rgba(70, 65, 55, 0.14);
+  --orion-dock-shadow: 0 16px 40px rgba(0, 0, 0, 0.14);
+
+  /* Canonical Morphic Foundation Defaults for Light (Glassmorphism Default) */
+  --orion-morph-mode: glass;
+  --orion-morph-surface: rgba(255, 255, 255, 0.72);
+  --orion-morph-surface-subtle: rgba(255, 255, 255, 0.60);
+  --orion-morph-surface-elevated: rgba(255, 255, 255, 0.82);
+  --orion-morph-surface-hover: rgba(255, 255, 255, 0.86);
+  --orion-morph-surface-active: rgba(255, 255, 255, 0.92);
+  --orion-morph-surface-pressed: rgba(255, 255, 255, 0.96);
+  --orion-morph-surface-disabled: rgba(255, 255, 255, 0.40);
+  --orion-morph-border: rgba(0, 0, 0, 0.09);
+  --orion-morph-border-strong: rgba(0, 0, 0, 0.16);
+  --orion-morph-blur: 12px;
+  --orion-morph-backdrop: blur(12px) saturate(125%);
+  --orion-morph-saturation: 125%;
+  --orion-morph-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
+  --orion-morph-shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.10);
+  --orion-morph-shadow-deep: 0 16px 40px rgba(0, 0, 0, 0.18);
+  --orion-morph-shadow-inset: inset 0 1px 1px rgba(255, 255, 255, 0.60);
+  --orion-morph-highlight: rgba(255, 255, 255, 0.75);
+  --orion-morph-elevation-0: none;
+  --orion-morph-elevation-1: 0 4px 12px rgba(0, 0, 0, 0.10);
+  --orion-morph-elevation-2: 0 8px 24px rgba(0, 0, 0, 0.10);
+  --orion-morph-elevation-3: 0 16px 36px rgba(0, 0, 0, 0.18);
+  --orion-morph-elevation-modal: 0 24px 54px rgba(0, 0, 0, 0.18);
+
   background-color: var(--os-bg);
   color: var(--os-text-primary);
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -207,6 +280,87 @@
   background: #98A2B3;
 }
 
+/* ==========================================================================
+   CANONICAL ORION-9 MORPHIC DESIGN SYSTEM CLASSES
+   ========================================================================== */
+
+/* Universal Morphic Surface */
+.orion-morphic-surface {
+  background-color: var(--orion-morph-surface) !important;
+  border-color: var(--orion-morph-border) !important;
+  box-shadow: var(--orion-morph-shadow) !important;
+  backdrop-filter: var(--orion-morph-backdrop) !important;
+  -webkit-backdrop-filter: var(--orion-morph-backdrop) !important;
+  transition: background-color var(--orion-transition-speed, 150ms) ease,
+              border-color var(--orion-transition-speed, 150ms) ease,
+              box-shadow var(--orion-transition-speed, 150ms) ease,
+              transform var(--orion-transition-speed, 150ms) ease;
+}
+
+/* Elevated Morphic Surface */
+.orion-morphic-elevated {
+  background-color: var(--orion-morph-surface-elevated) !important;
+  border-color: var(--orion-morph-border-strong) !important;
+  box-shadow: var(--orion-morph-shadow-deep) !important;
+  backdrop-filter: var(--orion-morph-backdrop) !important;
+  -webkit-backdrop-filter: var(--orion-morph-backdrop) !important;
+}
+
+/* Subtle / Recessed Morphic Surface */
+.orion-morphic-subtle {
+  background-color: var(--orion-morph-surface-subtle) !important;
+  border-color: var(--orion-morph-border) !important;
+  box-shadow: var(--orion-morph-shadow-soft) !important;
+}
+
+/* Interactive Morphic Controls (Buttons, List items, Tabs) */
+.orion-morphic-interactive {
+  background-color: var(--orion-morph-surface) !important;
+  border-color: var(--orion-morph-border) !important;
+  box-shadow: var(--orion-morph-shadow-soft) !important;
+  backdrop-filter: var(--orion-morph-backdrop) !important;
+  -webkit-backdrop-filter: var(--orion-morph-backdrop) !important;
+  transition: all var(--orion-transition-speed, 150ms) cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.orion-morphic-interactive:hover {
+  background-color: var(--orion-morph-surface-hover) !important;
+  box-shadow: var(--orion-morph-shadow) !important;
+}
+
+.orion-morphic-interactive:active {
+  background-color: var(--orion-morph-surface-pressed) !important;
+  box-shadow: var(--orion-morph-shadow-inset) !important;
+  transform: translateY(1px);
+}
+
+/* Recessed Inset Morphic Control (Inputs, Searchbars, Sliders, Recessed Panels) */
+.orion-morphic-recessed {
+  background-color: var(--orion-morph-surface-subtle) !important;
+  border-color: var(--orion-morph-border) !important;
+  box-shadow: var(--orion-morph-shadow-inset) !important;
+}
+
+/* Accessibility: Reduced Transparency Override */
+@media (prefers-reduced-transparency: reduce) {
+  :root, :root.dark, :root.light {
+    --orion-morph-backdrop: none !important;
+    --orion-morph-blur: 0px !important;
+    --orion-morph-surface: var(--orion-surface) !important;
+    --orion-morph-surface-elevated: var(--orion-surface-elevated) !important;
+  }
+}
+
+/* Accessibility: Reduced Motion Override */
+@media (prefers-reduced-motion: reduce) {
+  .orion-morphic-surface,
+  .orion-morphic-interactive,
+  .orion-morphic-elevated {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
 
 
 
@@ -227,16 +381,6 @@ html, body {
   inset: 0;
 }
 
-body::after {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background-color: #000;
-  opacity: var(--os-brightness-overlay, 0);
-  pointer-events: none;
-  z-index: 2147483647; /* Ensure it stays on top of everything */
-  transition: opacity 0.2s ease;
-}
 
 #root {
   width: 100%;
@@ -669,6 +813,19 @@ html, body, #root {
   transform: none !important;
   pointer-events: none !important;
   user-select: none !important;
+  filter: blur(var(--orion-wallpaper-blur, 0px)) brightness(var(--orion-wallpaper-brightness, 1)) !important;
+  transition: filter 0.2s ease-out !important;
+}
+
+/* Wallpaper Dim Overlay Layer */
+.orion-wallpaper-dim-overlay {
+  position: absolute !important;
+  inset: 0 !important;
+  background-color: #000000 !important;
+  opacity: var(--orion-wallpaper-dim, 0) !important;
+  pointer-events: none !important;
+  z-index: 1 !important;
+  transition: opacity 0.2s ease-out !important;
 }
 
 /* OS Layer 1: The interactive backdrop / DesktopWorkspace — transparent surface */
@@ -729,7 +886,7 @@ html, body, #root {
 .orion-app-viewport > [data-window-id] {
   max-width: 100% !important;
   max-height: 100% !important;
-  transition: bottom 0.25s cubic-bezier(0.16, 1, 0.3, 1), height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: top 0.25s cubic-bezier(0.16, 1, 0.3, 1), left 0.25s cubic-bezier(0.16, 1, 0.3, 1), right 0.25s cubic-bezier(0.16, 1, 0.3, 1), bottom 0.25s cubic-bezier(0.16, 1, 0.3, 1), width 0.25s cubic-bezier(0.16, 1, 0.3, 1), height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ADMIN DESKTOP ----------------------------------------------------------- */

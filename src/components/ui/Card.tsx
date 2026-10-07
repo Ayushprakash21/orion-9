@@ -16,20 +16,20 @@ export const Card: React.FC<CardProps> = ({
   ...props
 }) => {
   const variantStyles = {
-    default: 'bg-os-surface border-os-border',
-    elevated: 'bg-os-surface-elevated border-os-border-strong shadow-md',
-    subtle: 'bg-os-surface-secondary border-os-border',
-    critical: 'bg-os-surface border-red-500/30',
-    warning: 'bg-os-surface border-amber-500/30',
-    healthy: 'bg-os-surface border-emerald-500/30',
+    default: 'bg-[var(--orion-morph-surface,var(--os-surface))] border-[var(--orion-morph-border,var(--os-border))] shadow-[var(--orion-morph-shadow-soft,0_2px_8px_rgba(0,0,0,0.1))] backdrop-blur-[var(--orion-morph-blur,10px)]',
+    elevated: 'bg-[var(--orion-morph-surface-elevated,var(--os-surface-elevated))] border-[var(--orion-morph-border-strong,var(--os-border-strong))] shadow-[var(--orion-morph-shadow-deep,0_10px_25px_rgba(0,0,0,0.2))] backdrop-blur-[var(--orion-morph-blur,12px)]',
+    subtle: 'bg-[var(--orion-morph-surface-subtle,var(--os-surface-secondary))] border-[var(--orion-morph-border,var(--os-border))] shadow-[var(--orion-morph-elevation-0,none)]',
+    critical: 'bg-[var(--orion-morph-surface,var(--os-surface))] border-red-500/30 shadow-[var(--orion-morph-shadow-soft,none)]',
+    warning: 'bg-[var(--orion-morph-surface,var(--os-surface))] border-amber-500/30 shadow-[var(--orion-morph-shadow-soft,none)]',
+    healthy: 'bg-[var(--orion-morph-surface,var(--os-surface))] border-emerald-500/30 shadow-[var(--orion-morph-shadow-soft,none)]',
   }[variant];
 
   return (
     <div
       className={cn(
-        'rounded-xl border shadow-sm overflow-hidden box-border transition-colors relative',
+        'rounded-xl border overflow-hidden box-border transition-all relative',
         variantStyles,
-        hoverEffect && 'hover:border-os-border-strong hover:shadow-md transition-all',
+        hoverEffect && 'hover:border-[var(--orion-morph-border-strong,var(--os-border-strong))] hover:shadow-[var(--orion-morph-shadow,0_8px_20px_rgba(0,0,0,0.15))] hover:-translate-y-0.5',
         className
       )}
       {...props}
@@ -38,6 +38,7 @@ export const Card: React.FC<CardProps> = ({
     </div>
   );
 };
+
 
 export const CardHeader: React.FC<React.HTMLAttributes<HTMLDivElement> & {
   title?: React.ReactNode;

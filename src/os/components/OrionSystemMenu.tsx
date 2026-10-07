@@ -57,6 +57,14 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
       className="w-64 bg-os-surface/95 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.02)] py-1.5 text-[13px] font-sans overflow-hidden origin-top-left"
     >
       <button 
+        onClick={() => handleAction(() => openApplication('executive-overview'))}
+        className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors font-medium cursor-pointer flex items-center justify-between"
+      >
+        <span>Executive Command Center</span>
+        <span className="text-[10px] font-mono text-[#39C77A] px-1.5 py-0.2 rounded bg-[#39C77A]/10 border border-[#39C77A]/30">C3</span>
+      </button>
+
+      <button 
         onClick={() => handleAction(() => openApplication('about'))}
         className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors font-medium cursor-pointer"
       >

@@ -5,7 +5,8 @@ import {
 } from 'lucide-react';
 import { useOrionTheme } from '../../os/theme/useOrionTheme';
 import { ORION_THEMES, getThemeList } from '../../os/theme/OrionThemeRegistry';
-import { OrionThemeId, OrionAppearanceMode, OrionCornerRadius, OrionWindowStyle } from '../../os/theme/OrionThemeTypes';
+import { OrionThemeId, OrionAppearanceMode, OrionCornerRadius, OrionWindowStyle, OrionMorphismMode } from '../../os/theme/OrionThemeTypes';
+import { OrionWindowControls } from '../../os/components/OrionWindowControls';
 import { useToast } from '../../store/ToastContext';
 
 export const AppearanceSettingsPanel: React.FC = () => {
@@ -80,6 +81,8 @@ export const AppearanceSettingsPanel: React.FC = () => {
           if (typeof parsed.reduceMotion === 'boolean') setPreference('reduceMotion', parsed.reduceMotion);
           if (parsed.cornerRadius) setPreference('cornerRadius', parsed.cornerRadius);
           if (parsed.windowStyle) setPreference('windowStyle', parsed.windowStyle);
+          if (parsed.windowControlPosition) setPreference('windowControlPosition', parsed.windowControlPosition);
+          if (parsed.morphismMode) setPreference('morphismMode', parsed.morphismMode);
           showToast('Appearance preferences imported successfully!', 'success');
         } else {
           setImportError('Invalid configuration schema or missing version.');
@@ -92,7 +95,7 @@ export const AppearanceSettingsPanel: React.FC = () => {
   };
 
   return (
-    <div className="w-full space-y-8 select-none">
+    <div className="w-full space-y-8 select-none pb-24 p-4 sm:p-5 md:p-6">
       {/* Header Banner */}
       <div className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
         <div>
@@ -441,7 +444,397 @@ export const AppearanceSettingsPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* 5. INTERACTIVE LIVE WINDOW PREVIEW BOX */}
+      {/* 4.5 INTERFACE MATERIAL MODE (MORPHIC UI ENGINE) */}
+      <div className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-2xl p-5 sm:p-6 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <label className="text-xs font-bold uppercase tracking-wider text-[var(--orion-text-muted)] flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-[var(--orion-accent)]" />
+              Interface Material System (Morphism Engine)
+            </label>
+            <p className="text-xs text-[var(--orion-text-secondary)] mt-1">
+              Select the global tactile material physics applied across cards, windows, dock, inputs, and interactive surfaces.
+            </p>
+          </div>
+          <span className="text-[11px] font-mono text-[var(--orion-text-secondary)]">
+            Active Material: <span className="font-bold text-[var(--orion-text-primary)] capitalize">{preferences.morphismMode || 'glass'}</span>
+          </span>
+        </div>
+
+        {/* 3 Morphic Modes Cards */}
+        <div 
+          role="radiogroup" 
+          aria-label="Interface Material Mode"
+          className="grid grid-cols-1 md:grid-cols-3 gap-4"
+        >
+          {/* 1. GLASSMORPHISM */}
+          <div
+            role="radio"
+            aria-checked={(preferences.morphismMode || 'glass') === 'glass'}
+            tabIndex={0}
+            onClick={() => setPreference('morphismMode', 'glass')}
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                setPreference('morphismMode', 'glass');
+              }
+            }}
+            className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative space-y-3 flex flex-col justify-between ${
+              (preferences.morphismMode || 'glass') === 'glass'
+                ? 'border-[var(--orion-accent)] bg-[var(--orion-surface-hover)] ring-2 ring-[var(--orion-accent)]/30'
+                : 'border-[var(--orion-border)] bg-[var(--orion-surface)] hover:border-[var(--orion-border-strong)] hover:bg-[var(--orion-surface-hover)]'
+            }`}
+          >
+            {/* Visual Micro Preview */}
+            <div className="p-3 rounded-lg border border-white/10 bg-white/[0.04] backdrop-blur-md shadow-sm space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono text-white/90 font-semibold">Glassmorphic Layer</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-white/80 font-mono">blur: 16px</span>
+              </div>
+              <div className="h-6 rounded bg-white/[0.06] border border-white/10 flex items-center px-2 text-[10px] text-white/70">
+                Translucent Surface
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[var(--orion-text-primary)]">Glassmorphism</span>
+                {(preferences.morphismMode || 'glass') === 'glass' && (
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--orion-accent)] text-[var(--os-text-primary-inverse)] font-bold">
+                    DEFAULT
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-[var(--orion-text-secondary)] leading-relaxed">
+                Translucent, layered, backdrop-blurred surfaces with subtle specular border reflections and atmospheric depth.
+              </p>
+            </div>
+          </div>
+
+          {/* 2. CLAYMORPHISM */}
+          <div
+            role="radio"
+            aria-checked={preferences.morphismMode === 'clay'}
+            tabIndex={0}
+            onClick={() => setPreference('morphismMode', 'clay')}
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                setPreference('morphismMode', 'clay');
+              }
+            }}
+            className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative space-y-3 flex flex-col justify-between ${
+              preferences.morphismMode === 'clay'
+                ? 'border-[var(--orion-accent)] bg-[var(--orion-surface-hover)] ring-2 ring-[var(--orion-accent)]/30'
+                : 'border-[var(--orion-border)] bg-[var(--orion-surface)] hover:border-[var(--orion-border-strong)] hover:bg-[var(--orion-surface-hover)]'
+            }`}
+          >
+            {/* Visual Micro Preview */}
+            <div 
+              className="p-3 rounded-xl border space-y-2"
+              style={{
+                backgroundColor: 'var(--orion-surface-elevated)',
+                borderColor: 'rgba(255, 255, 255, 0.12)',
+                boxShadow: '0 8px 16px -4px rgba(0,0,0,0.4), inset 1px 1px 2px rgba(255,255,255,0.18)',
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-semibold text-[var(--orion-text-primary)]">Tactile Clay</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--orion-accent-soft)] text-[var(--orion-accent)] font-mono">3D depth</span>
+              </div>
+              <div 
+                className="h-6 rounded-lg flex items-center px-2 text-[10px] text-[var(--orion-text-secondary)]"
+                style={{
+                  backgroundColor: 'var(--orion-surface)',
+                  boxShadow: 'inset 1px 1px 2px rgba(255,255,255,0.12), 0 3px 6px rgba(0,0,0,0.25)'
+                }}
+              >
+                Physical Floating Card
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[var(--orion-text-primary)]">Claymorphism</span>
+                {preferences.morphismMode === 'clay' && (
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--orion-accent)] text-[var(--os-text-primary-inverse)] font-bold">
+                    ACTIVE
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-[var(--orion-text-secondary)] leading-relaxed">
+                Soft, tactile, friendly dimensional surfaces featuring inner rim specular highlights and rounded volumetric drop shadows.
+              </p>
+            </div>
+          </div>
+
+          {/* 3. NEUMORPHISM */}
+          <div
+            role="radio"
+            aria-checked={preferences.morphismMode === 'neumorphic'}
+            tabIndex={0}
+            onClick={() => setPreference('morphismMode', 'neumorphic')}
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                setPreference('morphismMode', 'neumorphic');
+              }
+            }}
+            className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative space-y-3 flex flex-col justify-between ${
+              preferences.morphismMode === 'neumorphic'
+                ? 'border-[var(--orion-accent)] bg-[var(--orion-surface-hover)] ring-2 ring-[var(--orion-accent)]/30'
+                : 'border-[var(--orion-border)] bg-[var(--orion-surface)] hover:border-[var(--orion-border-strong)] hover:bg-[var(--orion-surface-hover)]'
+            }`}
+          >
+            {/* Visual Micro Preview */}
+            <div 
+              className="p-3 rounded-xl border border-transparent space-y-2"
+              style={{
+                backgroundColor: 'var(--orion-surface)',
+                boxShadow: '-3px -3px 8px rgba(255,255,255,0.06), 4px 4px 10px rgba(0,0,0,0.5)',
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-semibold text-[var(--orion-text-primary)]">Extruded Surface</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-[var(--orion-text-muted)] font-mono">embossed</span>
+              </div>
+              <div 
+                className="h-6 rounded-lg flex items-center px-2 text-[10px] text-[var(--orion-text-muted)]"
+                style={{
+                  backgroundColor: 'var(--orion-surface)',
+                  boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.5), inset -2px -2px 4px rgba(255,255,255,0.05)'
+                }}
+              >
+                Recessed Input Track
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[var(--orion-text-primary)]">Neumorphism</span>
+                {preferences.morphismMode === 'neumorphic' && (
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--orion-accent)] text-[var(--os-text-primary-inverse)] font-bold">
+                    ACTIVE
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-[var(--orion-text-secondary)] leading-relaxed">
+                Seamless monochromatic extrusion from the parent canvas with coupled dual-axis highlights and recessed interactive tracks.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Live Material Controls Preview Strip */}
+        <div 
+          className="p-4 rounded-xl border transition-all space-y-3"
+          style={{
+            backgroundColor: 'var(--orion-morph-surface)',
+            borderColor: 'var(--orion-morph-border)',
+            boxShadow: 'var(--orion-morph-shadow-soft)',
+            backdropFilter: 'blur(var(--orion-morph-blur))',
+            WebkitBackdropFilter: 'blur(var(--orion-morph-blur))',
+          }}
+        >
+          <div className="flex items-center justify-between border-b pb-2" style={{ borderColor: 'var(--orion-morph-border)' }}>
+            <span className="text-xs font-semibold text-[var(--orion-text-primary)] flex items-center gap-2">
+              <Eye className="w-3.5 h-3.5 text-[var(--orion-accent)]" />
+              Live Interactive Primitives Preview ({preferences.morphismMode?.toUpperCase() || 'GLASS'})
+            </span>
+            <span className="text-[10px] font-mono text-[var(--orion-text-muted)]">
+              Real-time CSS Custom Properties
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+            {/* Preview Button */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] uppercase font-mono text-[var(--orion-text-muted)]">Interactive Button</span>
+              <button
+                type="button"
+                className="w-full py-2 px-3 rounded-lg text-xs font-semibold text-[var(--os-text-primary-inverse)] transition-all cursor-pointer active:scale-95"
+                style={{
+                  backgroundColor: 'var(--orion-accent)',
+                  boxShadow: 'var(--orion-morph-shadow)',
+                }}
+              >
+                Execute Pipeline
+              </button>
+            </div>
+
+            {/* Preview Input */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] uppercase font-mono text-[var(--orion-text-muted)]">Recessed Input</span>
+              <input
+                type="text"
+                readOnly
+                value="SKU-8492-INVENTORY"
+                className="w-full py-1.5 px-3 rounded-lg text-xs font-mono text-[var(--orion-text-primary)] border outline-none"
+                style={{
+                  backgroundColor: 'var(--orion-morph-surface-subtle)',
+                  borderColor: 'var(--orion-morph-border)',
+                  boxShadow: 'var(--orion-morph-shadow-inset)',
+                }}
+              />
+            </div>
+
+            {/* Preview Elevated Card */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] uppercase font-mono text-[var(--orion-text-muted)]">Elevated Card</span>
+              <div 
+                className="w-full py-1.5 px-3 rounded-lg text-xs font-medium text-[var(--orion-text-primary)] flex items-center justify-between border"
+                style={{
+                  backgroundColor: 'var(--orion-morph-surface-elevated)',
+                  borderColor: 'var(--orion-morph-border-strong)',
+                  boxShadow: 'var(--orion-morph-shadow-soft)',
+                }}
+              >
+                <span>Stock Fill Rate</span>
+                <span className="font-bold text-[#5FAF8A]">99.2%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 5. WINDOW CONTROLS POSITION */}
+      <div className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-2xl p-5 sm:p-6 space-y-4">
+        <div>
+          <label className="text-xs font-bold uppercase tracking-wider text-[var(--orion-text-muted)] flex items-center gap-1.5">
+            <AppWindow className="w-4 h-4 text-[var(--orion-accent)]" />
+            Window Controls Position
+          </label>
+          <p className="text-xs text-[var(--orion-text-secondary)] mt-1">
+            Choose whether Orion window traffic-light controls appear on the left (Mac style) or right (Windows style) side of application windows.
+          </p>
+        </div>
+
+        {/* Visual Selector Cards with Radiogroup Semantics */}
+        <div 
+          role="radiogroup" 
+          aria-label="Window control position"
+          className="grid grid-cols-1 sm:grid-cols-2 gap-4"
+        >
+          {/* Card 1: LEFT — Mac Style */}
+          <div
+            role="radio"
+            aria-checked={(preferences.windowControlPosition || 'left') === 'left'}
+            tabIndex={0}
+            onClick={() => setPreference('windowControlPosition', 'left')}
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                setPreference('windowControlPosition', 'left');
+              }
+            }}
+            className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative space-y-3 flex flex-col justify-between ${
+              (preferences.windowControlPosition || 'left') === 'left'
+                ? 'border-[var(--orion-accent)] bg-[var(--orion-surface-hover)] ring-2 ring-[var(--orion-accent)]/30'
+                : 'border-[var(--orion-border)] bg-[var(--orion-surface)] hover:border-[var(--orion-border-strong)] hover:bg-[var(--orion-surface-hover)]'
+            }`}
+          >
+            {/* Window Preview */}
+            <div className="border border-[var(--orion-border)] rounded-lg overflow-hidden bg-[var(--orion-surface-elevated)] shadow-sm">
+              <div className="h-8 px-3 flex items-center justify-between border-b border-[var(--orion-border)] bg-[var(--orion-surface)]">
+                <div className="flex items-center gap-2">
+                  <OrionWindowControls appName="Preview" position="left" />
+                  <span className="text-[11px] font-semibold text-[var(--orion-text-primary)] pl-1">Application</span>
+                </div>
+                <div className="w-2 h-2 rounded-full bg-white/10" />
+              </div>
+              <div className="h-10 p-2 flex items-center justify-center bg-[var(--orion-surface)]/50">
+                <span className="text-[10px] text-[var(--orion-text-muted)] font-mono">Red • Yellow • Green</span>
+              </div>
+            </div>
+
+            {/* Selector Radio & Description */}
+            <div className="flex items-start justify-between gap-3 pt-1">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-[var(--orion-text-primary)]">Left — Mac style</span>
+                  {(preferences.windowControlPosition || 'left') === 'left' && (
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[var(--orion-accent)] text-[var(--os-text-primary-inverse)] font-bold">
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-[var(--orion-text-secondary)]">
+                  Close (Red), Minimize (Yellow), Maximize (Green) grouped on top-left.
+                </p>
+              </div>
+              <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                (preferences.windowControlPosition || 'left') === 'left'
+                  ? 'border-[var(--orion-accent)] bg-[var(--orion-accent)]'
+                  : 'border-[var(--orion-border-strong)] bg-transparent'
+              }`}>
+                {(preferences.windowControlPosition || 'left') === 'left' && (
+                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: RIGHT — Windows Style */}
+          <div
+            role="radio"
+            aria-checked={preferences.windowControlPosition === 'right'}
+            tabIndex={0}
+            onClick={() => setPreference('windowControlPosition', 'right')}
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                setPreference('windowControlPosition', 'right');
+              }
+            }}
+            className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative space-y-3 flex flex-col justify-between ${
+              preferences.windowControlPosition === 'right'
+                ? 'border-[var(--orion-accent)] bg-[var(--orion-surface-hover)] ring-2 ring-[var(--orion-accent)]/30'
+                : 'border-[var(--orion-border)] bg-[var(--orion-surface)] hover:border-[var(--orion-border-strong)] hover:bg-[var(--orion-surface-hover)]'
+            }`}
+          >
+            {/* Window Preview */}
+            <div className="border border-[var(--orion-border)] rounded-lg overflow-hidden bg-[var(--orion-surface-elevated)] shadow-sm">
+              <div className="h-8 px-3 flex items-center justify-between border-b border-[var(--orion-border)] bg-[var(--orion-surface)]">
+                <span className="text-[11px] font-semibold text-[var(--orion-text-primary)]">Application</span>
+                <div className="flex items-center gap-2">
+                  <OrionWindowControls appName="Preview" position="right" />
+                </div>
+              </div>
+              <div className="h-10 p-2 flex items-center justify-center bg-[var(--orion-surface)]/50">
+                <span className="text-[10px] text-[var(--orion-text-muted)] font-mono">Green • Yellow • Red</span>
+              </div>
+            </div>
+
+            {/* Selector Radio & Description */}
+            <div className="flex items-start justify-between gap-3 pt-1">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-[var(--orion-text-primary)]">Right — Windows style</span>
+                  {preferences.windowControlPosition === 'right' && (
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[var(--orion-accent)] text-[var(--os-text-primary-inverse)] font-bold">
+                      ACTIVE
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-[var(--orion-text-secondary)]">
+                  Maximize (Green), Minimize (Yellow), Close (Red) grouped on top-right.
+                </p>
+              </div>
+              <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                preferences.windowControlPosition === 'right'
+                  ? 'border-[var(--orion-accent)] bg-[var(--orion-accent)]'
+                  : 'border-[var(--orion-border-strong)] bg-transparent'
+              }`}>
+                {preferences.windowControlPosition === 'right' && (
+                  <div className="w-1.5 h-1.5 rounded-full bg-black" />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 6. INTERACTIVE LIVE WINDOW PREVIEW BOX */}
       <div className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-2xl p-5 sm:p-6 space-y-3">
         <div className="flex items-center justify-between">
           <label className="text-xs font-bold uppercase tracking-wider text-[var(--orion-text-muted)] flex items-center gap-1.5">
@@ -470,19 +863,45 @@ export const AppearanceSettingsPanel: React.FC = () => {
               borderColor: 'var(--orion-border)'
             }}
           >
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#C96B72] inline-block" />
-                <span className="w-2.5 h-2.5 rounded-full bg-[#C6A15B] inline-block" />
-                <span className="w-2.5 h-2.5 rounded-full bg-[#5FAF8A] inline-block" />
-              </div>
-              <span className="text-xs font-semibold text-[var(--orion-text-primary)] ml-2">
-                Supply Chain Control Tower — Live Preview
-              </span>
-            </div>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--orion-surface)] text-[var(--orion-text-secondary)] border border-[var(--orion-border)]">
-              {theme.id.toUpperCase()} • {preferences.cornerRadius.toUpperCase()}
-            </span>
+            {preferences.windowControlPosition === 'right' ? (
+              <>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-[var(--orion-text-primary)]">
+                    Supply Chain Control Tower — Live Preview
+                  </span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--orion-surface)] text-[var(--orion-text-secondary)] border border-[var(--orion-border)]">
+                    {theme.id.toUpperCase()} • {preferences.cornerRadius.toUpperCase()} • {preferences.morphismMode?.toUpperCase() || 'GLASS'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <OrionWindowControls
+                    appName="Live Preview"
+                    position="right"
+                    onClose={() => showToast('Close clicked in preview', 'info')}
+                    onMinimize={() => showToast('Minimize clicked in preview', 'info')}
+                    onMaximize={() => showToast('Maximize clicked in preview', 'info')}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center gap-3">
+                  <OrionWindowControls
+                    appName="Live Preview"
+                    position="left"
+                    onClose={() => showToast('Close clicked in preview', 'info')}
+                    onMinimize={() => showToast('Minimize clicked in preview', 'info')}
+                    onMaximize={() => showToast('Maximize clicked in preview', 'info')}
+                  />
+                  <span className="text-xs font-semibold text-[var(--orion-text-primary)]">
+                    Supply Chain Control Tower — Live Preview
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--orion-surface)] text-[var(--orion-text-secondary)] border border-[var(--orion-border)]">
+                  {theme.id.toUpperCase()} • {preferences.cornerRadius.toUpperCase()} • {preferences.morphismMode?.toUpperCase() || 'GLASS'}
+                </span>
+              </>
+            )}
           </div>
 
           {/* Window Body */}

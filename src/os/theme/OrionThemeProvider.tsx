@@ -35,9 +35,19 @@ export function OrionThemeProvider({ children }: OrionThemeProviderProps) {
     
     mql.addEventListener('change', handleMediaChange);
 
+    const handleExternalChange = () => {
+      engine.reloadFromStorage();
+      setTick(t => t + 1);
+    };
+
+    window.addEventListener('storage', handleExternalChange);
+    window.addEventListener('orion-appearance-preferences-changed', handleExternalChange);
+
     return () => {
       cleanup();
       mql.removeEventListener('change', handleMediaChange);
+      window.removeEventListener('storage', handleExternalChange);
+      window.removeEventListener('orion-appearance-preferences-changed', handleExternalChange);
     };
   }, [engine]);
 

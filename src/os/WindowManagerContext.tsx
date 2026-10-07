@@ -94,6 +94,7 @@ const normalizeAppId = (id: string): string => {
   if (id === 'copilot') return 'orion-ai';
   if (id === 'about-orion') return 'about';
   if (id === 'buy' || id === 'buy-something') return 'buy-workflow';
+  if (id === 'executive' || id === 'exec-overview') return 'executive-overview';
   return id;
 };
 
@@ -231,18 +232,16 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
     // display-aware native window, with no hard 1680px/1800px web-page cap.
     // Small screens become full-screen; larger displays use the full workspace
     // by default while retaining a modest desktop margin for window chrome.
+    // Dock is a macOS-style floating overlay and does not reduce available workspace height.
     const topChrome = 48;
-    const dockSafeHeight = typeof window !== 'undefined'
-      ? parseInt(getComputedStyle(document.documentElement).getPropertyValue('--orion-dock-safe-height') || '76', 10) || 76
-      : 76;
     const margin = screenW < 1100 ? 0 : Math.max(8, Math.round(Math.min(screenW, screenH) * 0.012));
     const availableW = Math.max(360, screenW - margin * 2);
-    const availableH = Math.max(300, screenH - topChrome - dockSafeHeight - margin * 2);
+    const availableH = Math.max(300, screenH - topChrome - margin * 2);
 
     if (screenW < 900 || screenH < 620) {
       return {
         position: { x: 0, y: 0 },
-        size: { width: screenW, height: Math.max(300, screenH - topChrome - dockSafeHeight) }
+        size: { width: screenW, height: Math.max(300, screenH - topChrome) }
       };
     }
 
@@ -250,7 +249,7 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
     const width = Math.min(availableW, Math.max(900, Math.round(availableW * (screenW >= 2560 ? 0.96 : 0.94))));
     const height = Math.min(availableH, Math.max(560, Math.round(availableH * 0.94)));
     const x = Math.max(0, Math.min(screenW - width, Math.round((screenW - width) / 2) + stagger - 24));
-    const y = Math.max(0, Math.min(screenH - topChrome - dockSafeHeight - height, margin + Math.round(stagger / 2)));
+    const y = Math.max(0, Math.min(screenH - topChrome - height, margin + Math.round(stagger / 2)));
 
     return {
       position: { x, y },
