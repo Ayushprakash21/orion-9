@@ -592,10 +592,18 @@ export const ControlTowerWorkspace: React.FC = () => {
             </div>
           </div>
 
-          {/* 3-PANE MASTER LAYOUT (REFERENCE A: OPERATIONS, MAP, DETAILS, TIMELINE) */}
+          {/* PRIMARY GLOBAL MULTI-MODAL OPERATIONS MAP (DOMINATES 70-80% OF WORKSPACE) */}
+          <div className="w-full shadow-lg">
+            <ControlTowerNetworkMap
+              selectedMission={selectedMission}
+              onSelectNode={(nodeId) => showToast(`Focused node: ${nodeId.toUpperCase()}`)}
+            />
+          </div>
+
+          {/* LOWER OPERATIONS WORKBENCH: MISSIONS, GANTT TIMELINE & DECISION DETAILS */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-            {/* LEFT PANE: OPERATIONS */}
-            <div className="lg:col-span-3 h-full">
+            {/* LEFT PANE: OPERATIONS MISSIONS */}
+            <div className="lg:col-span-4 h-full">
               <UnifiedOperationsPanel
                 missions={missionCards}
                 selectedMissionId={selectedMission?.id || null}
@@ -606,19 +614,15 @@ export const ControlTowerWorkspace: React.FC = () => {
               />
             </div>
 
-            {/* CENTER PANE: GEOSPATIAL MAP + TIMELINE */}
-            <div className="lg:col-span-6 space-y-4">
-              <ControlTowerNetworkMap
-                selectedMission={selectedMission}
-                onSelectNode={(nodeId) => showToast(`Focused node: ${nodeId.toUpperCase()}`)}
-              />
+            {/* CENTER PANE: PORT TRANSIT GANTT TIMELINE */}
+            <div className="lg:col-span-4 space-y-4">
               <ControlTowerTimeline
                 selectedMission={selectedMission}
               />
             </div>
 
-            {/* RIGHT PANE: CONTEXTUAL DETAILS */}
-            <div className="lg:col-span-3 h-full">
+            {/* RIGHT PANE: CONTEXTUAL DETAILS & GOVERNED ACTIONS */}
+            <div className="lg:col-span-4 h-full">
               <ControlTowerDetailsPanel
                 selectedMission={selectedMission}
                 onAskCopilot={handleAskCopilot}
