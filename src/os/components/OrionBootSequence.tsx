@@ -6,7 +6,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { useIsReducedMotion, ORION_EASE } from '../motion/OrionMotion';
+import { useIsReducedMotion, ORION_EASE, ORION_BOOT_MOTION_SCALE } from '../motion/OrionMotion';
 import { OrionLifecycleBackdrop } from '../lifecycle/OrionLifecycleBackdrop';
 import { OrionLifecycleCore } from '../lifecycle/OrionLifecycleCore';
 import { OrionLifecycleStatusList, LifecycleStatusItem } from '../lifecycle/OrionLifecycleStatusList';
@@ -24,13 +24,17 @@ interface BootServiceStage {
   readyMs: number;
 }
 
+// Measured boot sequence visual pacing scaled to ~80% speed (1.25x durations)
+const TOTAL_BOOT_MS = Math.round(2800 * ORION_BOOT_MOTION_SCALE); // 3500ms
+const BOOT_READY_THRESHOLD_MS = Math.round(2600 * ORION_BOOT_MOTION_SCALE); // 3250ms
+
 const BOOT_SERVICES: BootServiceStage[] = [
-  { id: 'identity', code: '01', label: 'POWER BUS', readyStatus: 'STABLE', readyMs: 600 },
-  { id: 'kernel', code: '02', label: 'EVENT FABRIC', readyStatus: 'BOUND', readyMs: 1000 },
-  { id: 'security', code: '03', label: 'WORLD MODEL', readyStatus: 'MOUNTED', readyMs: 1400 },
-  { id: 'data-fabric', code: '04', label: 'INTELLIGENCE CORE', readyStatus: 'ONLINE', readyMs: 1800 },
-  { id: 'intelligence', code: '05', label: 'DECISION PLANE', readyStatus: 'ARMED', readyMs: 2200 },
-  { id: 'operations', code: '06', label: 'ORION-9 KERNEL', readyStatus: 'READY', readyMs: 2500 },
+  { id: 'identity', code: '01', label: 'POWER BUS', readyStatus: 'STABLE', readyMs: Math.round(600 * ORION_BOOT_MOTION_SCALE) },       // 750ms
+  { id: 'kernel', code: '02', label: 'EVENT FABRIC', readyStatus: 'BOUND', readyMs: Math.round(1000 * ORION_BOOT_MOTION_SCALE) },       // 1250ms
+  { id: 'security', code: '03', label: 'WORLD MODEL', readyStatus: 'MOUNTED', readyMs: Math.round(1400 * ORION_BOOT_MOTION_SCALE) },    // 1750ms
+  { id: 'data-fabric', code: '04', label: 'INTELLIGENCE CORE', readyStatus: 'ONLINE', readyMs: Math.round(1800 * ORION_BOOT_MOTION_SCALE) }, // 2250ms
+  { id: 'intelligence', code: '05', label: 'DECISION PLANE', readyStatus: 'ARMED', readyMs: Math.round(2200 * ORION_BOOT_MOTION_SCALE) },// 2750ms
+  { id: 'operations', code: '06', label: 'ORION-9 KERNEL', readyStatus: 'READY', readyMs: Math.round(2500 * ORION_BOOT_MOTION_SCALE) }, // 3125ms
 ];
 
 export function OrionBootSequence({ onComplete }: OrionBootSequenceProps) {
@@ -42,7 +46,7 @@ export function OrionBootSequence({ onComplete }: OrionBootSequenceProps) {
 
   useEffect(() => {
     if (isReduced) {
-      setElapsed(2800);
+      setElapsed(TOTAL_BOOT_MS);
       const timer = setTimeout(() => {
         if (!done.current) {
           done.current = true;
@@ -57,7 +61,7 @@ export function OrionBootSequence({ onComplete }: OrionBootSequenceProps) {
       if (start.current === null) start.current = t;
       const e = t - start.current;
       setElapsed(e);
-      if (e >= 2800) {
+      if (e >= TOTAL_BOOT_MS) {
         if (!done.current) {
           done.current = true;
           onComplete();
@@ -71,8 +75,8 @@ export function OrionBootSequence({ onComplete }: OrionBootSequenceProps) {
     return () => cancelAnimationFrame(raf);
   }, [onComplete, isReduced]);
 
-  const pct = Math.min(100, Math.floor((elapsed / 2800) * 100));
-  const ready = elapsed >= 2600;
+  const pct = Math.min(100, Math.floor((elapsed / TOTAL_BOOT_MS) * 100));
+  const ready = elapsed >= BOOT_READY_THRESHOLD_MS;
 
   const getStatusSubtitle = () => {
     if (pct < 25) return 'Establishing system power';

@@ -6,7 +6,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
 import { worldEntryContainerVariants } from '../motion/OrionMotionVariants';
-import { useIsReducedMotion, ORION_EASE } from '../motion/OrionMotion';
+import { useIsReducedMotion, ORION_EASE, ORION_BOOT_MOTION_SCALE } from '../motion/OrionMotion';
 import { OrionLifecycleBackdrop } from '../lifecycle/OrionLifecycleBackdrop';
 import { OrionLifecycleCore } from '../lifecycle/OrionLifecycleCore';
 import { OrionLifecycleStatusList, LifecycleStatusItem } from '../lifecycle/OrionLifecycleStatusList';
@@ -17,11 +17,15 @@ interface Props {
   isAdmin?: boolean;
 }
 
+// Measured post-login world entry visual pacing scaled to ~80% speed (1.25x durations)
+const TOTAL_WORLD_ENTRY_MS = Math.round(1600 * ORION_BOOT_MOTION_SCALE); // 2000ms
+const WORLD_ENTRY_READY_THRESHOLD_MS = Math.round(1400 * ORION_BOOT_MOTION_SCALE); // 1750ms
+
 const WORLD_ENTRY_STAGES = [
-  { id: 'world-model', code: '01', label: 'WORLD MODEL', readyMs: 400 },
-  { id: 'supply-network', code: '02', label: 'SUPPLY NETWORK', readyMs: 750 },
-  { id: 'decision-fabric', code: '03', label: 'DECISION FABRIC', readyMs: 1100 },
-  { id: 'governance', code: '04', label: 'GOVERNANCE PLANE', readyMs: 1400 },
+  { id: 'world-model', code: '01', label: 'WORLD MODEL', readyMs: Math.round(400 * ORION_BOOT_MOTION_SCALE) },       // 500ms
+  { id: 'supply-network', code: '02', label: 'SUPPLY NETWORK', readyMs: Math.round(750 * ORION_BOOT_MOTION_SCALE) },  // 938ms
+  { id: 'decision-fabric', code: '03', label: 'DECISION FABRIC', readyMs: Math.round(1100 * ORION_BOOT_MOTION_SCALE) },// 1375ms
+  { id: 'governance', code: '04', label: 'GOVERNANCE PLANE', readyMs: Math.round(1400 * ORION_BOOT_MOTION_SCALE) },   // 1750ms
 ];
 
 export const OrionWorldEntrySequence: React.FC<Props> = ({ onComplete, isAdmin = false }) => {
@@ -33,7 +37,7 @@ export const OrionWorldEntrySequence: React.FC<Props> = ({ onComplete, isAdmin =
 
   useEffect(() => {
     if (isReduced) {
-      setElapsed(1600);
+      setElapsed(TOTAL_WORLD_ENTRY_MS);
       if (!done.current) {
         done.current = true;
         onComplete();
@@ -46,7 +50,7 @@ export const OrionWorldEntrySequence: React.FC<Props> = ({ onComplete, isAdmin =
       if (start.current === null) start.current = t;
       const e = t - start.current;
       setElapsed(e);
-      if (e >= 1600) {
+      if (e >= TOTAL_WORLD_ENTRY_MS) {
         if (!done.current) {
           done.current = true;
           onComplete();
@@ -60,8 +64,8 @@ export const OrionWorldEntrySequence: React.FC<Props> = ({ onComplete, isAdmin =
     return () => cancelAnimationFrame(raf);
   }, [onComplete, isReduced]);
 
-  const pct = Math.min(100, Math.floor((elapsed / 1600) * 100));
-  const ready = elapsed >= 1400;
+  const pct = Math.min(100, Math.floor((elapsed / TOTAL_WORLD_ENTRY_MS) * 100));
+  const ready = elapsed >= WORLD_ENTRY_READY_THRESHOLD_MS;
 
   const getStatusSubtitle = () => {
     if (pct < 30) return 'Restoring secure session';

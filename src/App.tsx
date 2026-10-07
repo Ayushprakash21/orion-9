@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { OrionThemeProvider } from './os/theme/OrionThemeProvider';
 import { Dashboard } from './components/Dashboard';
 import { Inventory } from './components/Inventory';
 import { Procurement } from './components/Procurement';
@@ -449,7 +450,7 @@ function AppBootstrap() {
         initial={{ opacity: 0, scale: 0.99 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.99 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.5 * 1.25 }}
         className="w-full h-full min-h-screen relative orion-authenticated-shell"
       >
         <ErrorBoundary fallbackTitle="ORION SCM APPLICATION EXCEPTION">
@@ -484,25 +485,27 @@ function AppBootstrap() {
 export default function App() {
   return (
     <ErrorBoundary fallbackTitle="ORION SCM SYSTEM FAULT">
-      <LanguageProvider>
-      <ConnectivityProvider>
-        <AuthProvider>
-          <BrandingProvider>
-            <SupplyChainProvider>
-              <ToastProvider>
-                <BrowserRouter>
-                  <EntityDrawerProvider>
-                    <NotificationProvider>
-                      <AppBootstrap />
-                    </NotificationProvider>
-                  </EntityDrawerProvider>
-                </BrowserRouter>
-              </ToastProvider>
-            </SupplyChainProvider>
-          </BrandingProvider>
-        </AuthProvider>
-      </ConnectivityProvider>
-      </LanguageProvider>
+      <OrionThemeProvider>
+        <LanguageProvider>
+        <ConnectivityProvider>
+          <AuthProvider>
+            <BrandingProvider>
+              <SupplyChainProvider>
+                <ToastProvider>
+                  <BrowserRouter>
+                    <EntityDrawerProvider>
+                      <NotificationProvider>
+                        <AppBootstrap />
+                      </NotificationProvider>
+                    </EntityDrawerProvider>
+                  </BrowserRouter>
+                </ToastProvider>
+              </SupplyChainProvider>
+            </BrandingProvider>
+          </AuthProvider>
+        </ConnectivityProvider>
+        </LanguageProvider>
+      </OrionThemeProvider>
     </ErrorBoundary>
   );
 }

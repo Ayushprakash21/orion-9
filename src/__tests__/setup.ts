@@ -50,3 +50,4 @@ vi.mock('../lib/firebaseClient', () => ({
   })),
   getFirebaseFirestore: vi.fn().mockReturnValue(null),
 }));
+

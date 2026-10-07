@@ -25,10 +25,12 @@ export const ORION_LIFECYCLE_COLORS = {
   shutdownGlow: 'rgba(201, 107, 114, 0.12)',
 } as const;
 
+import { ORION_BOOT_MOTION_SCALE } from '../motion/OrionMotion';
+
 export const ORION_LIFECYCLE_TIMING = {
-  powerInit: 3000,
-  bootSequence: 2800,
-  worldEntry: 1800,
+  powerInit: Math.round(3000 * ORION_BOOT_MOTION_SCALE), // 3750ms (~80% speed)
+  bootSequence: Math.round(2800 * ORION_BOOT_MOTION_SCALE), // 3500ms (~80% speed)
+  worldEntry: Math.round(1800 * ORION_BOOT_MOTION_SCALE), // 2250ms (~80% speed)
   logout: 1800,
   shutdown: 2200,
   restart: 1600,

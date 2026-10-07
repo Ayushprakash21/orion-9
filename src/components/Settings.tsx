@@ -632,18 +632,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
         return <UserWallpaperStudio />;
 
       case 'appearance': {
-        const currentPers = localSettings.personalization || DEFAULT_PERSONALIZATION_SETTINGS;
-        return (
-          <AppearanceSettingsPanel
-            settings={currentPers}
-            onChange={(updated) => {
-              const newPers = { ...currentPers, ...updated };
-              const newSettings = { ...localSettings, personalization: newPers };
-              setLocalSettings(newSettings);
-              updateSettings(newSettings);
-            }}
-          />
-        );
+        return <AppearanceSettingsPanel />;
       }
 
       case 'desktop': {

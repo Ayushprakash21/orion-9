@@ -129,7 +129,7 @@ export const OrionMobileAppLauncher: React.FC = () => {
         {/* Launcher Identity & Metadata Header */}
         <div className="flex items-center justify-between px-0.5">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
+            <div className="w-7 h-7 rounded-lg bg-os-accent-subtle border border-os-border flex items-center justify-center text-os-accent shrink-0">
               <LayoutGrid size={15} />
             </div>
             <div className="min-w-0">
@@ -141,7 +141,7 @@ export const OrionMobileAppLauncher: React.FC = () => {
               </p>
             </div>
           </div>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-os-surface-secondary border border-os-border text-cyan-400/90 font-semibold shrink-0">
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-os-surface-secondary border border-os-border text-os-text-secondary font-semibold shrink-0">
             {`${totalAppCount} APPS`}
           </span>
         </div>
@@ -158,7 +158,7 @@ export const OrionMobileAppLauncher: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search enterprise apps..."
-              className="w-full min-w-0 max-w-full h-[48px] min-h-[48px] bg-os-surface border border-os-border focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/40 rounded-[14px] sm:rounded-[16px] pl-11 pr-10 py-2.5 text-xs sm:text-sm text-os-text-primary placeholder:text-os-text-muted placeholder:truncate focus:outline-none transition-all shadow-inner box-border"
+              className="w-full min-w-0 max-w-full h-[48px] min-h-[48px] bg-os-surface border border-os-border focus:border-os-accent focus:ring-1 focus:ring-os-accent/40 rounded-[14px] sm:rounded-[16px] pl-11 pr-10 py-2.5 text-xs sm:text-sm text-os-text-primary placeholder:text-os-text-muted placeholder:truncate focus:outline-none transition-all shadow-inner box-border"
               aria-label="Search Enterprise Apps"
             />
             {searchQuery && (
@@ -188,7 +188,7 @@ export const OrionMobileAppLauncher: React.FC = () => {
                 <button
                   key={app.id}
                   onClick={() => handleLaunchApp(app.id)}
-                  className="flex flex-col items-center justify-center p-2 rounded-2xl bg-os-surface/60 border border-os-border/60 hover:border-cyan-500/40 active:scale-95 transition-all text-center group cursor-pointer min-h-[92px] w-full min-w-0 box-border"
+                  className="flex flex-col items-center justify-center p-2 rounded-2xl bg-os-surface/60 border border-os-border/60 hover:border-os-accent/40 active:scale-95 transition-all text-center group cursor-pointer min-h-[92px] w-full min-w-0 box-border"
                 >
                   <div className="w-12 h-12 sm:w-13 sm:h-13 flex items-center justify-center shrink-0">
                     <OrionAppIcon app={app.id} size={46} active={false} />
@@ -213,7 +213,7 @@ export const OrionMobileAppLauncher: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-semibold hover:bg-cyan-500/20 active:scale-95 transition-all cursor-pointer"
+                className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-os-surface-secondary border border-os-border text-os-text-primary text-xs font-mono font-semibold hover:bg-os-surface-hover active:scale-95 transition-all cursor-pointer"
               >
                 <span>Clear Search</span>
               </button>

@@ -8,7 +8,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { brandingRepository } from '../../repositories/BrandingRepository';
 import { powerOnVariants } from '../motion/OrionMotionVariants';
-import { useIsReducedMotion, ORION_EASE } from '../motion/OrionMotion';
+import { useIsReducedMotion, ORION_EASE, ORION_BOOT_MOTION_SCALE } from '../motion/OrionMotion';
 import { OrionLifecycleBackdrop } from '../lifecycle/OrionLifecycleBackdrop';
 import { OrionLifecycleCore } from '../lifecycle/OrionLifecycleCore';
 import { OrionLifecycleStatusList, LifecycleStatusItem } from '../lifecycle/OrionLifecycleStatusList';
@@ -29,13 +29,17 @@ interface ServiceStage {
   readyMs: number;
 }
 
+// Visual pacing scaled to ~80% speed (1.25x durations) for calm, measured OS initialization
+const TOTAL_INIT_MS = Math.round(3000 * ORION_BOOT_MOTION_SCALE); // 3750ms
+const ALL_READY_THRESHOLD_MS = Math.round(2600 * ORION_BOOT_MOTION_SCALE); // 3250ms
+
 const INITIALIZATION_SERVICES: ServiceStage[] = [
-  { id: 'identity', label: 'Identity', readyMs: 1100 },
-  { id: 'kernel', label: 'Kernel', readyMs: 1400 },
-  { id: 'security', label: 'Security', readyMs: 1700 },
-  { id: 'data-fabric', label: 'Data Fabric', readyMs: 2000 },
-  { id: 'intelligence', label: 'Intelligence', readyMs: 2300 },
-  { id: 'operations', label: 'Operations', readyMs: 2600 },
+  { id: 'identity', label: 'Identity', readyMs: Math.round(1100 * ORION_BOOT_MOTION_SCALE) },       // 1375ms
+  { id: 'kernel', label: 'Kernel', readyMs: Math.round(1400 * ORION_BOOT_MOTION_SCALE) },           // 1750ms
+  { id: 'security', label: 'Security', readyMs: Math.round(1700 * ORION_BOOT_MOTION_SCALE) },       // 2125ms
+  { id: 'data-fabric', label: 'Data Fabric', readyMs: Math.round(2000 * ORION_BOOT_MOTION_SCALE) }, // 2500ms
+  { id: 'intelligence', label: 'Intelligence', readyMs: Math.round(2300 * ORION_BOOT_MOTION_SCALE) },// 2875ms
+  { id: 'operations', label: 'Operations', readyMs: Math.round(2600 * ORION_BOOT_MOTION_SCALE) },   // 3250ms
 ];
 
 export const OrionPowerOnScreen: React.FC<OrionPowerOnScreenProps> = ({
@@ -56,7 +60,7 @@ export const OrionPowerOnScreen: React.FC<OrionPowerOnScreenProps> = ({
   // Deterministic Initialization Timeline
   useEffect(() => {
     if (isReduced) {
-      setElapsedMs(3200);
+      setElapsedMs(TOTAL_INIT_MS + 200);
       setPhase('BOOT_READY');
       return;
     }
@@ -68,7 +72,7 @@ export const OrionPowerOnScreen: React.FC<OrionPowerOnScreenProps> = ({
       const elapsed = now - startTimeRef.current;
       setElapsedMs(elapsed);
 
-      if (elapsed >= 3000) {
+      if (elapsed >= TOTAL_INIT_MS) {
         setPhase('BOOT_READY');
         return;
       }
@@ -109,7 +113,7 @@ export const OrionPowerOnScreen: React.FC<OrionPowerOnScreenProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  const allServicesReady = elapsedMs >= 2600 || phase === 'BOOT_READY';
+  const allServicesReady = elapsedMs >= ALL_READY_THRESHOLD_MS || phase === 'BOOT_READY';
 
   const statusItems: LifecycleStatusItem[] = INITIALIZATION_SERVICES.map(svc => {
     const isReady = elapsedMs >= svc.readyMs;
@@ -177,11 +181,11 @@ export const OrionPowerOnScreen: React.FC<OrionPowerOnScreenProps> = ({
               <div
                 data-testid="init-system-ready-label"
                 className={cn(
-                  "mt-6 flex items-center justify-center gap-2 font-sans text-xs tracking-wider uppercase text-emerald-400 font-medium transition-all duration-300",
+                  "mt-6 flex items-center justify-center gap-2 font-sans text-xs tracking-wider uppercase text-[var(--orion-success,#5FAF8A)] font-medium transition-all duration-300",
                   allServicesReady ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"
                 )}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--orion-success,#5FAF8A)] animate-pulse" />
                 <span>SYSTEM READY</span>
               </div>
             </motion.div>
@@ -205,9 +209,9 @@ export const OrionPowerOnScreen: React.FC<OrionPowerOnScreenProps> = ({
               {/* Restrained SYSTEM READY Badge */}
               <div
                 data-testid="boot-system-ready-badge"
-                className="flex items-center justify-center gap-2 mb-6 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-sans text-xs tracking-wider uppercase font-medium"
+                className="flex items-center justify-center gap-2 mb-6 px-4 py-1.5 rounded-full bg-[var(--orion-success,#5FAF8A)]/10 border border-[var(--orion-success,#5FAF8A)]/20 text-[var(--orion-success,#5FAF8A)] font-sans text-xs tracking-wider uppercase font-medium"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-[var(--orion-success,#5FAF8A)] animate-pulse" />
                 <span>SYSTEM READY</span>
               </div>
 

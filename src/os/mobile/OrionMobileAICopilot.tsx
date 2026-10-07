@@ -321,7 +321,7 @@ export const OrionMobileAICopilot: React.FC = () => {
       {/* 1. ORION AI STATUS HEADER */}
       <div className="bg-os-surface border border-os-border rounded-2xl p-3.5 mb-2.5 shrink-0 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-os-accent-subtle border border-os-border flex items-center justify-center text-os-accent shrink-0">
             <Sparkles size={16} />
           </div>
           <div className="min-w-0">
@@ -376,8 +376,8 @@ export const OrionMobileAICopilot: React.FC = () => {
             <div className="flex items-center gap-1.5 text-[9px] font-mono text-os-text-muted mb-1 px-1">
               {msg.sender === 'ai' ? (
                 <>
-                  <Bot size={12} className="text-cyan-400" />
-                  <span className="font-semibold text-cyan-400">Orion AI</span>
+                  <Bot size={12} className="text-os-accent" />
+                  <span className="font-semibold text-os-accent">Orion AI</span>
                   {msg.source && (
                     <span className="opacity-75 uppercase">({msg.source})</span>
                   )}
@@ -394,7 +394,7 @@ export const OrionMobileAICopilot: React.FC = () => {
             <div 
               className={`max-w-[92%] rounded-2xl p-3.5 text-xs leading-relaxed ${
                 msg.sender === 'user'
-                  ? 'bg-cyan-500 text-black font-medium rounded-tr-xs shadow-xs select-text'
+                  ? 'bg-os-accent text-os-text-primary-inverse font-medium rounded-tr-xs shadow-xs select-text'
                   : 'bg-os-surface border border-os-border text-os-text-primary rounded-tl-xs shadow-xs select-text'
               }`}
             >
@@ -415,7 +415,7 @@ export const OrionMobileAICopilot: React.FC = () => {
                       type="button"
                       onClick={() => handleSend(act.label)}
                       disabled={isProcessing}
-                      className="px-2.5 py-1.5 rounded-lg bg-os-surface-secondary hover:bg-os-surface-hover border border-os-border text-[10px] font-mono text-cyan-400 flex items-center gap-1 active:scale-95 transition-all min-h-[36px] cursor-pointer disabled:opacity-50"
+                      className="px-2.5 py-1.5 rounded-lg bg-os-surface-secondary hover:bg-os-surface-hover border border-os-border text-[10px] font-mono text-os-accent flex items-center gap-1 active:scale-95 transition-all min-h-[36px] cursor-pointer disabled:opacity-50"
                     >
                       <span>{act.label}</span>
                       <ArrowRight size={11} />
@@ -430,7 +430,7 @@ export const OrionMobileAICopilot: React.FC = () => {
         {/* Dynamic Response State Indicator */}
         {isProcessing && (
           <div className="flex items-center gap-2 text-os-text-secondary text-xs font-mono p-3 bg-os-surface border border-os-border/60 rounded-xl animate-pulse max-w-[85%]">
-            <Bot size={15} className="text-cyan-400 animate-spin" />
+            <Bot size={15} className="text-os-accent animate-spin" />
             <span>{processingState || 'AI analyzing operational telemetry...'}</span>
           </div>
         )}
@@ -443,7 +443,7 @@ export const OrionMobileAICopilot: React.FC = () => {
         <button
           type="button"
           onClick={() => setIsGalleryOpen(true)}
-          className="px-3 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-[10px] font-mono font-bold text-cyan-400 flex items-center gap-1 hover:bg-cyan-500/20 active:scale-95 transition-all min-h-[44px] cursor-pointer shrink-0"
+          className="px-3 py-1.5 rounded-full bg-os-accent-subtle border border-os-border text-[10px] font-mono font-bold text-os-accent flex items-center gap-1 hover:bg-os-surface-hover active:scale-95 transition-all min-h-[44px] cursor-pointer shrink-0"
           aria-label="Open Prompt Gallery"
         >
           <BookOpen size={12} />
@@ -455,7 +455,7 @@ export const OrionMobileAICopilot: React.FC = () => {
             type="button"
             onClick={() => setInputMessage(promptText)}
             disabled={isProcessing}
-            className="px-3 py-1.5 rounded-full bg-os-surface border border-os-border hover:border-cyan-400/50 active:bg-cyan-500/10 text-[10px] font-mono text-os-text-secondary hover:text-os-text-primary whitespace-nowrap active:scale-95 transition-all min-h-[44px] flex items-center cursor-pointer disabled:opacity-50"
+            className="px-3 py-1.5 rounded-full bg-os-surface border border-os-border hover:border-os-accent/50 active:bg-os-surface-active text-[10px] font-mono text-os-text-secondary hover:text-os-text-primary whitespace-nowrap active:scale-95 transition-all min-h-[44px] flex items-center cursor-pointer disabled:opacity-50"
             aria-label={`Select prompt suggestion: ${promptText}`}
           >
             {promptText}
@@ -484,21 +484,21 @@ export const OrionMobileAICopilot: React.FC = () => {
             onKeyDown={handleKeyDown}
             disabled={isProcessing}
             placeholder={isProcessing ? 'AI is processing query...' : 'Ask Orion AI about inventory, suppliers, shipments...'}
-            className="w-full bg-os-surface border border-os-border focus:border-cyan-400 rounded-xl px-3.5 py-2.5 text-xs text-os-text-primary placeholder:text-os-text-muted focus:outline-none min-h-[44px] max-h-[120px] resize-none leading-relaxed"
+            className="w-full bg-os-surface border border-os-border focus:border-os-accent rounded-xl px-3.5 py-2.5 text-xs text-os-text-primary placeholder:text-os-text-muted focus:outline-none min-h-[44px] max-h-[120px] resize-none leading-relaxed"
           />
         </div>
         <button
           type="submit"
           role="button"
           disabled={!inputMessage.trim() || isProcessing}
-          className="p-3 rounded-xl bg-cyan-400 text-black font-bold disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-transform min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer shadow-xs shrink-0"
+          className="p-3 rounded-xl bg-os-accent text-os-text-primary-inverse font-bold disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-transform min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer shadow-xs shrink-0"
           aria-label="Send Message to Orion AI"
           title="Send Message (Enter)"
         >
           {isProcessing ? (
-            <RefreshCw size={16} className="animate-spin text-black" />
+            <RefreshCw size={16} className="animate-spin text-current" />
           ) : (
-            <Send size={16} className="text-black" />
+            <Send size={16} className="text-current" />
           )}
         </button>
       </form>
@@ -510,7 +510,7 @@ export const OrionMobileAICopilot: React.FC = () => {
             {/* Modal Header */}
             <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between shrink-0 bg-[#0c0e11]">
               <div className="flex items-center gap-2.5">
-                <BookOpen size={18} className="text-cyan-400" />
+                <BookOpen size={18} className="text-os-accent" />
                 <h2 className="text-base sm:text-lg font-semibold text-white">Orion Prompt Gallery</h2>
               </div>
               <button
@@ -532,7 +532,7 @@ export const OrionMobileAICopilot: React.FC = () => {
                   onClick={() => setActiveCategoryKey(cat.key)}
                   className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
                     activeCategoryKey === cat.key
-                      ? "bg-cyan-500 text-black font-bold shadow-sm"
+                      ? "bg-os-accent text-os-text-primary-inverse font-bold shadow-sm"
                       : "bg-white/5 text-slate-300 hover:bg-white/10"
                   }`}
                   aria-label={`Category ${cat.label}`}
@@ -552,11 +552,11 @@ export const OrionMobileAICopilot: React.FC = () => {
                     setInputMessage(promptText);
                     setIsGalleryOpen(false);
                   }}
-                  className="w-full text-left p-3.5 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-cyan-500/40 text-sm text-slate-200 transition-all flex items-center justify-between group cursor-pointer"
+                  className="w-full text-left p-3.5 rounded-xl border border-white/10 bg-white/[0.03] hover:bg-white/[0.08] hover:border-os-accent/40 text-sm text-slate-200 transition-all flex items-center justify-between group cursor-pointer"
                   aria-label={`Select prompt ${promptText}`}
                 >
                   <span className="font-medium">{promptText}</span>
-                  <ArrowRight size={14} className="text-slate-500 group-hover:text-cyan-400 transition-colors shrink-0" />
+                  <ArrowRight size={14} className="text-slate-500 group-hover:text-os-accent transition-colors shrink-0" />
                 </button>
               ))}
             </div>

@@ -277,7 +277,7 @@ export const OrionMobileControlTower: React.FC = () => {
         <div className="bg-os-surface border border-os-border rounded-2xl p-4 space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-mono font-bold text-os-text-primary flex items-center gap-1.5">
-              <Target size={14} className="text-cyan-400" />
+              <Target size={14} className="text-os-accent" />
               1. Purchase Order Volume (14D)
             </span>
             <span className="text-[10px] font-mono text-os-text-muted">Units</span>
@@ -289,7 +289,7 @@ export const OrionMobileControlTower: React.FC = () => {
                 <XAxis dataKey="date" stroke="#777873" fontSize={9} tickLine={false} />
                 <YAxis stroke="#777873" fontSize={9} tickLine={false} axisLine={false} />
                 <Tooltip />
-                <Area type="monotone" dataKey="PO_VOLUME" stroke="#00F2FE" fill="rgba(0,242,254,0.15)" strokeWidth={2} />
+                <Area type="monotone" dataKey="PO_VOLUME" stroke="var(--orion-chart-1, #7BA3C9)" fill="var(--orion-chart-1, #7BA3C9)" fillOpacity={0.15} strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
           </div>

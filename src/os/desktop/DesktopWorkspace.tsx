@@ -697,7 +697,7 @@ export function DesktopWorkspace() {
             session.element.releasePointerCapture(session.pointerId);
           }
         } catch (err) {}
-        session.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-1', 'ring-sky-500/50', 'ring-2', 'ring-cyan-400');
+        session.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-1', 'ring-white/20', 'ring-2', 'ring-white/30');
         session.element.classList.add('cursor-grab');
       }
 
@@ -796,7 +796,7 @@ export function DesktopWorkspace() {
         } catch (err) {}
         session.element.style.transform = '';
         session.element.style.zIndex = '';
-        session.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-1', 'ring-sky-500/50', 'ring-2', 'ring-cyan-400');
+        session.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-1', 'ring-white/20', 'ring-2', 'ring-white/30');
         session.element.classList.add('cursor-grab');
       }
       dragRef.current = null;
@@ -1233,7 +1233,7 @@ export function DesktopWorkspace() {
                   } catch {}
                   dragRef.current.element.style.transform = '';
                   dragRef.current.element.style.zIndex = '';
-                  dragRef.current.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-1', 'ring-sky-500/50', 'ring-2', 'ring-cyan-400');
+                  dragRef.current.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-1', 'ring-white/20', 'ring-2', 'ring-white/30');
                   dragRef.current.element.classList.add('cursor-grab');
                 }
                 dragRef.current = null;

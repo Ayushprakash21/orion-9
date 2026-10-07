@@ -238,7 +238,7 @@ export const NetworkConnectionPopover: React.FC<NetworkConnectionPopoverProps> =
           <div className={cn(
             "p-1.5 rounded-lg border",
             wifiEnabled 
-              ? (isOnline && !isLocalMode ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : "bg-cyan-500/10 border-cyan-500/30 text-cyan-400")
+              ? (isOnline && !isLocalMode ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" : "bg-os-accent-subtle border-os-border text-os-accent")
               : "bg-neutral-500/10 border-neutral-500/30 text-neutral-400"
           )}>
             {wifiEnabled ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
@@ -249,7 +249,7 @@ export const NetworkConnectionPopover: React.FC<NetworkConnectionPopoverProps> =
               <span className={cn(
                 "w-1.5 h-1.5 rounded-full inline-block",
                 wifiEnabled 
-                  ? (isOnline && !isLocalMode ? "bg-emerald-500 animate-pulse" : "bg-cyan-400")
+                  ? (isOnline && !isLocalMode ? "bg-emerald-500 animate-pulse" : "bg-os-accent")
                   : "bg-neutral-500"
               )} />
               {wifiEnabled ? (isLocalMode ? 'Local / Demo Mode' : 'Connected') : 'Wi-Fi Disabled'}

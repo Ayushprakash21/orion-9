@@ -84,7 +84,7 @@ export function OrionCommandPalette() {
         subtitle: 'Secure workstation and hide application state',
         category: 'System Commands',
         icon: Lock,
-        color: '#38BDF8',
+        color: '#A7AAA8',
         action: exec(() => triggerLock()),
       },
       {
@@ -120,7 +120,7 @@ export function OrionCommandPalette() {
         subtitle: 'Switch to predictive and deep intelligence models',
         category: 'System Commands',
         icon: Layers,
-        color: '#00F2FE',
+        color: '#4A7FAA',
         action: exec(() => setWorkspace('intelligence')),
       },
       {

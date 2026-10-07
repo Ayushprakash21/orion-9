@@ -624,7 +624,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
 
       {/* Move / Size Interactive Keyboard Mode Banner */}
       {(isMoveModeActive || isSizeModeActive) && (
-        <div className="absolute top-11 left-1/2 -translate-x-1/2 z-50 px-3.5 py-1.5 bg-os-accent/15 border border-[#00F2FE]/40 text-os-accent text-[11px] font-mono rounded-full shadow-2xl flex items-center gap-2 backdrop-blur-xl animate-in fade-in pointer-events-none select-none">
+        <div className="absolute top-11 left-1/2 -translate-x-1/2 z-50 px-3.5 py-1.5 bg-os-accent/15 border border-os-accent/40 text-os-accent text-[11px] font-mono rounded-full shadow-2xl flex items-center gap-2 backdrop-blur-xl animate-in fade-in pointer-events-none select-none">
           {isMoveModeActive ? <Move className="w-3.5 h-3.5 animate-pulse" /> : <Maximize2 className="w-3.5 h-3.5 animate-pulse" />}
           <span>
             {isMoveModeActive ? 'MOVE MODE' : 'RESIZE MODE'}: Arrow keys to adjust • Enter to apply • Esc to cancel
@@ -660,7 +660,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
             className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize flex items-end justify-end p-1 z-30 group"
             title="Resize"
           >
-            <div className="w-2 h-2 border-r-2 border-b-2 border-os-border group-hover:border-[#00F2FE] transition-colors" />
+            <div className="w-2 h-2 border-r-2 border-b-2 border-os-border group-hover:border-os-accent transition-colors" />
           </div>
         </>
       )}

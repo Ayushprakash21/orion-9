@@ -200,7 +200,7 @@ export function OrionSystemBar() {
       <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-2 max-w-[40vw] min-w-0 pointer-events-none">
         {activeApp ? (
           <div className="flex items-center gap-2 px-3 py-1 bg-white/[0.04] border border-white/[0.08] rounded-xl backdrop-blur-md shadow-xs">
-            <span className="w-2 h-2 rounded-full shadow-xs shrink-0" style={{ backgroundColor: activeApp.color || '#38bdf8' }} />
+            <span className="w-2 h-2 rounded-full shadow-xs shrink-0" style={{ backgroundColor: activeApp.color || 'var(--orion-accent, #D8DDE3)' }} />
             <span className="text-[12px] font-semibold text-os-text-primary truncate max-w-[180px]">
               {activeApp.name}
             </span>

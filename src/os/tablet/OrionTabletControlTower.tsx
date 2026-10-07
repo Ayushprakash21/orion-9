@@ -121,15 +121,15 @@ export const OrionTabletControlTower: React.FC = () => {
               <AreaChart data={poChartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                 <defs>
                   <linearGradient id="poGradTablet" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#38bdf8" stopOpacity={0.0} />
+                    <stop offset="5%" stopColor="var(--orion-chart-1, #7BA3C9)" stopOpacity={0.35} />
+                    <stop offset="95%" stopColor="var(--orion-chart-1, #7BA3C9)" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#22283a" vertical={false} />
                 <XAxis dataKey="timestamp" stroke="#64748b" fontSize={9} tickLine={false} />
                 <YAxis stroke="#64748b" fontSize={9} tickLine={false} />
                 <Tooltip contentStyle={{ backgroundColor: '#0c101c', borderColor: '#22283a', borderRadius: '8px', fontSize: '11px' }} />
-                <Area type="monotone" dataKey="value" stroke="#38bdf8" strokeWidth={2} fill="url(#poGradTablet)" />
+                <Area type="monotone" dataKey="value" stroke="var(--orion-chart-1, #7BA3C9)" strokeWidth={2} fill="url(#poGradTablet)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>

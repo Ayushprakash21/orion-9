@@ -32,6 +32,12 @@ export const ORION_MOTION_DURATIONS = {
 } as const;
 
 /**
+ * Pacing scale factor for pre-login and post-login boot & lifecycle sequences.
+ * Slows visual progression to ~80% speed (duration * 1.25).
+ */
+export const ORION_BOOT_MOTION_SCALE = 1.25;
+
+/**
  * Determines whether reduced motion should be enforced
  */
 export function isReducedMotionPreferred(settingReducedMotion?: boolean): boolean {

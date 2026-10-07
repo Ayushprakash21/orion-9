@@ -4,7 +4,7 @@
  */
 
 import { Variants } from 'motion/react';
-import { ORION_EASE, ORION_EASE_IN_OUT, ORION_MOTION_DURATIONS } from './OrionMotion';
+import { ORION_EASE, ORION_EASE_IN_OUT, ORION_MOTION_DURATIONS, ORION_BOOT_MOTION_SCALE } from './OrionMotion';
 
 /**
  * Global OS Lifecycle Screen Fade/Scale Variants
@@ -37,6 +37,7 @@ export const osLifecycleVariants: Variants = {
 
 /**
  * Power On & Boot Screen Animation Variants
+ * Scaled by ORION_BOOT_MOTION_SCALE for measured, calm 80% visual pacing.
  */
 export const powerOnVariants: Variants = {
   hidden: {
@@ -49,7 +50,7 @@ export const powerOnVariants: Variants = {
     scale: 1,
     filter: 'blur(0px)',
     transition: {
-      duration: ORION_MOTION_DURATIONS.cinematic,
+      duration: ORION_MOTION_DURATIONS.cinematic * ORION_BOOT_MOTION_SCALE,
       ease: ORION_EASE,
     },
   },
@@ -58,7 +59,7 @@ export const powerOnVariants: Variants = {
     scale: 1.05,
     filter: 'blur(14px)',
     transition: {
-      duration: ORION_MOTION_DURATIONS.smooth,
+      duration: ORION_MOTION_DURATIONS.smooth * ORION_BOOT_MOTION_SCALE,
       ease: ORION_EASE_IN_OUT,
     },
   },
@@ -66,6 +67,7 @@ export const powerOnVariants: Variants = {
 
 /**
  * World Entry Sequence Motion Variants
+ * Scaled by ORION_BOOT_MOTION_SCALE for measured, calm 80% visual pacing.
  */
 export const worldEntryContainerVariants: Variants = {
   hidden: {
@@ -78,9 +80,9 @@ export const worldEntryContainerVariants: Variants = {
     scale: 1,
     filter: 'blur(0px)',
     transition: {
-      duration: ORION_MOTION_DURATIONS.smooth,
+      duration: ORION_MOTION_DURATIONS.smooth * ORION_BOOT_MOTION_SCALE,
       ease: ORION_EASE,
-      staggerChildren: 0.1,
+      staggerChildren: 0.1 * ORION_BOOT_MOTION_SCALE,
     },
   },
   exit: {
@@ -88,7 +90,7 @@ export const worldEntryContainerVariants: Variants = {
     scale: 0.98,
     filter: 'blur(8px)',
     transition: {
-      duration: ORION_MOTION_DURATIONS.normal,
+      duration: ORION_MOTION_DURATIONS.normal * ORION_BOOT_MOTION_SCALE,
       ease: ORION_EASE_IN_OUT,
     },
   },
@@ -103,7 +105,7 @@ export const worldEntryItemVariants: Variants = {
     opacity: 1,
     y: 0,
     transition: {
-      duration: ORION_MOTION_DURATIONS.normal,
+      duration: ORION_MOTION_DURATIONS.normal * ORION_BOOT_MOTION_SCALE,
       ease: ORION_EASE,
     },
   },

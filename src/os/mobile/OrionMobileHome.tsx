@@ -111,7 +111,7 @@ export const OrionMobileHome: React.FC = () => {
             onClick={() => openApp('procurement')}
             className="flex items-center gap-2.5 p-3 bg-os-surface-secondary hover:bg-os-surface-hover border border-os-border rounded-xl text-left transition-all active:scale-[0.98] cursor-pointer min-h-[44px]"
           >
-            <div className="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-os-surface border border-os-border flex items-center justify-center text-os-text-primary shrink-0">
               <ShoppingCart size={16} />
             </div>
             <div className="min-w-0">
@@ -123,7 +123,7 @@ export const OrionMobileHome: React.FC = () => {
             onClick={() => openApp('suppliers')}
             className="flex items-center gap-2.5 p-3 bg-os-surface-secondary hover:bg-os-surface-hover border border-os-border rounded-xl text-left transition-all active:scale-[0.98] cursor-pointer min-h-[44px]"
           >
-            <div className="w-8 h-8 rounded-lg bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-os-surface border border-os-border flex items-center justify-center text-os-text-primary shrink-0">
               <Layers size={16} />
             </div>
             <div className="min-w-0">
@@ -151,10 +151,10 @@ export const OrionMobileHome: React.FC = () => {
           {/* AI Destination */}
           <button
             onClick={() => openOrionAI()}
-            className="flex flex-col items-center justify-center p-3 bg-os-surface border border-os-border hover:border-cyan-500/40 rounded-xl active:scale-95 transition-all cursor-pointer min-h-[44px]"
+            className="flex flex-col items-center justify-center p-3 bg-os-surface border border-os-border hover:border-os-accent/40 rounded-xl active:scale-95 transition-all cursor-pointer min-h-[44px]"
             aria-label="Open AI Copilot"
           >
-            <Sparkles size={20} className="text-cyan-400 mb-1" />
+            <Sparkles size={20} className="text-os-accent mb-1" />
             <span className="text-[10px] font-mono font-semibold text-os-text-primary">AI</span>
           </button>
           {/* Alerts Destination */}
