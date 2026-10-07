@@ -123,16 +123,22 @@ export function OrionLiveWallpaper({
 
   // Robust preload and verification:
   // Candidate is valid only when successfully decoded and validated
-  const preloadAndVerifyWallpaper = useCallback((url: string): Promise<void> => {
+  const preloadAndVerifyWallpaper = useCallback((url: string, generation?: number): Promise<void> => {
     if (typeof window === 'undefined') return Promise.resolve();
-    logDiagnostic('PRELOAD', { url, target });
+    const currentGen = generation ?? wallpaperGenerationRef.current;
+    if (process.env.NODE_ENV !== 'production') {
+      console.info(`[ORION:WALLPAPER] generation=${currentGen} action=preload url=${url}`);
+    }
+    logDiagnostic('PRELOAD', { url, target, generation: currentGen });
     return new Promise((resolve, reject) => {
       const image = new Image();
       let settled = false;
+      let timer: ReturnType<typeof setTimeout> | null = null;
 
       const finishSuccess = () => {
         if (settled) return;
         settled = true;
+        if (timer) clearTimeout(timer);
         logDiagnostic('DECODE', { url, status: 'success' });
         resolve();
       };
@@ -140,9 +146,20 @@ export function OrionLiveWallpaper({
       const finishFail = (err?: any) => {
         if (settled) return;
         settled = true;
+        if (timer) clearTimeout(timer);
         logDiagnostic('DECODE', { url, status: 'failed', error: err });
         reject(err || new Error(`Wallpaper failed to load: ${url}`));
       };
+
+      // 5000ms safety timeout to prevent hanging promises on slow/stalled networks or cached data URIs
+      timer = setTimeout(() => {
+        if (settled) return;
+        if (image.complete && (image.naturalWidth > 0 || url.startsWith('data:'))) {
+          finishSuccess();
+        } else {
+          finishFail(new Error(`Wallpaper preload timed out: ${url}`));
+        }
+      }, 5000);
 
       image.onload = () => {
         if (typeof image.decode === 'function') {
@@ -154,7 +171,7 @@ export function OrionLiveWallpaper({
         }
       };
 
-      image.onerror = () => finishFail();
+      image.onerror = (err) => finishFail(err);
 
       image.src = url;
 
@@ -168,11 +185,16 @@ export function OrionLiveWallpaper({
   // Atomic commit function - guarantees screen is never blanked and stale requests are ignored
   const commitWallpaperAtomically = useCallback((candidate: WallpaperRecord, generation: number) => {
     if (generation !== wallpaperGenerationRef.current) {
-      // Stale request, discard
+      if (process.env.NODE_ENV !== 'production') {
+        console.info(`[ORION:WALLPAPER] generation=${generation} action=discard-stale`);
+      }
       return;
     }
     if (!candidate.assetUrl) return;
 
+    if (process.env.NODE_ENV !== 'production') {
+      console.info(`[ORION:WALLPAPER] generation=${generation} action=commit wallpaperId=${candidate.wallpaperId}`);
+    }
     logDiagnostic('COMMIT', { wallpaperId: candidate.wallpaperId, assetUrl: candidate.assetUrl, generation });
 
     displayedWallpaperRef.current = candidate;
@@ -188,7 +210,7 @@ export function OrionLiveWallpaper({
   useEffect(() => {
     if (overrideWallpaper && typeof overrideWallpaper === 'object') {
       const gen = ++wallpaperGenerationRef.current;
-      preloadAndVerifyWallpaper(overrideWallpaper.assetUrl)
+      preloadAndVerifyWallpaper(overrideWallpaper.assetUrl, gen)
         .then(() => commitWallpaperAtomically(overrideWallpaper, gen))
         .catch(() => {
           // If candidate fails, KEEP current wallpaper; never blank
@@ -220,10 +242,14 @@ export function OrionLiveWallpaper({
         }
 
         // Preload & verify before committing atomically
-        await preloadAndVerifyWallpaper(wp.assetUrl);
+        await preloadAndVerifyWallpaper(wp.assetUrl, currentGen);
 
         if (mounted && currentGen === wallpaperGenerationRef.current) {
           commitWallpaperAtomically(wp, currentGen);
+        } else if (mounted && currentGen !== wallpaperGenerationRef.current) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.info(`[ORION:WALLPAPER] generation=${currentGen} action=discard-stale`);
+          }
         }
       } catch (err) {
         console.warn(`[ORION-9] Wallpaper load error for ${target}, preserving current wallpaper:`, err);
@@ -241,10 +267,14 @@ export function OrionLiveWallpaper({
           if (!wp.assetUrl) return;
 
           const currentGen = ++wallpaperGenerationRef.current;
-          preloadAndVerifyWallpaper(wp.assetUrl)
+          preloadAndVerifyWallpaper(wp.assetUrl, currentGen)
             .then(() => {
               if (mounted && currentGen === wallpaperGenerationRef.current) {
                 commitWallpaperAtomically(wp, currentGen);
+              } else if (mounted && currentGen !== wallpaperGenerationRef.current) {
+                if (process.env.NODE_ENV !== 'production') {
+                  console.info(`[ORION:WALLPAPER] generation=${currentGen} action=discard-stale`);
+                }
               }
             })
             .catch((err) => {

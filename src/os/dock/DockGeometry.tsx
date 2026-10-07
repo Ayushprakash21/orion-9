@@ -10,6 +10,7 @@ import React, { createContext, useContext, useMemo, useState, useEffect, useCall
 import { PersonalizationSettings, DockPosition, DockSize, DesktopIconSize, DesktopIconLayout } from '../../theme/themeTypes';
 import { useSupplyChain } from '../../store/SupplyChainContext';
 import { DEFAULT_PERSONALIZATION_SETTINGS } from '../../theme/themePresets';
+import { loadPreferences } from '../theme/OrionThemeStorage';
 
 export type DockOrientation = 'horizontal' | 'vertical';
 
@@ -161,7 +162,23 @@ export interface OSGeometryProviderProps {
 
 export const OSGeometryProvider: React.FC<OSGeometryProviderProps> = ({ children }) => {
   const supplyChain = useSupplyChain();
-  const persistentSettings = supplyChain?.settings?.personalization || DEFAULT_PERSONALIZATION_SETTINGS;
+
+  const persistentSettings = useMemo(() => {
+    const scPers = supplyChain?.settings?.personalization;
+    let fallbackAutoHide: boolean | undefined = undefined;
+    try {
+      const prefs = loadPreferences();
+      if (prefs?.dockAutoHide !== undefined) {
+        fallbackAutoHide = Boolean(prefs.dockAutoHide);
+      }
+    } catch {}
+
+    return {
+      ...DEFAULT_PERSONALIZATION_SETTINGS,
+      ...(scPers || {}),
+      ...(fallbackAutoHide !== undefined && scPers?.dockAutoHide === undefined ? { dockAutoHide: fallbackAutoHide } : {})
+    };
+  }, [supplyChain?.settings?.personalization]);
 
   const [previewOverrides, setPreviewOverrides] = useState<Partial<PersonalizationSettings> | null>(null);
   const [viewport, setViewport] = useState({
@@ -189,6 +206,28 @@ export const OSGeometryProvider: React.FC<OSGeometryProviderProps> = ({ children
 
     window.addEventListener('resize', handleResize, { passive: true });
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Listen for appearance preferences changes dispatched by OrionThemeStorage / settings
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handlePrefChange = (e: any) => {
+      if (e.detail && typeof e.detail === 'object') {
+        const detail = e.detail;
+        if (detail.dockAutoHide !== undefined || detail.dockPosition !== undefined || detail.dockMagnification !== undefined) {
+          setPreviewOverrides(prev => ({
+            ...(prev || {}),
+            ...(detail.dockAutoHide !== undefined ? { dockAutoHide: Boolean(detail.dockAutoHide) } : {}),
+            ...(detail.dockPosition !== undefined ? { dockPosition: detail.dockPosition } : {}),
+            ...(detail.dockMagnification !== undefined ? { dockMagnification: Boolean(detail.dockMagnification) } : {}),
+          }));
+        }
+      }
+    };
+
+    window.addEventListener('orion-appearance-preferences-changed', handlePrefChange as EventListener);
+    return () => window.removeEventListener('orion-appearance-preferences-changed', handlePrefChange as EventListener);
   }, []);
 
   // Listen for dock visibility changes dispatched by OrionDock
@@ -264,7 +303,11 @@ export const OSGeometryProvider: React.FC<OSGeometryProviderProps> = ({ children
   }, [dock, safeArea, usableRect, effectiveSettings]);
 
   const previewSettings = useCallback((preview: Partial<PersonalizationSettings> | null) => {
-    setPreviewOverrides(preview);
+    if (preview === null) {
+      setPreviewOverrides(null);
+    } else {
+      setPreviewOverrides(prev => ({ ...(prev || {}), ...preview }));
+    }
   }, []);
 
   const value: OSGeometryState = useMemo(() => ({

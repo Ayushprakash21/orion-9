@@ -536,6 +536,10 @@ export class WallpaperRepository {
       target
     };
 
+    if (process.env.NODE_ENV !== 'production') {
+      console.info(`[ORION:WALLPAPER] target=${target} wallpaperId=${wp.wallpaperId} action=apply`);
+    }
+
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('orion-active-wallpaper-changed', { 
         detail: { wallpaper: targetWp, target, wallpaperId: wp.wallpaperId } 

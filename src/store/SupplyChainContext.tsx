@@ -209,10 +209,17 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
   
   const [settings, setSettings] = useState<SystemSettings>(() => {
     try {
+      const activePrefs = loadPreferences();
       const cached = localStorage.getItem('orion_settings');
+      let base: any = DEFAULT_SYSTEM_SETTINGS;
       if (cached) {
-        return normalizeSettings(JSON.parse(cached));
+        base = JSON.parse(cached);
       }
+      const normalized = normalizeSettings(base);
+      if (activePrefs && activePrefs.dockAutoHide !== undefined) {
+        normalized.personalization.dockAutoHide = Boolean(activePrefs.dockAutoHide);
+      }
+      return normalized;
     } catch (e) {
       // fallback
     }

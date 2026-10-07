@@ -65,6 +65,9 @@ export function OrionDock() {
   const [dockVisible, setDockVisible] = useState(!autoHideEnabled);
   const dockVisibleRef = useRef(!autoHideEnabled);
   const dockRef = useRef<HTMLDivElement | null>(null);
+
+  // Generation counter to invalidate stale hide/reveal timers
+  const visibilityGenerationRef = useRef<number>(0);
   const hideTimerRef = useRef<number | null>(null);
   const revealTimerRef = useRef<number | null>(null);
 
@@ -75,17 +78,20 @@ export function OrionDock() {
   const activeWindow = activeAppId ? windows[activeAppId] : undefined;
   const hasActiveApplication = !!activeWindow && activeWindow.state !== 'closed' && activeWindow.workspace === activeWorkspaceId;
 
-  const clearDockHideTimer = useCallback(() => {
+  const clearTimers = useCallback(() => {
     if (hideTimerRef.current !== null) {
       window.clearTimeout(hideTimerRef.current);
       hideTimerRef.current = null;
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug(`[ORION:DOCK] timer=${visibilityGenerationRef.current} action=cancel`);
+      }
     }
-  }, []);
-
-  const clearDockRevealTimer = useCallback(() => {
     if (revealTimerRef.current !== null) {
       window.clearTimeout(revealTimerRef.current);
       revealTimerRef.current = null;
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug(`[ORION:DOCK] timer=${visibilityGenerationRef.current} action=cancel`);
+      }
     }
   }, []);
 
@@ -95,6 +101,11 @@ export function OrionDock() {
     const visible = !autoHideEnabled || nextState === 'visible' || nextState === 'revealing';
     dockVisibleRef.current = visible;
     setDockVisible(visible);
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[ORION:DOCK] autoHide=${autoHideEnabled} state=${nextState}`);
+    }
+
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('orion-dock-visibility-changed', {
         detail: { visible, state: nextState }
@@ -107,67 +118,112 @@ export function OrionDock() {
       setDockState('visible');
       return;
     }
-    clearDockHideTimer();
-    clearDockRevealTimer();
+    clearTimers();
+    const generation = ++visibilityGenerationRef.current;
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[ORION:DOCK] edge=${dockPosition} action=reveal generation=${generation}`);
+      console.debug(`[ORION:DOCK] timer=${generation} action=schedule delay=40`);
+    }
     setDockState('revealing');
     revealTimerRef.current = window.setTimeout(() => {
+      if (generation !== visibilityGenerationRef.current) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug(`[ORION:DOCK] timer=${generation} action=discard-stale`);
+        }
+        return;
+      }
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug(`[ORION:DOCK] timer=${generation} action=fire state=visible`);
+      }
       setDockState('visible');
     }, 40);
-  }, [autoHideEnabled, clearDockHideTimer, clearDockRevealTimer, setDockState]);
+  }, [autoHideEnabled, clearTimers, dockPosition, setDockState]);
 
   const handleDockEnter = useCallback(() => {
-    clearDockHideTimer();
-    clearDockRevealTimer();
+    clearTimers();
+    // Invalidate pending hide timer token
+    ++visibilityGenerationRef.current;
     setDockState('visible');
-  }, [clearDockHideTimer, clearDockRevealTimer, setDockState]);
+  }, [clearTimers, setDockState]);
 
   const scheduleDockHide = useCallback(() => {
     if (!autoHideEnabled) {
       setDockState('visible');
       return;
     }
-    clearDockHideTimer();
-    clearDockRevealTimer();
+    clearTimers();
     // Do not hide if dock has keyboard focus (:focus-within)
     if (dockRef.current?.matches(':focus-within')) {
       return;
     }
+    const generation = ++visibilityGenerationRef.current;
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[ORION:DOCK] timer=${generation} action=schedule delay=250`);
+    }
     hideTimerRef.current = window.setTimeout(() => {
+      if (generation !== visibilityGenerationRef.current) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug(`[ORION:DOCK] timer=${generation} action=discard-stale`);
+        }
+        return;
+      }
       const el = dockRef.current;
       if (!el?.matches(':hover') && !el?.matches(':focus-within')) {
         setDockState('hiding');
+        const hideGen = ++visibilityGenerationRef.current;
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug(`[ORION:DOCK] timer=${hideGen} action=schedule delay=200`);
+        }
         hideTimerRef.current = window.setTimeout(() => {
+          if (hideGen !== visibilityGenerationRef.current) {
+            if (process.env.NODE_ENV !== 'production') {
+              console.debug(`[ORION:DOCK] timer=${hideGen} action=discard-stale`);
+            }
+            return;
+          }
+          if (process.env.NODE_ENV !== 'production') {
+            console.debug(`[ORION:DOCK] timer=${hideGen} action=fire state=hidden`);
+          }
           setDockState('hidden');
         }, 200);
       }
     }, 250);
-  }, [autoHideEnabled, clearDockHideTimer, clearDockRevealTimer, setDockState]);
+  }, [autoHideEnabled, clearTimers, setDockState]);
 
   // Synchronize when autoHideEnabled preference changes
   useEffect(() => {
-    clearDockHideTimer();
-    clearDockRevealTimer();
+    clearTimers();
+    ++visibilityGenerationRef.current;
     if (!autoHideEnabled) {
       setDockState('visible');
     } else {
-      if (!dockRef.current?.matches(':hover')) {
+      if (!dockRef.current?.matches(':hover') && !dockRef.current?.matches(':focus-within')) {
         setDockState('hidden');
+      } else {
+        setDockState('visible');
       }
     }
-  }, [autoHideEnabled, clearDockHideTimer, clearDockRevealTimer, setDockState]);
+  }, [autoHideEnabled, clearTimers, setDockState]);
+
+  // Invalidate timers on dock position changes or unmount
+  useEffect(() => {
+    clearTimers();
+    ++visibilityGenerationRef.current;
+    return () => {
+      clearTimers();
+      ++visibilityGenerationRef.current;
+    };
+  }, [dockPosition, clearTimers]);
 
   // Pointer move detection across all 4 screen edges for auto-hide
   useEffect(() => {
-    clearDockHideTimer();
-    clearDockRevealTimer();
-
     if (!autoHideEnabled) {
       setDockState('visible');
       return;
     }
 
     const onPointerMove = (e: PointerEvent) => {
-      const edgeThreshold = 20;
+      const edgeThreshold = 16;
       let atEdge = false;
 
       switch (dockPosition) {
@@ -175,7 +231,7 @@ export function OrionDock() {
           atEdge = e.clientY >= window.innerHeight - edgeThreshold;
           break;
         case 'top':
-          atEdge = e.clientY <= (systemBarHeight + edgeThreshold) && e.clientY >= systemBarHeight - 10;
+          atEdge = e.clientY <= (systemBarHeight + edgeThreshold) && e.clientY >= systemBarHeight;
           break;
         case 'left':
           atEdge = e.clientX <= edgeThreshold;
@@ -188,19 +244,21 @@ export function OrionDock() {
       const hoveringDock = !!dockRef.current?.matches(':hover');
 
       if (atEdge || hoveringDock) {
-        clearDockHideTimer();
+        clearTimers();
         if (visibilityStateRef.current === 'hidden' || visibilityStateRef.current === 'hiding') {
           handleActivationTrigger();
         }
       } else {
-        scheduleDockHide();
+        if (visibilityStateRef.current === 'visible') {
+          scheduleDockHide();
+        }
       }
     };
 
     const onWindowBlur = () => {
       if (autoHideEnabled) {
-        clearDockHideTimer();
-        clearDockRevealTimer();
+        clearTimers();
+        ++visibilityGenerationRef.current;
         setDockState('hidden');
       }
     };
@@ -211,10 +269,10 @@ export function OrionDock() {
     return () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('blur', onWindowBlur);
-      clearDockHideTimer();
-      clearDockRevealTimer();
+      clearTimers();
+      ++visibilityGenerationRef.current;
     };
-  }, [autoHideEnabled, dockPosition, systemBarHeight, clearDockHideTimer, clearDockRevealTimer, handleActivationTrigger, scheduleDockHide, setDockState]);
+  }, [autoHideEnabled, dockPosition, systemBarHeight, clearTimers, handleActivationTrigger, scheduleDockHide, setDockState]);
 
   const openAppIds = openAppIdsForDock;
   const unpinnedOpenApps = openAppIds.filter(id => !dockPinnedApps.includes(id));

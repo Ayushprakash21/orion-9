@@ -265,7 +265,7 @@ export function OrionDesktop() {
         <OrionLiveWallpaper 
           hasOpenWindows={currentWorkspaceWindows.some(w => w.state !== 'minimized')}
           target="desktop"
-          userId={currentUser?.id}
+          userId={currentUser?.id || 'default_user'}
           tenantId={currentUser?.organizationId || organization?.id || 'global'}
         />
       </div>

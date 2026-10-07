@@ -5,7 +5,7 @@
  * file restore, properties inspection, and seamless Notepad integration.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Folder,
   FolderOpen,
@@ -89,85 +89,258 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
     item: { type: 'file' | 'folder'; data: OrionFile | OrionFolder };
   } | null>(null);
 
-  // Load Directory contents
-  const loadDirectory = useCallback(async (folderId: string | null) => {
-    setIsLoading(true);
+  // Race-safety refs
+  const navigationRequestRef = useRef<number>(0);
+  const currentFolderRef = useRef<OrionFolder | null>(null);
+  const isMountedRef = useRef<boolean>(true);
+
+  // Lifecycle mount tracker
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  // Synchronously update both currentFolderRef and React state
+  const updateActiveFolder = useCallback((folder: OrionFolder | null) => {
+    currentFolderRef.current = folder;
+    setCurrentFolder(folder);
+  }, []);
+
+  // Toast ref to maintain stable callback identity
+  const showToastRef = useRef(showToast);
+  useEffect(() => {
+    showToastRef.current = showToast;
+  });
+
+  // Pure folder contents loader
+  const loadFolderContents = useCallback(async (targetFolder: OrionFolder, requestId: number) => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[FILEMANAGER:LOAD] request=${requestId} folder=${targetFolder.systemKey || targetFolder.name} status=start`);
+    }
+
     try {
-      await orionFileSystemService.ensureSystemStructure();
-      const [allSysFolders, current, storage] = await Promise.all([
+      const isRecycle = targetFolder.systemKey === 'recycle_bin';
+      const [allSysFolders, subFolders, dirFiles, storage] = await Promise.all([
         orionFileSystemService.listFolders(null),
-        folderId ? orionFileSystemService.getFolder(folderId) : null,
+        orionFileSystemService.listFolders(targetFolder.id, undefined, undefined, isRecycle),
+        orionFileSystemService.listFiles(targetFolder.id, undefined, undefined, isRecycle),
         orionFileSystemService.getVirtualStorageInfo(),
       ]);
 
+      if (!isMountedRef.current) return;
+
+      if (requestId !== navigationRequestRef.current) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug(`[ORION:FILEMANAGER] request=${requestId} folder=${targetFolder.systemKey || targetFolder.name} action=discard-stale`);
+        }
+        return;
+      }
+
+      if (currentFolderRef.current?.id !== targetFolder.id) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug(`[ORION:FILEMANAGER] request=${requestId} folder=${targetFolder.systemKey || targetFolder.name} action=discard-stale`);
+        }
+        return;
+      }
+
       setSystemFolders(allSysFolders.filter(f => f.isSystem));
+      setFolders(subFolders);
+      setFiles(dirFiles);
       setStorageInfo(storage);
+      setIsLoading(false);
 
-      const targetFolder = current || allSysFolders.find(f => f.systemKey === initialFolderKey) || allSysFolders[0];
-      setCurrentFolder(targetFolder);
-
-      if (targetFolder) {
-        const isRecycle = targetFolder.systemKey === 'recycle_bin';
-        const [subFolders, dirFiles] = await Promise.all([
-          orionFileSystemService.listFolders(targetFolder.id, undefined, undefined, isRecycle),
-          orionFileSystemService.listFiles(targetFolder.id, undefined, undefined, isRecycle),
-        ]);
-        setFolders(subFolders);
-        setFiles(dirFiles);
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug(`[ORION:FILEMANAGER] request=${requestId} folder=${targetFolder.systemKey || targetFolder.name} action=commit`);
       }
     } catch (err) {
-      console.error('Failed to load file manager directory', err);
-      showToast('Error loading directory', 'error', 'File Explorer');
-    } finally {
+      if (!isMountedRef.current || requestId !== navigationRequestRef.current) return;
+      console.error('[FILEMANAGER:LOAD] Failed to load folder contents', err);
+      showToastRef.current('Error loading directory', 'error', 'File Explorer');
       setIsLoading(false);
     }
-  }, [initialFolderKey, showToast]);
+  }, []);
 
-  // Initial Boot
-  useEffect(() => {
-    loadDirectory(initialFolderId || null);
-  }, [loadDirectory, initialFolderId]);
+  /**
+   * User-initiated navigation to a known OrionFolder object (sidebar click, folder double click).
+   * Monotonically increments navigationRequestRef so previous pending requests are discarded.
+   */
+  const navigateToFolder = useCallback((folder: OrionFolder) => {
+    const fromName = currentFolderRef.current ? (currentFolderRef.current.systemKey || currentFolderRef.current.name) : 'none';
+    const toName = folder.systemKey || folder.name;
+    const reqId = ++navigationRequestRef.current;
 
-  // Listen to FS changes
-  useEffect(() => {
-    const unsub = orionFileSystemService.subscribe(() => {
-      if (currentFolder) {
-        loadDirectory(currentFolder.id);
-      }
-    });
-    return unsub;
-  }, [currentFolder, loadDirectory]);
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[ORION:FILEMANAGER] request=${reqId} from=${fromName} to=${toName} action=navigate`);
+    }
 
-  // Navigate to folder
-  const navigateToFolder = (folder: OrionFolder) => {
+    // 1. Immediately update active folder (both React state and ref synchronously)
+    updateActiveFolder(folder);
+
+    // 2. Clear selected item and search query
+    setSelectedItem(null);
+    setSearchQuery('');
+
+    // 3. Update history
     setHistory(prev => [...prev.slice(0, historyIndex + 1), folder.id]);
     setHistoryIndex(prev => prev + 1);
-    setCurrentFolder(folder);
+
+    // 4. Set loading state for latest request
+    setIsLoading(true);
+
+    // 5. Load folder contents
+    loadFolderContents(folder, reqId);
+  }, [historyIndex, loadFolderContents, updateActiveFolder]);
+
+  /**
+   * Navigation by folder ID (used by Back / Forward / external jump).
+   * Resolves the target folder ID authoritatively without any fallback to initialFolderKey.
+   */
+  const navigateToFolderById = useCallback(async (folderId: string, targetHistoryIndex?: number) => {
+    const fromName = currentFolderRef.current ? (currentFolderRef.current.systemKey || currentFolderRef.current.name) : 'none';
+    const reqId = ++navigationRequestRef.current;
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[ORION:FILEMANAGER] request=${reqId} from=${fromName} to=${folderId} action=navigate`);
+    }
+
+    setIsLoading(true);
     setSelectedItem(null);
-    loadDirectory(folder.id);
-  };
+    setSearchQuery('');
+
+    if (targetHistoryIndex !== undefined) {
+      setHistoryIndex(targetHistoryIndex);
+    }
+
+    try {
+      const targetFolder = await orionFileSystemService.getFolder(folderId);
+
+      if (!isMountedRef.current || reqId !== navigationRequestRef.current) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.debug(`[ORION:FILEMANAGER] request=${reqId} folder=${folderId} action=discard-stale`);
+        }
+        return;
+      }
+
+      if (!targetFolder) {
+        showToastRef.current('Folder not found', 'error', 'File Explorer');
+        setIsLoading(false);
+        return;
+      }
+
+      updateActiveFolder(targetFolder);
+      loadFolderContents(targetFolder, reqId);
+    } catch (err) {
+      if (!isMountedRef.current || reqId !== navigationRequestRef.current) return;
+      console.error('[FILEMANAGER:NAV_BY_ID] Failed to resolve target folder', err);
+      showToastRef.current('Error loading folder', 'error', 'File Explorer');
+      setIsLoading(false);
+    }
+  }, [loadFolderContents, updateActiveFolder]);
+
+  /**
+   * Refreshes the currently active folder without navigating, without changing currentFolder,
+   * and without modifying history.
+   * Reads currentFolderRef.current to avoid closure staleness.
+   */
+  const refreshCurrentFolder = useCallback((reason = 'manual') => {
+    const current = currentFolderRef.current;
+    if (!current) return;
+
+    const reqId = navigationRequestRef.current;
+    if (process.env.NODE_ENV !== 'production') {
+      console.debug(`[FILEMANAGER:REFRESH] request=${reqId} folder=${current.systemKey || current.name} reason=${reason}`);
+    }
+
+    loadFolderContents(current, reqId);
+  }, [loadFolderContents]);
+
+  // Initial Mount Initialization: Resolve initialFolderKey or initialFolderId strictly once on mount (StrictMode-safe)
+  useEffect(() => {
+    let isCancelled = false;
+    const reqId = ++navigationRequestRef.current;
+    setIsLoading(true);
+
+    const initialize = async () => {
+      try {
+        await orionFileSystemService.ensureSystemStructure();
+        const allSysFolders = await orionFileSystemService.listFolders(null);
+
+        if (isCancelled || !isMountedRef.current || reqId !== navigationRequestRef.current) return;
+
+        let startFolder: OrionFolder | null = null;
+        if (initialFolderId) {
+          startFolder = await orionFileSystemService.getFolder(initialFolderId);
+        }
+        if (!startFolder) {
+          startFolder = allSysFolders.find(f => f.systemKey === initialFolderKey) || allSysFolders[0] || null;
+        }
+
+        if (isCancelled || !isMountedRef.current || reqId !== navigationRequestRef.current) return;
+
+        if (startFolder) {
+          updateActiveFolder(startFolder);
+          setHistory([startFolder.id]);
+          setHistoryIndex(0);
+          await loadFolderContents(startFolder, reqId);
+        } else {
+          setIsLoading(false);
+        }
+      } catch (err) {
+        if (!isCancelled && isMountedRef.current && reqId === navigationRequestRef.current) {
+          console.error('[FILEMANAGER:INIT] Failed to initialize file manager', err);
+          showToastRef.current('Error loading directory', 'error', 'File Explorer');
+          setIsLoading(false);
+        }
+      }
+    };
+
+    initialize();
+
+    return () => {
+      isCancelled = true;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Single stable filesystem event subscription (does NOT re-subscribe when active folder changes)
+  useEffect(() => {
+    const unsub = orionFileSystemService.subscribe((event) => {
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug('[FILEMANAGER:EVENT] Filesystem event received:', event.type);
+      }
+      refreshCurrentFolder(event.type);
+    });
+    return () => {
+      unsub();
+    };
+  }, [refreshCurrentFolder]);
 
   // Nav Buttons
   const handleGoBack = () => {
     if (historyIndex > 0) {
-      const targetId = history[historyIndex - 1];
-      setHistoryIndex(prev => prev - 1);
-      loadDirectory(targetId);
+      const targetIndex = historyIndex - 1;
+      const targetId = history[targetIndex];
+      navigateToFolderById(targetId, targetIndex);
     }
   };
 
   const handleGoForward = () => {
     if (historyIndex < history.length - 1) {
-      const targetId = history[historyIndex + 1];
-      setHistoryIndex(prev => prev + 1);
-      loadDirectory(targetId);
+      const targetIndex = historyIndex + 1;
+      const targetId = history[targetIndex];
+      navigateToFolderById(targetId, targetIndex);
     }
   };
 
   const handleGoUp = async () => {
-    if (currentFolder && currentFolder.parentId) {
-      const parent = await orionFileSystemService.getFolder(currentFolder.parentId);
-      if (parent) navigateToFolder(parent);
+    const current = currentFolderRef.current;
+    if (current && current.parentId) {
+      const parent = await orionFileSystemService.getFolder(current.parentId);
+      if (parent && isMountedRef.current) {
+        navigateToFolder(parent);
+      }
     }
   };
 
@@ -207,7 +380,7 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
         await orionFileSystemService.deleteFolder(folder.id);
         showToast(`Moved ${folder.name} to Recycle Bin`, 'info', 'File Explorer');
       }
-      if (currentFolder) loadDirectory(currentFolder.id);
+      refreshCurrentFolder('delete-item');
     } catch (e: any) {
       showToast(`Delete failed: ${e?.message || 'Error'}`, 'error', 'File Explorer');
     }
@@ -218,7 +391,7 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
     try {
       await orionFileSystemService.restoreFile(fileId);
       showToast('Item restored successfully', 'success', 'File Explorer');
-      if (currentFolder) loadDirectory(currentFolder.id);
+      refreshCurrentFolder('restore-file');
     } catch (e: any) {
       showToast('Failed to restore item', 'error', 'File Explorer');
     }
@@ -230,7 +403,7 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
     try {
       await orionFileSystemService.emptyRecycleBin();
       showToast('Recycle Bin emptied', 'info', 'File Explorer');
-      if (currentFolder) loadDirectory(currentFolder.id);
+      refreshCurrentFolder('empty-recycle-bin');
     } catch (e) {
       showToast('Failed to empty recycle bin', 'error', 'File Explorer');
     }
@@ -238,16 +411,17 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
 
   // Create Folder
   const handleCreateFolder = async () => {
-    if (!newFolderName.trim() || !currentFolder) return;
+    const current = currentFolderRef.current;
+    if (!newFolderName.trim() || !current) return;
     try {
       await orionFileSystemService.createFolder({
         name: newFolderName.trim(),
-        parentId: currentFolder.id,
+        parentId: current.id,
       });
       setIsNewFolderOpen(false);
       setNewFolderName('New Folder');
       showToast('Folder created', 'success', 'File Explorer');
-      loadDirectory(currentFolder.id);
+      refreshCurrentFolder('create-folder');
     } catch (e: any) {
       showToast(`Create folder failed: ${e?.message || 'Error'}`, 'error', 'File Explorer');
     }
@@ -255,7 +429,8 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
 
   // Create File
   const handleCreateFile = async () => {
-    if (!newFileName.trim() || !currentFolder) return;
+    const current = currentFolderRef.current;
+    if (!newFileName.trim() || !current) return;
     try {
       const parts = newFileName.split('.');
       const ext = parts.length > 1 ? parts.pop()! : 'txt';
@@ -265,13 +440,13 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
         name: baseName,
         extension: ext,
         content: newFileContent,
-        folderId: currentFolder.id,
+        folderId: current.id,
       });
       setIsNewFileOpen(false);
       setNewFileName('New Document.txt');
       setNewFileContent('');
       showToast('Document created', 'success', 'File Explorer');
-      loadDirectory(currentFolder.id);
+      refreshCurrentFolder('create-file');
     } catch (e: any) {
       showToast(`Create file failed: ${e?.message || 'Error'}`, 'error', 'File Explorer');
     }
@@ -288,7 +463,7 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
       }
       setIsRenameOpen(false);
       showToast('Item renamed', 'success', 'File Explorer');
-      if (currentFolder) loadDirectory(currentFolder.id);
+      refreshCurrentFolder('rename-item');
     } catch (e: any) {
       showToast(`Rename failed: ${e?.message || 'Error'}`, 'error', 'File Explorer');
     }
@@ -369,6 +544,8 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
                   <button
                     type="button"
                     key={sys.id}
+                    data-testid={`file-manager-sidebar-${sys.systemKey || sys.id}`}
+                    data-active={isActive ? "true" : "false"}
                     onClick={() => navigateToFolder(sys)}
                     className={cn(
                       "flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] font-medium transition-all text-left group cursor-pointer",
@@ -447,7 +624,7 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
               </button>
               <button
                 type="button"
-                onClick={() => currentFolder && loadDirectory(currentFolder.id)}
+                onClick={() => refreshCurrentFolder('user-refresh-button')}
                 className="p-1.5 rounded-lg hover:bg-white/[0.08] text-slate-400 hover:text-white cursor-pointer transition-colors"
                 title="Refresh"
               >
@@ -460,7 +637,7 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
               <HardDrive size={13} className="text-sky-400 shrink-0" />
               <span className="text-slate-400">Orion OS</span>
               <ChevronRight size={12} className="text-slate-500 shrink-0" />
-              <span className="font-semibold text-white truncate">
+              <span data-testid="file-manager-breadcrumb" className="font-semibold text-white truncate">
                 {currentFolder?.name || 'Explorer'}
               </span>
             </div>
@@ -541,7 +718,7 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
         </div>
 
         {/* Content View */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div data-testid="file-manager-content-pane" className="flex-1 overflow-y-auto p-4">
           {isLoading ? (
             <div className="flex items-center justify-center h-full text-os-text-muted text-xs animate-pulse">
               Reading virtual directory...
