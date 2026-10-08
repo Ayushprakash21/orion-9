@@ -213,9 +213,16 @@ export class BrowserNativeRuntimeBridge {
         return surfaceId;
       } catch (err: any) {
         record.lifecycleState = 'ERROR';
-        record.errorMessage = err?.message || 'Failed to create native surface';
+        const formattedErr = `NATIVE_RUNTIME_ERROR: ${err?.message || 'Failed to create native surface'}`;
+        record.errorMessage = formattedErr;
         this.logError(LOG_PREFIX, `[BROWSER:ERROR] Surface creation failed for ${tabId}:`, err);
-        throw err;
+        this.emitEvent('navigation-failed', {
+          tabId,
+          url: initialUrl,
+          error: formattedErr,
+          loading: false,
+        });
+        throw new Error(formattedErr);
       } finally {
         this.pendingCreations.delete(tabId);
       }
@@ -262,8 +269,9 @@ export class BrowserNativeRuntimeBridge {
         tabId,
         bounds,
       });
-    } catch (err) {
+    } catch (err: any) {
       this.logError(LOG_PREFIX, `[BROWSER:ERROR] setBounds failed for ${tabId}:`, err);
+      throw err;
     }
   }
 
@@ -285,16 +293,26 @@ export class BrowserNativeRuntimeBridge {
           record.lifecycleState = 'VISIBLE';
           try {
             await this.invokeNative('browser_show_surface', { tabId: id });
-          } catch (err) {
+          } catch (err: any) {
+            record.lifecycleState = 'ERROR';
+            const formattedErr = `NATIVE_RUNTIME_ERROR: ${err?.message || 'Failed to show native surface'}`;
+            record.errorMessage = formattedErr;
             this.logError(LOG_PREFIX, `[BROWSER:ERROR] show_surface failed for ${id}:`, err);
+            this.emitEvent('navigation-failed', {
+              tabId: id,
+              error: formattedErr,
+              loading: false,
+            });
+            throw new Error(formattedErr);
           }
         } else {
           record.visible = false;
           record.lifecycleState = 'HIDDEN';
           try {
             await this.invokeNative('browser_hide_surface', { tabId: id });
-          } catch (err) {
+          } catch (err: any) {
             this.logError(LOG_PREFIX, `[BROWSER:ERROR] hide_surface failed for ${id}:`, err);
+            throw err;
           }
         }
       } else if (record.visible) {
@@ -302,8 +320,9 @@ export class BrowserNativeRuntimeBridge {
         record.lifecycleState = 'HIDDEN';
         try {
           await this.invokeNative('browser_hide_surface', { tabId: id });
-        } catch (err) {
+        } catch (err: any) {
           this.logError(LOG_PREFIX, `[BROWSER:ERROR] hide_surface failed for ${id}:`, err);
+          throw err;
         }
       }
     }
@@ -320,8 +339,9 @@ export class BrowserNativeRuntimeBridge {
     }
     try {
       await this.invokeNative('browser_hide_surface', { tabId });
-    } catch (err) {
+    } catch (err: any) {
       this.logError(LOG_PREFIX, `[BROWSER:ERROR] hideSurface failed for ${tabId}:`, err);
+      throw err;
     }
   }
 

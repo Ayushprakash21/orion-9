@@ -18,7 +18,7 @@ import { normalizeUrl, resolveAddressInput, isValidUrl } from './BrowserEngine';
 import { BrowserCopilotPermissionLayer, validateBrowserUrl, openExternally } from './BrowserSecurity';
 import { resolveWebModePolicy } from './WebModePolicy';
 import { BrowserRuntimeAdapter, getBrowserRuntimeAdapter, BrowserBounds } from './BrowserRuntimeAdapter';
-import { detectBrowserRuntimeCapability, resolveAuthoritativeCapability, BrowserRuntimeCapability } from './BrowserRuntimeCapability';
+import { detectBrowserRuntimeCapability, resolveAuthoritativeCapability, getCachedAuthoritativeCapability, BrowserRuntimeCapability } from './BrowserRuntimeCapability';
 import { BrowserDiagnosticsOverlay } from './BrowserDiagnosticsOverlay';
 import { useWindowManager } from '../../os/WindowManagerContext';
 import { useToast } from '../../store/ToastContext';
@@ -78,7 +78,12 @@ export function OrionBrowser() {
   const [isFindInPageOpen, setIsFindInPageOpen] = useState(false);
   const [findQuery, setFindQuery] = useState('');
   const [findMatches, setFindMatches] = useState({ count: 0, activeIndex: 0 });
-  const [capability, setCapability] = useState<BrowserRuntimeCapability>(() => detectBrowserRuntimeCapability());
+  const [capability, setCapability] = useState<BrowserRuntimeCapability>(() => {
+    return getCachedAuthoritativeCapability() || detectBrowserRuntimeCapability();
+  });
+  const [isCapabilityResolved, setIsCapabilityResolved] = useState<boolean>(() => {
+    return Boolean(getCachedAuthoritativeCapability()?.verifiedNative);
+  });
   const [isDiagnosticsOpen, setIsDiagnosticsOpen] = useState(false);
   const [lastEvent, setLastEvent] = useState<{ type: string; timestamp: number; detail?: any } | undefined>();
   const [lastError, setLastError] = useState<string | undefined>();
@@ -96,40 +101,15 @@ export function OrionBrowser() {
   }, []);
 
   const adapterRef = useRef<BrowserRuntimeAdapter | null>(null);
-  if (!adapterRef.current) {
-    adapterRef.current = getBrowserRuntimeAdapter('tab-1', 'orion://newtab', capability.mode);
-  }
+  const unsubscribeAdapterRef = useRef<(() => void) | null>(null);
 
-  // Authoritative runtime capability verification on mount
-  useEffect(() => {
-    let mounted = true;
-    resolveAuthoritativeCapability().then(cap => {
-      if (mounted) {
-        setCapability(cap);
-        if (process.env.NODE_ENV !== 'production') {
-          console.log('[BROWSER:RUNTIME]', `Authoritative capability: mode=${cap.mode}, nativeAvailable=${cap.nativeAvailable}, verified=${cap.verifiedNative}`);
-        }
-      }
-    });
-    return () => { mounted = false; };
-  }, []);
+  const attachAdapterListeners = useCallback((adapter: BrowserRuntimeAdapter) => {
+    if (unsubscribeAdapterRef.current) {
+      unsubscribeAdapterRef.current();
+      unsubscribeAdapterRef.current = null;
+    }
 
-  // Alt+D keyboard shortcut to toggle development diagnostics overlay
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.altKey && (e.key === 'd' || e.key === 'D')) {
-        e.preventDefault();
-        setIsDiagnosticsOpen(prev => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // Subscribe to BrowserRuntimeAdapter events
-  useEffect(() => {
-    if (!adapterRef.current) return;
-    const unsubscribe = adapterRef.current.addEventListener((eventType, detail) => {
+    unsubscribeAdapterRef.current = adapter.addEventListener((eventType, detail) => {
       setLastEvent({ type: eventType, timestamp: Date.now(), detail });
 
       if (eventType === 'navigation-started') {
@@ -155,13 +135,17 @@ export function OrionBrowser() {
           title: detail.title || t.title,
         } : t));
       } else if (eventType === 'navigation-failed') {
-        setLastError(detail.error || 'Navigation failed');
+        recordBrowserError(detail.tabId, detail.error || 'Navigation failed', 'navigation-failed');
+        const isNativeErr = detail.error?.startsWith('NATIVE_') || adapter.getCapability().mode === 'NATIVE_WEBVIEW';
+        const loadState = isNativeErr
+          ? 'NATIVE_RUNTIME_ERROR'
+          : (detail.error === 'EXTERNAL_REQUIRED' || detail.error === 'BLOCKED_EMBEDDING' ? 'EXTERNAL_REQUIRED' : 'NETWORK_ERROR');
         setTabs(prev => prev.map(t => t.id === detail.tabId ? {
           ...t,
           loading: false,
-          loadState: detail.error === 'EXTERNAL_REQUIRED' || detail.error === 'BLOCKED_EMBEDDING' ? 'BLOCKED_EMBEDDING' : 'NETWORK_ERROR',
-          contentState: detail.error === 'EXTERNAL_REQUIRED' ? 'EXTERNAL_REQUIRED' : (detail.error === 'BLOCKED_EMBEDDING' ? 'BLOCKED_EMBEDDING' : 'NETWORK_ERROR'),
-          webNavigationState: detail.error === 'EXTERNAL_REQUIRED' ? 'EXTERNAL_REQUIRED' : (detail.error === 'BLOCKED_EMBEDDING' ? 'BLOCKED' : 'ERROR'),
+          loadState,
+          contentState: loadState,
+          webNavigationState: isNativeErr ? 'ERROR' : (loadState === 'EXTERNAL_REQUIRED' ? 'EXTERNAL_REQUIRED' : 'ERROR'),
           errorDetails: detail.error,
         } : t));
       } else if (eventType === 'title-changed' && detail.title) {
@@ -174,7 +158,53 @@ export function OrionBrowser() {
         setFindMatches({ count: detail.count ?? 0, activeIndex: detail.activeIndex ?? 0 });
       }
     });
-    return unsubscribe;
+  }, [recordBrowserError]);
+
+  // Initial adapter creation (creates synchronous default or authoritative adapter)
+  if (!adapterRef.current) {
+    const initialAdapter = getBrowserRuntimeAdapter('tab-1', 'orion://newtab', capability.mode);
+    adapterRef.current = initialAdapter;
+    attachAdapterListeners(initialAdapter);
+  }
+
+  // Authoritative runtime capability verification on mount
+  useEffect(() => {
+    let mounted = true;
+    resolveAuthoritativeCapability().then(cap => {
+      if (!mounted) return;
+      setCapability(cap);
+      setIsCapabilityResolved(true);
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[BROWSER:RUNTIME]', `Authoritative capability: mode=${cap.mode}, nativeAvailable=${cap.nativeAvailable}, verified=${cap.verifiedNative}`);
+      }
+
+      // Re-create adapter using FINAL authoritative capability if mode differs
+      if (adapterRef.current && adapterRef.current.getCapability().mode !== cap.mode) {
+        adapterRef.current.destroy();
+        const authoritativeAdapter = getBrowserRuntimeAdapter(activeTabId, 'orion://newtab', cap.mode);
+        adapterRef.current = authoritativeAdapter;
+        attachAdapterListeners(authoritativeAdapter);
+      }
+    });
+    return () => { 
+      mounted = false;
+      if (unsubscribeAdapterRef.current) {
+        unsubscribeAdapterRef.current();
+        unsubscribeAdapterRef.current = null;
+      }
+    };
+  }, [activeTabId, attachAdapterListeners]);
+
+  // Alt+D keyboard shortcut to toggle development diagnostics overlay
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key === 'd' || e.key === 'D')) {
+        e.preventDefault();
+        setIsDiagnosticsOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   // Synchronize active tab surface with runtime adapter
@@ -235,11 +265,24 @@ export function OrionBrowser() {
   }, []);
 
   // Tab Navigation with Generation / Race Protection
-  const navigateTab = useCallback((tabId: string, targetUrl: string) => {
+  const navigateTab = useCallback(async (tabId: string, targetUrl: string) => {
+    let currentCap = capability;
+    if (!isCapabilityResolved) {
+      currentCap = await resolveAuthoritativeCapability();
+      setCapability(currentCap);
+      setIsCapabilityResolved(true);
+      if (!adapterRef.current || adapterRef.current.getCapability().mode !== currentCap.mode) {
+        if (adapterRef.current) adapterRef.current.destroy();
+        const authoritativeAdapter = getBrowserRuntimeAdapter(tabId, targetUrl, currentCap.mode);
+        adapterRef.current = authoritativeAdapter;
+        attachAdapterListeners(authoritativeAdapter);
+      }
+    }
+
     const validation = validateBrowserUrl(targetUrl, preferences.defaultSearchEngine);
     const resolvedUrl = validation.normalizedUrl;
     const isInternalUrl = validation.scheme === 'internal' || resolvedUrl === 'orion://newtab' || resolvedUrl.startsWith('/');
-    const isNative = capability.nativeAvailable;
+    const isNative = (currentCap.mode === 'NATIVE_WEBVIEW' && currentCap.nativeAvailable) || currentCap.verifiedNative;
     const webPolicy = !isNative ? resolveWebModePolicy(resolvedUrl) : null;
 
     setTabs(prev => prev.map(tab => {
@@ -351,7 +394,7 @@ export function OrionBrowser() {
         });
       }
     }
-  }, [preferences.defaultSearchEngine, capability.nativeAvailable, recordBrowserError]);
+  }, [preferences.defaultSearchEngine, capability, isCapabilityResolved, attachAdapterListeners, recordBrowserError]);
 
   const handleSelectTab = useCallback((tabId: string) => {
     setActiveTabId(tabId);
@@ -843,7 +886,7 @@ export function OrionBrowser() {
         activeTab={activeTab}
         recentHistory={historyList}
         zoomLevel={zoomLevel}
-        runtimeMode={capability.nativeAvailable ? 'NATIVE_WEBVIEW' : 'WEB_EMBEDDED'}
+        runtimeMode={(capability.mode === 'NATIVE_WEBVIEW' && capability.nativeAvailable) || capability.verifiedNative ? 'NATIVE_WEBVIEW' : 'WEB_EMBEDDED'}
         onNavigate={(url) => navigateTab(activeTabId, url)}
         onReload={handleReload}
         onBlocked={() => {
@@ -862,7 +905,7 @@ export function OrionBrowser() {
           }
         }}
         onInstallDesktop={() => {
-          showToast?.('Orion Desktop application package available at orion9.tech/download', 'info', 'Orion Desktop');
+          showToast?.('ORION Desktop is required for full web browsing.', 'info', 'Orion Desktop');
         }}
         onBoundsChange={(bounds) => {
           adapterRef.current?.setBounds(bounds);

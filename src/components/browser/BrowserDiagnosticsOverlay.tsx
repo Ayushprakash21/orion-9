@@ -63,16 +63,66 @@ export const BrowserDiagnosticsOverlay: React.FC<BrowserDiagnosticsProps> = ({
       </div>
 
       <div className="space-y-2.5">
-        {/* Runtime Mode */}
-        <div className="flex justify-between items-center py-1 px-2 rounded-lg bg-os-bg/50">
-          <span className="text-os-text-muted">Runtime:</span>
-          <span className={`font-bold px-2 py-0.5 rounded text-[11px] ${
-            isNative 
-              ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' 
-              : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-          }`}>
-            {capability.mode}
-          </span>
+        {/* Runtime & Host Diagnostics */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="flex justify-between items-center py-1 px-2 rounded-lg bg-os-bg/50">
+            <span className="text-os-text-muted">Runtime:</span>
+            <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${
+              isNative 
+                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' 
+                : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+            }`}>
+              {capability.mode}
+            </span>
+          </div>
+          <div className="flex justify-between items-center py-1 px-2 rounded-lg bg-os-bg/50">
+            <span className="text-os-text-muted">Runtime Type:</span>
+            <span className="font-bold text-[10px] text-os-text-primary">
+              {capability.runtimeType}
+            </span>
+          </div>
+        </div>
+
+        {/* Native Availability & Verification */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="py-1 px-2 rounded-lg bg-os-bg/50 flex justify-between items-center">
+            <span className="text-os-text-muted text-[10px]">Native:</span>
+            <span className={capability.nativeAvailable ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
+              {capability.nativeAvailable ? 'YES' : 'NO'}
+            </span>
+          </div>
+          <div className="py-1 px-2 rounded-lg bg-os-bg/50 flex justify-between items-center">
+            <span className="text-os-text-muted text-[10px]">Verified:</span>
+            <span className={capability.verifiedNative ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
+              {capability.verifiedNative ? 'YES' : 'NO'}
+            </span>
+          </div>
+          <div className="py-1 px-2 rounded-lg bg-os-bg/50 flex justify-between items-center">
+            <span className="text-os-text-muted text-[10px]">WebView:</span>
+            <span className={capability.nativeAvailable ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
+              {capability.nativeAvailable ? 'AVAILABLE' : 'UNAVAILABLE'}
+            </span>
+          </div>
+        </div>
+
+        {/* Active Surface & Lifecycle State */}
+        <div className="py-1 px-2 rounded-lg bg-os-bg/50">
+          <div className="flex justify-between items-center">
+            <span className="text-os-text-muted text-[10px]">Active Surface:</span>
+            <span className="text-os-accent font-semibold text-[10px] font-mono">
+              {activeTab ? `native_surface_${activeTab.id}` : 'None'}
+            </span>
+          </div>
+          <div className="flex justify-between items-center mt-1">
+            <span className="text-os-text-muted text-[10px]">Lifecycle:</span>
+            <span className={`font-bold text-[10px] ${
+              activeTab?.loadState === 'LOADING' ? 'text-cyan-400' :
+              activeTab?.loadState === 'PAGE_LOADED' ? 'text-emerald-400' :
+              activeTab?.loadState === 'NATIVE_RUNTIME_ERROR' ? 'text-red-400' : 'text-amber-400'
+            }`}>
+              {activeTab?.nativeLifecycleState || (activeTab?.loading ? 'VISIBLE' : (activeTab?.loadState === 'EMPTY_TAB' ? 'READY' : 'VISIBLE'))}
+            </span>
+          </div>
         </div>
 
         {/* Web Mode Specific Diagnostics */}
@@ -107,31 +157,13 @@ export const BrowserDiagnosticsOverlay: React.FC<BrowserDiagnosticsProps> = ({
           </>
         )}
 
-        {/* Native Mode Specific Diagnostics */}
-        {isNative && (
-          <div className="grid grid-cols-2 gap-2">
-            <div className="py-1 px-2 rounded-lg bg-os-bg/50 flex justify-between items-center">
-              <span className="text-os-text-muted text-[10px]">Native Verified:</span>
-              <span className={capability.verifiedNative ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
-                {capability.verifiedNative ? 'YES' : 'NO'}
-              </span>
-            </div>
-            <div className="py-1 px-2 rounded-lg bg-os-bg/50 flex justify-between items-center">
-              <span className="text-os-text-muted text-[10px]">Surface:</span>
-              <span className="text-os-accent font-bold text-[11px]">
-                {activeTab?.nativeLifecycleState || 'READY'}
-              </span>
-            </div>
-          </div>
-        )}
-
         {/* Active Tab & Surface Label */}
         <div className="py-1 px-2 rounded-lg bg-os-bg/50">
           <div className="flex justify-between items-center mb-1">
             <span className="text-os-text-muted">Tab:</span>
             <span className="text-os-accent font-semibold">{activeTab?.id || 'None'} ({tabsCount} tabs)</span>
           </div>
-          {isNative && activeTab?.id && (
+          {activeTab?.id && (
             <div className="text-[10px] text-os-text-muted font-mono">
               Native label: orion-browser-{activeTab.id.replace(/[^a-zA-Z0-9_-]/g, '_')}
             </div>

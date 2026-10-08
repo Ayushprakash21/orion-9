@@ -90,11 +90,16 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
     const ro = new ResizeObserver(() => reportBounds());
     ro.observe(el);
     window.addEventListener('resize', reportBounds);
+    window.addEventListener('scroll', reportBounds, true);
+    // Periodic check to capture window drag movements across OS desktop
+    const timer = setInterval(reportBounds, 200);
 
     return () => {
       if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
       ro.disconnect();
       window.removeEventListener('resize', reportBounds);
+      window.removeEventListener('scroll', reportBounds, true);
+      clearInterval(timer);
     };
   }, [isNative, onBoundsChange]);
 
@@ -165,15 +170,19 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
 
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-os-surface border border-os-border text-[11px] text-os-text-muted mb-3 font-medium">
           <Monitor className="w-3.5 h-3.5 text-os-accent" />
-          Full browser runtime unavailable in web mode.
+          ORION Desktop is required for full web browsing.
         </div>
 
         <h2 className="text-xl font-semibold text-os-text-primary mb-2 max-w-md">
-          Website Cannot Be Embedded
+          Desktop Browser Runtime Required
         </h2>
 
-        <p className="text-xs text-os-text-muted mb-6 max-w-md leading-relaxed">
-          {siteName} cannot be embedded safely inside ORION-9 Web Mode. This website controls its own iframe embedding security policy. Web Mode cannot override that policy.
+        <p className="text-xs text-os-text-muted mb-2 max-w-md leading-relaxed">
+          Website Cannot Be Embedded. Web Mode cannot host arbitrary websites because modern browsers enforce website embedding security policies.
+        </p>
+
+        <p className="text-[11px] text-os-text-muted/80 mb-6 max-w-md leading-relaxed">
+          Full browser runtime unavailable in web mode. {siteName} cannot be embedded safely inside an iframe.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-3">
@@ -201,7 +210,8 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
           <button
             type="button"
             data-testid="browser-install-desktop-btn"
-            onClick={() => onInstallDesktop ? onInstallDesktop() : openExternally('https://orion9.tech/download')}
+            title="Desktop app required"
+            onClick={() => onInstallDesktop ? onInstallDesktop() : openExternally('https://orion9.tech')}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-os-surface hover:bg-os-surface-hover border border-os-border text-os-text-primary text-xs font-medium transition-colors cursor-pointer"
           >
             <Download className="w-4 h-4 text-os-accent" />

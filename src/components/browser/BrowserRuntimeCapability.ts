@@ -148,6 +148,10 @@ export function isNativeRuntimeAvailable(): boolean {
   return detectBrowserRuntimeCapability().nativeAvailable;
 }
 
+export function getCachedAuthoritativeCapability(): BrowserRuntimeCapability | null {
+  return cachedAuthoritativeCapability;
+}
+
 /**
  * Authoritatively verifies whether native Tauri desktop IPC handshake succeeds.
  * If verification fails, safely falls back to WEB_EMBEDDED and captures diagnostic error.
@@ -155,8 +159,32 @@ export function isNativeRuntimeAvailable(): boolean {
 export async function verifyNativeRuntimeUsable(): Promise<boolean> {
   if (typeof window === 'undefined') return false;
   const win = window as any;
-  const invoke = win.__TAURI__?.core?.invoke || win.__TAURI__?.invoke || win.__TAURI_INTERNALS__?.invoke;
-  if (typeof invoke !== 'function') return false;
+  let invoke = win.__TAURI__?.core?.invoke || win.__TAURI__?.invoke || win.__TAURI_INTERNALS__?.invoke;
+
+  if (typeof invoke !== 'function') {
+    try {
+      const core = await import('@tauri-apps/api/core');
+      if (typeof core.invoke === 'function') {
+        invoke = core.invoke;
+      }
+    } catch {
+      // @tauri-apps/api/core not available in standard web runtime
+    }
+  }
+
+  if (typeof invoke !== 'function') {
+    // Check Electron IPC fallback
+    if (win.electronAPI?.invoke && typeof win.electronAPI.invoke === 'function') {
+      try {
+        const caps = await win.electronAPI.invoke('browser_runtime_capabilities');
+        return Boolean(caps?.native_available);
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  }
+
   try {
     const caps = await invoke('browser_runtime_capabilities');
     return Boolean(caps?.native_available);
@@ -167,18 +195,14 @@ export async function verifyNativeRuntimeUsable(): Promise<boolean> {
 
 /**
  * Resolves canonical authoritative capability after real IPC verification.
+ * The adapter must NEVER be permanently created using a provisional WEB_EMBEDDED capability.
  */
 export async function resolveAuthoritativeCapability(): Promise<BrowserRuntimeCapability> {
-  const syncCap = detectBrowserRuntimeCapability();
-  if (!syncCap.nativeAvailable) {
-    cachedAuthoritativeCapability = {
-      ...syncCap,
-      mode: 'WEB_EMBEDDED',
-      nativeAvailable: false,
-      verifiedNative: false,
-    };
+  if (cachedAuthoritativeCapability?.verifiedNative) {
     return cachedAuthoritativeCapability;
   }
+
+  const syncCap = detectBrowserRuntimeCapability();
 
   try {
     const isUsable = await verifyNativeRuntimeUsable();
@@ -188,15 +212,11 @@ export async function resolveAuthoritativeCapability(): Promise<BrowserRuntimeCa
         mode: 'NATIVE_WEBVIEW',
         nativeAvailable: true,
         verifiedNative: true,
+        runtimeType: syncCap.runtimeType === 'WEB_EMBEDDED' ? 'TAURI' : syncCap.runtimeType,
+        hasMultiSurface: true,
+        canBypassIframeSandbox: true,
       };
-    } else {
-      cachedAuthoritativeCapability = {
-        ...syncCap,
-        mode: 'WEB_EMBEDDED',
-        nativeAvailable: false,
-        verifiedNative: false,
-        lastVerificationError: 'Native IPC handshake returned invalid or unavailable capability',
-      };
+      return cachedAuthoritativeCapability;
     }
   } catch (err: any) {
     cachedAuthoritativeCapability = {
@@ -206,7 +226,17 @@ export async function resolveAuthoritativeCapability(): Promise<BrowserRuntimeCa
       verifiedNative: false,
       lastVerificationError: err?.message || 'Native IPC handshake threw exception',
     };
+    return cachedAuthoritativeCapability;
   }
+
+  cachedAuthoritativeCapability = {
+    ...syncCap,
+    mode: 'WEB_EMBEDDED',
+    nativeAvailable: false,
+    verifiedNative: false,
+    runtimeType: syncCap.runtimeType === 'TAURI' ? 'WEB_EMBEDDED' : syncCap.runtimeType,
+    canBypassIframeSandbox: false,
+  };
 
   return cachedAuthoritativeCapability;
 }
@@ -217,3 +247,4 @@ export async function resolveAuthoritativeCapability(): Promise<BrowserRuntimeCa
 export function resetAuthoritativeCapabilityCache(): void {
   cachedAuthoritativeCapability = null;
 }
+
