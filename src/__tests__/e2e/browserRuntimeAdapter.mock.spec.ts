@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('ORION-9 Real Browser & Native WebView Runtime E2E Suite', () => {
+test.describe('ORION-9 Frontend Adapter Mock Verification Suite (browserRuntimeAdapter.mock.test.ts)', () => {
   const setupBrowserSession = async (page: any, isNativeRuntime: boolean = true) => {
     await page.setViewportSize({ width: 1440, height: 900 });
 

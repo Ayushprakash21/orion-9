@@ -116,30 +116,7 @@ export class NativeBrowserAdapter implements BrowserRuntimeAdapter {
   public async navigate(url: string): Promise<void> {
     const resolved = normalizeUrl(url);
     this.currentUrl = resolved;
-
-    // Derive initial domain title
-    try {
-      this.currentTitle = new URL(resolved).hostname.replace(/^www\./, '');
-    } catch {
-      this.currentTitle = resolved;
-    }
-
-    this.emitEvent('navigation-started', {
-      tabId: this.currentTabId,
-      url: this.currentUrl,
-      title: this.currentTitle,
-      loading: true,
-    });
-
     await this.bridge.navigate(this.currentTabId, resolved);
-
-    // If native IPC returns confirmation
-    this.emitEvent('navigation-committed', {
-      tabId: this.currentTabId,
-      url: this.currentUrl,
-      title: this.currentTitle,
-      loading: true,
-    });
   }
 
   public async goBack(): Promise<void> {

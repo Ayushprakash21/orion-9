@@ -192,8 +192,6 @@ export class BrowserNativeRuntimeBridge {
       record.url = url;
     }
 
-    this.emitEvent('navigation-started', { tabId, url, loading: true });
-
     await this.invokeNative('browser_navigate', { tabId, url });
   }
 

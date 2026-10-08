@@ -240,7 +240,49 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
     );
   }
 
-  // 5. NATIVE DESKTOP RUNTIME: Native WebView Viewport Mount
+  // 5. Native Runtime Error
+  if (isNative && (activeTab.loadState === 'NATIVE_RUNTIME_ERROR' || activeTab.contentState === 'NATIVE_RUNTIME_ERROR')) {
+    return (
+      <div 
+        data-testid="browser-native-error"
+        className="flex-1 h-full flex flex-col items-center justify-center p-8 bg-os-bg text-center select-none"
+      >
+        <div className="w-16 h-16 rounded-3xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 mb-6 shadow-xl">
+          <AlertTriangle className="w-8 h-8" />
+        </div>
+
+        <h2 className="text-xl font-semibold text-os-text-primary mb-2 max-w-md">
+          Native Browser Surface Error
+        </h2>
+
+        <p className="text-xs text-os-text-muted mb-6 max-w-md leading-relaxed">
+          {activeTab.errorDetails || 'Orion Desktop could not create the native browser surface.'}
+        </p>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onReload}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-os-accent hover:opacity-90 text-os-bg text-xs font-medium transition-all cursor-pointer shadow-md"
+          >
+            <RotateCw className="w-4 h-4" />
+            Retry
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onOpenExternal ? onOpenExternal() : window.open(activeTab.url, '_blank', 'noopener,noreferrer')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-os-surface hover:bg-os-surface-hover border border-os-border text-os-text-secondary text-xs font-medium transition-colors cursor-pointer"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Open in System Browser
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // 6. NATIVE DESKTOP RUNTIME: Native WebView Viewport Mount
   if (isNative) {
     return (
       <div 

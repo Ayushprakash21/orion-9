@@ -14,6 +14,7 @@ export type BrowserContentState =
   | 'UNSUPPORTED_URL'
   | 'EMPTY_TAB'
   | 'AUTHENTICATION_REQUIRED'
+  | 'NATIVE_RUNTIME_ERROR'
   | 'UNKNOWN_ERROR';
 
 export interface BrowserTab {

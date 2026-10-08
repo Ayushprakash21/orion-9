@@ -42,8 +42,12 @@ export function detectBrowserRuntimeCapability(): BrowserRuntimeCapability {
 
   const win = window as any;
 
-  // 1. Tauri 2.x / 1.x detection
-  const isTauri = Boolean(win.__TAURI__ || win.__TAURI_INTERNALS__);
+  // 1. Tauri 2.x detection requiring callable invoke
+  const isTauri = Boolean(
+    (win.__TAURI__?.core?.invoke && typeof win.__TAURI__.core.invoke === 'function') ||
+    (win.__TAURI__?.invoke && typeof win.__TAURI__.invoke === 'function') ||
+    (win.__TAURI_INTERNALS__?.invoke && typeof win.__TAURI_INTERNALS__.invoke === 'function')
+  );
   if (isTauri) {
     const isMac = typeof navigator !== 'undefined' && navigator.userAgent.includes('Mac');
     const isLinux = typeof navigator !== 'undefined' && navigator.userAgent.includes('Linux');
@@ -104,4 +108,20 @@ export const browserRuntimeCapability: BrowserRuntimeCapability = detectBrowserR
 
 export function isNativeRuntimeAvailable(): boolean {
   return detectBrowserRuntimeCapability().nativeAvailable;
+}
+
+/**
+ * Authoritatively verifies whether native Tauri desktop IPC handshake succeeds.
+ */
+export async function verifyNativeRuntimeUsable(): Promise<boolean> {
+  if (typeof window === 'undefined') return false;
+  const win = window as any;
+  const invoke = win.__TAURI__?.core?.invoke || win.__TAURI__?.invoke || win.__TAURI_INTERNALS__?.invoke;
+  if (typeof invoke !== 'function') return false;
+  try {
+    const caps = await invoke('browser_runtime_capabilities');
+    return Boolean(caps?.native_available);
+  } catch {
+    return false;
+  }
 }

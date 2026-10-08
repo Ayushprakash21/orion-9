@@ -123,6 +123,11 @@ export function OrionBrowser() {
     return unsubscribe;
   }, []);
 
+  // Synchronize active tab surface with runtime adapter
+  useEffect(() => {
+    adapterRef.current?.switchTab(activeTabId).catch(() => {});
+  }, [activeTabId]);
+
   // Persistent Collections State
   const [historyList, setHistoryList] = useState<BrowserHistoryEntry[]>(() => browserHistory.getHistory());
   const [bookmarksList, setBookmarksList] = useState<BrowserBookmarkEntry[]>(() => browserBookmarks.getBookmarks());

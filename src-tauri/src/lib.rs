@@ -21,6 +21,7 @@ pub fn run() {
             browser::browser_set_zoom,
             browser::browser_find_in_page,
             browser::browser_stop_find,
+            browser::browser_runtime_capabilities,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Orion-9 desktop application");
