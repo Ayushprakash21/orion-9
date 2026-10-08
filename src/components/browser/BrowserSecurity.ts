@@ -202,6 +202,7 @@ export function validateBrowserUrl(
   }
 
   // 6. Localhost development address
+  const hostDomain = trimmed.toLowerCase().split(/[:/]/)[0];
   const LOOPBACK_HOST = ['127', '0', '0', '1'].join('.');
   if (hostDomain === 'localhost' || hostDomain === LOOPBACK_HOST) {
     return {
