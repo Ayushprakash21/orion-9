@@ -534,7 +534,9 @@ describe('Orion Browser Certification Suite (BROWSER-001 to BROWSER-021)', () =>
     const gen1 = ++generation;
     const res1 = await engine.navigate('https://example.com/fast', gen1);
     expect(res1.generation).toBe(gen1);
-    expect(res1.state).toBe('PAGE_LOADED');
+    expect(res1.state).toBe('LOADING');
+    engine.notifyLoadComplete('https://example.com/fast', 'fast');
+    expect(engine.getContentState()).toBe('PAGE_LOADED');
 
     // Simulate an older async completion arriving after newer generation
     const gen2 = ++generation;
@@ -563,7 +565,7 @@ describe('Orion Browser Certification Suite (BROWSER-001 to BROWSER-021)', () =>
   });
 
   // BROWSER-020: Blocked Embedding Fallback UI
-  it('BROWSER-020: Renders Blocked Embedding screen with Open Externally action', () => {
+  it('BROWSER-020: Renders Blocked Embedding screen with Open in system browser and Install Desktop actions', () => {
     const htmlBlocked = renderToString(
       React.createElement(BrowserContent, {
         tab: {
@@ -585,8 +587,11 @@ describe('Orion Browser Certification Suite (BROWSER-001 to BROWSER-021)', () =>
 
     expect(htmlBlocked).toContain('data-testid="browser-blocked-embedding"');
     expect(htmlBlocked).toContain('Website Cannot Be Embedded');
-    expect(htmlBlocked).toContain('Open Externally');
+    expect(htmlBlocked).toContain('Full browser runtime unavailable in web mode.');
+    expect(htmlBlocked).toContain('Open in system browser');
+    expect(htmlBlocked).toContain('Install Orion Desktop');
     expect(htmlBlocked).toContain('data-testid="browser-open-external-btn"');
+    expect(htmlBlocked).toContain('data-testid="browser-install-desktop-btn"');
     expect(htmlBlocked).toContain('data-testid="browser-back-to-newtab-btn"');
   });
 
@@ -637,16 +642,16 @@ describe('Orion Browser Certification Suite (BROWSER-001 to BROWSER-021)', () =>
   });
 
   // BROWSER-023: Runtime mode architecture and unblocked domain navigation
-  it('BROWSER-023: BrowserEngine supports runtime modes and does not artificially block major domains', async () => {
-    // 1. Web Embedded Engine allows navigating to major domains without artificial static rejection
+  it('BROWSER-023: BrowserEngine supports runtime modes and honest load state transitions', async () => {
+    // 1. Web Embedded Engine begins navigation in LOADING and completes on authoritative DOM load
     const webEngine = getBrowserEngine('WEB_EMBEDDED');
     const webGoogle = await webEngine.navigate('https://google.com');
-    expect(webGoogle?.state).toBe('PAGE_LOADED');
+    expect(webGoogle?.state).toBe('LOADING');
     expect(webGoogle?.url).toBe('https://google.com');
 
-    const webGithub = await webEngine.navigate('https://github.com');
-    expect(webGithub?.state).toBe('PAGE_LOADED');
-    expect(webGithub?.url).toBe('https://github.com');
+    // Authoritative completion notification
+    (webEngine as WebBrowserEngine).notifyLoadComplete('https://google.com', 'Google');
+    expect(webEngine.getContentState()).toBe('PAGE_LOADED');
 
     // 2. Native Desktop WebView Engine permits full native navigation for any domain
     const nativeEngine = getBrowserEngine('NATIVE_WEBVIEW');

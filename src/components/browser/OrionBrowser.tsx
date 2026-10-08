@@ -16,6 +16,8 @@ import { browserBookmarks } from './BrowserBookmarks';
 import { browserDownloadManager } from './BrowserDownloadManager';
 import { normalizeUrl, resolveAddressInput, isValidUrl } from './BrowserEngine';
 import { BrowserCopilotPermissionLayer } from './BrowserSecurity';
+import { BrowserRuntimeAdapter, getBrowserRuntimeAdapter, BrowserBounds } from './BrowserRuntimeAdapter';
+import { detectBrowserRuntimeCapability, BrowserRuntimeCapability } from './BrowserRuntimeCapability';
 import { useWindowManager } from '../../os/WindowManagerContext';
 import { useToast } from '../../store/ToastContext';
 import { Search, X, ChevronUp, ChevronDown, Clock, Bookmark as BookmarkIcon, Trash2, Settings, ExternalLink } from 'lucide-react';
@@ -73,6 +75,53 @@ export function OrionBrowser() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isFindInPageOpen, setIsFindInPageOpen] = useState(false);
   const [findQuery, setFindQuery] = useState('');
+  const [findMatches, setFindMatches] = useState({ count: 0, activeIndex: 0 });
+  const [capability] = useState<BrowserRuntimeCapability>(() => detectBrowserRuntimeCapability());
+
+  const adapterRef = useRef<BrowserRuntimeAdapter | null>(null);
+  if (!adapterRef.current) {
+    adapterRef.current = getBrowserRuntimeAdapter('tab-1', 'orion://newtab');
+  }
+
+  // Subscribe to BrowserRuntimeAdapter events
+  useEffect(() => {
+    if (!adapterRef.current) return;
+    const unsubscribe = adapterRef.current.addEventListener((eventType, detail) => {
+      if (eventType === 'navigation-started') {
+        setTabs(prev => prev.map(t => t.id === detail.tabId ? { ...t, loading: true, loadState: 'LOADING' } : t));
+      } else if (eventType === 'navigation-committed') {
+        setTabs(prev => prev.map(t => t.id === detail.tabId ? {
+          ...t,
+          url: detail.url || t.url,
+          title: detail.title || t.title,
+        } : t));
+      } else if (eventType === 'navigation-finished') {
+        setTabs(prev => prev.map(t => t.id === detail.tabId ? {
+          ...t,
+          loading: false,
+          loadState: 'PAGE_LOADED',
+          url: detail.url || t.url,
+          title: detail.title || t.title,
+        } : t));
+      } else if (eventType === 'navigation-failed') {
+        setTabs(prev => prev.map(t => t.id === detail.tabId ? {
+          ...t,
+          loading: false,
+          loadState: detail.error === 'BLOCKED_EMBEDDING' ? 'BLOCKED_EMBEDDING' : 'NETWORK_ERROR',
+          errorDetails: detail.error,
+        } : t));
+      } else if (eventType === 'title-changed' && detail.title) {
+        setTabs(prev => prev.map(t => t.id === detail.tabId ? { ...t, title: detail.title! } : t));
+      } else if (eventType === 'url-changed' && detail.url) {
+        setTabs(prev => prev.map(t => t.id === detail.tabId ? { ...t, url: detail.url! } : t));
+      } else if (eventType === 'loading-changed' && detail.loading !== undefined) {
+        setTabs(prev => prev.map(t => t.id === detail.tabId ? { ...t, loading: detail.loading } : t));
+      } else if (eventType === 'find-result') {
+        setFindMatches({ count: detail.count ?? 0, activeIndex: detail.activeIndex ?? 0 });
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   // Persistent Collections State
   const [historyList, setHistoryList] = useState<BrowserHistoryEntry[]>(() => browserHistory.getHistory());
@@ -127,12 +176,13 @@ export function OrionBrowser() {
   // Tab Navigation with Generation / Race Protection
   const navigateTab = useCallback((tabId: string, targetUrl: string) => {
     const resolvedUrl = normalizeUrl(targetUrl, preferences.defaultSearchEngine);
+    const isInternalUrl = resolvedUrl === 'orion://newtab' || resolvedUrl.startsWith('/');
 
     setTabs(prev => prev.map(tab => {
       if (tab.id !== tabId) return tab;
 
       const newGen = (tab.generation || 0) + 1;
-      const isInternal = resolvedUrl === 'orion://newtab' || resolvedUrl.startsWith('/');
+      const isInternal = isInternalUrl;
       const isSecure = resolvedUrl.startsWith('https://');
       const securityStatus = isInternal ? 'internal' : (isSecure ? 'secure' : 'insecure');
 
@@ -221,20 +271,16 @@ export function OrionBrowser() {
       };
     }));
 
-    // Safety timeout: stop spinner if iframe does not fire load within 12s
-    setTimeout(() => {
-      setTabs(prev => prev.map(tab => {
-        if (tab.id === tabId && tab.loadState === 'LOADING') {
-          return {
-            ...tab,
-            loading: false,
-            loadState: 'PAGE_LOADED',
-          };
-        }
-        return tab;
-      }));
-    }, 12000);
+    // Dispatch navigation to runtime adapter if external URL
+    if (!isInternalUrl && isValidUrl(resolvedUrl)) {
+      adapterRef.current?.navigate(resolvedUrl).catch(() => {});
+    }
   }, [preferences.defaultSearchEngine]);
+
+  const handleSelectTab = useCallback((tabId: string) => {
+    setActiveTabId(tabId);
+    adapterRef.current?.switchTab(tabId).catch(() => {});
+  }, []);
 
   // Tab Operations
   const handleNewTab = useCallback((initialUrl: string = 'orion://newtab') => {
@@ -257,6 +303,7 @@ export function OrionBrowser() {
 
     setTabs(prev => [...prev, newTab]);
     setActiveTabId(newId);
+    adapterRef.current?.createTab(newId, initialUrl).catch(() => {});
 
     if (initialUrl !== 'orion://newtab') {
       navigateTab(newId, initialUrl);
@@ -267,6 +314,8 @@ export function OrionBrowser() {
     if (e) {
       e.stopPropagation();
     }
+
+    adapterRef.current?.closeTab(tabId).catch(() => {});
 
     setTabs(prev => {
       const tabToClose = prev.find(t => t.id === tabId);
@@ -311,7 +360,8 @@ export function OrionBrowser() {
     setClosedTabsStack(remaining);
     setTabs(prev => [...prev, lastClosed]);
     setActiveTabId(lastClosed.id);
-    showToast(`Reopened tab: ${lastClosed.title}`, 'info', 'Orion Browser');
+    adapterRef.current?.createTab(lastClosed.id, lastClosed.url).catch(() => {});
+    showToast?.(`Reopened tab: ${lastClosed.title}`, 'info', 'Orion Browser');
   }, [closedTabsStack, showToast]);
 
   // Back / Forward / Reload / Stop / Home Navigation
@@ -321,6 +371,8 @@ export function OrionBrowser() {
     const prevUrl = activeTab.historyStack[prevIndex];
     const isInternal = prevUrl === 'orion://newtab' || prevUrl.startsWith('/');
     const isSecure = prevUrl.startsWith('https://');
+
+    adapterRef.current?.goBack().catch(() => {});
 
     setTabs(prev => prev.map(t => {
       if (t.id !== activeTab.id) return t;
@@ -346,6 +398,8 @@ export function OrionBrowser() {
     const isInternal = nextUrl === 'orion://newtab' || nextUrl.startsWith('/');
     const isSecure = nextUrl.startsWith('https://');
 
+    adapterRef.current?.goForward().catch(() => {});
+
     setTabs(prev => prev.map(t => {
       if (t.id !== activeTab.id) return t;
       return {
@@ -367,6 +421,8 @@ export function OrionBrowser() {
     if (!activeTab) return;
     if (activeTab.url === 'orion://newtab') return;
 
+    adapterRef.current?.reload().catch(() => {});
+
     setTabs(prev => prev.map(t => {
       if (t.id !== activeTab.id) return t;
       return {
@@ -379,6 +435,7 @@ export function OrionBrowser() {
   }, [activeTab]);
 
   const handleStop = useCallback(() => {
+    adapterRef.current?.stop().catch(() => {});
     setTabs(prev => prev.map(t => {
       if (t.id !== activeTabId) return t;
       return { ...t, loading: false, loadState: 'PAGE_LOADED' };
@@ -422,9 +479,48 @@ export function OrionBrowser() {
   }, [activeTab, openApplication, showToast]);
 
   // Zoom Controls
-  const handleZoomIn = () => setZoomLevel(prev => Math.min(1.5, Math.round((prev + 0.1) * 10) / 10));
-  const handleZoomOut = () => setZoomLevel(prev => Math.max(0.7, Math.round((prev - 0.1) * 10) / 10));
-  const handleResetZoom = () => setZoomLevel(1.0);
+  const handleZoomIn = () => {
+    const next = Math.min(1.5, Math.round((zoomLevel + 0.1) * 10) / 10);
+    setZoomLevel(next);
+    adapterRef.current?.setZoom(next);
+  };
+
+  const handleZoomOut = () => {
+    const next = Math.max(0.7, Math.round((zoomLevel - 0.1) * 10) / 10);
+    setZoomLevel(next);
+    adapterRef.current?.setZoom(next);
+  };
+
+  const handleResetZoom = () => {
+    setZoomLevel(1.0);
+    adapterRef.current?.setZoom(1.0);
+  };
+
+  // Find in page effect
+  useEffect(() => {
+    if (!isFindInPageOpen || !findQuery) {
+      setFindMatches({ count: 0, activeIndex: 0 });
+      adapterRef.current?.stopFind('clear');
+      return;
+    }
+    adapterRef.current?.findInPage(findQuery, true).then(res => {
+      if (res) setFindMatches(res);
+    }).catch(() => {});
+  }, [findQuery, isFindInPageOpen]);
+
+  const handleFindNext = () => {
+    if (!findQuery) return;
+    adapterRef.current?.findInPage(findQuery, true).then(res => {
+      if (res) setFindMatches(res);
+    }).catch(() => {});
+  };
+
+  const handleFindPrev = () => {
+    if (!findQuery) return;
+    adapterRef.current?.findInPage(findQuery, false).then(res => {
+      if (res) setFindMatches(res);
+    }).catch(() => {});
+  };
 
   // Keyboard Shortcuts Handler
   useEffect(() => {
@@ -539,7 +635,7 @@ export function OrionBrowser() {
       <BrowserTabBar
         tabs={tabs}
         activeTabId={activeTabId}
-        onSelectTab={setActiveTabId}
+        onSelectTab={handleSelectTab}
         onCloseTab={handleCloseTab}
         onNewTab={() => handleNewTab('orion://newtab')}
       />
@@ -576,7 +672,7 @@ export function OrionBrowser() {
         onOpenHistory={() => setIsHistoryDrawerOpen(true)}
         onOpenBookmarks={() => setIsBookmarksDrawerOpen(true)}
         onOpenDownloads={() => {
-          showToast('No active downloads in progress', 'info', 'Downloads');
+          showToast?.('No active downloads in progress', 'info', 'Downloads');
         }}
         onFindInPage={() => setIsFindInPageOpen(true)}
         zoomLevel={zoomLevel}
@@ -608,17 +704,28 @@ export function OrionBrowser() {
             autoFocus
           />
           <span className="text-[10px] text-os-text-muted font-mono px-1">
-            {findQuery ? '0/0' : ''}
+            {findQuery ? (findMatches.count > 0 ? `${findMatches.activeIndex + 1}/${findMatches.count}` : '0/0') : ''}
           </span>
-          <button type="button" className="p-1 rounded hover:bg-os-surface-hover text-os-text-muted">
+          <button 
+            type="button" 
+            onClick={handleFindPrev}
+            className="p-1 rounded hover:bg-os-surface-hover text-os-text-muted"
+          >
             <ChevronUp className="w-3 h-3" />
           </button>
-          <button type="button" className="p-1 rounded hover:bg-os-surface-hover text-os-text-muted">
+          <button 
+            type="button" 
+            onClick={handleFindNext}
+            className="p-1 rounded hover:bg-os-surface-hover text-os-text-muted"
+          >
             <ChevronDown className="w-3 h-3" />
           </button>
           <button 
             type="button" 
-            onClick={() => setIsFindInPageOpen(false)}
+            onClick={() => {
+              adapterRef.current?.stopFind('clear');
+              setIsFindInPageOpen(false);
+            }}
             className="p-1 rounded hover:bg-os-surface-hover text-os-text-muted hover:text-os-text-primary"
           >
             <X className="w-3 h-3" />
@@ -631,6 +738,7 @@ export function OrionBrowser() {
         activeTab={activeTab}
         recentHistory={historyList}
         zoomLevel={zoomLevel}
+        runtimeMode={capability.nativeAvailable ? 'NATIVE_WEBVIEW' : 'WEB_EMBEDDED'}
         onNavigate={(url) => navigateTab(activeTabId, url)}
         onReload={handleReload}
         onBlocked={() => {
@@ -647,6 +755,12 @@ export function OrionBrowser() {
           if (activeTab && activeTab.url !== 'orion://newtab') {
             window.open(activeTab.url, '_blank', 'noopener,noreferrer');
           }
+        }}
+        onInstallDesktop={() => {
+          showToast?.('Orion Desktop application package available at orion9.tech/download', 'info', 'Orion Desktop');
+        }}
+        onBoundsChange={(bounds) => {
+          adapterRef.current?.setBounds(bounds);
         }}
         onRemoveHistoryItem={(id) => browserHistory.removeEntry(id)}
       />

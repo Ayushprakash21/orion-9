@@ -1,17 +1,20 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { 
   ShieldAlert, ExternalLink, RotateCw, AlertTriangle, 
-  Search, ArrowLeft
+  Search, ArrowLeft, Download, Monitor
 } from 'lucide-react';
 import { BrowserTab, BrowserHistoryEntry } from './BrowserTypes';
 import { BrowserNewTab } from './BrowserNewTab';
 import { BrowserWebRuntime } from './BrowserWebRuntime';
+import { BrowserBounds } from './BrowserRuntimeAdapter';
+import { isNativeRuntimeAvailable } from './BrowserRuntimeCapability';
 
 export interface BrowserContentProps {
   activeTab?: BrowserTab;
   tab?: BrowserTab;
   recentHistory?: BrowserHistoryEntry[];
   zoomLevel?: number;
+  runtimeMode?: 'WEB_EMBEDDED' | 'NATIVE_WEBVIEW';
   onNavigate?: (url: string) => void;
   onReload?: () => void;
   onBlocked?: () => void;
@@ -19,6 +22,8 @@ export interface BrowserContentProps {
   onError?: (err?: string) => void;
   onRemoveHistoryItem?: (id: string) => void;
   onOpenExternal?: () => void;
+  onInstallDesktop?: () => void;
+  onBoundsChange?: (bounds: BrowserBounds) => void;
 }
 
 export const BrowserContent: React.FC<BrowserContentProps> = ({
@@ -26,6 +31,7 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
   tab: propTab,
   recentHistory = [],
   zoomLevel = 1.0,
+  runtimeMode,
   onNavigate = () => {},
   onReload = () => {},
   onBlocked = () => {},
@@ -33,14 +39,52 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
   onError = () => {},
   onRemoveHistoryItem,
   onOpenExternal,
+  onInstallDesktop,
+  onBoundsChange,
 }) => {
   const activeTab = propActiveTab || propTab;
+  const nativeContainerRef = useRef<HTMLDivElement>(null);
+
+  const isNative = runtimeMode === 'NATIVE_WEBVIEW' || (runtimeMode === undefined && isNativeRuntimeAvailable());
+
+  // Bounds synchronization for native WebView surface
+  useEffect(() => {
+    if (!isNative || !nativeContainerRef.current || !onBoundsChange) return;
+
+    const el = nativeContainerRef.current;
+    const reportBounds = () => {
+      const rect = el.getBoundingClientRect();
+      onBoundsChange({
+        x: Math.round(rect.left),
+        y: Math.round(rect.top),
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+      });
+    };
+
+    reportBounds();
+    const ro = new ResizeObserver(() => reportBounds());
+    ro.observe(el);
+    window.addEventListener('resize', reportBounds);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', reportBounds);
+    };
+  }, [isNative, onBoundsChange]);
+
   if (!activeTab) return null;
 
   const effectiveZoom = activeTab.zoomLevel || zoomLevel || 1.0;
 
-  // If tab is empty or pointing to new tab
-  if (activeTab.url === 'orion://newtab' || activeTab.url === 'about:blank' || activeTab.url === 'about:newtab' || activeTab.loadState === 'EMPTY_TAB' || activeTab.contentState === 'EMPTY_TAB') {
+  // 1. Empty or New Tab
+  if (
+    activeTab.url === 'orion://newtab' || 
+    activeTab.url === 'about:blank' || 
+    activeTab.url === 'about:newtab' || 
+    activeTab.loadState === 'EMPTY_TAB' || 
+    activeTab.contentState === 'EMPTY_TAB'
+  ) {
     return (
       <div 
         className="flex-1 w-full h-full relative overflow-hidden"
@@ -60,15 +104,20 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
     );
   }
 
-  // If website refuses iframe embedding (e.g., Google, GitHub, etc.)
-  if (activeTab.loadState === 'BLOCKED_EMBEDDING' || activeTab.contentState === 'BLOCKED_EMBEDDING') {
+  // 2. Blocked embedding (Only in Web Embedded mode, NEVER in native mode)
+  if (!isNative && (activeTab.loadState === 'BLOCKED_EMBEDDING' || activeTab.contentState === 'BLOCKED_EMBEDDING')) {
     return (
       <div 
         data-testid="browser-blocked-embedding"
         className="flex-1 h-full flex flex-col items-center justify-center p-8 bg-os-bg text-center select-none"
       >
-        <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-6 shadow-xl">
+        <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-4 shadow-xl">
           <ShieldAlert className="w-8 h-8" />
+        </div>
+
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-os-surface border border-os-border text-[11px] text-os-text-muted mb-3 font-medium">
+          <Monitor className="w-3.5 h-3.5 text-os-accent" />
+          Full browser runtime unavailable in web mode.
         </div>
 
         <h2 className="text-xl font-semibold text-os-text-primary mb-2 max-w-md">
@@ -76,10 +125,10 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
         </h2>
 
         <p className="text-xs text-os-text-muted mb-6 max-w-md leading-relaxed">
-          This website cannot be embedded in Orion Browser because the website owner prevents embedded browsing for security reasons (<span className="font-mono">X-Frame-Options</span> or <span className="font-mono">Content-Security-Policy</span>).
+          This website cannot be embedded in Orion Browser web compatibility mode because the host forbids iframe embedding (<span className="font-mono">X-Frame-Options</span> or <span className="font-mono">Content-Security-Policy</span>). Open in your system browser or run the Orion Desktop packaged application.
         </p>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-3">
           <button
             type="button"
             data-testid="browser-open-external-btn"
@@ -87,7 +136,17 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-os-accent hover:opacity-90 text-os-bg text-xs font-medium transition-all cursor-pointer shadow-md"
           >
             <ExternalLink className="w-4 h-4" />
-            Open Externally
+            Open in system browser
+          </button>
+
+          <button
+            type="button"
+            data-testid="browser-install-desktop-btn"
+            onClick={() => onInstallDesktop ? onInstallDesktop() : window.open('https://orion9.tech/download', '_blank')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-os-surface hover:bg-os-surface-hover border border-os-border text-os-text-primary text-xs font-medium transition-colors cursor-pointer"
+          >
+            <Download className="w-4 h-4 text-os-accent" />
+            Install Orion Desktop
           </button>
 
           <button
@@ -104,7 +163,7 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
     );
   }
 
-  // If URL is invalid
+  // 3. Invalid URL
   if (activeTab.loadState === 'INVALID_URL') {
     return (
       <div 
@@ -135,7 +194,7 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
     );
   }
 
-  // If Network or Unknown error
+  // 4. Network or Unknown error
   if (activeTab.loadState === 'NETWORK_ERROR' || activeTab.loadState === 'UNKNOWN_ERROR') {
     return (
       <div 
@@ -181,15 +240,35 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
     );
   }
 
-  // Active Embeddable Web Runtime with Zoom Scaling
+  // 5. NATIVE DESKTOP RUNTIME: Native WebView Viewport Mount
+  if (isNative) {
+    return (
+      <div 
+        ref={nativeContainerRef}
+        data-testid="browser-native-viewport"
+        className="flex-1 w-full h-full relative overflow-hidden bg-transparent"
+        style={{
+          transform: effectiveZoom !== 1.0 ? `scale(${effectiveZoom})` : undefined,
+          transformOrigin: 'top left',
+          width: effectiveZoom !== 1.0 ? `${100 / effectiveZoom}%` : '100%',
+          height: effectiveZoom !== 1.0 ? `${100 / effectiveZoom}%` : '100%',
+        }}
+      >
+        {/* Transparent surface placeholder for native window/webview positioning */}
+        <div className="absolute inset-0 bg-transparent pointer-events-none" />
+      </div>
+    );
+  }
+
+  // 6. WEB EMBEDDED MODE: Sandboxed iframe Compatibility Viewer
   return (
     <div 
       className="flex-1 w-full h-full relative overflow-hidden bg-white"
       style={{
-        transform: zoomLevel !== 1.0 ? `scale(${zoomLevel})` : undefined,
+        transform: effectiveZoom !== 1.0 ? `scale(${effectiveZoom})` : undefined,
         transformOrigin: 'top left',
-        width: zoomLevel !== 1.0 ? `${100 / zoomLevel}%` : '100%',
-        height: zoomLevel !== 1.0 ? `${100 / zoomLevel}%` : '100%',
+        width: effectiveZoom !== 1.0 ? `${100 / effectiveZoom}%` : '100%',
+        height: effectiveZoom !== 1.0 ? `${100 / effectiveZoom}%` : '100%',
       }}
     >
       <BrowserWebRuntime

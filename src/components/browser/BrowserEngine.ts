@@ -8,6 +8,8 @@
  */
 
 import { BrowserContentState, SEARCH_ENGINES, SearchEngineType, SearchEngineConfig } from './BrowserTypes';
+import { isNativeRuntimeAvailable } from './BrowserRuntimeCapability';
+import { browserNativeRuntime } from './BrowserNativeRuntime';
 
 export type BrowserRuntimeMode = 'WEB_EMBEDDED' | 'NATIVE_WEBVIEW';
 
@@ -200,12 +202,30 @@ export class WebBrowserEngine implements BrowserEngine {
       this.currentTitle = resolved;
     }
 
-    // In web embedded mode, load the page. If the destination domain rejects framing,
-    // runtime iframe event handlers detect the block and trigger onBlocked -> BLOCKED_EMBEDDING.
-    this.contentState = 'PAGE_LOADED';
-    this.events.onStateChange?.(this.contentState, this.currentUrl, this.currentTitle);
+    // In web embedded mode, navigation begins in LOADING state.
+    // Transition to PAGE_LOADED occurs when the DOM iframe emits an authoritative load event.
+    // If the destination rejects framing, the runtime detects the restriction and notifies BLOCKED_EMBEDDING.
     this.events.onNavigationCommit?.(this.currentUrl, this.currentTitle, gen);
     return { generation: gen, state: this.contentState, url: this.currentUrl, title: this.currentTitle };
+  }
+
+  public notifyLoadComplete(url?: string, title?: string): void {
+    this.contentState = 'PAGE_LOADED';
+    if (url) this.currentUrl = url;
+    if (title) this.currentTitle = title;
+    this.events.onStateChange?.(this.contentState, this.currentUrl, this.currentTitle);
+  }
+
+  public notifyLoadError(error?: string): void {
+    this.contentState = 'NETWORK_ERROR';
+    this.events.onNavigationError?.(error || 'Network error', this.contentState);
+    this.events.onStateChange?.(this.contentState, this.currentUrl, this.currentTitle);
+  }
+
+  public notifyBlockedEmbedding(url?: string): void {
+    this.contentState = 'BLOCKED_EMBEDDING';
+    if (url) this.currentUrl = url;
+    this.events.onStateChange?.(this.contentState, this.currentUrl, this.currentTitle);
   }
 
   public async goBack(): Promise<void> {
@@ -225,7 +245,6 @@ export class WebBrowserEngine implements BrowserEngine {
       this.abortController.abort();
     }
     if (this.contentState === 'LOADING') {
-      this.contentState = 'PAGE_LOADED';
       this.events.onStateChange?.(this.contentState, this.currentUrl, this.currentTitle);
     }
   }
@@ -314,12 +333,17 @@ export class NativeBrowserEngine implements BrowserEngine {
     const resolved = normalizeUrl(url);
     this.currentUrl = resolved;
     this.updateSecurityStatus(resolved);
+
+    if (resolved === 'orion://newtab' || resolved === 'about:blank' || resolved === 'about:newtab') {
+      this.currentTitle = 'New Tab';
+      this.contentState = 'EMPTY_TAB';
+      this.events.onStateChange?.(this.contentState, this.currentUrl, this.currentTitle);
+      return { generation, state: this.contentState, url: this.currentUrl, title: this.currentTitle };
+    }
+
     this.contentState = 'LOADING';
     this.events.onNavigationStart?.(resolved, generation);
 
-    // In a native desktop runtime (Tauri / Electron / WebView2), native WebView handles
-    // X-Frame-Options and CSP naturally without iframe embedding restrictions.
-    this.contentState = 'PAGE_LOADED';
     try {
       this.currentTitle = new URL(resolved).hostname.replace(/^www\./, '');
     } catch {
@@ -329,22 +353,44 @@ export class NativeBrowserEngine implements BrowserEngine {
     this.events.onNavigationCommit?.(this.currentUrl, this.currentTitle, generation);
     this.events.onStateChange?.(this.contentState, this.currentUrl, this.currentTitle);
 
+    // Call native IPC to navigate real native WebView
+    await browserNativeRuntime.navigate(this.activeTabId, resolved);
+
+    // In a native desktop runtime (Tauri / Electron / WebView2), native WebView handles
+    // X-Frame-Options and CSP naturally without iframe restrictions. Never show BLOCKED_EMBEDDING.
+    this.contentState = 'PAGE_LOADED';
+    this.events.onStateChange?.(this.contentState, this.currentUrl, this.currentTitle);
+
     return { generation, state: this.contentState, url: this.currentUrl, title: this.currentTitle };
   }
 
+  public notifyNativeNavigationFinished(url?: string, title?: string): void {
+    this.contentState = 'PAGE_LOADED';
+    if (url) this.currentUrl = url;
+    if (title) this.currentTitle = title;
+    this.events.onStateChange?.(this.contentState, this.currentUrl, this.currentTitle);
+  }
+
+  public notifyNativeNavigationFailed(error: string): void {
+    this.contentState = 'NETWORK_ERROR';
+    this.events.onNavigationError?.(error, this.contentState);
+    this.events.onStateChange?.(this.contentState, this.currentUrl, this.currentTitle);
+  }
+
   public async goBack(): Promise<void> {
-    // Calls native WebView IPC: window.__TAURI__?.invoke('webview_go_back') or electron.webContents.goBack()
+    await browserNativeRuntime.goBack(this.activeTabId);
   }
 
   public async goForward(): Promise<void> {
-    // Calls native WebView IPC: window.__TAURI__?.invoke('webview_go_forward') or electron.webContents.goForward()
+    await browserNativeRuntime.goForward(this.activeTabId);
   }
 
   public async reload(): Promise<void> {
-    await this.navigate(this.currentUrl);
+    await browserNativeRuntime.reload(this.activeTabId);
   }
 
   public async stop(): Promise<void> {
+    await browserNativeRuntime.stop(this.activeTabId);
     this.contentState = 'PAGE_LOADED';
   }
 
@@ -352,16 +398,17 @@ export class NativeBrowserEngine implements BrowserEngine {
     const id = `native_tab_${Date.now()}`;
     const resolved = normalizeUrl(initialUrl);
     this.activeTabId = id;
+    await browserNativeRuntime.createSurface(id, resolved);
     return { id, url: resolved, title: resolved === 'orion://newtab' ? 'New Tab' : resolved };
   }
 
-  public async closeTab(_tabId: string): Promise<void> {
-    // Closes native webview surface via IPC
+  public async closeTab(tabId: string): Promise<void> {
+    await browserNativeRuntime.closeSurface(tabId);
   }
 
   public setBounds(bounds: BrowserBounds): void {
     this.bounds = bounds;
-    // Sets native webview geometry via IPC: e.g. webview.setBounds(bounds)
+    browserNativeRuntime.setBounds(this.activeTabId, bounds);
   }
 
   public focus(): void {
@@ -394,9 +441,7 @@ export class NativeBrowserEngine implements BrowserEngine {
  * (Tauri, Electron, or native WebView host) vs a standard browser SPA.
  */
 export function isNativeDesktopRuntimeAvailable(): boolean {
-  if (typeof window === 'undefined') return false;
-  const win = window as any;
-  return Boolean(win.__TAURI__ || win.electronAPI || win.chrome?.webview);
+  return isNativeRuntimeAvailable();
 }
 
 /**

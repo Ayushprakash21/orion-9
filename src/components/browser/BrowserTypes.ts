@@ -35,6 +35,7 @@ export interface BrowserTab {
   errorDetails?: string;
   generation?: number;
   securityStatus?: 'secure' | 'insecure' | 'internal';
+  nativeSurfaceId?: string;
 }
 
 export interface BrowserHistoryEntry {
