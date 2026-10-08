@@ -5,7 +5,7 @@
 
 import { RuntimeSettings, DEFAULT_RUNTIME_SETTINGS } from "./RuntimeSettingsModel";
 import { loadPreferences, savePreferences, clearPreferences } from "../theme/OrionThemeStorage";
-import { OrionAppearancePreferences } from "../theme/OrionThemeTypes";
+import { OrionAppearancePreferences, CANONICAL_APPEARANCE_PREFERENCES_VERSION } from "../theme/OrionThemeTypes";
 import { wallpaperRepository } from "../../repositories/WallpaperRepository";
 
 type Listener = (settings: RuntimeSettings) => void;
@@ -247,9 +247,22 @@ export class RuntimeSettingsAuthority {
       reducedMotion: Boolean(legacy.reduceMotion),
     };
 
+    const isCurrentSchema = typeof legacy.appearancePreferencesVersion === 'number' && legacy.appearancePreferencesVersion >= CANONICAL_APPEARANCE_PREFERENCES_VERSION;
+    let resolvedDockAutoHide = true;
+    if (isCurrentSchema) {
+      if (legacy.dockAutoHide !== undefined) {
+        resolvedDockAutoHide = Boolean(legacy.dockAutoHide);
+      } else {
+        resolvedDockAutoHide = true;
+      }
+    } else {
+      // Old schema without versioning: normalize stale false to canonical default true
+      resolvedDockAutoHide = true;
+    }
+
     const dock = {
       dockPosition: legacy.dockPosition || 'bottom',
-      dockAutoHide: Boolean(legacy.dockAutoHide),
+      dockAutoHide: resolvedDockAutoHide,
       dockSize: legacy.dockSize || 'medium',
       dockMagnification: legacy.dockMagnification !== false,
       dockOpacity: 1.0,
@@ -291,6 +304,7 @@ export class RuntimeSettingsAuthority {
   private _toLegacy(settings: RuntimeSettings): OrionAppearancePreferences {
     return {
       version: 1,
+      appearancePreferencesVersion: CANONICAL_APPEARANCE_PREFERENCES_VERSION,
       themeId: settings.theme.themeId,
       morphismMode: settings.theme.morphismMode,
       appearanceMode: settings.theme.appearanceMode,

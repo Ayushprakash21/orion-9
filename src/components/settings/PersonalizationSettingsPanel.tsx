@@ -239,9 +239,16 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
         <div className="pt-3 border-t border-[var(--orion-border)] space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <label className="flex items-center justify-between p-3 rounded-lg border border-[var(--orion-border)] bg-[var(--orion-surface-secondary)] cursor-pointer">
-              <span className="text-xs font-semibold text-[var(--orion-text)]">Auto-Hide Dock</span>
+              <div>
+                <span className="text-xs font-semibold text-[var(--orion-text)] block">Dock Auto-Hide</span>
+                <span className="text-[11px] text-[var(--orion-text-muted)]">
+                  {settings.dockAutoHide ? 'ON' : 'OFF'}
+                </span>
+              </div>
               <input
                 type="checkbox"
+                data-testid="dock-autohide-toggle"
+                aria-label="Dock Auto-Hide"
                 checked={settings.dockAutoHide}
                 onChange={(e) => handleUpdate({ dockAutoHide: e.target.checked })}
                 className="w-4 h-4 rounded accent-[var(--orion-accent)]"

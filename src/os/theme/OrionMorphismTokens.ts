@@ -208,7 +208,7 @@ export function calculateMorphismTokens(
     cornerRadius: 'standard',
     dockPosition: 'bottom',
     dockAlignment: 'center',
-    dockAutoHide: false,
+    dockAutoHide: true,
     dockShowRunningIndicators: true,
     dockShowBadges: true,
     dockTransparency: true,

@@ -81,9 +81,12 @@ export interface OrionTheme {
   chart: OrionChartColors;
 }
 
+export const CANONICAL_APPEARANCE_PREFERENCES_VERSION = 2;
+
 /** User appearance preferences - versioned for migration safety */
 export interface OrionAppearancePreferences {
   version: 1;
+  appearancePreferencesVersion?: number;
   themeId: OrionThemeId;
   morphismMode: OrionMorphismMode;
   appearanceMode: OrionAppearanceMode;
@@ -123,6 +126,7 @@ export interface OrionThemeContextValue {
 /** Default preferences */
 export const DEFAULT_PREFERENCES: OrionAppearancePreferences = {
   version: 1,
+  appearancePreferencesVersion: CANONICAL_APPEARANCE_PREFERENCES_VERSION,
   themeId: 'graphite',
   morphismMode: 'glass',
   appearanceMode: 'dark',

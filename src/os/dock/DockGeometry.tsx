@@ -11,6 +11,7 @@ import { PersonalizationSettings, DockPosition, DockSize, DesktopIconSize, Deskt
 import { useSupplyChain } from '../../store/SupplyChainContext';
 import { DEFAULT_PERSONALIZATION_SETTINGS } from '../../theme/themePresets';
 import { loadPreferences } from '../theme/OrionThemeStorage';
+import { RuntimeSettingsAuthority } from '../settings/RuntimeSettingsAuthority';
 
 export type DockOrientation = 'horizontal' | 'vertical';
 
@@ -165,18 +166,22 @@ export const OSGeometryProvider: React.FC<OSGeometryProviderProps> = ({ children
 
   const persistentSettings = useMemo(() => {
     const scPers = supplyChain?.settings?.personalization;
-    let authoritativeAutoHide: boolean | undefined = undefined;
+    let authoritativeAutoHide = true;
     try {
       const prefs = loadPreferences();
       if (prefs?.dockAutoHide !== undefined) {
         authoritativeAutoHide = Boolean(prefs.dockAutoHide);
+      } else {
+        authoritativeAutoHide = RuntimeSettingsAuthority.instance.settings.dock.dockAutoHide;
       }
-    } catch {}
+    } catch {
+      authoritativeAutoHide = true;
+    }
 
     return {
       ...DEFAULT_PERSONALIZATION_SETTINGS,
       ...(scPers || {}),
-      ...(authoritativeAutoHide !== undefined ? { dockAutoHide: authoritativeAutoHide } : {})
+      dockAutoHide: authoritativeAutoHide,
     };
   }, [supplyChain?.settings?.personalization]);
 
@@ -228,6 +233,23 @@ export const OSGeometryProvider: React.FC<OSGeometryProviderProps> = ({ children
 
     window.addEventListener('orion-appearance-preferences-changed', handlePrefChange as EventListener);
     return () => window.removeEventListener('orion-appearance-preferences-changed', handlePrefChange as EventListener);
+  }, []);
+
+  // Listen for authoritative RuntimeSettingsAuthority updates
+  useEffect(() => {
+    try {
+      return RuntimeSettingsAuthority.instance.subscribe((rtSettings) => {
+        setPreviewOverrides(prev => ({
+          ...(prev || {}),
+          dockAutoHide: rtSettings.dock.dockAutoHide,
+          dockPosition: rtSettings.dock.dockPosition,
+          dockSize: rtSettings.dock.dockSize,
+          dockMagnification: rtSettings.dock.dockMagnification,
+        }));
+      });
+    } catch (_) {
+      return undefined;
+    }
   }, []);
 
   // Listen for dock visibility changes dispatched by OrionDock

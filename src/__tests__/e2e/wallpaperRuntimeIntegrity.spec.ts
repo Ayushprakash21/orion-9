@@ -201,8 +201,10 @@ test.describe('ORION-9 Wallpaper Runtime Integrity & Target Isolation E2E Suite'
 
     const before = await getMetrics();
 
-    // Open start menu
-    await page.locator('[data-testid="dock-start-menu-button"]').click({ force: true });
+    // Reveal dock by hovering activation zone, then open start menu
+    await page.locator('[data-testid="dock-activation-zone"]').hover();
+    await expect(page.locator('[data-dock="true"]')).toHaveAttribute('data-dock-visible', 'true', { timeout: 3000 });
+    await page.locator('[data-testid="dock-start-menu-button"]').click();
     const launcherLocator = page.locator('div[role="dialog"][aria-label="Application Launcher"]').or(page.locator('[data-testid="orion-application-launcher"]'));
     await expect(launcherLocator).toBeVisible({ timeout: 10000 });
 
@@ -309,7 +311,9 @@ test.describe('ORION-9 Wallpaper Runtime Integrity & Target Isolation E2E Suite'
 
     await expect(page.locator('[data-desktop-canvas="true"]')).toBeVisible({ timeout: 20000 });
 
-    await page.locator('[data-testid="dock-start-menu-button"]').click({ force: true });
+    await page.locator('[data-testid="dock-activation-zone"]').hover();
+    await expect(page.locator('[data-dock="true"]')).toHaveAttribute('data-dock-visible', 'true', { timeout: 3000 });
+    await page.locator('[data-testid="dock-start-menu-button"]').click();
     const procCard = page.locator('[data-testid="launcher-app-procurement"]').first();
     await expect(procCard).toBeVisible();
 

@@ -660,7 +660,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
           ...(localSettings.personalization || {}),
           themeId: activePrefs.themeId,
           dockPosition: (activePrefs.dockPosition as any) || localSettings.personalization?.dockPosition || 'bottom',
-          dockAutoHide: activePrefs.dockAutoHide !== undefined ? activePrefs.dockAutoHide : (localSettings.personalization?.dockAutoHide ?? false),
+          dockAutoHide: activePrefs.dockAutoHide !== undefined ? activePrefs.dockAutoHide : (localSettings.personalization?.dockAutoHide ?? true),
           dockMagnification: activePrefs.dockMagnification !== undefined ? activePrefs.dockMagnification : (localSettings.personalization?.dockMagnification ?? true),
           dockTransparency: activePrefs.transparencyIntensity !== undefined ? activePrefs.transparencyIntensity : (localSettings.personalization?.dockTransparency ?? 85),
           windowControlPosition: activePrefs.windowControlPosition || localSettings.personalization?.windowControlPosition || 'left',

@@ -156,6 +156,21 @@ export function OrionDock() {
     if (dockRef.current?.matches(':focus-within')) {
       return;
     }
+
+    if (visibilityStateRef.current === 'revealing') {
+      // Pointer left during revealing: transition revealing -> hiding -> hidden
+      const hideGen = ++visibilityGenerationRef.current;
+      if (process.env.NODE_ENV !== 'production') {
+        console.debug(`[ORION:DOCK] state=revealing action=cancel-reveal -> hiding`);
+      }
+      setDockState('hiding');
+      hideTimerRef.current = window.setTimeout(() => {
+        if (hideGen !== visibilityGenerationRef.current) return;
+        setDockState('hidden');
+      }, 200);
+      return;
+    }
+
     const generation = ++visibilityGenerationRef.current;
     if (process.env.NODE_ENV !== 'production') {
       console.debug(`[ORION:DOCK] timer=${generation} action=schedule delay=250`);
@@ -223,7 +238,7 @@ export function OrionDock() {
     }
 
     const onPointerMove = (e: PointerEvent) => {
-      const edgeThreshold = 16;
+      const edgeThreshold = 14;
       let atEdge = false;
 
       switch (dockPosition) {
@@ -253,7 +268,7 @@ export function OrionDock() {
           }
         }
       } else {
-        if (visibilityStateRef.current === 'visible') {
+        if (visibilityStateRef.current === 'visible' || visibilityStateRef.current === 'revealing') {
           scheduleDockHide();
         }
       }
@@ -634,8 +649,8 @@ export function OrionDock() {
           aria-label="Dock Activation Zone"
           className={cn(
             "fixed z-[9991] pointer-events-auto opacity-0 bg-transparent hidden md:block",
-            dockPosition === 'bottom' && "bottom-0 left-0 w-full h-[8px]",
-            dockPosition === 'top' && "left-0 w-full h-[8px]",
+            dockPosition === 'bottom' && "bottom-0 left-0 w-full h-[14px]",
+            dockPosition === 'top' && "left-0 w-full h-[14px]",
             dockPosition === 'left' && "top-0 left-0 w-[14px] h-full",
             dockPosition === 'right' && "top-0 right-0 w-[14px] h-full"
           )}

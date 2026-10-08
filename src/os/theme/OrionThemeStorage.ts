@@ -1,4 +1,4 @@
-import { OrionAppearancePreferences, DEFAULT_PREFERENCES, OrionThemeId } from './OrionThemeTypes';
+import { OrionAppearancePreferences, DEFAULT_PREFERENCES, OrionThemeId, CANONICAL_APPEARANCE_PREFERENCES_VERSION } from './OrionThemeTypes';
 import { isValidThemeId } from './OrionThemeRegistry';
 
 export const STORAGE_KEY = 'orion-appearance-preferences';
@@ -51,15 +51,27 @@ export function migratePreferences(raw: unknown): OrionAppearancePreferences {
     prefs.morphismMode = 'glass';
   }
   
-  // Ensure default dockAutoHide is true unless explicitly false
-  if (rawObj.dockAutoHide !== undefined) {
-    prefs.dockAutoHide = Boolean(rawObj.dockAutoHide);
+  // Detect schema version. Canonical schema version is >= 2.
+  // Pre-fix versions (< 2 or undefined) suffered from a bug where legacy migration
+  // converted missing dockAutoHide to false (Boolean(undefined) === false).
+  // Therefore, for pre-fix versions, normalize dockAutoHide to TRUE.
+  // Only when raw explicitly has appearancePreferencesVersion >= 2 do we preserve an explicit user choice.
+  const isCurrentSchema = typeof rawObj.appearancePreferencesVersion === 'number' && rawObj.appearancePreferencesVersion >= CANONICAL_APPEARANCE_PREFERENCES_VERSION;
+
+  if (isCurrentSchema) {
+    if (rawObj.dockAutoHide !== undefined) {
+      prefs.dockAutoHide = Boolean(rawObj.dockAutoHide);
+    } else {
+      prefs.dockAutoHide = true;
+    }
   } else {
+    // Stale/legacy preference record: normalize to canonical default true
     prefs.dockAutoHide = true;
   }
 
-  // Ensure version is correct
+  // Ensure version markers are correct
   prefs.version = 1;
+  prefs.appearancePreferencesVersion = CANONICAL_APPEARANCE_PREFERENCES_VERSION;
 
   return prefs;
 }
@@ -90,7 +102,12 @@ export function loadPreferences(): OrionAppearancePreferences {
     const data = storage.getItem(STORAGE_KEY);
     if (data) {
       const parsed = JSON.parse(data);
-      return migratePreferences(parsed);
+      const migrated = migratePreferences(parsed);
+      // Safe one-time migration for stale pre-fix preference state in browser storage
+      if (!parsed || typeof parsed.appearancePreferencesVersion !== 'number' || parsed.appearancePreferencesVersion < CANONICAL_APPEARANCE_PREFERENCES_VERSION) {
+        savePreferences(migrated);
+      }
+      return migrated;
     }
 
     // Secondary fallback: check 'orion_settings' legacy config
@@ -99,7 +116,7 @@ export function loadPreferences(): OrionAppearancePreferences {
       const parsedLegacy = JSON.parse(legacyData);
       if (parsedLegacy && parsedLegacy.personalization) {
         const p = parsedLegacy.personalization;
-        return migratePreferences({
+        const migrated = migratePreferences({
           themeId: p.themeId || (p.appearanceMode === 'light' ? 'silver' : 'graphite'),
           appearanceMode: p.appearanceMode || 'dark',
           customAccentEnabled: p.accentKey === 'custom',
@@ -113,6 +130,8 @@ export function loadPreferences(): OrionAppearancePreferences {
           morphismMode: p.morphismMode || 'glass',
           dockPosition: p.dockPosition || 'bottom',
         });
+        savePreferences(migrated);
+        return migrated;
       }
     }
 
@@ -129,9 +148,14 @@ export function loadPreferences(): OrionAppearancePreferences {
 export function savePreferences(prefs: OrionAppearancePreferences): void {
   const storage = getSafeStorage();
   try {
-    storage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    const toSave: OrionAppearancePreferences = {
+      ...prefs,
+      version: 1,
+      appearancePreferencesVersion: CANONICAL_APPEARANCE_PREFERENCES_VERSION,
+    };
+    storage.setItem(STORAGE_KEY, JSON.stringify(toSave));
     if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
-      window.dispatchEvent(new CustomEvent('orion-appearance-preferences-changed', { detail: prefs }));
+      window.dispatchEvent(new CustomEvent('orion-appearance-preferences-changed', { detail: toSave }));
     }
   } catch (error) {
     console.error('Failed to save Orion theme preferences', error);
