@@ -180,3 +180,23 @@ export const formatRelativeTime = (dateValue: any, timezone: string = 'Asia/Kolk
   return formatDate(dateValue, timezone);
 };
 
+export const formatDateOnly = (dateValue: any, timezone: string = 'Asia/Kolkata', locale: string = 'en-GB'): string => {
+  const date = safeDate(dateValue);
+  if (!date) return 'N/A';
+
+  try {
+    return new Intl.DateTimeFormat(locale, {
+      timeZone: timezone,
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    }).format(date);
+  } catch (e) {
+    return new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    }).format(date);
+  }
+};
+

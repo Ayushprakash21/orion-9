@@ -5,6 +5,8 @@
  * Grounded in actual operational data: never invents fake metrics or silent hallucinations.
  */
 
+import { authService } from '../authService';
+
 export interface AIProviderStatus {
   configured: boolean;
   provider: string;
@@ -63,9 +65,13 @@ export class OrionAIProvider {
    */
   async chooseTools(prompt: string): Promise<string[]> {
     try {
+      const token = authService.getAuthToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const res = await fetch('/api/ai/choose-tools', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ prompt })
       });
       if (res.ok) {
@@ -110,9 +116,13 @@ export class OrionAIProvider {
    */
   async generateInsight(req: CopilotRequest): Promise<{ response: string; source: 'gemini' | 'deterministic' }> {
     try {
+      const token = authService.getAuthToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const res = await fetch('/api/ai/insight', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(req)
       });
 

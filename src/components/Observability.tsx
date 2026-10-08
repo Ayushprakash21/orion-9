@@ -21,6 +21,7 @@ export const Observability: React.FC = () => {
   const requestRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number>(performance.now());
   const frameCountRef = useRef<number>(0);
+  const fpsRef = useRef<number>(60);
 
   useEffect(() => {
     let mounted = true;
@@ -87,7 +88,7 @@ export const Observability: React.FC = () => {
           time: now.toLocaleTimeString([], { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
           memory: memUsed || 0,
           cpu: cpuLoad,
-          fps: fps
+          fps: fpsRef.current
         };
         const next = [...prev, newRecord];
         if (next.length > 30) next.shift(); // Keep last 30 data points
@@ -101,6 +102,7 @@ export const Observability: React.FC = () => {
       const now = performance.now();
       frameCountRef.current++;
       if (now - lastTimeRef.current >= 1000) {
+        fpsRef.current = frameCountRef.current;
         setFps(frameCountRef.current);
         frameCountRef.current = 0;
         lastTimeRef.current = now;
@@ -116,7 +118,7 @@ export const Observability: React.FC = () => {
       window.removeEventListener('offline', updateNetwork);
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
     };
-  }, [fps]);
+  }, []);
 
   return (
     <div className="px-4 sm:px-6 lg:px-8 py-8 w-full max-w-[1600px] mx-auto space-y-6">

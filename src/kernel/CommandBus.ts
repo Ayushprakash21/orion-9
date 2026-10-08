@@ -351,7 +351,9 @@ export class KernelCommandBus {
               createdAt: executionTimestamp,
             });
           }
-        } catch (e) {}
+        } catch (e) {
+          console.warn(`[COMMAND-BUS] Failed to persist idempotency key for command ${commandId}:`, e);
+        }
       }
 
       // 7. EVENT EMISSION
@@ -453,7 +455,9 @@ export class KernelCommandBus {
             }
           }
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn(`[COMMAND-BUS] Notice reading approval ${approvalId} from database:`, e);
+      }
     }
 
     if (!record) return null;
@@ -485,7 +489,10 @@ export class KernelCommandBus {
           comments: comments || null,
         });
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error(`[COMMAND-BUS] Failed to persist approval decision ${approvalId}:`, e);
+      throw new Error(`Failed to update approval decision in database: ${(e as any)?.message || 'Database error'}`);
+    }
 
     // Publish approval decision event.
     kernelEventBus.publish(

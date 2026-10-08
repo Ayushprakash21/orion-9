@@ -7,33 +7,6 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const formatDateOnly = (dateVal: any, timezone: string = 'Asia/Kolkata'): string => {
-  if (!dateVal) return 'N/A';
-  
-  try {
-    const d = new Date(dateVal);
-    if (isNaN(d.getTime())) return 'N/A';
-    
-    return new Intl.DateTimeFormat('en-GB', {
-      timeZone: timezone || 'Asia/Kolkata',
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    }).format(d);
-  } catch {
-    try {
-      const d = new Date(dateVal);
-      if (!isNaN(d.getTime())) {
-        return new Intl.DateTimeFormat('en-GB', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric'
-        }).format(d);
-      }
-    } catch {}
-    return 'N/A';
-  }
-};
 
 export const safeFormatDate = (dateVal: any, fmt: string = 'dd MMM yyyy', timezone: string = 'Asia/Kolkata'): string => {
   if (!dateVal) return 'N/A';

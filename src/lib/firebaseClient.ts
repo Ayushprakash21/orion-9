@@ -17,12 +17,12 @@ const getEnvVar = (key: string, fallback: string): string => {
 };
 
 export const LIVE_FIREBASE_CONFIG = {
-  apiKey: getEnvVar('VITE_FIREBASE_API_KEY', "AIzaSyC5qgG4DkMfCEdhNYHIb8hsIQ00pIkYRGo"),
-  authDomain: getEnvVar('VITE_FIREBASE_AUTH_DOMAIN', "orion9-dev-db-2026.firebaseapp.com"),
-  projectId: getEnvVar('VITE_FIREBASE_PROJECT_ID', "orion9-dev-db-2026"),
-  storageBucket: getEnvVar('VITE_FIREBASE_STORAGE_BUCKET', "orion9-dev-db-2026.firebasestorage.app"),
-  messagingSenderId: getEnvVar('VITE_FIREBASE_MESSAGING_SENDER_ID', "1031466156269"),
-  appId: getEnvVar('VITE_FIREBASE_APP_ID', "1:1031466156269:web:44dd23cdcc883f809b8ce4")
+  apiKey: getEnvVar('VITE_FIREBASE_API_KEY', ''),
+  authDomain: getEnvVar('VITE_FIREBASE_AUTH_DOMAIN', 'orion9-dev-db-2026.firebaseapp.com'),
+  projectId: getEnvVar('VITE_FIREBASE_PROJECT_ID', 'orion9-dev-db-2026'),
+  storageBucket: getEnvVar('VITE_FIREBASE_STORAGE_BUCKET', 'orion9-dev-db-2026.firebasestorage.app'),
+  messagingSenderId: getEnvVar('VITE_FIREBASE_MESSAGING_SENDER_ID', '1031466156269'),
+  appId: getEnvVar('VITE_FIREBASE_APP_ID', '1:1031466156269:web:44dd23cdcc883f809b8ce4')
 };
 
 export const DEMO_FIREBASE_CONFIG = {
@@ -63,6 +63,9 @@ export const getFirebaseApp = (environment: 'LIVE' | 'DEMO' = 'LIVE'): FirebaseA
     if (envKey === 'DEMO') {
       targetApp = initializeApp(targetConfig, 'DEMO_ORION9_APP');
     } else {
+      if (!targetConfig.apiKey && typeof process !== 'undefined' && process.env?.NODE_ENV !== 'test') {
+        console.warn('[FIREBASE-CONFIG] Warning: VITE_FIREBASE_API_KEY is not set for LIVE environment. Firebase client calls may fail.');
+      }
       targetApp = initializeApp(targetConfig);
     }
   }

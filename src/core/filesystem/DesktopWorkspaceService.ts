@@ -8,6 +8,7 @@ import { DesktopShortcut, DesktopItemType } from './types';
 import { WorkspaceId } from '../../os/WindowManagerContext';
 import { scmPersistenceService } from '../../services/scm/ScmPersistenceService';
 import { DatabaseConnectionManager } from '../database/DatabaseConnectionManager';
+import { orionFileSystemService } from './OrionFileSystemService';
 
 export interface GridConfig {
   cellWidth: number;   // 96px
@@ -162,7 +163,6 @@ export class DesktopWorkspaceService {
 
     // Auto-sync files and folders present in the system "desktop" folder
     try {
-      const { orionFileSystemService } = await import('./OrionFileSystemService');
       const desktopFolder = await orionFileSystemService.getSystemFolder('desktop', activeTenant, activeEnv);
       if (desktopFolder) {
         const [desktopFiles, desktopSubFolders] = await Promise.all([

@@ -9,6 +9,7 @@
 
 import { AiGenerationParams, WallpaperCandidate } from '../../types/wallpaper';
 import { WallpaperImageProvider, WallpaperImageProviderStatus } from './WallpaperImageProvider';
+import { authService } from '../authService';
 
 export class CloudflareWallpaperImageProvider implements WallpaperImageProvider {
   public readonly name = 'Cloudflare Workers AI';
@@ -121,16 +122,20 @@ export class CloudflareWallpaperImageProvider implements WallpaperImageProvider 
         height: params.height || 1080,
       };
 
+      const token = authService.getAuthToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       let res = await fetch('/api/wallpaper/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(requestPayload),
       }).catch(() => null);
 
       if (!res || !res.ok) {
         res = await fetch('/api/ai/generate-wallpaper', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify(requestPayload),
         }).catch(() => null);
       }

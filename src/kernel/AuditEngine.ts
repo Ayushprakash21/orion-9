@@ -95,7 +95,9 @@ export class KernelAuditEngine {
           timestamp: record.timestamp,
         }).catch(err => console.warn('[AuditEngine] Firestore audit log warning:', err));
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[AuditEngine] Error accessing database during audit write:', e);
+    }
 
     // Broadcast audit event
     if (typeof window !== 'undefined') {

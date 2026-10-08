@@ -139,7 +139,9 @@ export class KernelEventBus {
           organizationId: envelope.tenant?.organizationId || 'ORION_PLATFORM',
         }).catch(err => console.warn('[EventBus] Firestore event persistence warning:', err));
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[EventBus] Error accessing database during event logging:', e);
+    }
 
     // Dispatch to specific topic subscribers
     const handlers = this.subscribers.get(eventType);

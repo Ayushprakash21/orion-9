@@ -10,6 +10,12 @@ import { demoPersistentSchedulerService } from "./services/demo/DemoPersistentSc
 import { DEMO_PACKAGES_PER_HOUR } from "./core/database/DemoSyntheticDataEngine";
 import { dbManager } from "./core/database/DatabaseConnectionManager";
 import { GoogleGenAI } from "@google/genai";
+import {
+  extractBearerToken,
+  verifyWorkerAuthToken,
+  applyWorkerRateLimit,
+  createSecurityErrorResponse,
+} from "./server/workerSecurity";
 
 export interface ScheduledController {
   scheduledTime: number;
@@ -50,9 +56,13 @@ const getWorkerGeminiClient = (apiKey?: string) => {
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    const activeEnv = ((env.ORION_RUNTIME_ENVIRONMENT || dbManager.getEnvironment() || "DEMO").toUpperCase() === "LIVE" ? "LIVE" : "DEMO") as 'DEMO' | 'LIVE';
 
-    // AI status route
+    // AI status route (Public, rate-limited)
     if (url.pathname === "/api/ai/status" && request.method === "GET") {
+      const rateLimitErr = applyWorkerRateLimit(request, 'ai');
+      if (rateLimitErr) return rateLimitErr;
+
       const apiKey = env.GEMINI_API_KEY || (typeof process !== "undefined" ? process.env?.GEMINI_API_KEY : undefined);
       return new Response(
         JSON.stringify({
@@ -64,8 +74,17 @@ export default {
       );
     }
 
-    // AI choose tools route
+    // AI choose tools route (Authenticated & rate-limited)
     if (url.pathname === "/api/ai/choose-tools" && request.method === "POST") {
+      const rateLimitErr = applyWorkerRateLimit(request, 'ai');
+      if (rateLimitErr) return rateLimitErr;
+
+      const token = extractBearerToken(request);
+      const auth = verifyWorkerAuthToken(token, activeEnv);
+      if (!auth.authorized) {
+        return createSecurityErrorResponse(auth.error || 'Authentication required.', auth.statusCode);
+      }
+
       let body: any = {};
       try { body = await request.json(); } catch (e) {}
       const rawPrompt = (body.prompt || "").trim();
@@ -136,8 +155,17 @@ If unsure for operational queries, include 'getDashboardMetrics'.`;
       }
     }
 
-    // AI insight route
+    // AI insight route (Authenticated & rate-limited)
     if (url.pathname === "/api/ai/insight" && request.method === "POST") {
+      const rateLimitErr = applyWorkerRateLimit(request, 'ai');
+      if (rateLimitErr) return rateLimitErr;
+
+      const token = extractBearerToken(request);
+      const auth = verifyWorkerAuthToken(token, activeEnv);
+      if (!auth.authorized) {
+        return createSecurityErrorResponse(auth.error || 'Authentication required.', auth.statusCode);
+      }
+
       let body: any = {};
       try { body = await request.json(); } catch (e) {}
       const { prompt, dataContext, specializedMode } = body;
@@ -203,11 +231,23 @@ ${prompt || ''}`;
       }
     }
 
-    // AI platform intelligence route
+    // AI platform intelligence route (Admin Authorized & rate-limited)
     if (url.pathname === "/api/ai/platform-intelligence" && request.method === "POST") {
+      const rateLimitErr = applyWorkerRateLimit(request, 'admin');
+      if (rateLimitErr) return rateLimitErr;
+
+      const token = extractBearerToken(request);
+      const auth = verifyWorkerAuthToken(token, activeEnv);
+      if (!auth.authorized) {
+        return createSecurityErrorResponse(auth.error || 'Authentication required.', auth.statusCode);
+      }
+      if (auth.user?.role !== 'platform_admin' && auth.user?.role !== 'organization_admin') {
+        return createSecurityErrorResponse('Access denied. Administrator privileges required.', 403);
+      }
+
       let body: any = {};
       try { body = await request.json(); } catch (e) {}
-      const { dataContext, scope, horizon, customPrompt, adminInfo } = body;
+      const { dataContext, scope, horizon, customPrompt } = body;
 
       const apiKey = env.GEMINI_API_KEY || (typeof process !== "undefined" ? process.env?.GEMINI_API_KEY : undefined);
       const gemini = getWorkerGeminiClient(apiKey);
@@ -235,7 +275,7 @@ Adhere strictly to deterministic reality:
 Return a STRICT JSON object conforming to exact platform intelligence schema.`;
 
         const userContent = `ADMINISTRATOR CONTEXT:
-Admin: ${adminInfo?.fullName || adminInfo?.username || 'Platform Administrator'} (${adminInfo?.role || 'platform_admin'})
+Admin: ${auth.user?.email || auth.user?.userId || 'Platform Administrator'} (${auth.user?.role || 'platform_admin'})
 Scope: ${scope || 'full_chain'}
 Planning Horizon: ${horizon || 'realtime'}
 Custom Query: ${customPrompt || 'Execute end-to-end strategic platform intelligence analysis'}
@@ -287,11 +327,20 @@ ${JSON.stringify(dataContext || {}, null, 2)}`;
       });
     }
 
-    // 2. POST /api/wallpaper/generate or /api/ai/generate-wallpaper (Cloudflare Workers AI FLUX)
+    // 2. POST /api/wallpaper/generate or /api/ai/generate-wallpaper (Cloudflare Workers AI FLUX - Authenticated & rate-limited)
     if (
       (url.pathname === "/api/wallpaper/generate" || url.pathname === "/api/ai/generate-wallpaper") &&
       request.method === "POST"
     ) {
+      const rateLimitErr = applyWorkerRateLimit(request, 'wallpaper');
+      if (rateLimitErr) return rateLimitErr;
+
+      const token = extractBearerToken(request);
+      const auth = verifyWorkerAuthToken(token, activeEnv);
+      if (!auth.authorized) {
+        return createSecurityErrorResponse(auth.error || 'Authentication required.', auth.statusCode);
+      }
+
       let body: any = {};
       try {
         body = await request.json();
@@ -337,25 +386,45 @@ ${JSON.stringify(dataContext || {}, null, 2)}`;
       });
     }
 
-    // 3. GET /api/demo/scheduler/state or /api/admin/demo/scheduler/status
+    // 3. GET /api/demo/scheduler/state or /api/admin/demo/scheduler/status or /api/demo/scheduler-status
     if (
       (url.pathname === "/api/demo/scheduler/state" ||
-        url.pathname === "/api/admin/demo/scheduler/status") &&
+        url.pathname === "/api/admin/demo/scheduler/status" ||
+        url.pathname === "/api/demo/scheduler-status") &&
       request.method === "GET"
     ) {
+      const token = extractBearerToken(request);
+      const auth = verifyWorkerAuthToken(token, activeEnv);
+      if (!auth.authorized) {
+        return createSecurityErrorResponse(auth.error || 'Authentication required.', auth.statusCode);
+      }
+
       const state = demoPersistentSchedulerService.getSchedulerState();
-      return new Response(JSON.stringify({ success: true, state, runtime: "CLOUDFLARE_WORKER" }), {
+      return new Response(JSON.stringify({ success: true, state, scheduler: state, runtime: "CLOUDFLARE_WORKER" }), {
         status: 200,
         headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
       });
     }
 
-    // 4. POST /api/admin/demo/scheduler/trigger (Manual Admin Trigger)
+    // 4. POST /api/admin/demo/scheduler/trigger or /api/demo/generate-hourly-batch (Manual Admin Trigger)
     if (
       (url.pathname === "/api/demo/scheduler/generate" ||
+        url.pathname === "/api/demo/generate-hourly-batch" ||
         url.pathname === "/api/admin/demo/scheduler/trigger") &&
       request.method === "POST"
     ) {
+      const rateLimitErr = applyWorkerRateLimit(request, 'admin');
+      if (rateLimitErr) return rateLimitErr;
+
+      const token = extractBearerToken(request);
+      const auth = verifyWorkerAuthToken(token, activeEnv);
+      if (!auth.authorized) {
+        return createSecurityErrorResponse(auth.error || 'Authentication required.', auth.statusCode);
+      }
+      if (auth.user?.role !== 'platform_admin' && auth.user?.role !== 'organization_admin') {
+        return createSecurityErrorResponse('Access denied. Administrator privileges required.', 403);
+      }
+
       const serverEnv = (env.ORION_RUNTIME_ENVIRONMENT || dbManager.getEnvironment() || "DEMO").toUpperCase();
       if (serverEnv !== "DEMO") {
         return new Response(
@@ -389,21 +458,37 @@ ${JSON.stringify(dataContext || {}, null, 2)}`;
       }
     }
 
-    // 5. POST /api/admin/demo/scheduler/toggle (Pause/Resume control)
-    if (url.pathname === "/api/admin/demo/scheduler/toggle" && request.method === "POST") {
+    // 5. POST /api/admin/demo/scheduler/toggle or /api/demo/scheduler-control (Admin Pause/Resume control)
+    if (
+      (url.pathname === "/api/admin/demo/scheduler/toggle" ||
+        url.pathname === "/api/demo/scheduler-control") &&
+      request.method === "POST"
+    ) {
+      const rateLimitErr = applyWorkerRateLimit(request, 'admin');
+      if (rateLimitErr) return rateLimitErr;
+
+      const token = extractBearerToken(request);
+      const auth = verifyWorkerAuthToken(token, activeEnv);
+      if (!auth.authorized) {
+        return createSecurityErrorResponse(auth.error || 'Authentication required.', auth.statusCode);
+      }
+      if (auth.user?.role !== 'platform_admin' && auth.user?.role !== 'organization_admin') {
+        return createSecurityErrorResponse('Access denied. Administrator privileges required.', 403);
+      }
+
       let body: any = {};
       try {
         body = await request.json();
       } catch (e) {}
 
-      const action = body.action || "toggle";
+      const rawAction = (body.action || "toggle").toLowerCase();
       const currentState = demoPersistentSchedulerService.getSchedulerState();
       let newState;
 
-      if (action === "pause" || (action === "toggle" && currentState.status === "RUNNING")) {
-        newState = await demoPersistentSchedulerService.pauseScheduler("admin", "platform_admin");
+      if (rawAction === "pause" || (rawAction === "toggle" && currentState.status === "RUNNING")) {
+        newState = await demoPersistentSchedulerService.pauseScheduler(auth.user?.userId || "admin", auth.user?.role || "platform_admin");
       } else {
-        newState = await demoPersistentSchedulerService.resumeScheduler("admin", "platform_admin");
+        newState = await demoPersistentSchedulerService.resumeScheduler(auth.user?.userId || "admin", auth.user?.role || "platform_admin");
       }
 
       return new Response(

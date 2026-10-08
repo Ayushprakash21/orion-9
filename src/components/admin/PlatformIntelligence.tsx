@@ -9,6 +9,7 @@ import { useSupplyChain } from '../../store/SupplyChainContext';
 import { useAuth } from '../../store/AuthContext';
 import { useToast } from '../../store/ToastContext';
 import { generatePlatformIntelligencePdf, PlatformReportData } from '../../services/platformPdfService';
+import { authService } from '../../services/authService';
 import { cn } from '../../lib/utils';
 
 type ScopeType = 'full_chain' | 'inventory_risks' | 'supplier_reliability' | 'logistics_bottlenecks' | 'contracts_compliance';
@@ -344,9 +345,13 @@ export const PlatformIntelligence: React.FC = () => {
         }))
       };
 
+      const token = authService.getAuthToken();
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
       const response = await fetch('/api/ai/platform-intelligence', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           dataContext,
           scope,

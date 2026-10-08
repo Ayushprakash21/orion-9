@@ -563,7 +563,9 @@ export class WallpaperRepository {
         if (polSnap.exists()) {
           this.memoryPolicy = { ...this.memoryPolicy, ...(polSnap.data() as WallpaperPolicy) };
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn('[WALLPAPER-REPO] Notice fetching wallpaper policy from Firestore:', e);
+      }
     }
 
     return {
@@ -589,7 +591,12 @@ export class WallpaperRepository {
       try {
         const polRef = doc(firestore, POLICIES_COLLECTION, 'default');
         await setDoc(polRef, this.memoryPolicy, { merge: true });
-      } catch (e) {}
+      } catch (e) {
+        console.error('[WALLPAPER-REPO] Failed to persist wallpaper policy in Firestore:', e);
+        if (env === 'LIVE') {
+          throw new Error('Failed to update wallpaper policy in Cloud Firestore.');
+        }
+      }
     }
 
     if (typeof window !== 'undefined') {

@@ -21,6 +21,7 @@ import {
   DemoRetentionPolicy
 } from '../../core/database/DemoLiveSimulationEngine';
 import { DemoSchedulerState } from '../../services/demo/DemoPersistentSchedulerService';
+import { authService } from '../../services/authService';
 import { cn } from '../../lib/utils';
 
 export const AdminDemoData: React.FC = () => {
@@ -48,7 +49,11 @@ export const AdminDemoData: React.FC = () => {
   // Fetch cloud scheduler state
   const fetchCloudSchedulerStatus = async () => {
     try {
-      const res = await fetch('/api/demo/scheduler-status');
+      const token = authService.getAuthToken();
+      const headers: Record<string, string> = {};
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch('/api/demo/scheduler-status', { headers });
       if (res.ok) {
         const data = await res.json();
         if (data.scheduler) {
@@ -100,9 +105,13 @@ export const AdminDemoData: React.FC = () => {
       // Try backend endpoint first for cloud persistence
       let audit: any = null;
       try {
+        const token = authService.getAuthToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
         const res = await fetch('/api/demo/generate-hourly-batch', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ forceTrigger: true })
         });
         if (res.ok) {
@@ -137,9 +146,13 @@ export const AdminDemoData: React.FC = () => {
       const action = isCurrentlyPaused ? 'RESUME' : 'PAUSE';
 
       try {
+        const token = authService.getAuthToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
         await fetch('/api/demo/scheduler-control', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers,
           body: JSON.stringify({ action, actorId: profile?.id || 'admin', role: profile?.role || 'platform_admin' })
         });
       } catch (e) {}

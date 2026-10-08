@@ -281,9 +281,10 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
 
     setWindows(prev => {
       const existing = prev[id];
+      let res: Record<string, AppWindow>;
       if (existing) {
         destWorkspace = targetWorkspace || existing.workspace;
-        return normalizeWindowZIndexes({
+        res = normalizeWindowZIndexes({
           ...prev,
           [id]: {
             ...existing,
@@ -293,7 +294,7 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
         }, id);
       } else {
         const geom = computeDefaultGeometry(Object.keys(prev).length);
-        return normalizeWindowZIndexes({
+        res = normalizeWindowZIndexes({
           ...prev,
           [id]: {
             id,
@@ -307,6 +308,8 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
           }
         }, id);
       }
+      windowsRef.current = res;
+      return res;
     });
 
     if (destWorkspace !== activeWorkspaceId) {
@@ -334,7 +337,9 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
       const targetWindow = prev[id];
       if (!targetWindow) return prev;
       targetWorkspace = targetWindow.workspace;
-      return normalizeWindowZIndexes(prev, id);
+      const res = normalizeWindowZIndexes(prev, id);
+      windowsRef.current = res;
+      return res;
     });
 
     if (targetWorkspace && targetWorkspace !== activeWorkspaceId) {
@@ -351,43 +356,52 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
   }, [activeWorkspaceId, location.pathname, safeNavigate, setActiveAppId]);
 
   // 3. CLOSE APPLICATION
-  // Compute the next state synchronously from a ref.  React state updater
+  // Compute the next state synchronously from a ref/functional updater. React state updater
   // functions must remain pure; navigation and active-window side effects are
   // performed only after the next window set has been committed to state.
   const closeApplication = useCallback((rawId: string) => {
     const id = normalizeAppId(rawId);
-    const current = windowsRef.current;
-    const target = current[id];
-    if (!target) return;
-
     closedAppIdsRef.current.add(id);
 
-    const next = { ...current };
-    delete next[id];
-
-    const isTargetActive = target.isFocused || activeAppIdRef.current === id;
     let nextActiveId: string | null = null;
     let nextRoute = '/';
+    let shouldNavigate = false;
 
-    if (isTargetActive) {
-      const remaining = Object.values(next)
-        .filter(w => w.workspace === target.workspace && w.state !== 'minimized')
-        .sort((a, b) => b.zIndex - a.zIndex);
+    setWindows(prev => {
+      const target = prev[id];
+      if (!target) return prev;
 
-      if (remaining.length > 0) {
-        nextActiveId = remaining[0].id;
-        nextRoute = ORION_REGISTRY[nextActiveId]?.route || '/';
+      const next = { ...prev };
+      delete next[id];
+
+      const isTargetActive = target.isFocused || activeAppIdRef.current === id;
+      if (isTargetActive) {
+        const remaining = Object.values(next)
+          .filter(w => w.workspace === target.workspace && w.state !== 'minimized')
+          .sort((a, b) => b.zIndex - a.zIndex);
+
+        if (remaining.length > 0) {
+          nextActiveId = remaining[0].id;
+          nextRoute = ORION_REGISTRY[nextActiveId]?.route || '/';
+        } else {
+          nextActiveId = null;
+          nextRoute = '/';
+        }
+        shouldNavigate = true;
+      } else {
+        nextActiveId = activeAppIdRef.current;
       }
-    } else {
-      nextActiveId = activeAppIdRef.current;
+
+      const normalized = nextActiveId ? normalizeWindowZIndexes(next, nextActiveId) : next;
+      windowsRef.current = normalized;
+      return normalized;
+    });
+
+    if (shouldNavigate || nextActiveId !== activeAppIdRef.current) {
+      setActiveAppId(nextActiveId);
     }
 
-    const normalized = nextActiveId ? normalizeWindowZIndexes(next, nextActiveId) : next;
-    windowsRef.current = normalized;
-    setWindows(normalized);
-    setActiveAppId(nextActiveId);
-
-    if (isTargetActive) {
+    if (shouldNavigate) {
       lastProcessedPathRef.current = nextRoute;
       if (location.pathname !== nextRoute) {
         safeNavigate(nextRoute, { replace: true });
@@ -399,9 +413,11 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
 
   // 4. CLOSE ALL WINDOWS
   const closeAllWindows = useCallback(() => {
-    Object.keys(windowsRef.current).forEach(id => closedAppIdsRef.current.add(id));
-    windowsRef.current = {};
-    setWindows({});
+    setWindows(prev => {
+      Object.keys(prev).forEach(id => closedAppIdsRef.current.add(id));
+      windowsRef.current = {};
+      return {};
+    });
     setActiveAppId(null);
     lastProcessedPathRef.current = '/';
     if (location.pathname !== '/') {
@@ -412,37 +428,48 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
   // 5. MINIMIZE APPLICATION
   const minimizeApplication = useCallback((rawId: string) => {
     const id = normalizeAppId(rawId);
-    const current = windowsRef.current;
-    const cur = current[id];
-    if (!cur || cur.state === 'minimized') return;
 
-    const targetWorkspace = cur.workspace;
-    const isTargetActive = activeAppIdRef.current === id || cur.isFocused;
-    const next: Record<string, AppWindow> = {
-      ...current,
-      [id]: { ...cur, state: 'minimized', isFocused: false }
-    };
-
-    let nextActiveId: string | null = isTargetActive ? null : activeAppIdRef.current;
+    let nextActiveId: string | null = null;
     let nextRoute = location.pathname;
+    let shouldNavigate = false;
 
-    if (isTargetActive) {
-      const remaining = Object.values(next)
-        .filter(w => w.id !== id && w.workspace === targetWorkspace && w.state !== 'minimized')
-        .sort((a, b) => b.zIndex - a.zIndex);
+    setWindows(prev => {
+      const cur = prev[id];
+      if (!cur || cur.state === 'minimized') return prev;
 
-      if (remaining.length > 0) {
-        nextActiveId = remaining[0].id;
-        nextRoute = ORION_REGISTRY[nextActiveId]?.route || '/';
+      const targetWorkspace = cur.workspace;
+      const isTargetActive = activeAppIdRef.current === id || cur.isFocused;
+      const next: Record<string, AppWindow> = {
+        ...prev,
+        [id]: { ...cur, state: 'minimized', isFocused: false }
+      };
+
+      if (isTargetActive) {
+        const remaining = Object.values(next)
+          .filter(w => w.id !== id && w.workspace === targetWorkspace && w.state !== 'minimized')
+          .sort((a, b) => b.zIndex - a.zIndex);
+
+        if (remaining.length > 0) {
+          nextActiveId = remaining[0].id;
+          nextRoute = ORION_REGISTRY[nextActiveId]?.route || '/';
+        } else {
+          nextActiveId = null;
+        }
+        shouldNavigate = true;
+      } else {
+        nextActiveId = activeAppIdRef.current;
       }
+
+      const normalized = nextActiveId ? normalizeWindowZIndexes(next, nextActiveId) : next;
+      windowsRef.current = normalized;
+      return normalized;
+    });
+
+    if (shouldNavigate || nextActiveId !== activeAppIdRef.current) {
+      setActiveAppId(nextActiveId);
     }
 
-    const normalized = nextActiveId ? normalizeWindowZIndexes(next, nextActiveId) : next;
-    windowsRef.current = normalized;
-    setWindows(normalized);
-    setActiveAppId(nextActiveId);
-
-    if (isTargetActive && nextActiveId && location.pathname !== nextRoute) {
+    if (shouldNavigate && nextActiveId && location.pathname !== nextRoute) {
       lastProcessedPathRef.current = nextRoute;
       safeNavigate(nextRoute, { replace: true });
     }

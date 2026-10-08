@@ -47,17 +47,41 @@ export const authService = {
       if (details.user?.id) {
         const verifiedUser = userService.getUserById(details.user.id);
         if (!verifiedUser || verifiedUser.status === 'inactive' || verifiedUser.status === 'suspended') {
+          localStorage.removeItem('orion_auth_session');
+          return false;
+        }
+        // Strict role anti-tamper check: user cannot elevate role via localStorage modification
+        if (details.role && details.role !== verifiedUser.role) {
+          localStorage.removeItem('orion_auth_session');
           return false;
         }
         if (activeEnv === 'LIVE' && verifiedUser.organizationId) {
           const org = organizationService.getOrganizationById(verifiedUser.organizationId);
-          if (!org || org.status !== 'active') return false;
+          if (!org || org.status !== 'active') {
+            localStorage.removeItem('orion_auth_session');
+            return false;
+          }
         }
       }
 
       return true;
     } catch (e) {
       return false;
+    }
+  },
+
+  /**
+   * Returns active Bearer token for server and edge API requests.
+   */
+  getAuthToken: (): string | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const sessionStr = localStorage.getItem('orion_auth_session');
+      if (!sessionStr) return null;
+      const details = JSON.parse(sessionStr) as AuthSessionDetails;
+      return details.token || (details.environment === 'DEMO' ? 'demo-admin-token' : null);
+    } catch {
+      return null;
     }
   },
 
@@ -162,7 +186,7 @@ export const authService = {
           organization: canonicalOrg,
           role: 'platform_admin',
           permissions,
-          token: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : generateCorrelationId('sess'),
+          token: `orion_sess:DEMO:local-admin:platform_admin:${Date.now() + 8 * 3600 * 1000}:sig_admin`,
           expiresAt: new Date(Date.now() + 8 * 3600 * 1000).toISOString(),
           environment: 'DEMO',
         };
@@ -214,7 +238,7 @@ export const authService = {
           organization: canonicalOrg,
           role: 'user',
           permissions,
-          token: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : generateCorrelationId('sess'),
+          token: `orion_sess:DEMO:local-user:user:${Date.now() + 8 * 3600 * 1000}:sig_user`,
           expiresAt: new Date(Date.now() + 8 * 3600 * 1000).toISOString(),
           environment: 'DEMO',
         };
@@ -589,7 +613,7 @@ export const authService = {
       organization,
       role: roleCode,
       permissions,
-      token: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : generateCorrelationId('sess'),
+      token: `orion_sess:${activeEnv}:${userId}:${roleCode}:${Date.now() + 8 * 3600 * 1000}:sig_${roleCode}`,
       expiresAt: new Date(Date.now() + 8 * 3600 * 1000).toISOString(),
       environment: activeEnv,
     };

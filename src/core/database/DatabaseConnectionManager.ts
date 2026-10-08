@@ -51,7 +51,9 @@ export class DatabaseConnectionManager {
         } else {
           this.currentEnvironment = 'DEMO';
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn('[DB-ENV] Failed to restore persisted environment mode from localStorage:', e);
+      }
     }
   }
 
@@ -84,9 +86,13 @@ export class DatabaseConnectionManager {
             if (parsed.environment && parsed.environment !== env) {
               localStorage.removeItem('orion_auth_session');
             }
-          } catch (e) {}
+          } catch (e) {
+            console.warn('[DB-ENV] Malformed session encountered during environment switch cleanup:', e);
+          }
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn('[DB-ENV] Failed to persist environment setting to localStorage:', e);
+      }
     }
     this.initDatabaseProvider();
   }
@@ -147,7 +153,9 @@ export class DatabaseConnectionManager {
     if (this.activeListeners.has(listenerId)) {
       try {
         this.activeListeners.get(listenerId)!();
-      } catch (e) {}
+      } catch (e) {
+        console.warn(`[DB-LISTENER] Error closing prior listener ${listenerId}:`, e);
+      }
     }
     this.activeListeners.set(listenerId, unsubscribe);
   }
@@ -160,7 +168,9 @@ export class DatabaseConnectionManager {
     if (unsub) {
       try {
         unsub();
-      } catch (e) {}
+      } catch (e) {
+        console.warn(`[DB-LISTENER] Error closing listener ${listenerId}:`, e);
+      }
       this.activeListeners.delete(listenerId);
     }
   }
@@ -170,10 +180,12 @@ export class DatabaseConnectionManager {
    */
   public unregisterAllListeners(): number {
     const count = this.activeListeners.size;
-    this.activeListeners.forEach((unsub) => {
+    this.activeListeners.forEach((unsub, id) => {
       try {
         unsub();
-      } catch (e) {}
+      } catch (e) {
+        console.warn(`[DB-LISTENER] Error during batch listener teardown (${id}):`, e);
+      }
     });
     this.activeListeners.clear();
     return count;
@@ -268,9 +280,13 @@ export class DatabaseConnectionManager {
             if (parsed.environment && parsed.environment !== targetEnvironment) {
               localStorage.removeItem('orion_auth_session');
             }
-          } catch (e) {}
+          } catch (e) {
+            console.warn('[DB-ENV] Malformed session encountered during storage cleanup:', e);
+          }
         }
-      } catch (e) {}
+      } catch (e) {
+        console.warn('[DB-ENV] Failed to persist targetEnvironment setting:', e);
+      }
     }
 
     this.initDatabaseProvider();
@@ -289,7 +305,9 @@ export class DatabaseConnectionManager {
             },
           })
         );
-      } catch (e) {}
+      } catch (e) {
+        console.warn('[DB-ENV] Failed to dispatch environment changed event:', e);
+      }
     }
 
     return {

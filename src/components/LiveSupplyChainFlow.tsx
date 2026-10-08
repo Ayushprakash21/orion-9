@@ -100,7 +100,7 @@ export const LiveSupplyChainFlow: React.FC = () => {
         Live Supply Chain Flow
       </div>
 
-      <style dangerouslySetInnerHTML={{ __html: `
+      <style>{`
         .flow-particle {
           position: absolute;
           width: 4px;
@@ -144,7 +144,7 @@ export const LiveSupplyChainFlow: React.FC = () => {
         @media (prefers-reduced-motion: reduce) {
           .flow-particle, .flow-particle-vert { animation: none; display: none; }
         }
-      `}} />
+      `}</style>
 
       {/* DESKTOP LAYOUT (md and up) */}
       <div className="hidden md:block relative w-full pb-8">
