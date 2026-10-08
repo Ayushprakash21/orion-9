@@ -17,6 +17,24 @@ export type BrowserContentState =
   | 'NATIVE_RUNTIME_ERROR'
   | 'UNKNOWN_ERROR';
 
+/** Explicit Web Mode navigation lifecycle states */
+export type WebNavigationState =
+  | 'IDLE'
+  | 'NAVIGATING'
+  | 'LOADED'
+  | 'BLOCKED'
+  | 'ERROR';
+
+/** Explicit Native Mode WebView surface lifecycle states */
+export type NativeSurfaceLifecycleState =
+  | 'CREATING'
+  | 'READY'
+  | 'VISIBLE'
+  | 'HIDDEN'
+  | 'CLOSING'
+  | 'CLOSED'
+  | 'ERROR';
+
 export interface BrowserTab {
   id: string;
   title: string;
@@ -31,6 +49,8 @@ export interface BrowserTab {
   lastActiveAt?: number;
   loadState?: BrowserContentState;
   contentState?: BrowserContentState;
+  webNavigationState?: WebNavigationState;
+  nativeLifecycleState?: NativeSurfaceLifecycleState;
   zoomLevel?: number;
   isLoading?: boolean;
   errorDetails?: string;

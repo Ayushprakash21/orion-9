@@ -8,6 +8,8 @@ import { BrowserNewTab } from './BrowserNewTab';
 import { BrowserWebRuntime } from './BrowserWebRuntime';
 import { BrowserBounds } from './BrowserRuntimeAdapter';
 import { isNativeRuntimeAvailable } from './BrowserRuntimeCapability';
+import { openExternally } from './BrowserSecurity';
+import { browserNativeRuntime } from './BrowserNativeRuntime';
 
 export interface BrowserContentProps {
   activeTab?: BrowserTab;
@@ -16,6 +18,7 @@ export interface BrowserContentProps {
   zoomLevel?: number;
   runtimeMode?: 'WEB_EMBEDDED' | 'NATIVE_WEBVIEW';
   onNavigate?: (url: string) => void;
+  onBack?: () => void;
   onReload?: () => void;
   onBlocked?: () => void;
   onLoadComplete?: () => void;
@@ -33,6 +36,7 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
   zoomLevel = 1.0,
   runtimeMode,
   onNavigate = () => {},
+  onBack = () => {},
   onReload = () => {},
   onBlocked = () => {},
   onLoadComplete = () => {},
@@ -44,21 +48,40 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
 }) => {
   const activeTab = propActiveTab || propTab;
   const nativeContainerRef = useRef<HTMLDivElement>(null);
+  const lastBoundsRef = useRef<BrowserBounds | null>(null);
+  const rafIdRef = useRef<number | null>(null);
 
   const isNative = runtimeMode === 'NATIVE_WEBVIEW' || (runtimeMode === undefined && isNativeRuntimeAvailable());
 
-  // Bounds synchronization for native WebView surface
+  // Bounds synchronization for native child WebView surface
   useEffect(() => {
     if (!isNative || !nativeContainerRef.current || !onBoundsChange) return;
 
     const el = nativeContainerRef.current;
     const reportBounds = () => {
-      const rect = el.getBoundingClientRect();
-      onBoundsChange({
-        x: Math.round(rect.left),
-        y: Math.round(rect.top),
-        width: Math.round(rect.width),
-        height: Math.round(rect.height),
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = requestAnimationFrame(() => {
+        const rect = el.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+
+        const clamped: BrowserBounds = {
+          x: Math.round(rect.left),
+          y: Math.round(rect.top),
+          width: Math.max(1, Math.round(rect.width)),
+          height: Math.max(1, Math.round(rect.height)),
+        };
+
+        const prev = lastBoundsRef.current;
+        if (
+          !prev ||
+          prev.x !== clamped.x ||
+          prev.y !== clamped.y ||
+          prev.width !== clamped.width ||
+          prev.height !== clamped.height
+        ) {
+          lastBoundsRef.current = clamped;
+          onBoundsChange(clamped);
+        }
       });
     };
 
@@ -68,16 +91,24 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
     window.addEventListener('resize', reportBounds);
 
     return () => {
+      if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
       ro.disconnect();
       window.removeEventListener('resize', reportBounds);
     };
   }, [isNative, onBoundsChange]);
 
+  // When active tab is internal orion://newtab, ensure any native surfaces are hidden
+  useEffect(() => {
+    if (isNative && activeTab && (activeTab.url === 'orion://newtab' || activeTab.loadState === 'EMPTY_TAB')) {
+      browserNativeRuntime.hideSurface(activeTab.id).catch(() => {});
+    }
+  }, [isNative, activeTab]);
+
   if (!activeTab) return null;
 
   const effectiveZoom = activeTab.zoomLevel || zoomLevel || 1.0;
 
-  // 1. Empty or New Tab
+  // 1. STATE: INTERNAL_ORION_CONTENT (Empty or New Tab)
   if (
     activeTab.url === 'orion://newtab' || 
     activeTab.url === 'about:blank' || 
@@ -104,7 +135,7 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
     );
   }
 
-  // 2. Blocked embedding (Only in Web Embedded mode, NEVER in native mode)
+  // 2. STATE: BLOCKED EMBEDDING (Only in Web Embedded mode, NEVER in native mode)
   if (!isNative && (activeTab.loadState === 'BLOCKED_EMBEDDING' || activeTab.contentState === 'BLOCKED_EMBEDDING')) {
     return (
       <div 
@@ -125,45 +156,46 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
         </h2>
 
         <p className="text-xs text-os-text-muted mb-6 max-w-md leading-relaxed">
-          This website cannot be embedded in Orion Browser web compatibility mode because the host forbids iframe embedding (<span className="font-mono">X-Frame-Options</span> or <span className="font-mono">Content-Security-Policy</span>). Open in your system browser or run the Orion Desktop packaged application.
+          This website prevents embedded browser viewing for security reasons. ORION-9 Web Mode cannot override the website's browser security policy.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-3">
           <button
             type="button"
             data-testid="browser-open-external-btn"
-            onClick={() => onOpenExternal ? onOpenExternal() : window.open(activeTab.url, '_blank', 'noopener,noreferrer')}
+            title="Open in system browser"
+            onClick={() => onOpenExternal ? onOpenExternal() : openExternally(activeTab.url)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-os-accent hover:opacity-90 text-os-bg text-xs font-medium transition-all cursor-pointer shadow-md"
           >
             <ExternalLink className="w-4 h-4" />
-            Open in system browser
-          </button>
-
-          <button
-            type="button"
-            data-testid="browser-install-desktop-btn"
-            onClick={() => onInstallDesktop ? onInstallDesktop() : window.open('https://orion9.tech/download', '_blank')}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-os-surface hover:bg-os-surface-hover border border-os-border text-os-text-primary text-xs font-medium transition-colors cursor-pointer"
-          >
-            <Download className="w-4 h-4 text-os-accent" />
-            Install Orion Desktop
+            Open Externally
           </button>
 
           <button
             type="button"
             data-testid="browser-back-to-newtab-btn"
-            onClick={() => onNavigate('orion://newtab')}
+            onClick={() => onBack ? onBack() : onNavigate('orion://newtab')}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-os-surface hover:bg-os-surface-hover border border-os-border text-os-text-secondary text-xs font-medium transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to New Tab
+            Back
+          </button>
+
+          <button
+            type="button"
+            data-testid="browser-install-desktop-btn"
+            onClick={() => onInstallDesktop ? onInstallDesktop() : openExternally('https://orion9.tech/download')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-os-surface hover:bg-os-surface-hover border border-os-border text-os-text-primary text-xs font-medium transition-colors cursor-pointer"
+          >
+            <Download className="w-4 h-4 text-os-accent" />
+            Install Orion Desktop
           </button>
         </div>
       </div>
     );
   }
 
-  // 3. Invalid URL
+  // 3. STATE: INVALID URL
   if (activeTab.loadState === 'INVALID_URL') {
     return (
       <div 
@@ -179,7 +211,7 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
         </h2>
 
         <p className="text-xs text-os-text-muted mb-6 max-w-md leading-relaxed">
-          The address <span className="font-mono text-os-text-secondary">{activeTab.url}</span> is not a valid URL or host.
+          {activeTab.errorDetails || `The address ${activeTab.url} is not a supported protocol or valid host.`}
         </p>
 
         <button
@@ -194,7 +226,7 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
     );
   }
 
-  // 4. Network or Unknown error
+  // 4. STATE: NETWORK ERROR OR REACHABILITY FAILURE
   if (activeTab.loadState === 'NETWORK_ERROR' || activeTab.loadState === 'UNKNOWN_ERROR') {
     return (
       <div 
@@ -229,7 +261,7 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
 
           <button
             type="button"
-            onClick={() => onOpenExternal ? onOpenExternal() : window.open(activeTab.url, '_blank', 'noopener,noreferrer')}
+            onClick={() => onOpenExternal ? onOpenExternal() : openExternally(activeTab.url)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-os-surface hover:bg-os-surface-hover border border-os-border text-os-text-secondary text-xs font-medium transition-colors cursor-pointer"
           >
             <ExternalLink className="w-4 h-4" />
@@ -240,7 +272,7 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
     );
   }
 
-  // 5. Native Runtime Error
+  // 5. STATE: NATIVE RUNTIME ERROR
   if (isNative && (activeTab.loadState === 'NATIVE_RUNTIME_ERROR' || activeTab.contentState === 'NATIVE_RUNTIME_ERROR')) {
     return (
       <div 
@@ -271,7 +303,7 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
 
           <button
             type="button"
-            onClick={() => onOpenExternal ? onOpenExternal() : window.open(activeTab.url, '_blank', 'noopener,noreferrer')}
+            onClick={() => onOpenExternal ? onOpenExternal() : openExternally(activeTab.url)}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-os-surface hover:bg-os-surface-hover border border-os-border text-os-text-secondary text-xs font-medium transition-colors cursor-pointer"
           >
             <ExternalLink className="w-4 h-4" />
@@ -282,7 +314,7 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
     );
   }
 
-  // 6. NATIVE DESKTOP RUNTIME: Native WebView Viewport Mount
+  // 6. STATE: NATIVE_WEBVIEW_CONTENT (Native Desktop WebView Viewport Mount)
   if (isNative) {
     return (
       <div 
@@ -296,13 +328,13 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
           height: effectiveZoom !== 1.0 ? `${100 / effectiveZoom}%` : '100%',
         }}
       >
-        {/* Transparent surface placeholder for native window/webview positioning */}
+        {/* Transparent surface placeholder for native OS child webview positioning */}
         <div className="absolute inset-0 bg-transparent pointer-events-none" />
       </div>
     );
   }
 
-  // 6. WEB EMBEDDED MODE: Sandboxed iframe Compatibility Viewer
+  // 7. STATE: WEB_EMBEDDED_CONTENT (Sandboxed iframe Compatibility Viewer)
   return (
     <div 
       className="flex-1 w-full h-full relative overflow-hidden bg-white"

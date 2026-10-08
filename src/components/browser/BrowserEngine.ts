@@ -77,7 +77,19 @@ export function normalizeUrl(
     return trimmed;
   }
 
-  // Explicit protocols (e.g. http://, https://, ftp://)
+  // Reject dangerous protocols from being blindly returned as valid
+  const lowerTrimmed = trimmed.toLowerCase();
+  if (
+    lowerTrimmed.startsWith('javascript:') ||
+    lowerTrimmed.startsWith('data:') ||
+    lowerTrimmed.startsWith('file:') ||
+    lowerTrimmed.startsWith('blob:') ||
+    lowerTrimmed.startsWith('vbscript:')
+  ) {
+    return trimmed;
+  }
+
+  // Explicit protocols (e.g. http://, https://)
   if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(trimmed)) {
     return trimmed;
   }
@@ -112,15 +124,26 @@ export function normalizeUrl(
 export const resolveAddressInput = normalizeUrl;
 
 /**
- * Validates whether a URL is structurally valid.
+ * Validates whether a URL is structurally valid and permitted in Orion Browser.
+ * Enforces strict prohibition of javascript:, data:, file:, blob:, and non-web protocols.
  */
 export function isValidUrl(url: string): boolean {
-  if (url === 'orion://newtab' || url === 'about:blank' || url.startsWith('/')) {
+  if (url === 'orion://newtab' || url === 'about:blank' || url === 'about:newtab' || url.startsWith('/')) {
     return true;
   }
+  const lower = url.trim().toLowerCase();
+  if (
+    lower.startsWith('javascript:') ||
+    lower.startsWith('data:') ||
+    lower.startsWith('file:') ||
+    lower.startsWith('blob:') ||
+    lower.startsWith('vbscript:')
+  ) {
+    return false;
+  }
   try {
-    new URL(url);
-    return true;
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' || parsed.protocol === 'orion:' || parsed.protocol === 'about:';
   } catch {
     return false;
   }

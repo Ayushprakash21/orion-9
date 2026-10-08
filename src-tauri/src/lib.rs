@@ -9,6 +9,7 @@ pub fn run() {
         .manage(BrowserState::default())
         .invoke_handler(tauri::generate_handler![
             browser::browser_create_surface,
+            browser::browser_ensure_surface,
             browser::browser_navigate,
             browser::browser_set_bounds,
             browser::browser_show_surface,

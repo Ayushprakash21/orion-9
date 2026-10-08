@@ -9,9 +9,10 @@
  * lifecycle synchronization.
  */
 
-import { BrowserRuntimeCapability, detectBrowserRuntimeCapability } from './BrowserRuntimeCapability';
+import { BrowserRuntimeCapability, detectBrowserRuntimeCapability, BrowserRuntimeMode } from './BrowserRuntimeCapability';
 import { browserNativeRuntime, BrowserNativeRuntimeBridge } from './BrowserNativeRuntime';
 import { normalizeUrl, isValidUrl } from './BrowserEngine';
+import { validateBrowserUrl } from './BrowserSecurity';
 
 export interface BrowserBounds {
   x: number;
@@ -86,7 +87,7 @@ export interface BrowserRuntimeAdapter {
 }
 
 /**
- * NativeBrowserAdapter: Controls real native WebView surfaces via Tauri 2.x/native host.
+ * NativeBrowserAdapter: Controls real native child WebView surfaces via Tauri 2.x native host.
  * Enables actual rendering of all websites (Google, GitHub, Wikipedia, YouTube, Microsoft)
  * without iframe embedding restrictions. Never yields BLOCKED_EMBEDDING.
  */
@@ -114,9 +115,30 @@ export class NativeBrowserAdapter implements BrowserRuntimeAdapter {
   }
 
   public async navigate(url: string): Promise<void> {
-    const resolved = normalizeUrl(url);
+    const validation = validateBrowserUrl(url);
+    if (!validation.valid) {
+      this.emitEvent('navigation-failed', {
+        tabId: this.currentTabId,
+        url,
+        error: validation.error || 'INVALID_URL',
+        loading: false,
+      });
+      return;
+    }
+
+    const resolved = validation.normalizedUrl;
     this.currentUrl = resolved;
-    await this.bridge.navigate(this.currentTabId, resolved);
+
+    try {
+      await this.bridge.navigate(this.currentTabId, resolved);
+    } catch (err: any) {
+      this.emitEvent('navigation-failed', {
+        tabId: this.currentTabId,
+        url: resolved,
+        error: err?.message || 'NATIVE_NAVIGATION_FAILED',
+        loading: false,
+      });
+    }
   }
 
   public async goBack(): Promise<void> {
@@ -165,7 +187,7 @@ export class NativeBrowserAdapter implements BrowserRuntimeAdapter {
   }
 
   public async createTab(tabId: string, initialUrl: string = 'about:blank'): Promise<string> {
-    return this.bridge.createSurface(tabId, initialUrl);
+    return this.bridge.ensureSurface(tabId, initialUrl, this.currentBounds);
   }
 
   public async switchTab(tabId: string): Promise<void> {
@@ -195,12 +217,11 @@ export class NativeBrowserAdapter implements BrowserRuntimeAdapter {
   }
 
   public getCapability(): BrowserRuntimeCapability {
+    const base = detectBrowserRuntimeCapability();
     return {
+      ...base,
+      mode: 'NATIVE_WEBVIEW',
       nativeAvailable: true,
-      embeddedAvailable: true,
-      runtimeType: 'TAURI',
-      platform: 'windows',
-      hasMultiSurface: true,
       canBypassIframeSandbox: true,
     };
   }
@@ -211,8 +232,9 @@ export class NativeBrowserAdapter implements BrowserRuntimeAdapter {
 }
 
 /**
- * WebEmbeddedBrowserAdapter: Sandboxed web runtime for web SPA deployment.
- * Honestly marks when pages are loading, loaded, or blocked by X-Frame-Options/CSP.
+ * WebEmbeddedBrowserAdapter: Sandboxed web runtime for web SPA deployment (Chrome / Brave / Firefox / Safari).
+ * Honestly marks when pages are navigating, loaded, or blocked by X-Frame-Options/CSP.
+ * Never performs fake synthetic PAGE_LOADED timeouts.
  */
 export class WebEmbeddedBrowserAdapter implements BrowserRuntimeAdapter {
   private currentTabId: string;
@@ -243,7 +265,18 @@ export class WebEmbeddedBrowserAdapter implements BrowserRuntimeAdapter {
   }
 
   public async navigate(url: string): Promise<void> {
-    const resolved = normalizeUrl(url);
+    const validation = validateBrowserUrl(url);
+    if (!validation.valid) {
+      this.emitEvent('navigation-failed', {
+        tabId: this.currentTabId,
+        url,
+        error: validation.error || 'INVALID_URL',
+        loading: false,
+      });
+      return;
+    }
+
+    const resolved = validation.normalizedUrl;
     this.currentUrl = resolved;
 
     try {
@@ -252,6 +285,7 @@ export class WebEmbeddedBrowserAdapter implements BrowserRuntimeAdapter {
       this.currentTitle = resolved;
     }
 
+    // Step 1: Honest transition to NAVIGATING
     this.emitEvent('navigation-started', {
       tabId: this.currentTabId,
       url: this.currentUrl,
@@ -259,13 +293,15 @@ export class WebEmbeddedBrowserAdapter implements BrowserRuntimeAdapter {
       loading: true,
     });
 
-    // In web embedded mode, actual load or block is confirmed by DOM iframe handlers
+    // Step 2: Acknowledged navigation intent committed
     this.emitEvent('navigation-committed', {
       tabId: this.currentTabId,
       url: this.currentUrl,
       title: this.currentTitle,
       loading: true,
     });
+    // NOTE: Does NOT emit navigation-finished here.
+    // The real iframe in BrowserWebRuntime must confirm actual load or block!
   }
 
   public async goBack(): Promise<void> {}
@@ -330,7 +366,13 @@ export class WebEmbeddedBrowserAdapter implements BrowserRuntimeAdapter {
   }
 
   public getCapability(): BrowserRuntimeCapability {
-    return detectBrowserRuntimeCapability();
+    const base = detectBrowserRuntimeCapability();
+    return {
+      ...base,
+      mode: 'WEB_EMBEDDED',
+      nativeAvailable: false,
+      canBypassIframeSandbox: false,
+    };
   }
 
   /**
@@ -370,10 +412,13 @@ export class WebEmbeddedBrowserAdapter implements BrowserRuntimeAdapter {
 export function getBrowserRuntimeAdapter(
   tabId: string = 'tab-1',
   initialUrl: string = 'orion://newtab',
-  forceMode?: 'native' | 'embedded'
+  forceMode?: 'native' | 'embedded' | BrowserRuntimeMode
 ): BrowserRuntimeAdapter {
   const cap = detectBrowserRuntimeCapability();
-  const useNative = forceMode === 'native' || (forceMode !== 'embedded' && cap.nativeAvailable);
+  const useNative =
+    forceMode === 'native' ||
+    forceMode === 'NATIVE_WEBVIEW' ||
+    (forceMode !== 'embedded' && forceMode !== 'WEB_EMBEDDED' && cap.mode === 'NATIVE_WEBVIEW' && cap.nativeAvailable);
 
   if (useNative) {
     return new NativeBrowserAdapter(tabId, initialUrl);

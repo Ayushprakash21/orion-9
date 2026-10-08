@@ -1,12 +1,27 @@
+/**
+ * ORION-9 BROWSER WEB RUNTIME
+ * 
+ * Controlled, sandboxed iframe compatibility viewer for web deployments.
+ * 
+ * ABSOLUTE RULES:
+ * - Minimal, intentional sandbox: sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+ * - ZERO bypass of X-Frame-Options or CSP frame-ancestors.
+ * - ZERO arbitrary proxying or security downgrades.
+ * - Explicit navigation state machine: IDLE -> NAVIGATING -> LOADED | BLOCKED | ERROR.
+ * - Never fake PAGE_LOADED with arbitrary setTimeouts.
+ */
+
 import React, { useRef, useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { WebNavigationState } from './BrowserTypes';
 
 export interface BrowserWebRuntimeProps {
   url: string;
   generation?: number;
   title?: string;
   isLoading?: boolean;
+  onNavigationStateChange?: (state: WebNavigationState) => void;
   onLoadStart?: () => void;
   onLoad?: () => void;
   onLoadComplete?: () => void;
@@ -20,6 +35,7 @@ export const BrowserWebRuntime: React.FC<BrowserWebRuntimeProps> = ({
   generation = 0,
   title,
   isLoading: propIsLoading,
+  onNavigationStateChange,
   onLoadStart,
   onLoad,
   onLoadComplete,
@@ -28,20 +44,29 @@ export const BrowserWebRuntime: React.FC<BrowserWebRuntimeProps> = ({
   onBlocked,
 }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [navState, setNavState] = useState<WebNavigationState>('NAVIGATING');
+
+  const updateState = (state: WebNavigationState) => {
+    setNavState(state);
+    onNavigationStateChange?.(state);
+  };
 
   useEffect(() => {
-    setIsLoading(true);
+    updateState('NAVIGATING');
     onLoadStart?.();
     let mounted = true;
 
-    // Safety timeout: if iframe takes longer than 15s to load, stop spinner and notify timeout
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[BROWSER:WEB]', `Navigating sandboxed iframe to: ${url}`);
+    }
+
+    // Safety timeout: bounded timeout to prevent infinite spinner on unresponsive or blocked destinations
     const timeout = setTimeout(() => {
       if (mounted) {
-        setIsLoading(false);
+        updateState('ERROR');
         onLoadError?.('Timed out waiting for webpage to load');
       }
-    }, 15000);
+    }, 12000);
 
     return () => {
       mounted = false;
@@ -50,28 +75,31 @@ export const BrowserWebRuntime: React.FC<BrowserWebRuntimeProps> = ({
   }, [url, generation]);
 
   const handleIframeLoad = () => {
-    setIsLoading(false);
-    onLoad?.();
-    onLoadComplete?.();
-
-    // In a browser environment, cross-origin iframes that refuse embedding via X-Frame-Options
-    // or CSP will trigger a load event with an about:blank or empty contentDocument,
-    // but cross-origin security prevents accessing contentDocument directly.
+    // In standard browsers, cross-origin iframes refusing embedding trigger a load event with about:blank
+    // or inaccessible contentDocument.
     try {
       const doc = iframeRef.current?.contentDocument;
       if (doc && doc.location.href === 'about:blank' && url !== 'about:blank') {
+        updateState('BLOCKED');
         onBlocked?.();
+        return;
       }
     } catch {
-      // Cross-origin access threw DOMException: standard security behavior for cross-origin sites
+      // Cross-origin restriction: typical browser security response
     }
+
+    updateState('LOADED');
+    onLoad?.();
+    onLoadComplete?.();
   };
 
   const handleIframeError = () => {
-    setIsLoading(false);
+    updateState('ERROR');
     onLoadError?.('Failed to load page content');
     onError?.('Failed to load page content');
   };
+
+  const isLoading = navState === 'NAVIGATING';
 
   return (
     <div className="relative w-full h-full flex-1 bg-white overflow-hidden">

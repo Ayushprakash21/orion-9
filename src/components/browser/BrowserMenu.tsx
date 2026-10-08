@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   Plus, RotateCcw, Clock, Bookmark, Download, 
-  Search, ZoomIn, ZoomOut, Settings, ExternalLink
+  Search, ZoomIn, ZoomOut, Settings, ExternalLink, Activity
 } from 'lucide-react';
 
 export interface BrowserMenuProps {
@@ -21,6 +21,7 @@ export interface BrowserMenuProps {
   onResetZoom: () => void;
   onOpenSettings: () => void;
   onOpenExternal?: () => void;
+  onOpenDiagnostics?: () => void;
   currentUrl?: string;
 }
 
@@ -41,6 +42,7 @@ export const BrowserMenu: React.FC<BrowserMenuProps> = ({
   onResetZoom,
   onOpenSettings,
   onOpenExternal,
+  onOpenDiagnostics,
 }) => {
   if (!isOpen) return null;
 
@@ -177,7 +179,7 @@ export const BrowserMenu: React.FC<BrowserMenuProps> = ({
         {/* Open in External Browser */}
         <button
           type="button"
-          onClick={() => { onOpenExternal(); onClose(); }}
+          onClick={() => { onOpenExternal?.(); onClose(); }}
           className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-os-surface-hover text-xs text-os-text-primary transition-colors cursor-pointer text-left"
         >
           <div className="flex items-center gap-2.5">
@@ -185,6 +187,24 @@ export const BrowserMenu: React.FC<BrowserMenuProps> = ({
             <span>Open Externally</span>
           </div>
         </button>
+
+        {/* Runtime Diagnostics (Alt+D) */}
+        {onOpenDiagnostics && (
+          <button
+            type="button"
+            data-testid="browser-menu-diagnostics-btn"
+            onClick={() => { onOpenDiagnostics(); onClose(); }}
+            className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-os-surface-hover text-xs text-os-text-primary transition-colors cursor-pointer text-left"
+          >
+            <div className="flex items-center gap-2.5">
+              <Activity className="w-4 h-4 text-os-accent" />
+              <span>Runtime Diagnostics</span>
+            </div>
+            <kbd className="text-[10px] text-os-text-muted font-mono bg-os-surface px-1.5 py-0.5 rounded border border-os-border">
+              Alt+D
+            </kbd>
+          </button>
+        )}
 
         {/* Browser Settings */}
         <button

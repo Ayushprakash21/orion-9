@@ -37,7 +37,10 @@ test.describe('ORION-9 Frontend Adapter Mock Verification Suite (browserRuntimeA
           (window as any).__TAURI__ = {
             core: {
               invoke: async (cmd: string, args: any) => {
-                if (cmd === 'browser_create_surface') {
+                if (cmd === 'browser_runtime_capabilities') {
+                  return { native_available: true, multi_surface_supported: true, platform: 'windows' };
+                }
+                if (cmd === 'browser_create_surface' || cmd === 'browser_ensure_surface') {
                   mockSurfaces.set(args.tabId, { ...args, visible: true });
                   return args.surfaceId;
                 }
