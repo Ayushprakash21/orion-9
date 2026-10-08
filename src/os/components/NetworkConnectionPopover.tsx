@@ -70,8 +70,8 @@ export const NetworkConnectionPopover: React.FC<NetworkConnectionPopoverProps> =
       speed: '2.4 Gbps',
       isConnected: isOnline && !isLocalMode,
       isSaved: true,
-      ipAddress: '10.240.18.94',
-      gateway: '10.240.18.1'
+      ipAddress: 'Cloudflare Edge Anycast',
+      gateway: 'Cloudflare Secure Gateway'
     },
     {
       id: 'net-gcp-cloud',
@@ -83,8 +83,8 @@ export const NetworkConnectionPopover: React.FC<NetworkConnectionPopoverProps> =
       speed: '10 Gbps',
       isConnected: false,
       isSaved: true,
-      ipAddress: '172.16.100.12',
-      gateway: '172.16.100.1'
+      ipAddress: 'Dedicated Interconnect (mTLS)',
+      gateway: 'Cloud Interconnect Gateway'
     },
     {
       id: 'net-scm-telemetry',

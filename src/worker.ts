@@ -15,7 +15,13 @@ import {
   verifyWorkerAuthToken,
   applyWorkerRateLimit,
   createSecurityErrorResponse,
+  applySecurityHeaders,
+  createSafeErrorResponse,
+  getCorsHeaders,
+  EDGE_SECURITY_HEADERS,
 } from "./server/workerSecurity";
+
+let workerBrandingStore: any = null;
 
 export interface ScheduledController {
   scheduledTime: number;
@@ -55,8 +61,112 @@ const getWorkerGeminiClient = (apiKey?: string) => {
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    const url = new URL(request.url);
+    try {
+      const url = new URL(request.url);
     const activeEnv = ((env.ORION_RUNTIME_ENVIRONMENT || dbManager.getEnvironment() || "DEMO").toUpperCase() === "LIVE" ? "LIVE" : "DEMO") as 'DEMO' | 'LIVE';
+
+    // 0. Handle CORS Preflight Requests
+    if (request.method === "OPTIONS") {
+      const cors = getCorsHeaders(request);
+      return new Response(null, {
+        status: 204,
+        headers: {
+          ...EDGE_SECURITY_HEADERS,
+          ...cors,
+        }
+      });
+    }
+
+    // 0b. Strict SSRF & Arbitrary Proxying Prevention
+    if (url.pathname === "/proxy" || url.pathname === "/fetch" || url.searchParams.has("proxy_url") || url.searchParams.has("relay_to")) {
+      return applySecurityHeaders(
+        new Response(
+          JSON.stringify({ error: "FORBIDDEN", message: "Arbitrary outbound proxying is permanently disabled." }),
+          { status: 403, headers: { "Content-Type": "application/json" } }
+        ),
+        request
+      );
+    }
+
+    // 0c. Safe Public Health Check Endpoints (Zero internal IP, port, or credential leakage)
+    if ((url.pathname === "/health" || url.pathname === "/api/health") && request.method === "GET") {
+      return applySecurityHeaders(
+        new Response(
+          JSON.stringify({
+            status: "ok",
+            service: "orion-9"
+          }),
+          { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }
+        ),
+        request
+      );
+    }
+
+    // 0d. Safe Auth Subsystem Health Endpoint
+    if (url.pathname === "/api/auth/health" && request.method === "GET") {
+      return applySecurityHeaders(
+        new Response(
+          JSON.stringify({
+            status: "ok",
+            service: "orion-auth"
+          }),
+          { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }
+        ),
+        request
+      );
+    }
+
+    // 0e. Branding Configuration Route (GET, PUT, POST, DELETE /api/branding)
+    if (url.pathname === "/api/branding") {
+      if (request.method === "GET") {
+        return applySecurityHeaders(
+          new Response(
+            JSON.stringify(workerBrandingStore || {
+              osName: "ORION-9",
+              productName: "ORION-9",
+              appName: "ORION-9",
+              applicationName: "ORION-9",
+              tagline: "AI Supply Chain Operating System",
+              version: "9.4.2",
+            }),
+            { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }
+          ),
+          request
+        );
+      }
+      if (request.method === "PUT" || request.method === "POST") {
+        const token = extractBearerToken(request);
+        const auth = verifyWorkerAuthToken(token, activeEnv);
+        if (!auth.authorized) {
+          return createSecurityErrorResponse(auth.error || 'Authentication required.', auth.statusCode);
+        }
+        let updated: any = {};
+        try { updated = await request.json(); } catch (e) {}
+        workerBrandingStore = { ...(workerBrandingStore || {}), ...updated };
+        return applySecurityHeaders(
+          new Response(JSON.stringify({ success: true, branding: workerBrandingStore }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" }
+          }),
+          request
+        );
+      }
+      if (request.method === "DELETE") {
+        const token = extractBearerToken(request);
+        const auth = verifyWorkerAuthToken(token, activeEnv);
+        if (!auth.authorized) {
+          return createSecurityErrorResponse(auth.error || 'Authentication required.', auth.statusCode);
+        }
+        workerBrandingStore = null;
+        return applySecurityHeaders(
+          new Response(JSON.stringify({ success: true, message: "Branding reset to defaults." }), {
+            status: 200,
+            headers: { "Content-Type": "application/json" }
+          }),
+          request
+        );
+      }
+    }
 
     // AI status route (Public, rate-limited)
     if (url.pathname === "/api/ai/status" && request.method === "GET") {
@@ -491,33 +601,138 @@ ${JSON.stringify(dataContext || {}, null, 2)}`;
         newState = await demoPersistentSchedulerService.resumeScheduler(auth.user?.userId || "admin", auth.user?.role || "platform_admin");
       }
 
-      return new Response(
-        JSON.stringify({ success: true, state: newState }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
+      return applySecurityHeaders(
+        new Response(
+          JSON.stringify({ success: true, state: newState }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        ),
+        request
       );
     }
 
-    // 6. GET /api/health
-    if (url.pathname === "/api/health" && request.method === "GET") {
-      return new Response(
-        JSON.stringify({
-          status: "ok",
-          environment: "CLOUDFLARE_WORKER",
-          scheduler: {
-            mode: "CLOUDFLARE_CRON",
-            cron: "0 * * * *",
-            hourlyRate: DEMO_PACKAGES_PER_HOUR,
-            state: demoPersistentSchedulerService.getSchedulerState(),
-          },
-        }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json" }
+    // 6. POST /api/ai/document-intelligence (Multi-modal Document Intelligence)
+    if (url.pathname === "/api/ai/document-intelligence" && request.method === "POST") {
+      const rateLimitErr = applyWorkerRateLimit(request, 'ai');
+      if (rateLimitErr) return rateLimitErr;
+
+      const token = extractBearerToken(request);
+      const auth = verifyWorkerAuthToken(token, activeEnv);
+      if (!auth.authorized) {
+        return createSecurityErrorResponse(auth.error || 'Authentication required.', auth.statusCode);
+      }
+
+      let body: any = {};
+      try { body = await request.json(); } catch (e) {}
+      const { fileName, fileContent, fileBase64, mimeType, documentType } = body;
+
+      if (!fileName) {
+        return createSecurityErrorResponse("Missing required parameter: fileName", 400);
+      }
+
+      const apiKey = env.GEMINI_API_KEY || (typeof process !== "undefined" ? process.env?.GEMINI_API_KEY : undefined);
+      const gemini = getWorkerGeminiClient(apiKey);
+
+      if (!gemini) {
+        const extension = (fileName.split('.').pop() || '').toUpperCase();
+        let category = 'Contract';
+        if (fileName.toLowerCase().includes('po') || fileName.toLowerCase().includes('order')) category = 'Purchase Order';
+        else if (fileName.toLowerCase().includes('bol') || fileName.toLowerCase().includes('lading') || fileName.toLowerCase().includes('ship')) category = 'Bill of Lading';
+        else if (fileName.toLowerCase().includes('invoice')) category = 'Invoice';
+
+        const fields: Record<string, any> = {
+          documentName: fileName,
+          fileFormat: extension || documentType || 'Unknown',
+          processedAt: new Date().toISOString()
+        };
+
+        if (fileContent && typeof fileContent === 'string' && fileContent.length > 0) {
+          const lines = fileContent.split('\n').slice(0, 20);
+          lines.forEach((line: string) => {
+            if (line.includes(':')) {
+              const [k, v] = line.split(':');
+              if (k && v && k.trim().length < 30) {
+                fields[k.trim()] = v.trim();
+              }
+            }
+          });
         }
+
+        return applySecurityHeaders(
+          new Response(JSON.stringify({
+            fallback: true,
+            result: {
+              summary: `Document '${fileName}' indexed via deterministic parser (${extension} format).`,
+              category,
+              extractedFields: fields,
+              anomalyDetected: null,
+              linkedEntityType: category === 'Purchase Order' ? 'PurchaseOrder' : category === 'Bill of Lading' ? 'Shipment' : 'Contract',
+              linkedEntityId: ''
+            }
+          }), { status: 200, headers: { "Content-Type": "application/json" } }),
+          request
+        );
+      }
+
+      try {
+        const systemInstruction = `You are Orion AI Document Intelligence, an expert in supply chain document extraction and classification.
+Analyze the supplied document and return a strict JSON object with:
+{
+  "summary": "1-2 sentences summarizing the document",
+  "category": "Classification of document (e.g. Bill of Lading, Commercial Invoice, Contract, Purchase Order, Quality Certificate)",
+  "extractedFields": { "key": "value" },
+  "anomalyDetected": "String detailing any identified anomalies, risks, price discrepancies, or compliance issues. If none, leave null",
+  "linkedEntityType": "Supplier, Shipment, PO, or Contract",
+  "linkedEntityId": "Extract an ID if available, else empty"
+}`;
+
+        const promptText = `${systemInstruction}\n\nDocument File Name: ${fileName}\n\nDocument Content Snippet:\n${typeof fileContent === 'string' ? fileContent.slice(0, 5000) : ''}`;
+
+        const response = await gemini.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: promptText,
+          config: { temperature: 0.1, responseMimeType: 'application/json' }
+        });
+
+        const responseText = response.text || "{}";
+        let parsedResult: any = {};
+        try {
+          parsedResult = JSON.parse(responseText.replace(/\s*```json\s*/g, '').replace(/\s*```\s*/g, '').trim());
+        } catch {
+          parsedResult = { summary: responseText, category: 'General Document', extractedFields: {} };
+        }
+
+        return applySecurityHeaders(
+          new Response(JSON.stringify({
+            success: true,
+            result: parsedResult
+          }), { status: 200, headers: { "Content-Type": "application/json" } }),
+          request
+        );
+      } catch (err: any) {
+        return createSafeErrorResponse(err, 500, "Failed to analyze document.", request);
+      }
+    }
+
+    // API 404 Guard: Unknown /api/* routes must never fall back to SPA index.html
+    if (url.pathname.startsWith('/api/')) {
+      return applySecurityHeaders(
+        new Response(
+          JSON.stringify({
+            error: "NOT_FOUND",
+            message: `API endpoint '${url.pathname}' not found.`,
+            status: 404,
+          }),
+          { status: 404, headers: { "Content-Type": "application/json" } }
+        ),
+        request
       );
     }
 
-    return env.ASSETS.fetch(request);
+    const assetRes = await env.ASSETS.fetch(request);
+    return applySecurityHeaders(assetRes, request);
+    } catch (fatalErr: any) {
+      return createSafeErrorResponse(fatalErr, 500, "The server encountered an error processing the request.", request);
+    }
   },
 
   /**

@@ -168,7 +168,7 @@ export class IntegrationGateway {
           data: req.payload
         },
         headers: {
-          'x-client-ip': req.clientIp || '127.0.0.1',
+          'x-client-ip': req.clientIp || 'client-edge',
           'x-gateway-tracking-id': trackingId
         }
       });

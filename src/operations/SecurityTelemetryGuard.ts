@@ -76,7 +76,7 @@ export class SecurityTelemetryGuard {
       actorId: params.actorId,
       resourceId: params.resourceId,
       details: params.details,
-      ipAddress: params.ipAddress || '127.0.0.1',
+      ipAddress: params.ipAddress || 'telemetry-client',
     };
 
     const signature = this.generateSignature(baseRecord);

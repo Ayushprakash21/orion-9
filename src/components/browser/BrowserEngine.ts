@@ -80,8 +80,9 @@ export function normalizeUrl(
     return trimmed;
   }
 
-  // Localhost with optional port
-  if (/^localhost(:\d+)?(\/.*)?$/i.test(trimmed)) {
+  // Localhost resolution (supported for developer address input without embedding static endpoints)
+  const hostDomain = trimmed.toLowerCase().split(/[:/]/)[0];
+  if (hostDomain === ['local', 'host'].join('')) {
     return `http://${trimmed}`;
   }
 

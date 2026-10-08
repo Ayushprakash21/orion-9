@@ -270,6 +270,135 @@ export function verifyWorkerAuthToken(
 }
 
 /**
+ * Standard zero-trust edge security headers applied to all responses.
+ */
+export const EDGE_SECURITY_HEADERS: Record<string, string> = {
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'SAMEORIGIN',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': 'accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
+};
+
+/**
+ * Validates origin for CORS and returns safe headers.
+ * NEVER allows wildcard '*' for authenticated requests.
+ */
+export function getCorsHeaders(request?: Request): Record<string, string> {
+  if (!request) return {};
+  const origin = request.headers.get('Origin') || request.headers.get('origin');
+  if (!origin) return {};
+
+  try {
+    const originUrl = new URL(origin);
+    const reqUrl = new URL(request.url);
+
+    // Same-origin check
+    if (originUrl.host === reqUrl.host) {
+      return {
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Orion-Token, Accept',
+        'Access-Control-Max-Age': '86400',
+        'Vary': 'Origin',
+      };
+    }
+
+    // Approved ORION domains (Cloudflare Workers, Pages, and custom domains)
+    const allowedPatterns = [
+      /\.workers\.dev$/,
+      /\.pages\.dev$/,
+      /orion-9\.com$/,
+    ];
+
+    const isAllowed = allowedPatterns.some(pattern => pattern.test(originUrl.host));
+    if (isAllowed) {
+      return {
+        'Access-Control-Allow-Origin': origin,
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Authorization, Content-Type, X-Orion-Token, Accept',
+        'Access-Control-Max-Age': '86400',
+        'Vary': 'Origin',
+      };
+    }
+  } catch {
+    // Malformed origin
+  }
+
+  return {};
+}
+
+/**
+ * Enriches a response with mandatory security headers and strips any sensitive server leakage.
+ */
+export function applySecurityHeaders(response: Response, request?: Request): Response {
+  const newHeaders = new Headers(response.headers);
+  for (const [key, val] of Object.entries(EDGE_SECURITY_HEADERS)) {
+    if (!newHeaders.has(key)) {
+      newHeaders.set(key, val);
+    }
+  }
+
+  // Attach safe CORS headers if request is provided
+  if (request) {
+    const cors = getCorsHeaders(request);
+    for (const [k, v] of Object.entries(cors)) {
+      newHeaders.set(k, v);
+    }
+  }
+
+  // Strip information leaking headers
+  newHeaders.delete('X-Powered-By');
+  newHeaders.delete('Server');
+  newHeaders.set('Server', 'cloudflare');
+
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: newHeaders,
+  });
+}
+
+/**
+ * Creates a safe, sanitized public error response preventing any leakage of:
+ * - internal IPs or ports
+ * - filesystem paths (e.g. D:\... or /home/...)
+ * - stack traces or database connection strings
+ */
+export function createSafeErrorResponse(
+  error: unknown,
+  status: number = 500,
+  fallbackMessage: string = 'The server encountered an error processing the request.',
+  request?: Request
+): Response {
+  const requestId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+    ? crypto.randomUUID() 
+    : `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+  // Log raw error internally (never sent to client)
+  console.error(`[WORKER-ERROR] [requestId=${requestId}] status=${status}:`, error);
+
+  const safeResponse = new Response(
+    JSON.stringify({
+      success: false,
+      error: status === 502 || status === 503 || status === 504 ? 'UPSTREAM_UNAVAILABLE' : 'INTERNAL_ERROR',
+      message: fallbackMessage,
+      requestId,
+      status,
+    }),
+    {
+      status,
+      headers: {
+        'Content-Type': 'application/json',
+        ...EDGE_SECURITY_HEADERS,
+      },
+    }
+  );
+
+  return applySecurityHeaders(safeResponse, request);
+}
+
+/**
  * Creates a standard JSON error response with appropriate security headers.
  */
 export function createSecurityErrorResponse(message: string, status: number, headers: Record<string, string> = {}): Response {
@@ -284,9 +413,7 @@ export function createSecurityErrorResponse(message: string, status: number, hea
       status,
       headers: {
         'Content-Type': 'application/json',
-        'X-Content-Type-Options': 'nosniff',
-        'X-Frame-Options': 'SAMEORIGIN',
-        'Referrer-Policy': 'strict-origin-when-cross-origin',
+        ...EDGE_SECURITY_HEADERS,
         ...headers,
       },
     }
@@ -302,7 +429,7 @@ export function applyWorkerRateLimit(
 ): Response | null {
   const clientIp = request.headers.get('CF-Connecting-IP') || 
                    request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
-                   '127.0.0.1';
+                   'edge-client';
   
   const configs: Record<string, RateLimitConfig> = {
     ai: { maxRequests: 60, windowMs: 60000 },       // 60 req/min

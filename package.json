@@ -12,6 +12,7 @@
     "lint": "tsc --noEmit",
     "test": "vitest run",
     "test:security": "node scripts/runSecurityTests.mjs",
+    "audit:zero-origin": "node scripts/auditZeroOriginSecurity.cjs",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "ci": "tsc --noEmit && vitest run",
