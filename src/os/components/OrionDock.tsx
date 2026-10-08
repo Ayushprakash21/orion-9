@@ -693,13 +693,13 @@ export function OrionDock() {
       >
         <div 
           className={cn(
-            "p-2 border transition-all duration-300 rounded-2xl shadow-2xl",
+            "p-2 border transition-all duration-300 rounded-[20px] shadow-2xl",
             isVertical ? "flex flex-col items-center gap-2 overflow-y-auto max-h-[80vh]" : "flex items-center gap-2 overflow-x-auto max-w-[calc(100vw-24px)]"
           )}
           style={{ 
             backgroundColor: `color-mix(in srgb, var(--orion-dock-surface, var(--orion-dock-bg)) calc(var(--orion-dock-opacity, 0.88) * 100%), transparent)`,
-            backdropFilter: 'var(--orion-morph-backdrop, blur(var(--orion-dock-blur, 24px)) saturate(140%))',
-            WebkitBackdropFilter: 'var(--orion-morph-backdrop, blur(var(--orion-dock-blur, 24px)) saturate(140%))',
+            backdropFilter: 'var(--orion-morph-backdrop, blur(var(--orion-dock-blur, 24px)) saturate(160%))',
+            WebkitBackdropFilter: 'var(--orion-morph-backdrop, blur(var(--orion-dock-blur, 24px)) saturate(160%))',
             borderColor: 'var(--orion-dock-border, var(--orion-border-strong))',
             boxShadow: 'var(--orion-morph-shadow-deep, var(--orion-dock-shadow, 0 20px 48px rgba(0,0,0,0.45)))',
             scrollbarWidth: 'none' 

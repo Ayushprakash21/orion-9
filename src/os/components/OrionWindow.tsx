@@ -510,8 +510,8 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
           isolation: 'isolate',
         }}
         className={cn(
-          "orion-window-titlebar h-11 bg-[var(--orion-surface-elevated,#080a0d)] border-b border-white/[0.08] px-3.5 flex items-center justify-between select-none relative z-20 cursor-default",
-          isActive ? "text-os-text-primary" : "text-os-text-muted"
+          "orion-window-titlebar h-[38px] bg-[var(--orion-surface-elevated)] border-b border-[var(--orion-border)] px-3.5 flex items-center justify-between select-none relative z-20 cursor-default",
+          isActive ? "text-[var(--orion-text-primary)]" : "text-[var(--orion-text-muted)]"
         )}
       >
         {/* Left Section: Either Traffic-Light Controls + App Identity OR Just App Identity */}
@@ -537,13 +537,13 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
           <div className="flex items-center gap-2 min-w-0 pointer-events-none select-none pl-1">
             <OrionAppIcon app={win.id} size={16} showContainer={false} />
             <span className={cn(
-              "text-[12.5px] font-semibold tracking-normal truncate leading-none",
-              isActive ? "text-slate-100" : "text-slate-400"
+              "text-[13px] font-medium tracking-normal truncate leading-none",
+              isActive ? "text-[var(--orion-text-primary)]" : "text-[var(--orion-text-muted)]"
             )}>
               {app.name}
             </span>
-            <span className="text-white/20 text-xs font-mono select-none">·</span>
-            <span className="text-[9.5px] text-slate-500 font-mono font-medium uppercase tracking-[0.1em] hidden sm:inline-block truncate leading-none">
+            <span className="text-[var(--orion-border-strong)] text-xs font-mono select-none">·</span>
+            <span className="text-[10px] text-[var(--orion-text-muted)] font-mono font-medium uppercase tracking-[0.08em] hidden sm:inline-block truncate leading-none">
               {app.category}
             </span>
           </div>
@@ -611,7 +611,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
 
       {/* Move / Size Interactive Keyboard Mode Banner */}
       {(isMoveModeActive || isSizeModeActive) && (
-        <div className="absolute top-11 left-1/2 -translate-x-1/2 z-50 px-3.5 py-1.5 bg-os-accent/15 border border-os-accent/40 text-os-accent text-[11px] font-mono rounded-full shadow-2xl flex items-center gap-2 backdrop-blur-xl animate-in fade-in pointer-events-none select-none">
+        <div className="absolute top-[38px] left-1/2 -translate-x-1/2 z-50 px-3.5 py-1.5 bg-os-accent/15 border border-os-accent/40 text-os-accent text-[11px] font-mono rounded-full shadow-2xl flex items-center gap-2 backdrop-blur-xl animate-in fade-in pointer-events-none select-none">
           {isMoveModeActive ? <Move className="w-3.5 h-3.5 animate-pulse" /> : <Maximize2 className="w-3.5 h-3.5 animate-pulse" />}
           <span>
             {isMoveModeActive ? 'MOVE MODE' : 'RESIZE MODE'}: Arrow keys to adjust • Enter to apply • Esc to cancel

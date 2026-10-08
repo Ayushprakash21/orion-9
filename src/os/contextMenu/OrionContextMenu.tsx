@@ -295,14 +295,14 @@ export const OrionContextMenu: React.FC = () => {
                   isFocused && !item.disabled && (
                     item.danger
                       ? "bg-red-500/20 text-red-200 ring-1 ring-red-500/30"
-                      : "bg-os-surface-active text-os-text-primary shadow-sm ring-1 ring-white/10"
+                      : "bg-os-surface-active text-os-text-primary shadow-sm ring-1 ring-[var(--orion-border)]"
                   ),
                   !isFocused && !item.disabled && (
                     item.danger
                       ? "text-red-400 hover:bg-red-500/15 hover:text-red-300"
-                      : "text-os-text-secondary hover:bg-white/[0.07] hover:text-os-text-primary"
+                      : "text-os-text-secondary hover:bg-[var(--orion-surface-hover)] hover:text-os-text-primary"
                   ),
-                  item.disabled && "opacity-35 cursor-not-allowed pointer-events-none text-slate-500"
+                  item.disabled && "opacity-35 cursor-not-allowed pointer-events-none text-[var(--orion-text-disabled)]"
                 )}
               >
                 <div className="flex items-center gap-2 min-w-0 pr-1">
@@ -393,14 +393,14 @@ export const OrionContextMenu: React.FC = () => {
                     isSubFocused && !subItem.disabled && (
                       subItem.danger
                         ? "bg-red-500/20 text-red-200 ring-1 ring-red-500/30"
-                        : "bg-os-surface-active text-os-text-primary shadow-sm ring-1 ring-white/10"
+                        : "bg-os-surface-active text-os-text-primary shadow-sm ring-1 ring-[var(--orion-border)]"
                     ),
                     !isSubFocused && !subItem.disabled && (
                       subItem.danger
                         ? "text-red-400 hover:bg-red-500/15 hover:text-red-300"
-                        : "text-os-text-secondary hover:bg-white/[0.07] hover:text-os-text-primary"
+                        : "text-os-text-secondary hover:bg-[var(--orion-surface-hover)] hover:text-os-text-primary"
                     ),
-                    subItem.disabled && "opacity-35 cursor-not-allowed pointer-events-none text-slate-500"
+                    subItem.disabled && "opacity-35 cursor-not-allowed pointer-events-none text-[var(--orion-text-disabled)]"
                   )}
                 >
                   <div className="flex items-center gap-2 min-w-0 pr-1">

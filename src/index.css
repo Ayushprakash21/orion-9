@@ -1,4 +1,3 @@
-@import url("https://fonts.googleapis.com/css2?family=Lato:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap");
 @import "tailwindcss";
 
 @theme {
@@ -63,6 +62,64 @@
   --orion-dock-safe-height: 0px;
   --orion-mobile-nav-height: 56px;
   --orion-mobile-header-height: 54px;
+
+  /* Canonical Apple-Inspired Typography Tokens */
+  --orion-font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+  --orion-font-family-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", Arial, sans-serif;
+  --orion-font-family-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+  --orion-font-family-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  
+  --orion-font-size-xs: 11px;
+  --orion-font-size-sm: 12px;
+  --orion-font-size-md: 13px;
+  --orion-font-size-base: 14px;
+  --orion-font-size-lg: 16px;
+  --orion-font-size-xl: 20px;
+  --orion-font-size-2xl: 24px;
+  --orion-font-size-3xl: 32px;
+  --orion-font-size-display: 40px;
+
+  --orion-line-height-tight: 1.2;
+  --orion-line-height-normal: 1.45;
+  --orion-line-height-relaxed: 1.6;
+
+  --orion-font-weight-regular: 400;
+  --orion-font-weight-medium: 500;
+  --orion-font-weight-semibold: 600;
+  --orion-font-weight-bold: 700;
+
+  --orion-letter-spacing-tight: -0.015em;
+  --orion-letter-spacing-normal: 0;
+  --orion-letter-spacing-wide: 0.02em;
+
+  /* Canonical Spacing System */
+  --orion-space-1: 4px;
+  --orion-space-2: 8px;
+  --orion-space-3: 12px;
+  --orion-space-4: 16px;
+  --orion-space-5: 20px;
+  --orion-space-6: 24px;
+  --orion-space-8: 32px;
+
+  /* Canonical Corner Radius System */
+  --orion-radius-xs: 4px;
+  --orion-radius-sm: 6px;
+  --orion-radius-md: 8px;
+  --orion-radius-lg: 10px;
+  --orion-radius-xl: 12px;
+  --orion-radius-2xl: 16px;
+  --orion-radius-dock: 20px;
+  --orion-radius-full: 9999px;
+
+  /* Canonical Control & Chrome Dimensions */
+  --orion-control-h-sm: 28px;
+  --orion-control-h-md: 32px;
+  --orion-control-h-lg: 38px;
+  --orion-window-titlebar-h: 38px;
+  --orion-topbar-h: 44px;
+  --orion-topbar-bg: rgba(28, 28, 30, 0.82);
+  --orion-topbar-border: rgba(255, 255, 255, 0.08);
+  --orion-dock-h: 68px;
   /* ORION GRAPHITE (Default OS Theme Foundation) */
   --os-bg: #0B0D0F;
   --os-surface: #121417;
@@ -151,7 +208,7 @@
 
   background-color: var(--os-bg);
   color: var(--os-text-primary);
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--orion-font-family);
   transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -243,15 +300,16 @@
   --orion-morph-elevation-1: 0 4px 12px rgba(0, 0, 0, 0.10);
   --orion-morph-elevation-2: 0 8px 24px rgba(0, 0, 0, 0.10);
   --orion-morph-elevation-3: 0 16px 36px rgba(0, 0, 0, 0.18);
-  --orion-morph-elevation-modal: 0 24px 54px rgba(0, 0, 0, 0.18);
+  --orion-topbar-bg: rgba(248, 248, 250, 0.86);
+  --orion-topbar-border: rgba(0, 0, 0, 0.08);
 
   background-color: var(--os-bg);
   color: var(--os-text-primary);
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--orion-font-family);
   transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Custom OS Scrollbars */
+/* Custom OS Scrollbars - macOS minimal style */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -262,22 +320,22 @@
 }
 :root.dark ::-webkit-scrollbar-thumb,
 :root:not(.light) ::-webkit-scrollbar-thumb {
-  background: #2D323E;
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.20);
+  border-radius: 9999px;
 }
 :root.dark ::-webkit-scrollbar-thumb:hover,
 :root:not(.light) ::-webkit-scrollbar-thumb:hover {
-  background: #414859;
+  background: rgba(255, 255, 255, 0.35);
 }
 :root.light ::-webkit-scrollbar-track {
   background: transparent;
 }
 :root.light ::-webkit-scrollbar-thumb {
-  background: #C1C5CD;
-  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 9999px;
 }
 :root.light ::-webkit-scrollbar-thumb:hover {
-  background: #98A2B3;
+  background: rgba(0, 0, 0, 0.32);
 }
 
 /* ==========================================================================
@@ -1257,7 +1315,7 @@ html, body, #root {
 :root {
   --orion-text-scale: 1;
   --orion-display-scale: 1;
-  --orion-font-family: Roboto, "Segoe UI", Arial, sans-serif;
+  --orion-font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", Arial, sans-serif;
 }
 
 html, body, #root {
@@ -1268,6 +1326,11 @@ html, body, #root {
 
 body, button, input, textarea, select {
   font-family: var(--orion-font-family) !important;
+}
+
+/* Tabular numbers for financial, metrics, and clock values */
+.tabular-nums, [data-tabular-nums="true"], .font-mono, [data-metric="true"] {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Text preference is intentionally separate from Windows-style UI scale. */

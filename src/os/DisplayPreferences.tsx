@@ -22,9 +22,9 @@ export const TEXT_SIZE_OPTIONS: OrionTextSize[] = [90, 100, 110, 120, 130, 140];
 export const FONT_OPTIONS: OrionFontFamily[] = ['ROBOTO', 'LATO', 'ARIAL'];
 
 const FONT_STACKS: Record<OrionFontFamily, string> = {
-  ROBOTO: 'Roboto, "Segoe UI", Arial, sans-serif',
-  LATO: 'Lato, "Segoe UI", Arial, sans-serif',
-  ARIAL: 'Arial, "Segoe UI", sans-serif',
+  ROBOTO: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", Arial, sans-serif',
+  LATO: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", Arial, sans-serif',
+  ARIAL: 'Arial, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 };
 
 const sanitize = (raw: Partial<OrionDisplayPreferences> | null | undefined): OrionDisplayPreferences => {

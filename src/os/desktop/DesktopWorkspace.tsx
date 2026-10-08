@@ -1267,8 +1267,8 @@ export function DesktopWorkspace() {
                 isBeingDragged && "cursor-grabbing z-[1000] opacity-90 scale-105 shadow-2xl ring-1 ring-white/20 backdrop-blur-md",
                 isDropTarget && "bg-white/[0.12] ring-2 ring-white/30 scale-105 shadow-lg z-30",
                 isSelected && !isBeingDragged
-                  ? "bg-white/[0.12] border border-white/20 shadow-md backdrop-blur-xs z-25 ring-1 ring-white/25"
-                  : "hover:bg-white/[0.06] hover:scale-[1.03] active:scale-[0.97] border border-transparent"
+                  ? "bg-[var(--orion-accent-soft)] border border-[var(--orion-border-strong)] shadow-md backdrop-blur-xs z-25 ring-1 ring-[var(--orion-accent)]/30"
+                  : "hover:bg-[var(--orion-surface-hover)] hover:scale-[1.03] active:scale-[0.97] border border-transparent"
               )}
             >
               <div className="group-hover:scale-105 transition-transform pointer-events-none shrink-0">

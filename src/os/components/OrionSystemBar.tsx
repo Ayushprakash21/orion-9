@@ -92,7 +92,7 @@ export function OrionSystemBar() {
   const activeApp = activeAppId ? ORION_REGISTRY[activeAppId] : null;
 
   return (
-    <header className="orion-global-topbar relative top-auto left-auto right-auto h-[44px] min-h-[44px] w-full z-[10000] flex items-center justify-between px-3 md:px-4 text-[12px] font-medium text-os-text-secondary select-none bg-[var(--orion-surface-elevated)] border-b border-[var(--orion-border)] shadow-xs pointer-events-auto shrink-0 transition-colors">
+    <header className="orion-global-topbar relative top-auto left-auto right-auto h-[44px] min-h-[44px] w-full z-[10000] flex items-center justify-between px-3 md:px-4 text-[12px] font-medium text-[var(--orion-text-secondary)] select-none bg-[var(--orion-topbar-bg,rgba(28,28,30,0.82))] backdrop-blur-[20px] backdrop-saturate-[150%] border-b border-[var(--orion-border)] shadow-xs pointer-events-auto shrink-0 transition-colors">
       
       {/* LEFT: ORION HOME BUTTON & MENU */}
       <div className="flex items-center h-full min-w-0 gap-1.5" ref={menuRef}>
@@ -100,8 +100,8 @@ export function OrionSystemBar() {
         <button 
           onClick={() => setMenuOpen(!menuOpen)}
           className={cn(
-            "flex items-center h-[32px] px-2.5 gap-2 hover:bg-white/[0.08] hover:text-white transition-all cursor-pointer rounded-lg shrink-0 group",
-            menuOpen && "bg-white/[0.12] text-white"
+            "flex items-center h-[30px] px-2 gap-2 hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] transition-all cursor-pointer rounded-md shrink-0 group",
+            menuOpen && "bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)]"
           )}
           title="Orion System Menu"
           aria-label="Open ORION System Menu"
@@ -120,7 +120,7 @@ export function OrionSystemBar() {
               dbEnv === 'LIVE'
                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                 : "bg-amber-500/10 text-amber-400 border-amber-500/30",
-              isAdmin && "hover:border-[var(--orion-accent)] hover:text-white"
+              isAdmin && "hover:border-[var(--orion-accent)] hover:text-[var(--orion-text-primary)]"
             )}
             title={isAdmin ? `Database: ${dbEnv}. Click to open Control Plane.` : `Database: ${dbEnv}`}
           >
@@ -129,7 +129,7 @@ export function OrionSystemBar() {
         </button>
 
         {/* User Experience Mode Switcher (Simple vs Advanced) */}
-        <div className="hidden lg:flex items-center p-0.5 bg-black/40 border border-white/[0.08] rounded-lg text-[10px] font-mono">
+        <div className="hidden lg:flex items-center p-0.5 bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-md text-[10px] font-mono">
           <button
             type="button"
             onClick={() => updateSettings({ userExperienceMode: 'SIMPLE' })}
@@ -137,7 +137,7 @@ export function OrionSystemBar() {
               "px-2 py-0.5 rounded-md transition-all cursor-pointer font-medium",
               settings.userExperienceMode !== 'ADVANCED'
                 ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-xs font-semibold"
-                : "text-os-text-muted hover:text-os-text-primary"
+                : "text-[var(--orion-text-muted)] hover:text-[var(--orion-text-primary)]"
             )}
             title="Simple Mode: Goal & action-oriented business experience"
           >
@@ -150,7 +150,7 @@ export function OrionSystemBar() {
               "px-2 py-0.5 rounded-md transition-all cursor-pointer font-medium",
               settings.userExperienceMode === 'ADVANCED'
                 ? "bg-purple-500/20 text-purple-400 border border-purple-500/30 shadow-xs font-semibold"
-                : "text-os-text-muted hover:text-os-text-primary"
+                : "text-[var(--orion-text-muted)] hover:text-[var(--orion-text-primary)]"
             )}
             title="Advanced Mode: Full enterprise SCM operating model"
           >
@@ -163,7 +163,7 @@ export function OrionSystemBar() {
           onClick={() => {
             window.dispatchEvent(new CustomEvent('orion:desktop-refresh', { detail: { timestamp: Date.now() } }));
           }}
-          className="hidden sm:flex items-center justify-center w-8 h-8 text-os-text-muted hover:bg-white/[0.06] hover:text-os-text-primary transition-colors cursor-pointer rounded-lg"
+          className="hidden sm:flex items-center justify-center w-7 h-7 text-[var(--orion-text-muted)] hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] transition-colors cursor-pointer rounded-md"
           title="Refresh State"
         >
           <RefreshCw className="w-3.5 h-3.5" />
@@ -180,7 +180,7 @@ export function OrionSystemBar() {
               }
             }
           }}
-          className="hidden md:flex items-center justify-center w-8 h-8 text-os-text-muted hover:bg-white/[0.06] hover:text-os-text-primary transition-colors cursor-pointer rounded-lg"
+          className="hidden md:flex items-center justify-center w-7 h-7 text-[var(--orion-text-muted)] hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] transition-colors cursor-pointer rounded-md"
           title="Toggle Fullscreen"
         >
           <Maximize2 className="w-3.5 h-3.5" />
@@ -196,14 +196,14 @@ export function OrionSystemBar() {
       {/* CENTER: CONTEXTUAL ACTIVE APPLICATION INDICATOR (OS-Level System Bar) */}
       <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-2 max-w-[40vw] min-w-0 pointer-events-none">
         {activeApp ? (
-          <div className="flex items-center gap-2 px-3 py-1 bg-white/[0.04] border border-white/[0.08] rounded-xl backdrop-blur-md shadow-xs">
+          <div className="flex items-center gap-2 px-3 py-1 bg-[var(--orion-surface-hover)] border border-[var(--orion-border)] rounded-full backdrop-blur-md shadow-xs">
             <span className="w-2 h-2 rounded-full shadow-xs shrink-0" style={{ backgroundColor: activeApp.color || 'var(--orion-accent, #D8DDE3)' }} />
-            <span className="text-[12px] font-semibold text-os-text-primary truncate max-w-[180px]">
+            <span className="text-[12px] font-medium text-[var(--orion-text-primary)] truncate max-w-[180px]">
               {activeApp.name}
             </span>
           </div>
         ) : (
-          <div className="text-[11px] font-medium text-os-text-muted/60 tracking-wider uppercase">
+          <div className="text-[11px] font-medium text-[var(--orion-text-muted)] tracking-wider uppercase">
             Orion OS Desktop
           </div>
         )}
@@ -215,19 +215,19 @@ export function OrionSystemBar() {
         <button 
           onClick={() => openApplication('ai-copilot')}
           data-testid="orion-copilot-button"
-          className="flex items-center gap-1.5 px-2.5 py-1 text-os-text-primary hover:text-white bg-white/[0.06] hover:bg-white/[0.12] border border-white/[0.08] rounded-lg transition-colors cursor-pointer text-[11px] font-medium"
+          className="flex items-center gap-1.5 px-2.5 h-[30px] text-[var(--orion-text-primary)] hover:bg-[var(--orion-surface-hover)] border border-[var(--orion-border)] rounded-md transition-colors cursor-pointer text-[11px] font-medium"
           title="Open Orion AI Copilot"
           aria-label="Open Orion AI Copilot"
           type="button"
         >
-          <Brain className="w-3.5 h-3.5 text-os-accent" />
+          <Brain className="w-3.5 h-3.5 text-[var(--orion-accent)]" />
           <span className="hidden sm:inline">Copilot</span>
         </button>
 
         {/* Global Search */}
         <button 
           onClick={() => setCommandPaletteOpen(true)}
-          className="flex items-center justify-center w-8 h-8 hover:bg-white/[0.06] hover:text-os-text-primary rounded-lg transition-colors text-os-text-muted cursor-pointer"
+          className="flex items-center justify-center w-7 h-7 hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] rounded-md transition-colors text-[var(--orion-text-muted)] cursor-pointer"
           title="Search (Cmd+K)"
         >
           <Search className="w-3.5 h-3.5" />
@@ -239,9 +239,9 @@ export function OrionSystemBar() {
             type="button"
             onClick={() => setNotificationsOpen(v => !v)}
             className={cn(
-              "relative flex items-center justify-center w-8 h-8 hover:bg-white/[0.06] hover:text-os-text-primary rounded-lg transition-colors cursor-pointer outline-none",
-              hasCriticalExceptions ? "text-rose-400" : "text-os-text-muted",
-              notificationsOpen && "bg-white/[0.12] text-os-text-primary"
+              "relative flex items-center justify-center w-7 h-7 hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] rounded-md transition-colors cursor-pointer outline-none",
+              hasCriticalExceptions ? "text-rose-400" : "text-[var(--orion-text-muted)]",
+              notificationsOpen && "bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)]"
             )}
             title={hasCriticalExceptions ? "Critical exceptions detected" : "Notifications"}
             aria-label="Notifications"
@@ -258,7 +258,7 @@ export function OrionSystemBar() {
             )}
           </button>
           {notificationsOpen && (
-            <div className="notification-popover fixed sm:absolute right-2 sm:right-0 top-[calc(env(safe-area-inset-top,0px)+46px)] sm:top-[calc(100%+6px)] w-[min(calc(100vw-16px),420px)] max-h-[calc(100dvh-120px)] sm:max-h-[480px] z-40 bg-os-surface border border-os-border rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+            <div className="notification-popover fixed sm:absolute right-2 sm:right-0 top-[calc(env(safe-area-inset-top,0px)+46px)] sm:top-[calc(100%+6px)] w-[min(calc(100vw-16px),420px)] max-h-[calc(100dvh-120px)] sm:max-h-[480px] z-40 bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
               <NotificationCenter isOpen={true} onClose={() => setNotificationsOpen(false)} />
             </div>
           )}
@@ -270,9 +270,9 @@ export function OrionSystemBar() {
             type="button"
             onClick={() => setNetworkOpen(v => !v)}
             className={cn(
-              "relative flex items-center justify-center w-8 h-8 hover:bg-white/[0.06] rounded-lg transition-colors cursor-pointer outline-none",
+              "relative flex items-center justify-center w-7 h-7 hover:bg-[var(--orion-surface-hover)] rounded-md transition-colors cursor-pointer outline-none",
               isOnline ? (isLocalMode ? "text-amber-400" : "text-emerald-400") : "text-red-400",
-              networkOpen && "bg-white/[0.12] text-os-text-primary"
+              networkOpen && "bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)]"
             )}
             title={statusLabel}
             aria-label="Network Connections"
@@ -286,14 +286,14 @@ export function OrionSystemBar() {
         <button
           type="button"
           onClick={() => openApplication('time-world')}
-          className="hidden sm:flex group relative items-center px-2 py-1 text-[12px] font-medium text-os-text-secondary hover:text-os-text-primary hover:bg-white/[0.06] rounded-lg transition-colors cursor-pointer"
+          className="hidden sm:flex group relative items-center px-2 h-[30px] text-[12px] font-medium tabular-nums text-[var(--orion-text-secondary)] hover:text-[var(--orion-text-primary)] hover:bg-[var(--orion-surface-hover)] rounded-md transition-colors cursor-pointer"
           aria-label="Open Time & World settings"
           title="Open Time & World"
         >
           {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          <span className="pointer-events-none absolute right-0 top-[calc(100%+7px)] z-[2147483600] min-w-[190px] rounded-xl border border-white/[0.08] bg-[#12151a]/95 backdrop-blur-2xl px-3.5 py-2.5 text-left opacity-0 translate-y-[-3px] group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 shadow-2xl">
-            <span className="block font-mono text-[12px] font-medium text-os-text-primary">{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-            <span className="block mt-1 text-[11px] text-os-text-secondary">{new Intl.DateTimeFormat(undefined, { timeZoneName: 'long' }).formatToParts(currentTime).find(p => p.type === 'timeZoneName')?.value || 'Local Time'}</span>
+          <span className="pointer-events-none absolute right-0 top-[calc(100%+7px)] z-[2147483600] min-w-[190px] rounded-xl border border-[var(--orion-border-strong)] bg-[var(--orion-surface-elevated)] backdrop-blur-2xl px-3.5 py-2.5 text-left opacity-0 translate-y-[-3px] group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 shadow-2xl">
+            <span className="block font-mono tabular-nums text-[12px] font-medium text-[var(--orion-text-primary)]">{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+            <span className="block mt-1 text-[11px] text-[var(--orion-text-secondary)]">{new Intl.DateTimeFormat(undefined, { timeZoneName: 'long' }).formatToParts(currentTime).find(p => p.type === 'timeZoneName')?.value || 'Local Time'}</span>
             <span className="block mt-0.5 text-[10px] text-[var(--orion-accent)]">{Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
           </span>
         </button>

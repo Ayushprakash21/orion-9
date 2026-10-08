@@ -342,12 +342,12 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
     if (!privilegedUntil) {
       return (
         <div className="flex-1 flex flex-col items-center justify-center h-full max-w-md mx-auto p-6 animate-in fade-in zoom-in-95 duration-200">
-          <div className="bg-[#12151a] border border-white/[0.08] rounded-2xl p-8 shadow-2xl w-full flex flex-col items-center text-center">
-            <div className="w-14 h-14 bg-sky-500/10 rounded-2xl border border-sky-500/20 flex items-center justify-center mb-5">
-              <Lock className="text-sky-400 w-7 h-7" />
+          <div className="bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] rounded-2xl p-8 shadow-2xl w-full flex flex-col items-center text-center">
+            <div className="w-14 h-14 bg-[var(--orion-accent-soft)] rounded-2xl border border-[var(--orion-border-strong)] flex items-center justify-center mb-5">
+              <Lock className="text-[var(--orion-accent)] w-7 h-7" />
             </div>
-            <h3 className="text-base font-semibold text-white mb-2">Administrator Access Required</h3>
-            <p className="text-xs text-slate-400 mb-6 leading-relaxed">Enter your platform administrator password to unlock privileged settings and system control planes.</p>
+            <h3 className="text-base font-semibold text-[var(--orion-text-primary)] mb-2">Administrator Access Required</h3>
+            <p className="text-xs text-[var(--orion-text-muted)] mb-6 leading-relaxed">Enter your platform administrator password to unlock privileged settings and system control planes.</p>
             
             <form onSubmit={handleUnlockAdmin} className="w-full space-y-4">
               <div>
@@ -357,7 +357,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                   placeholder="Administrator Password" 
                   value={unlockPassword}
                   onChange={e => setUnlockPassword(e.target.value)}
-                  className="w-full bg-white/[0.04] border border-white/[0.1] rounded-xl px-4 py-2.5 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500/60 focus:ring-1 focus:ring-sky-500/60 transition-all font-mono"
+                  className="w-full bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-xl px-4 py-2.5 text-xs text-[var(--orion-text-primary)] placeholder:text-[var(--orion-text-muted)] focus:outline-none focus:border-[var(--orion-accent)] focus:ring-1 focus:ring-[var(--orion-accent)] transition-all font-mono"
                 />
                 {unlockError && <p className="text-rose-400 text-xs mt-2 text-left">{unlockError}</p>}
               </div>
@@ -376,23 +376,23 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
 
     return (
       <div className="flex flex-col h-full min-h-0 w-full min-w-0 space-y-4 p-4">
-        <div className="bg-[#12151a] border border-white/[0.08] rounded-xl p-3 flex items-center justify-between shrink-0 z-10">
+        <div className="bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] rounded-xl p-3 flex items-center justify-between shrink-0 z-10">
           <div className="flex items-center gap-3">
             <ShieldCheck className="text-emerald-400 w-4 h-4" />
-            <div className="text-xs font-medium text-white flex items-center gap-2">
+            <div className="text-xs font-medium text-[var(--orion-text-primary)] flex items-center gap-2">
               Privileged Session Active 
-              <span className="text-[11px] text-slate-400 font-mono">• Expires in {timeRemaining}</span>
+              <span className="text-[11px] text-[var(--orion-text-muted)] font-mono">• Expires in {timeRemaining}</span>
             </div>
           </div>
           <button 
             onClick={lockAdminNow}
-            className="px-3 py-1.5 text-xs font-medium bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] rounded-lg text-slate-300 transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="px-3 py-1.5 text-xs font-medium bg-[var(--orion-surface-hover)] border border-[var(--orion-border)] rounded-lg text-[var(--orion-text-secondary)] hover:text-[var(--orion-text-primary)] transition-colors flex items-center gap-1.5 cursor-pointer"
           >
             <Lock size={12} /> Lock Session
           </button>
         </div>
         
-        <div className="flex-1 min-h-0 w-full min-w-0 overflow-y-auto overflow-x-hidden custom-scrollbar bg-[#12151a] border border-white/[0.08] rounded-xl relative p-4 sm:p-6">
+        <div className="flex-1 min-h-0 w-full min-w-0 overflow-y-auto overflow-x-hidden custom-scrollbar bg-[#12151a] bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] rounded-xl relative p-4 sm:p-6">
           {(activeSection === 'admin' || activeSection === 'admin_overview') && <AdminOverview />}
           {activeSection === 'admin_control_center' && <AdminControlCenter />}
           {activeSection === 'admin_users' && <AdminUsers />}
@@ -423,7 +423,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
             primary={
               <div className="space-y-4">
                 {/* Avatar & Header Card */}
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] flex items-center justify-between gap-4">
+                <div className="p-4 rounded-xl bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="relative group shrink-0">
                       <div className="w-14 h-14 rounded-full bg-white/[0.06] border border-white/[0.1] overflow-hidden flex items-center justify-center">
@@ -483,7 +483,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                 </div>
 
                 {/* Profile Form Fields */}
-                <div className="bg-[#12151a] border border-white/[0.08] rounded-xl overflow-hidden divide-y divide-white/[0.06]">
+                <div className="bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] rounded-xl overflow-hidden divide-y divide-white/[0.06]">
                   <div className="px-4 py-2.5 bg-white/[0.02] flex items-center justify-between">
                     <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Account Details</span>
                   </div>
@@ -548,7 +548,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
             }
             secondary={
               <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3 font-mono text-xs">
+                <div className="p-4 rounded-xl bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] space-y-3 font-mono text-xs">
                   <div className="flex justify-between items-center border-b border-white/[0.06] pb-2">
                     <span className="text-[10px] text-slate-400 uppercase tracking-wider">Security Clearance</span>
                     <span className="text-sky-400 font-semibold uppercase">{profile?.role?.replace('_', ' ') || 'Platform Admin'}</span>
@@ -570,7 +570,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-2">
+                <div className="p-4 rounded-xl bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] space-y-2">
                   <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider font-mono">Role Capabilities</h4>
                   <ul className="text-[11px] text-slate-400 space-y-1 font-mono">
                     <li className="flex items-center gap-2 text-emerald-400">✓ Full OS & Kernel Access</li>
@@ -592,7 +592,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
             badge="ACTIVE TENANT"
             primary={
               <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] flex items-center justify-between">
+                <div className="p-4 rounded-xl bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
                       <Building2 size={20} />
@@ -607,7 +607,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                   </span>
                 </div>
 
-                <div className="bg-[#12151a] border border-white/[0.08] rounded-xl overflow-hidden divide-y divide-white/[0.06] text-xs">
+                <div className="bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] rounded-xl overflow-hidden divide-y divide-white/[0.06] text-xs">
                   <div className="px-4 py-2.5 bg-white/[0.02]">
                     <span className="font-semibold text-slate-300 uppercase tracking-wider">Tenant Attributes</span>
                   </div>
@@ -632,7 +632,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
             }
             secondary={
               <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3 font-mono text-xs">
+                <div className="p-4 rounded-xl bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] space-y-3 font-mono text-xs">
                   <div className="flex justify-between items-center border-b border-white/[0.06] pb-2">
                     <span className="text-[10px] text-slate-400 uppercase tracking-wider">Tenant Isolation Guarantee</span>
                     <span className="text-emerald-400 font-bold">STRICT FIRESTORE SEPARATION</span>
@@ -705,7 +705,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                 <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
                   SYSTEM LOCALIZATION
                 </span>
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3">
+                <div className="p-4 rounded-xl bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] space-y-3">
                   <div className="flex justify-between border-b border-white/[0.06] pb-2">
                     <span className="text-[10px] text-slate-400 uppercase font-mono">Active BCP-47</span>
                     <span className="text-sky-400 font-bold font-mono">{locale}</span>
@@ -744,7 +744,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
             badge="ALERTS"
             primary={
               <div className="space-y-4">
-                <div className="bg-[#12151a] border border-white/[0.08] rounded-xl p-4 space-y-3 text-xs">
+                <div className="bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] rounded-xl p-4 space-y-3 text-xs">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="font-semibold text-white">Master Audio Sounds</div>
@@ -789,7 +789,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                 <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
                   PRIORITY RULES
                 </span>
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-2">
+                <div className="p-4 rounded-xl bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] space-y-2">
                   <div className="flex justify-between text-[11px]">
                     <span className="text-slate-400">Stockout Warnings</span>
                     <span className="text-emerald-400 font-bold">HIGH PRIORITY</span>
@@ -812,7 +812,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
             badge="SECURITY"
             primary={
               <div className="space-y-4 text-xs">
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-2">
+                <div className="p-4 rounded-xl bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] space-y-2">
                   <div className="flex justify-between">
                     <span className="text-slate-400">Auth Engine</span>
                     <span className="text-emerald-400 font-bold">Firebase Auth</span>
@@ -829,7 +829,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                 <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
                   PRIVILEGED SESSION
                 </span>
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08]">
+                <div className="p-4 rounded-xl bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)]">
                   <div className="flex justify-between text-[11px]">
                     <span className="text-slate-400">Environment</span>
                     <span className="text-sky-400 font-bold">{dataMode === 'real' ? 'LIVE' : 'DEMO'}</span>
@@ -848,7 +848,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
             badge="GEMINI AI"
             primary={
               <div className="space-y-4 text-xs">
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-2">
+                <div className="p-4 rounded-xl bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] space-y-2">
                   <div className="flex justify-between">
                     <span className="text-slate-400">Operating Mode</span>
                     <span className="text-purple-400 font-bold">Level 2 — Recommend</span>
@@ -865,7 +865,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                 <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
                   WORKFORCE CAPABILITIES
                 </span>
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-1">
+                <div className="p-4 rounded-xl bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] space-y-1">
                   <div className="text-emerald-400">✓ Planning Agent</div>
                   <div className="text-emerald-400">✓ Procurement Agent</div>
                   <div className="text-emerald-400">✓ Risk Radar Agent</div>
@@ -883,7 +883,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
             badge="LATENCY"
             primary={
               <div className="space-y-4 text-xs">
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-2 font-mono">
+                <div className="p-4 rounded-xl bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] space-y-2 font-mono">
                   <div className="flex justify-between">
                     <span className="text-slate-400">Status</span>
                     <span className="text-emerald-400 font-bold">CONNECTED</span>
@@ -900,7 +900,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                 <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
                   GATEWAY DIAGNOSTICS
                 </span>
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] text-[11px] text-slate-400">
+                <div className="p-4 rounded-xl bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] text-[11px] text-slate-400">
                   WebSocket Relays Active • 0 Loss
                 </div>
               </div>
@@ -916,7 +916,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
             badge="VFS ENGINE"
             primary={
               <div className="space-y-4 text-xs">
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-2 font-mono">
+                <div className="p-4 rounded-xl bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] space-y-2 font-mono">
                   <div className="flex justify-between">
                     <span className="text-slate-400">Provider</span>
                     <span className="text-slate-200">Cloud Firestore VFS</span>
@@ -933,7 +933,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                 <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider block">
                   USAGE BREAKDOWN
                 </span>
-                <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] text-[11px] text-slate-400">
+                <div className="p-4 rounded-xl bg-[var(--orion-surface-elevated)] border border-[var(--orion-border)] text-[11px] text-slate-400">
                   VFS Tree Clean • Desktop Items Persisted
                 </div>
               </div>
@@ -952,55 +952,55 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
   return (
     <div className="flex flex-col md:flex-row w-full h-full bg-[var(--orion-bg,#0c0e11)] text-[var(--orion-text-primary,#fff)] overflow-hidden font-sans select-none">
       {/* ─── LEFT SIDEBAR ─── */}
-      <div className="w-full md:w-[230px] max-h-[35vh] md:max-h-full shrink-0 bg-[var(--orion-surface-elevated,#101318)] border-b md:border-b-0 md:border-r border-[var(--orion-border,rgba(255,255,255,0.08))] flex flex-col">
+      <div className="w-full md:w-[230px] max-h-[35vh] md:max-h-full shrink-0 bg-[var(--orion-surface-elevated)] border-b md:border-b-0 md:border-r border-[var(--orion-border)] flex flex-col">
         {/* Search */}
-        <div className="p-3.5 border-b border-[var(--orion-border,rgba(255,255,255,0.08))] sticky top-0 z-10 bg-[var(--orion-surface-elevated,#101318)]">
+        <div className="p-3 border-b border-[var(--orion-border)] sticky top-0 z-10 bg-[var(--orion-surface-elevated)]">
           <div className="relative">
-            <Search className="absolute left-3 top-2.5 text-[var(--orion-text-muted)]" size={14} />
+            <Search className="absolute left-2.5 top-2 text-[var(--orion-text-muted)]" size={14} />
             <input 
               type="text" 
               placeholder="Search Settings" 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-xl pl-8 pr-3 py-1.5 text-xs text-[var(--orion-text-primary)] placeholder:text-[var(--orion-text-muted)] focus:outline-none focus:border-[var(--orion-accent)] transition-colors"
+              className="w-full bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-md pl-7.5 pr-2.5 py-1 text-[12px] text-[var(--orion-text-primary)] placeholder:text-[var(--orion-text-muted)] focus:outline-none focus:border-[var(--orion-accent)] transition-colors"
             />
           </div>
         </div>
 
         {/* User Badge */}
-        <div className="p-3.5 border-b border-[var(--orion-border,rgba(255,255,255,0.08))] flex items-center gap-3 bg-[var(--orion-surface-hover)]">
-          <div className="w-9 h-9 rounded-full overflow-hidden bg-[var(--orion-surface)] flex items-center justify-center shrink-0 border border-[var(--orion-border)]">
+        <div className="p-3 border-b border-[var(--orion-border)] flex items-center gap-2.5 bg-[var(--orion-surface-hover)]">
+          <div className="w-8 h-8 rounded-full overflow-hidden bg-[var(--orion-surface)] flex items-center justify-center shrink-0 border border-[var(--orion-border)]">
             {avatarUrl ? (
               <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
-              <User size={16} className="text-[var(--orion-text-secondary)]" />
+              <User size={15} className="text-[var(--orion-text-secondary)]" />
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-semibold text-[var(--orion-text-primary)] truncate">{profile?.fullName || 'Administrator'}</div>
+            <div className="text-[12px] font-medium text-[var(--orion-text-primary)] truncate">{profile?.fullName || 'Administrator'}</div>
             <div className="text-[10px] text-[var(--orion-accent)] font-mono truncate uppercase tracking-wider">{profile?.role?.replace('_', ' ') || 'Platform Admin'}</div>
           </div>
         </div>
         
         {/* Navigation List */}
-        <div className="flex-1 overflow-y-auto p-3 space-y-4 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-2.5 space-y-3 custom-scrollbar">
           {/* USER & SYSTEM SECTIONS */}
           <div>
-            <div className="px-2.5 mb-1.5 text-[10px] font-semibold tracking-wider uppercase text-[var(--orion-text-muted)]">System Preferences</div>
+            <div className="px-2 mb-1 text-[10px] font-semibold tracking-wider uppercase text-[var(--orion-text-muted)]">System Preferences</div>
             <div className="space-y-0.5">
               {filteredNav.map(item => (
                 <button
                   key={item.id}
                   onClick={() => setActiveSection(item.id as SettingsSection)}
                   className={cn(
-                    "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left cursor-pointer",
+                    "w-full flex items-center gap-2.5 px-2.5 h-[32px] rounded-md text-[13px] font-medium transition-colors text-left cursor-pointer",
                     activeSection === item.id 
-                      ? "bg-[var(--orion-accent-soft)] text-[var(--orion-text-primary)] font-semibold border border-[var(--orion-border-strong)]" 
+                      ? "bg-[var(--orion-accent-soft)] text-[var(--orion-text-primary)] font-medium border border-[var(--orion-border-strong)]" 
                       : "text-[var(--orion-text-secondary)] hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] border border-transparent"
                   )}
                 >
                   <item.icon size={15} className={activeSection === item.id ? "text-[var(--orion-accent)]" : "text-[var(--orion-text-muted)]"} /> 
-                  <span>{item.label}</span>
+                  <span className="truncate">{item.label}</span>
                 </button>
               ))}
             </div>
@@ -1009,16 +1009,16 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
           {/* ADMINISTRATION SECTIONS */}
           {isAdmin && filteredAdminNav.length > 0 && (
             <div>
-              <div className="px-2.5 mb-1.5 text-[10px] font-semibold tracking-wider uppercase text-[var(--orion-text-muted)]">Administration</div>
+              <div className="px-2 mb-1 text-[10px] font-semibold tracking-wider uppercase text-[var(--orion-text-muted)]">Administration</div>
               <div className="space-y-0.5">
                 {filteredAdminNav.map(item => (
                   <button
                     key={item.id}
                     onClick={() => setActiveSection(item.id as SettingsSection)}
                     className={cn(
-                      "w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors text-left cursor-pointer",
+                      "w-full flex items-center gap-2.5 px-2.5 h-[32px] rounded-md text-[13px] font-medium transition-colors text-left cursor-pointer",
                       activeSection === item.id 
-                        ? "bg-[var(--orion-accent-soft)] text-[var(--orion-text-primary)] font-semibold border border-[var(--orion-border-strong)]" 
+                        ? "bg-[var(--orion-accent-soft)] text-[var(--orion-text-primary)] font-medium border border-[var(--orion-border-strong)]" 
                         : "text-[var(--orion-text-secondary)] hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] border border-transparent"
                     )}
                   >
