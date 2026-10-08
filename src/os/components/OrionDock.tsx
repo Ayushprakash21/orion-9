@@ -708,15 +708,15 @@ export function OrionDock() {
       >
         <div 
           className={cn(
-            "p-2 border transition-all duration-300 rounded-[20px]",
-            isVertical ? "flex flex-col items-center gap-2 overflow-y-auto max-h-[80vh]" : "flex items-center gap-2 overflow-x-auto max-w-[calc(100vw-24px)]"
+            "p-2.5 border transition-all duration-300 rounded-[20px] shadow-[0_24px_60px_rgba(0,0,0,0.55),inset_0_1px_1px_rgba(255,255,255,0.30)]",
+            isVertical ? "flex flex-col items-center gap-2.5 overflow-y-auto max-h-[80vh]" : "flex items-center gap-2.5 overflow-x-auto max-w-[calc(100vw-24px)]"
           )}
           style={{ 
-            backgroundColor: `color-mix(in srgb, var(--orion-dock-surface, var(--orion-dock-bg)) calc(var(--orion-dock-opacity, 0.88) * 100%), transparent)`,
-            backdropFilter: 'var(--orion-morph-backdrop, blur(var(--orion-dock-blur, 24px)) saturate(160%))',
-            WebkitBackdropFilter: 'var(--orion-morph-backdrop, blur(var(--orion-dock-blur, 24px)) saturate(160%))',
-            borderColor: 'var(--orion-dock-border, var(--orion-border-strong))',
-            boxShadow: 'inset 0 1px 1px 0 rgba(255, 255, 255, 0.20), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08), var(--orion-morph-shadow-deep, var(--orion-dock-shadow, 0 20px 48px rgba(0,0,0,0.45)))',
+            backgroundColor: `color-mix(in srgb, var(--orion-dock-surface, var(--orion-dock-bg, rgba(20,24,32,0.65))) calc(var(--orion-dock-opacity, 0.75) * 100%), transparent)`,
+            backdropFilter: 'blur(var(--orion-dock-blur, 36px)) saturate(160%)',
+            WebkitBackdropFilter: 'blur(var(--orion-dock-blur, 36px)) saturate(160%)',
+            borderColor: 'var(--orion-dock-border, rgba(255, 255, 255, 0.18))',
+            boxShadow: 'inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.28), inset 0 0 0 0.5px rgba(255, 255, 255, 0.12), var(--orion-dock-shadow, 0 24px 60px rgba(0, 0, 0, 0.55))',
             scrollbarWidth: 'none' 
           }}
           onMouseLeave={() => { setHoveredApp(null); scheduleDockHide(); }}
@@ -752,7 +752,7 @@ export function OrionDock() {
             }}
             title={`${t('desktop.startMenu')} (All Applications)`}
           >
-            <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-white/[0.04] hover:bg-white/[0.09] active:bg-white/[0.13] border border-white/[0.08] hover:border-white/[0.16] text-[var(--orion-text-primary)] hover:text-[var(--orion-accent)] transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+            <div className="flex items-center justify-center w-full h-full rounded-[16px] bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/[0.18] border border-white/[0.12] hover:border-white/[0.22] text-[var(--orion-text-primary)] hover:text-white transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-md">
               <Grid className="w-5 h-5 transition-transform duration-300 group-hover:scale-105" />
             </div>
 
@@ -786,7 +786,7 @@ export function OrionDock() {
             }}
             title={`${t('common.search')} (Ctrl+Space / ⌘K)`}
           >
-            <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-white/[0.04] hover:bg-white/[0.09] active:bg-white/[0.13] border border-white/[0.08] hover:border-white/[0.16] text-[var(--orion-text-secondary)] hover:text-[var(--orion-accent)] transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+            <div className="flex items-center justify-center w-full h-full rounded-[16px] bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/[0.18] border border-white/[0.12] hover:border-white/[0.22] text-[var(--orion-text-secondary)] hover:text-white transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-md">
               <Search className="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-105" />
             </div>
 
@@ -929,7 +929,7 @@ export function OrionDock() {
             }}
             title="Task Switcher (Alt+Tab)"
           >
-            <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-white/[0.04] hover:bg-white/[0.09] active:bg-white/[0.13] border border-white/[0.08] hover:border-white/[0.16] text-[var(--orion-text-secondary)] hover:text-[var(--orion-accent)] transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
+            <div className="flex items-center justify-center w-full h-full rounded-[16px] bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/[0.18] border border-white/[0.12] hover:border-white/[0.22] text-[var(--orion-text-secondary)] hover:text-white transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-md">
               <Layers className="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-105" />
             </div>
 

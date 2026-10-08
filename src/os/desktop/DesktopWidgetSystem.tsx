@@ -225,28 +225,28 @@ export function DesktopWidgetSystem({
                 <ShieldAlert className="w-4 h-4 text-amber-400" />
                 Control Tower Exceptions
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-medium">
                 {dbEnv}
               </span>
             </div>
             <div className="grid grid-cols-3 gap-2 my-auto text-center">
-              <div className="bg-white/5 border border-white/10 rounded-xl p-2">
-                <span className="block text-[10px] text-white/50 uppercase">Critical</span>
+              <div className="bg-white/[0.05] border border-white/[0.12] rounded-xl p-2 backdrop-blur-md shadow-xs">
+                <span className="block text-[10px] text-white/50 uppercase font-medium">Critical</span>
                 <span className="text-lg font-bold text-rose-400 font-mono">3</span>
               </div>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-2">
-                <span className="block text-[10px] text-white/50 uppercase">High</span>
+              <div className="bg-white/[0.05] border border-white/[0.12] rounded-xl p-2 backdrop-blur-md shadow-xs">
+                <span className="block text-[10px] text-white/50 uppercase font-medium">High</span>
                 <span className="text-lg font-bold text-amber-400 font-mono">8</span>
               </div>
-              <div className="bg-white/5 border border-white/10 rounded-xl p-2">
-                <span className="block text-[10px] text-white/50 uppercase">Pending</span>
-                <span className="text-lg font-bold text-blue-400 font-mono">14</span>
+              <div className="bg-white/[0.05] border border-white/[0.12] rounded-xl p-2 backdrop-blur-md shadow-xs">
+                <span className="block text-[10px] text-white/50 uppercase font-medium">Pending</span>
+                <span className="text-lg font-bold text-sky-400 font-mono">14</span>
               </div>
             </div>
             <button
               type="button"
               onClick={() => openApplication('control-tower')}
-              className="w-full py-1.5 text-center text-xs text-os-text-primary hover:text-white font-medium bg-white/[0.08] hover:bg-white/[0.14] rounded-lg border border-white/[0.1] transition-colors"
+              className="w-full py-1.5 text-center text-xs text-white font-medium bg-white/[0.08] hover:bg-white/[0.16] rounded-xl border border-white/[0.14] transition-all shadow-xs backdrop-blur-md cursor-pointer"
             >
               Open Control Tower Workspace →
             </button>
@@ -263,14 +263,14 @@ export function DesktopWidgetSystem({
               </span>
               <span className="text-emerald-400 font-mono font-bold text-xs">98.4% SLA</span>
             </div>
-            <div className="space-y-2 my-auto">
+            <div className="space-y-2.5 my-auto">
               <div>
                 <div className="flex justify-between text-[11px] text-white/70 mb-1">
                   <span>Global Fulfillment Rate</span>
                   <span className="font-mono text-emerald-400 font-semibold">96.8%</span>
                 </div>
-                <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-emerald-500 h-full rounded-full" style={{ width: '96.8%' }} />
+                <div className="w-full bg-white/[0.08] h-1.5 rounded-full overflow-hidden border border-white/[0.06]">
+                  <div className="bg-emerald-500 h-full rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" style={{ width: '96.8%' }} />
                 </div>
               </div>
               <div>
@@ -278,8 +278,8 @@ export function DesktopWidgetSystem({
                   <span>Inventory Velocity Index</span>
                   <span className="font-mono text-sky-400 font-semibold">94.2%</span>
                 </div>
-                <div className="w-full bg-white/10 h-1.5 rounded-full overflow-hidden">
-                  <div className="bg-sky-500 h-full rounded-full" style={{ width: '94.2%' }} />
+                <div className="w-full bg-white/[0.08] h-1.5 rounded-full overflow-hidden border border-white/[0.06]">
+                  <div className="bg-sky-500 h-full rounded-full shadow-[0_0_8px_rgba(14,165,233,0.5)]" style={{ width: '94.2%' }} />
                 </div>
               </div>
             </div>
@@ -474,20 +474,20 @@ export function DesktopWidgetSystem({
             y: Math.min(e.clientY, typeof window !== 'undefined' ? window.innerHeight - 200 : e.clientY),
           });
         }}
-        className={`rounded-2xl backdrop-blur-2xl bg-[#12151a]/90 border transition-all duration-200 p-3.5 flex flex-col justify-between shadow-2xl select-none group ${
+        className={`rounded-[24px] backdrop-blur-[32px] backdrop-saturate-[180%] bg-[rgba(16,20,28,0.72)] border transition-all duration-200 p-4 flex flex-col justify-between shadow-[0_20px_50px_rgba(0,0,0,0.45),inset_0_1px_1px_rgba(255,255,255,0.20)] select-none group ${
           isEditMode
-            ? 'border-white/40 ring-1 ring-white/20 shadow-xl'
-            : 'border-white/[0.08] hover:border-white/[0.16]'
+            ? 'border-white/40 ring-1 ring-white/20 shadow-2xl'
+            : 'border-white/[0.14] hover:border-white/[0.24]'
         }`}
       >
         {/* Authoritative Dedicated Widget Drag Handle - Always available across normal and edit modes */}
         <div
           data-testid="widget-drag-handle"
           onPointerDown={(e) => onMoveStart(e, widget)}
-          className={`absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[10px] font-medium tracking-wide flex items-center gap-1.5 cursor-grab active:cursor-grabbing z-30 shadow-md touch-none select-none transition-all duration-150 ${
+          className={`absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[10px] font-medium tracking-wide flex items-center gap-1.5 cursor-grab active:cursor-grabbing z-30 shadow-md touch-none select-none transition-all duration-150 backdrop-blur-xl ${
             isEditMode
-              ? 'bg-[#1e232d] text-white border border-white/30 opacity-100 shadow-lg'
-              : 'bg-[#181c24]/90 hover:bg-[#202632] text-white/70 hover:text-white border border-white/15 opacity-70 group-hover:opacity-100 focus-within:opacity-100 hover:scale-105'
+              ? 'bg-white/[0.18] text-white border border-white/40 opacity-100 shadow-lg'
+              : 'bg-white/[0.10] hover:bg-white/[0.18] text-white/80 hover:text-white border border-white/20 opacity-80 group-hover:opacity-100 focus-within:opacity-100 hover:scale-105'
           }`}
           title="Drag to reposition widget"
           aria-label="Drag Widget"

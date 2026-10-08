@@ -34,9 +34,9 @@ export const APPEARANCE_PRESETS: Record<Exclude<AppearanceMode, 'auto'>, ThemeCo
     textSecondary: '#94A3B8',
     textMuted: '#64748B',
     windowHeaderBg: '#181C22',
-    dockBg: 'rgba(241, 236, 226, 0.94)', // Soft ivory / warm cream
-    dockBorder: 'rgba(70, 65, 55, 0.16)',
-    dockShadow: '0 20px 48px rgba(0, 0, 0, 0.45)',
+    dockBg: 'rgba(20, 24, 32, 0.72)', // Translucent liquid glass
+    dockBorder: 'rgba(255, 255, 255, 0.16)',
+    dockShadow: '0 24px 60px rgba(0, 0, 0, 0.55)',
     cardBg: '#161A20',
     desktopIconLabel: '#F3EBDD' // Warm off-white / cream
   },

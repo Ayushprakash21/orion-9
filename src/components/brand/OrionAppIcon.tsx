@@ -35,7 +35,7 @@ export const OrionAppIcon: React.FC<OrionAppIconProps> = ({
     <div
       className={`relative inline-flex items-center justify-center select-none transition-all duration-200 shrink-0 ${
         disabled ? 'opacity-40 grayscale pointer-events-none' : ''
-      } ${selected ? 'ring-2 ring-[#00F2FE] ring-offset-2 ring-offset-[#0A0D14]' : ''} ${className}`}
+      } ${selected ? 'ring-2 ring-[var(--orion-accent,#38BDF8)] ring-offset-2 ring-offset-transparent' : ''} ${className}`}
       style={{
         width: `${sizeNum}px`,
         height: `${sizeNum}px`,
@@ -46,7 +46,7 @@ export const OrionAppIcon: React.FC<OrionAppIconProps> = ({
       {/* Notification Count Badge */}
       {notificationCount > 0 && (
         <span
-          className="absolute -top-1 -right-1 bg-red-500 text-white font-semibold flex items-center justify-center shadow-md rounded-full border-2 border-[#0A0D14] px-1 text-xs min-w-[18px] h-[18px] z-20 pointer-events-none"
+          className="absolute -top-1 -right-1 bg-rose-500 text-white font-semibold flex items-center justify-center shadow-md rounded-full border-2 border-black/50 px-1 text-xs min-w-[18px] h-[18px] z-20 pointer-events-none"
           style={{ fontSize: Math.max(9, Math.round(sizeNum * 0.2)) }}
         >
           {notificationCount > 99 ? '99+' : notificationCount}
@@ -55,7 +55,7 @@ export const OrionAppIcon: React.FC<OrionAppIconProps> = ({
 
       {/* Boolean Dot Badge */}
       {badge && notificationCount === 0 && (
-        <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-[#00F2FE] rounded-full border-2 border-[#0A0D14] shadow-sm z-20 pointer-events-none" />
+        <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-[var(--orion-accent,#38BDF8)] rounded-full border-2 border-black/50 shadow-sm z-20 pointer-events-none" />
       )}
     </div>
   );

@@ -478,9 +478,9 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
         "orion-window-surface flex flex-col text-os-text-primary overflow-hidden select-text pointer-events-auto transition-opacity duration-150",
         isMinimized && "pointer-events-none",
         isMaximized 
-          ? "rounded-none border-none shadow-none bg-[var(--orion-surface,#0c0e11)]" 
-          : "rounded-[14px] border border-white/[0.08] bg-[var(--orion-morph-surface,rgba(18,20,23,0.78))] backdrop-blur-[20px] backdrop-saturate-[140%] shadow-[0_16px_40px_rgba(0,0,0,0.35)]",
-        isActive && !isMaximized && "border-white/[0.14] shadow-[0_24px_64px_rgba(0,0,0,0.50),inset_0_1px_0_0_rgba(255,255,255,0.12)] opacity-100",
+          ? "rounded-none border-none shadow-none bg-[rgba(14,17,23,0.88)] backdrop-blur-[32px] backdrop-saturate-[160%]" 
+          : "rounded-[18px] border border-white/[0.14] bg-[rgba(16,19,26,0.80)] backdrop-blur-[36px] backdrop-saturate-[170%] shadow-[0_28px_80px_rgba(0,0,0,0.60),0_4px_20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.20)]",
+        isActive && !isMaximized && "border-white/[0.22] shadow-[0_32px_90px_rgba(0,0,0,0.70),0_6px_24px_rgba(0,0,0,0.40),inset_0_1px_0_rgba(255,255,255,0.28)] opacity-100",
         !isActive && !isMaximized && "opacity-95"
       )}
     >
@@ -502,14 +502,14 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
           }
         }}
         style={{
-          backgroundColor: 'var(--orion-surface-elevated, #080a0d)',
-          backdropFilter: isMaximized ? 'none' : 'blur(16px)',
-          WebkitBackdropFilter: isMaximized ? 'none' : 'blur(16px)',
+          backgroundColor: 'var(--orion-surface-elevated, rgba(20, 24, 30, 0.72))',
+          backdropFilter: 'blur(32px) saturate(160%)',
+          WebkitBackdropFilter: 'blur(32px) saturate(160%)',
           mixBlendMode: 'normal',
           isolation: 'isolate',
         }}
         className={cn(
-          "orion-window-titlebar h-[38px] border-b border-white/[0.06] px-3.5 flex items-center justify-between select-none relative z-20 cursor-default",
+          "orion-window-titlebar h-[38px] border-b border-white/[0.08] px-3.5 flex items-center justify-between select-none relative z-20 cursor-default",
           isActive ? "text-[var(--orion-text-primary)]" : "text-[var(--orion-text-muted)] opacity-80"
         )}
       >
@@ -574,7 +574,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
         ref={contentContainerRef}
         data-window-body="true"
         className={cn(
-          "flex-1 overflow-auto relative bg-os-bg min-h-0 custom-scrollbar",
+          "flex-1 overflow-auto relative bg-transparent min-h-0 custom-scrollbar",
           isMobile ? "pb-16" : ""
         )}
       >

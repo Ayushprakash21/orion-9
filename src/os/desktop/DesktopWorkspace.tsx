@@ -1263,12 +1263,12 @@ export function DesktopWorkspace() {
                 setItemMenu({ x: e.clientX, y: e.clientY, shortcut });
               }}
               className={cn(
-                "absolute top-0 left-0 flex flex-col items-center justify-start p-1.5 rounded-xl transition-all duration-150 select-none group touch-none min-h-[44px] min-w-[44px] cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-os-accent",
+                "absolute top-0 left-0 flex flex-col items-center justify-start p-2 rounded-2xl transition-all duration-150 select-none group touch-none min-h-[48px] min-w-[48px] cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-os-accent",
                 isBeingDragged && "cursor-grabbing z-[1000] opacity-90 scale-105 shadow-2xl ring-1 ring-white/20 backdrop-blur-md",
-                isDropTarget && "bg-white/[0.12] ring-2 ring-white/30 scale-105 shadow-lg z-30",
+                isDropTarget && "bg-white/[0.16] ring-2 ring-white/40 scale-105 shadow-xl z-30 backdrop-blur-md",
                 isSelected && !isBeingDragged
-                  ? "bg-[var(--orion-accent-soft)] border border-[var(--orion-border-strong)] shadow-md backdrop-blur-xs z-25 ring-1 ring-[var(--orion-accent)]/30"
-                  : "hover:bg-[var(--orion-surface-hover)] hover:scale-[1.03] active:scale-[0.97] border border-transparent"
+                  ? "bg-white/[0.16] border border-white/[0.25] shadow-lg backdrop-blur-md z-25 ring-1 ring-white/30"
+                  : "hover:bg-white/[0.08] hover:border-white/[0.12] hover:backdrop-blur-sm hover:scale-[1.03] active:scale-[0.97] border border-transparent"
               )}
             >
               <div className="group-hover:scale-105 transition-transform pointer-events-none shrink-0">

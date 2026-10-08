@@ -293,12 +293,15 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
           }
         }, id);
       } else {
+        const screenW = typeof window !== 'undefined' ? window.innerWidth : 1440;
+        const screenH = typeof window !== 'undefined' ? window.innerHeight : 900;
+        const shouldMaximize = screenW < 1024 || screenH < 680;
         const geom = computeDefaultGeometry(Object.keys(prev).length);
         res = normalizeWindowZIndexes({
           ...prev,
           [id]: {
             id,
-            state: 'maximized',
+            state: shouldMaximize ? 'maximized' : 'active',
             zIndex: 45,
             position: geom.position,
             size: geom.size,
