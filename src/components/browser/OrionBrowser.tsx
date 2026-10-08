@@ -29,7 +29,7 @@ export function OrionBrowser() {
     openApplication = undefined;
   }
 
-  let showToast: ((msg: string, type?: any) => void) | undefined;
+  let showToast: ((msg: string, type?: any, title?: string) => void) | undefined;
   try {
     const toast = useToast();
     showToast = toast?.showToast;
@@ -484,7 +484,7 @@ export function OrionBrowser() {
   return (
     <div 
       ref={browserContainerRef}
-      data-testid="orion-browser-app"
+      data-testid="orion-browser"
       className="flex flex-col w-full h-full bg-os-bg text-os-text-primary select-none overflow-hidden relative"
       tabIndex={-1}
     >

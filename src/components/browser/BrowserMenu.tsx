@@ -9,7 +9,8 @@ export interface BrowserMenuProps {
   onClose: () => void;
   onNewTab: () => void;
   onReopenClosedTab: () => void;
-  canReopenTab: boolean;
+  canReopenTab?: boolean;
+  canReopenClosedTab?: boolean;
   onOpenHistory: () => void;
   onOpenBookmarks: () => void;
   onOpenDownloads: () => void;
@@ -19,7 +20,8 @@ export interface BrowserMenuProps {
   onZoomOut: () => void;
   onResetZoom: () => void;
   onOpenSettings: () => void;
-  onOpenExternal: () => void;
+  onOpenExternal?: () => void;
+  currentUrl?: string;
 }
 
 export const BrowserMenu: React.FC<BrowserMenuProps> = ({
@@ -28,6 +30,7 @@ export const BrowserMenu: React.FC<BrowserMenuProps> = ({
   onNewTab,
   onReopenClosedTab,
   canReopenTab,
+  canReopenClosedTab,
   onOpenHistory,
   onOpenBookmarks,
   onOpenDownloads,
@@ -69,7 +72,7 @@ export const BrowserMenu: React.FC<BrowserMenuProps> = ({
         {/* Reopen Closed Tab */}
         <button
           type="button"
-          disabled={!canReopenTab}
+          disabled={!(canReopenClosedTab ?? canReopenTab)}
           onClick={() => { onReopenClosedTab(); onClose(); }}
           className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-os-surface-hover disabled:opacity-40 disabled:hover:bg-transparent text-xs text-os-text-primary transition-colors cursor-pointer text-left"
         >

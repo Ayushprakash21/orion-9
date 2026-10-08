@@ -8,37 +8,56 @@ import { BrowserNewTab } from './BrowserNewTab';
 import { BrowserWebRuntime } from './BrowserWebRuntime';
 
 export interface BrowserContentProps {
-  activeTab: BrowserTab;
-  recentHistory: BrowserHistoryEntry[];
-  zoomLevel: number;
-  onNavigate: (url: string) => void;
-  onReload: () => void;
-  onBlocked: () => void;
+  activeTab?: BrowserTab;
+  tab?: BrowserTab;
+  recentHistory?: BrowserHistoryEntry[];
+  zoomLevel?: number;
+  onNavigate?: (url: string) => void;
+  onReload?: () => void;
+  onBlocked?: () => void;
   onRemoveHistoryItem?: (id: string) => void;
+  onOpenExternal?: () => void;
 }
 
 export const BrowserContent: React.FC<BrowserContentProps> = ({
-  activeTab,
-  recentHistory,
-  zoomLevel,
-  onNavigate,
-  onReload,
-  onBlocked,
+  activeTab: propActiveTab,
+  tab: propTab,
+  recentHistory = [],
+  zoomLevel = 1.0,
+  onNavigate = () => {},
+  onReload = () => {},
+  onBlocked = () => {},
   onRemoveHistoryItem,
+  onOpenExternal,
 }) => {
+  const activeTab = propActiveTab || propTab;
+  if (!activeTab) return null;
+
+  const effectiveZoom = activeTab.zoomLevel || zoomLevel || 1.0;
+
   // If tab is empty or pointing to new tab
-  if (activeTab.url === 'orion://newtab' || activeTab.url === 'about:blank' || activeTab.loadState === 'EMPTY_TAB') {
+  if (activeTab.url === 'orion://newtab' || activeTab.url === 'about:blank' || activeTab.url === 'about:newtab' || activeTab.loadState === 'EMPTY_TAB' || activeTab.contentState === 'EMPTY_TAB') {
     return (
-      <BrowserNewTab
-        onNavigate={onNavigate}
-        recentHistory={recentHistory}
-        onRemoveHistoryItem={onRemoveHistoryItem}
-      />
+      <div 
+        className="flex-1 w-full h-full relative overflow-hidden"
+        style={{
+          transform: effectiveZoom !== 1.0 ? `scale(${effectiveZoom})` : undefined,
+          transformOrigin: 'top left',
+          width: effectiveZoom !== 1.0 ? `${100 / effectiveZoom}%` : '100%',
+          height: effectiveZoom !== 1.0 ? `${100 / effectiveZoom}%` : '100%',
+        }}
+      >
+        <BrowserNewTab
+          onNavigate={onNavigate}
+          recentHistory={recentHistory}
+          onRemoveHistoryItem={onRemoveHistoryItem}
+        />
+      </div>
     );
   }
 
   // If website refuses iframe embedding (e.g., Google, GitHub, etc.)
-  if (activeTab.loadState === 'BLOCKED_EMBEDDING') {
+  if (activeTab.loadState === 'BLOCKED_EMBEDDING' || activeTab.contentState === 'BLOCKED_EMBEDDING') {
     return (
       <div 
         data-testid="browser-blocked-embedding"
@@ -49,22 +68,22 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
         </div>
 
         <h2 className="text-xl font-semibold text-os-text-primary mb-2 max-w-md">
-          This website cannot be embedded in Orion Browser.
+          Embedding Restricted
         </h2>
 
         <p className="text-xs text-os-text-muted mb-6 max-w-md leading-relaxed">
-          The website prevents embedded browsing for security reasons (<span className="font-mono">X-Frame-Options</span> or <span className="font-mono">Content-Security-Policy</span>).
+          This website cannot be embedded in Orion Browser because the website owner prevents embedded browsing for security reasons (<span className="font-mono">X-Frame-Options</span> or <span className="font-mono">Content-Security-Policy</span>).
         </p>
 
         <div className="flex items-center gap-3">
           <button
             type="button"
-            data-testid="browser-open-externally-button"
-            onClick={() => window.open(activeTab.url, '_blank', 'noopener,noreferrer')}
+            data-testid="browser-open-external-btn"
+            onClick={() => onOpenExternal ? onOpenExternal() : window.open(activeTab.url, '_blank', 'noopener,noreferrer')}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-os-accent hover:opacity-90 text-os-bg text-xs font-medium transition-all cursor-pointer shadow-md"
           >
             <ExternalLink className="w-4 h-4" />
-            Open Externally
+            Open in External Window
           </button>
 
           <button

@@ -37,11 +37,23 @@ export function migratePreferences(raw: unknown): OrionAppearancePreferences {
 /**
  * Loads preferences from localStorage
  */
+let inMemoryStorage: Record<string, string> = {};
+
+function getSafeStorage() {
+  if (typeof localStorage !== 'undefined') return localStorage;
+  if (typeof window !== 'undefined' && window.localStorage) return window.localStorage;
+  return {
+    getItem: (key: string) => inMemoryStorage[key] ?? null,
+    setItem: (key: string, val: string) => { inMemoryStorage[key] = val; },
+    removeItem: (key: string) => { delete inMemoryStorage[key]; },
+  };
+}
+
+/**
+ * Loads preferences from storage
+ */
 export function loadPreferences(): OrionAppearancePreferences {
-  const storage = typeof localStorage !== 'undefined' ? localStorage : (typeof window !== 'undefined' ? window.localStorage : undefined);
-  if (!storage) {
-    return { ...DEFAULT_PREFERENCES };
-  }
+  const storage = getSafeStorage();
   
   try {
     const data = storage.getItem(STORAGE_KEY);
@@ -81,11 +93,10 @@ export function loadPreferences(): OrionAppearancePreferences {
 }
 
 /**
- * Saves preferences to localStorage
+ * Saves preferences to storage
  */
 export function savePreferences(prefs: OrionAppearancePreferences): void {
-  const storage = typeof localStorage !== 'undefined' ? localStorage : (typeof window !== 'undefined' ? window.localStorage : undefined);
-  if (!storage) return;
+  const storage = getSafeStorage();
   try {
     storage.setItem(STORAGE_KEY, JSON.stringify(prefs));
     if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
@@ -97,13 +108,13 @@ export function savePreferences(prefs: OrionAppearancePreferences): void {
 }
 
 /**
- * Clears preferences from localStorage
+ * Clears preferences from storage
  */
 export function clearPreferences(): void {
-  const storage = typeof localStorage !== 'undefined' ? localStorage : (typeof window !== 'undefined' ? window.localStorage : undefined);
-  if (!storage) return;
+  const storage = getSafeStorage();
   try {
     storage.removeItem(STORAGE_KEY);
+    inMemoryStorage = {};
   } catch (error) {
     console.error('Failed to clear Orion theme preferences', error);
   }

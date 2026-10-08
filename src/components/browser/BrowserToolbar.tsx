@@ -12,7 +12,7 @@ export interface BrowserToolbarProps {
   canGoBack: boolean;
   canGoForward: boolean;
   isLoading: boolean;
-  securityStatus: 'secure' | 'insecure' | 'internal';
+  securityStatus?: 'secure' | 'insecure' | 'internal';
   isBookmarked: boolean;
   showBookmarksBar?: boolean;
   bookmarks?: BrowserBookmarkEntry[];
@@ -33,10 +33,10 @@ export const BrowserToolbar: React.FC<BrowserToolbarProps> = ({
   canGoBack,
   canGoForward,
   isLoading,
-  securityStatus,
+  securityStatus = 'secure',
   isBookmarked,
   showBookmarksBar = true,
-  bookmarks,
+  bookmarks = [],
   addressInputRef,
   onBack,
   onForward,
@@ -49,12 +49,13 @@ export const BrowserToolbar: React.FC<BrowserToolbarProps> = ({
   onAskCopilot,
 }) => {
   return (
-    <div className="flex flex-col bg-os-surface border-b border-os-border select-none">
+    <div data-testid="browser-toolbar" className="flex flex-col bg-os-surface border-b border-os-border select-none">
       {/* Primary Toolbar Row */}
       <div className="flex items-center gap-1.5 px-3 py-1.5">
         {/* Back Button */}
         <button
           type="button"
+          data-testid="browser-back-btn"
           aria-label="Back (Alt+Left)"
           disabled={!canGoBack}
           onClick={onBack}
@@ -70,6 +71,7 @@ export const BrowserToolbar: React.FC<BrowserToolbarProps> = ({
         {/* Forward Button */}
         <button
           type="button"
+          data-testid="browser-forward-btn"
           aria-label="Forward (Alt+Right)"
           disabled={!canGoForward}
           onClick={onForward}
@@ -85,6 +87,7 @@ export const BrowserToolbar: React.FC<BrowserToolbarProps> = ({
         {/* Reload / Stop Button */}
         <button
           type="button"
+          data-testid={isLoading ? "browser-stop-btn" : "browser-reload-btn"}
           aria-label={isLoading ? "Stop loading (Esc)" : "Reload page (Ctrl+R)"}
           onClick={isLoading ? onStop : onReload}
           className="p-1.5 rounded-lg transition-colors cursor-pointer text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-hover focus:outline-none"
@@ -100,6 +103,7 @@ export const BrowserToolbar: React.FC<BrowserToolbarProps> = ({
         {/* Home Button */}
         <button
           type="button"
+          data-testid="browser-home-btn"
           aria-label="Home page"
           onClick={onHome}
           className="p-1.5 rounded-lg transition-colors cursor-pointer text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-hover focus:outline-none"
@@ -122,13 +126,14 @@ export const BrowserToolbar: React.FC<BrowserToolbarProps> = ({
         {/* Ask Orion Copilot Action */}
         <button
           type="button"
+          data-testid="browser-ask-copilot-btn"
           aria-label="Ask Orion Copilot about this page"
           onClick={onAskCopilot}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-os-accent/10 hover:bg-os-accent/20 border border-os-accent/30 text-os-accent hover:text-os-accent text-xs font-medium transition-colors cursor-pointer shrink-0 focus:outline-none"
           title="Ask Orion Copilot"
         >
           <Sparkles className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Copilot</span>
+          <span className="hidden sm:inline">Ask Orion Copilot</span>
         </button>
 
         {/* Browser Menu Button */}

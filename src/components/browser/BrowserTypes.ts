@@ -21,14 +21,14 @@ export interface BrowserTab {
   title: string;
   url: string;
   favicon?: string;
-  loading: boolean;
-  canGoBack: boolean;
-  canGoForward: boolean;
+  loading?: boolean;
+  canGoBack?: boolean;
+  canGoForward?: boolean;
   historyIndex: number;
   historyStack: string[];
   createdAt: number;
-  lastActiveAt: number;
-  loadState: BrowserContentState;
+  lastActiveAt?: number;
+  loadState?: BrowserContentState;
   contentState?: BrowserContentState;
   zoomLevel?: number;
   isLoading?: boolean;
@@ -94,33 +94,45 @@ export interface BrowserCopilotContext {
   source: 'orion-browser';
 }
 
-export const SEARCH_ENGINES: Record<SearchEngineType, SearchEngineConfig> = {
-  duckduckgo: {
+const searchEngineList: SearchEngineConfig[] = [
+  {
     id: 'duckduckgo',
     name: 'DuckDuckGo',
-    searchUrl: (q: string) => `https://duckduckgo.com/?q=${encodeURIComponent(q)}`,
+    searchUrl: (q: string) => `https://duckduckgo.com/?q=${encodeURIComponent(q).replace(/%20/g, '+')}`,
   },
-  google: {
+  {
     id: 'google',
     name: 'Google',
-    searchUrl: (q: string) => `https://www.google.com/search?q=${encodeURIComponent(q)}`,
+    searchUrl: (q: string) => `https://www.google.com/search?q=${encodeURIComponent(q).replace(/%20/g, '+')}`,
   },
-  bing: {
+  {
     id: 'bing',
     name: 'Bing',
-    searchUrl: (q: string) => `https://www.bing.com/search?q=${encodeURIComponent(q)}`,
+    searchUrl: (q: string) => `https://www.bing.com/search?q=${encodeURIComponent(q).replace(/%20/g, '+')}`,
   },
-  ecosia: {
+  {
     id: 'ecosia',
     name: 'Ecosia',
-    searchUrl: (q: string) => `https://www.ecosia.org/search?q=${encodeURIComponent(q)}`,
+    searchUrl: (q: string) => `https://www.ecosia.org/search?q=${encodeURIComponent(q).replace(/%20/g, '+')}`,
   },
-};
+];
+
+export const SEARCH_ENGINES: SearchEngineConfig[] & Record<SearchEngineType, SearchEngineConfig> = Object.assign(
+  [...searchEngineList],
+  {
+    duckduckgo: searchEngineList[0],
+    google: searchEngineList[1],
+    bing: searchEngineList[2],
+    ecosia: searchEngineList[3],
+  }
+);
+
+export const DEFAULT_SEARCH_ENGINE: SearchEngineType = 'duckduckgo';
 
 export const DEFAULT_BROWSER_PREFERENCES: BrowserPreferences = {
   version: 1,
   homeUrl: 'orion://newtab',
-  defaultSearchEngine: 'duckduckgo',
+  defaultSearchEngine: DEFAULT_SEARCH_ENGINE,
   zoomLevel: 1.0,
   blockPopups: true,
   showBookmarksBar: true,

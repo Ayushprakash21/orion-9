@@ -7,7 +7,7 @@ export interface BrowserTabBarProps {
   tabs: BrowserTab[];
   activeTabId: string;
   onSelectTab: (id: string) => void;
-  onCloseTab: (id: string, e: React.MouseEvent) => void;
+  onCloseTab: (id: string, e?: React.MouseEvent) => void;
   onNewTab: () => void;
 }
 
@@ -22,7 +22,7 @@ export const BrowserTabBar: React.FC<BrowserTabBarProps> = ({
     <div 
       className="flex items-center gap-1 px-2 pt-2 pb-0 bg-os-surface border-b border-os-border select-none overflow-x-auto custom-scrollbar"
       role="tablist"
-      aria-label="Browser tabs"
+      aria-label="Orion Browser tabs"
       data-testid="browser-tab-bar"
     >
       <div className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto custom-scrollbar">
@@ -31,7 +31,9 @@ export const BrowserTabBar: React.FC<BrowserTabBarProps> = ({
           return (
             <div
               key={tab.id}
-              role="tab" data-testid={`browser-tab-${index}`}
+              role="tab"
+              data-testid={`browser-tab-${tab.id}`}
+              data-tab-index={index}
               aria-selected={isActive}
               tabIndex={0}
               onClick={() => onSelectTab(tab.id)}
@@ -74,6 +76,7 @@ export const BrowserTabBar: React.FC<BrowserTabBarProps> = ({
               {/* Close Button */}
               <button
                 type="button"
+                data-testid={`browser-close-tab-${tab.id}`}
                 aria-label={`Close ${tab.title} tab`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -94,6 +97,7 @@ export const BrowserTabBar: React.FC<BrowserTabBarProps> = ({
       {/* New Tab Button */}
       <button
         type="button"
+        data-testid="browser-new-tab-btn"
         aria-label="New tab (Ctrl+T)"
         onClick={onNewTab}
         className="p-1.5 rounded-lg hover:bg-os-surface-hover text-os-text-muted hover:text-os-text-primary transition-colors cursor-pointer shrink-0 ml-1"

@@ -4,16 +4,26 @@ import { cn } from '../../lib/utils';
 
 export interface BrowserWebRuntimeProps {
   url: string;
-  generation: number;
+  generation?: number;
+  title?: string;
+  isLoading?: boolean;
+  onLoadStart?: () => void;
   onLoad?: () => void;
+  onLoadComplete?: () => void;
+  onLoadError?: (err?: string) => void;
   onError?: (err: string) => void;
   onBlocked?: () => void;
 }
 
 export const BrowserWebRuntime: React.FC<BrowserWebRuntimeProps> = ({
   url,
-  generation,
+  generation = 0,
+  title,
+  isLoading: propIsLoading,
+  onLoadStart,
   onLoad,
+  onLoadComplete,
+  onLoadError,
   onError,
   onBlocked,
 }) => {
@@ -22,6 +32,7 @@ export const BrowserWebRuntime: React.FC<BrowserWebRuntimeProps> = ({
 
   useEffect(() => {
     setIsLoading(true);
+    onLoadStart?.();
     let mounted = true;
 
     // Safety timeout: if iframe takes longer than 15s to load, check or notify
@@ -40,6 +51,7 @@ export const BrowserWebRuntime: React.FC<BrowserWebRuntimeProps> = ({
   const handleIframeLoad = () => {
     setIsLoading(false);
     onLoad?.();
+    onLoadComplete?.();
 
     // In a browser environment, cross-origin iframes that refuse embedding via X-Frame-Options
     // or CSP will trigger a load event with an about:blank or empty contentDocument,
@@ -56,6 +68,7 @@ export const BrowserWebRuntime: React.FC<BrowserWebRuntimeProps> = ({
 
   const handleIframeError = () => {
     setIsLoading(false);
+    onLoadError?.('Failed to load page content');
     onError?.('Failed to load page content');
   };
 

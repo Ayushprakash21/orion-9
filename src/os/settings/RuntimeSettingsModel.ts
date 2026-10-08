@@ -1,54 +1,57 @@
 // Runtime Settings Model for Orion-9
-// This file defines the authoritative runtime settings schema used across the OS.
+// Single authoritative schema for reactive runtime settings across the entire OS.
+
+import { OrionThemeId, OrionMorphismMode, OrionAppearanceMode, OrionDockPosition, OrionCornerRadius, OrionWindowStyle } from '../theme/OrionThemeTypes';
 
 export interface RuntimeSettingsTheme {
-  /** Theme identifier (e.g., "light", "dark", "midnight") */
-  themeId: string;
-  /** Morphism mode: "material" | "neumorphic" */
-  morphismMode: string;
-  /** Appearance mode: "light" | "dark" */
-  appearanceMode: string;
+  themeId: OrionThemeId;
+  morphismMode: OrionMorphismMode;
+  appearanceMode: OrionAppearanceMode;
+  customAccentEnabled: boolean;
+  customAccent?: string;
+  reducedMotion: boolean;
 }
 
 export interface RuntimeSettingsDock {
-  /** Dock position: "left", "right", "bottom", "top" */
-  dockPosition: string;
-  /** Whether the dock should auto‑hide */
+  dockPosition: OrionDockPosition;
   dockAutoHide: boolean;
-  /** Dock opacity (0‑1) */
+  dockSize: 'small' | 'medium' | 'large';
+  dockMagnification: boolean;
   dockOpacity: number;
-  /** Dock size scale factor (0‑1) */
   dockScale: number;
+  dockTransparency: boolean;
+  dockShowRunningIndicators: boolean;
+  dockShowBadges: boolean;
 }
 
 export interface RuntimeSettingsWallpaper {
-  /** Wallpaper image identifier or URL */
-  wallpaperId: string;
-  /** Blur radius applied to wallpaper (px) */
+  // Strict target isolation
+  desktopWallpaperId: string;
+  loginWallpaperId: string;
   wallpaperBlur: number;
-  /** Dim amount (0‑1) applied to wallpaper */
   wallpaperDim: number;
+  fit: 'cover' | 'contain' | 'fill';
 }
 
 export interface RuntimeSettingsWindow {
-  /** Corner radius for windows (px) */
   windowCornerRadius: number;
-  /** Header style: "transparent" | "opaque" | "glass" */
-  windowHeaderStyle: string;
-  /** Control position: "left" | "right" */
-  windowControlPosition: string;
-  /** Glass transparency amount (0‑1) */
+  cornerRadiusPreset: OrionCornerRadius;
+  windowStyle: OrionWindowStyle;
+  windowHeaderStyle: 'standard' | 'glass' | 'compact';
+  windowControlPosition: 'left' | 'right';
   glassTransparency: number;
+  blurEnabled: boolean;
+  blurIntensity: number;
 }
 
 export interface RuntimeSettingsDesktop {
-  /** Enables desktop icons */
   showDesktopIcons: boolean;
-  /** Enables desktop grid snapping */
   enableDesktopGrid: boolean;
+  iconSize: 'small' | 'medium' | 'large';
 }
 
 export interface RuntimeSettings {
+  version: 1;
   theme: RuntimeSettingsTheme;
   dock: RuntimeSettingsDock;
   wallpaper: RuntimeSettingsWallpaper;
@@ -56,33 +59,46 @@ export interface RuntimeSettings {
   desktop: RuntimeSettingsDesktop;
 }
 
-// Default values – these should mirror the defaults used by the previous
-// OrionAppearancePreferences where possible.
 export const DEFAULT_RUNTIME_SETTINGS: RuntimeSettings = {
+  version: 1,
   theme: {
-    themeId: "light",
-    morphismMode: "material",
-    appearanceMode: "light",
+    themeId: 'graphite',
+    morphismMode: 'glass',
+    appearanceMode: 'dark',
+    customAccentEnabled: false,
+    reducedMotion: false,
   },
   dock: {
-    dockPosition: "bottom",
+    dockPosition: 'bottom',
     dockAutoHide: false,
+    dockSize: 'medium',
+    dockMagnification: true,
     dockOpacity: 1.0,
     dockScale: 1.0,
+    dockTransparency: true,
+    dockShowRunningIndicators: true,
+    dockShowBadges: true,
   },
   wallpaper: {
-    wallpaperId: "default",
+    desktopWallpaperId: 'sys-orion-desktop-default',
+    loginWallpaperId: 'sys-orion-dark-horizon',
     wallpaperBlur: 0,
     wallpaperDim: 0,
+    fit: 'cover',
   },
   window: {
-    windowCornerRadius: 8,
-    windowHeaderStyle: "transparent",
-    windowControlPosition: "right",
-    glassTransparency: 0.5,
+    windowCornerRadius: 10,
+    cornerRadiusPreset: 'standard',
+    windowStyle: 'standard',
+    windowHeaderStyle: 'standard',
+    windowControlPosition: 'left',
+    glassTransparency: 0.12,
+    blurEnabled: true,
+    blurIntensity: 60,
   },
   desktop: {
     showDesktopIcons: true,
-    enableDesktopGrid: false,
+    enableDesktopGrid: true,
+    iconSize: 'medium',
   },
 };

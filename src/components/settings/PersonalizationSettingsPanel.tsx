@@ -8,6 +8,7 @@ import { OrionWindowControls } from '../../os/components/OrionWindowControls';
 import { useToast } from '../../store/ToastContext';
 import { useOSGeometry } from '../../os/dock/DockGeometry';
 import { loadPreferences, savePreferences } from '../../os/theme/OrionThemeStorage';
+import { RuntimeSettingsAuthority } from '../../os/settings/RuntimeSettingsAuthority';
 
 interface PersonalizationSettingsPanelProps {
   settings: PersonalizationSettings;
@@ -22,7 +23,35 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
     // 1. Live preview immediately in OS Geometry & Theme Root
     previewSettings(updated);
 
-    // 2. Synchronize to authoritative OrionThemeStorage
+    // 2. Synchronize to RuntimeSettingsAuthority (single authoritative runtime bus)
+    try {
+      const current = RuntimeSettingsAuthority.instance.settings;
+      RuntimeSettingsAuthority.instance.updateSettings({
+        dock: {
+          ...current.dock,
+          ...(updated.dockPosition ? { dockPosition: updated.dockPosition as any } : {}),
+          ...(updated.dockAutoHide !== undefined ? { dockAutoHide: updated.dockAutoHide } : {}),
+          ...(updated.dockSize ? { dockSize: updated.dockSize as any } : {}),
+          ...(updated.dockMagnification !== undefined ? { dockMagnification: updated.dockMagnification } : {}),
+          ...(updated.dockTransparency !== undefined ? { dockOpacity: updated.dockTransparency / 100 } : {}),
+        },
+        window: {
+          ...current.window,
+          ...(updated.windowControlPosition ? { windowControlPosition: updated.windowControlPosition } : {}),
+        },
+        desktop: {
+          ...current.desktop,
+          ...(updated.iconSize ? { iconSize: updated.iconSize } : (updated as any).desktopIconSize ? { iconSize: (updated as any).desktopIconSize } : {}),
+        },
+        wallpaper: {
+          ...current.wallpaper,
+          ...(updated.wallpaperValue ? { desktopWallpaperId: updated.wallpaperValue } : (updated as any).wallpaperUrl ? { desktopWallpaperId: (updated as any).wallpaperUrl } : {}),
+          ...(updated.wallpaperBlur !== undefined ? { wallpaperBlur: updated.wallpaperBlur } : {}),
+        }
+      });
+    } catch (_) {}
+
+    // 3. Synchronize to authoritative OrionThemeStorage
     try {
       const prefs = loadPreferences();
       let changed = false;
@@ -55,7 +84,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
       // safe fallback
     }
 
-    // 3. Bubble up to settings editor state
+    // 4. Bubble up to settings editor state
     onChange(updated);
   };
 
