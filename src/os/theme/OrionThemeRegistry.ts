@@ -239,3 +239,28 @@ export function getThemeList(): OrionTheme[] {
 export function isValidThemeId(id: string): id is OrionThemeId {
   return id in ORION_THEMES;
 }
+
+/**
+ * Checks if a theme is compatible with a given appearance mode ('light' | 'dark').
+ */
+export function isThemeCompatibleWithMode(themeId: OrionThemeId, mode: 'light' | 'dark'): boolean {
+  const theme = getTheme(themeId);
+  return theme.appearance.mode === mode;
+}
+
+/**
+ * Resolves a compatible theme for the given appearance mode.
+ * - If effective mode is 'light': returns 'silver' (or preserving light theme if multiple existed).
+ * - If effective mode is 'dark': preserves requested dark theme (graphite, midnight, forest, warm),
+ *   or falls back to 'graphite' if the requested theme was light.
+ */
+export function resolveCompatibleTheme(
+  requestedThemeId: OrionThemeId,
+  effectiveAppearanceMode: 'light' | 'dark'
+): OrionTheme {
+  const candidate = getTheme(requestedThemeId);
+  if (candidate.appearance.mode === effectiveAppearanceMode) {
+    return candidate;
+  }
+  return getTheme(effectiveAppearanceMode === 'dark' ? 'graphite' : 'silver');
+}

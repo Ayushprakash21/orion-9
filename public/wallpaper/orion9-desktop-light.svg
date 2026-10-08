@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2560 1440" width="2560" height="1440">
+  <defs>
+    <!-- Master Background Linear Gradient: Off-white luminous foundation -->
+    <linearGradient id="lightBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F5F5F3" />
+      <stop offset="40%" stop-color="#EFF0ED" />
+      <stop offset="75%" stop-color="#ECEDEA" />
+      <stop offset="100%" stop-color="#E5E8EB" />
+    </linearGradient>
+
+    <!-- Celestial Horizon Glow -->
+    <radialGradient id="horizonGlow" cx="50%" cy="85%" r="65%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.85" />
+      <stop offset="45%" stop-color="#F4F6F8" stop-opacity="0.50" />
+      <stop offset="80%" stop-color="#EAECE9" stop-opacity="0.15" />
+      <stop offset="100%" stop-color="#E5E8EB" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Ambient Upper Aurora / Sunlight Sweep -->
+    <radialGradient id="zenithGlow" cx="20%" cy="10%" r="55%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9" />
+      <stop offset="50%" stop-color="#F7F8F6" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#F5F5F3" stop-opacity="0" />
+    </radialGradient>
+
+    <!-- Top Right Subtle Atmosphere Curve Gradient -->
+    <linearGradient id="arcGrad1" x1="0%" y1="0%" x2="100%" y2="80%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.6" />
+      <stop offset="60%" stop-color="#E2E7EC" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#DDE2E7" stop-opacity="0.1" />
+    </linearGradient>
+
+    <!-- Lower Horizon Arc Gradient -->
+    <linearGradient id="arcGrad2" x1="100%" y1="100%" x2="0%" y2="20%">
+      <stop offset="0%" stop-color="#E8ECEF" stop-opacity="0.7" />
+      <stop offset="50%" stop-color="#F0F2F0" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.1" />
+    </linearGradient>
+
+    <!-- Subtle Grain / Micro-texture Pattern -->
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="60" result="blur" />
+    </filter>
+  </defs>
+
+  <!-- 1. Background Foundation -->
+  <rect width="2560" height="1440" fill="url(#lightBg)" />
+
+  <!-- 2. Ambient Top Sunlight Soft Diffusion -->
+  <rect width="2560" height="1440" fill="url(#zenithGlow)" />
+
+  <!-- 3. Dynamic Horizon Sweep Curves (Orion Architectural Rings) -->
+  <g opacity="0.85">
+    <!-- Sweeping Celestial Horizon Arc 1 -->
+    <path d="M -200 1250 C 600 950, 1800 920, 2760 1180 L 2760 1600 L -200 1600 Z" fill="url(#arcGrad2)" />
+
+    <!-- Sweeping Celestial Horizon Arc 2 -->
+    <path d="M -100 1350 C 700 1080, 1900 1050, 2800 1300 L 2800 1600 L -100 1600 Z" fill="#E8EBEC" opacity="0.6" />
+
+    <!-- Minimal Upper Architectural Horizon Curve -->
+    <path d="M 0 350 C 900 300, 1800 550, 2650 820 L 2650 0 L 0 0 Z" fill="url(#arcGrad1)" />
+  </g>
+
+  <!-- 4. Soft Center Luminous Atmosphere Glow -->
+  <circle cx="1280" cy="1150" r="900" fill="url(#horizonGlow)" filter="url(#softGlow)" />
+
+  <!-- 5. Subtle Orbital Ring Accent (Ultra-light hairline) -->
+  <ellipse cx="1280" cy="1200" rx="1100" ry="320" fill="none" stroke="#D5DCE2" stroke-width="1.5" stroke-opacity="0.4" stroke-dasharray="8 12" />
+  <ellipse cx="1280" cy="1230" rx="1350" ry="390" fill="none" stroke="#FFFFFF" stroke-width="1.0" stroke-opacity="0.6" />
+
+  <!-- 6. Very subtle floating focal orb -->
+  <circle cx="1280" cy="620" r="180" fill="#FFFFFF" fill-opacity="0.4" filter="url(#softGlow)" />
+  <circle cx="1280" cy="620" r="120" fill="#FFFFFF" fill-opacity="0.3" />
+</svg>

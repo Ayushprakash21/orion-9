@@ -15,9 +15,12 @@ import {
   wallpaperRepository, 
   SYSTEM_DEFAULT_WALLPAPERS, 
   DEFAULT_DESKTOP_WALLPAPER,
+  DEFAULT_LIGHT_DESKTOP_WALLPAPER,
   DEFAULT_LOGIN_WALLPAPER,
-  WallpaperTarget 
+  WallpaperTarget,
+  resolveRuntimeWallpaper
 } from '../../repositories/WallpaperRepository';
+import { loadPreferences } from '../../os/theme/OrionThemeStorage';
 import { aiWallpaperGenerator } from '../../services/wallpaper/AiWallpaperGenerator';
 import { useToast } from '../../store/ToastContext';
 import { useAuth } from '../../store/AuthContext';
@@ -81,9 +84,16 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
   // Target Selection State ('login' vs 'desktop') - Strict Isolation (defaults to desktop when in OS)
   const [selectedTarget, setSelectedTarget] = useState<WallpaperTarget>(initialTarget);
 
+  const getTargetFallback = (target: WallpaperTarget): WallpaperRecord => {
+    if (target === 'login') return DEFAULT_LOGIN_WALLPAPER;
+    const prefs = loadPreferences();
+    return prefs.appearanceMode === 'light' ? DEFAULT_LIGHT_DESKTOP_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
+  };
+
   // Synchronous initial fallback resolution for zero-flash render
-  const initialFallback = initialTarget === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
-  const initialActive = wallpaperRepository.getActiveWallpaperSync(userId, initialTarget) || initialFallback;
+  const initialFallback = getTargetFallback(initialTarget);
+  const initialRaw = wallpaperRepository.getActiveWallpaperSync(userId, initialTarget) || initialFallback;
+  const initialActive = resolveRuntimeWallpaper(initialRaw, initialTarget, loadPreferences().appearanceMode === 'light' ? 'light' : 'dark');
 
   // Studio Lifecycle State
   const [studioState, setStudioState] = useState<StudioLifecycleState>('LOADING');
@@ -143,10 +153,11 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
           const validGallery = available && available.length > 0 ? available : SYSTEM_DEFAULT_WALLPAPERS;
           setGalleryWallpapers(validGallery);
           
-          const fallback = selectedTarget === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
-          const validActive = (active && active.assetUrl && active.assetUrl.trim() !== '') 
+          const fallback = getTargetFallback(selectedTarget);
+          const rawActive = (active && active.assetUrl && active.assetUrl.trim() !== '') 
             ? active 
             : fallback;
+          const validActive = resolveRuntimeWallpaper(rawActive, selectedTarget, loadPreferences().appearanceMode === 'light' ? 'light' : 'dark');
           setActiveWallpaperState(validActive);
           setSelectedAssetUrl(validActive.assetUrl);
           setSelectedName(validActive.name);
@@ -158,7 +169,7 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
       } catch (err: any) {
         console.warn('Failed to load wallpaper studio data:', err);
         if (mounted) {
-          const fallback = selectedTarget === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
+          const fallback = getTargetFallback(selectedTarget);
           setSelectedAssetUrl(fallback.assetUrl);
           setSelectedName(fallback.name);
           setSelectedWallpaperId(fallback.wallpaperId);
@@ -180,14 +191,15 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
       const available = await wallpaperRepository.getAvailableWallpapers(tenantId, userId, target);
       setGalleryWallpapers(available);
       const active = await wallpaperRepository.getActiveWallpaper(userId, tenantId, target);
-      const fallback = target === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
-      const validActive = (active && active.assetUrl && active.assetUrl.trim() !== '') ? active : fallback;
+      const fallback = getTargetFallback(target);
+      const rawActive = (active && active.assetUrl && active.assetUrl.trim() !== '') ? active : fallback;
+      const validActive = resolveRuntimeWallpaper(rawActive, target, loadPreferences().appearanceMode === 'light' ? 'light' : 'dark');
       setActiveWallpaperState(validActive);
       setSelectedAssetUrl(validActive.assetUrl);
       setSelectedName(validActive.name);
       setSelectedWallpaperId(validActive.wallpaperId);
     } catch (e) {
-      const fallback = target === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
+      const fallback = getTargetFallback(target);
       setSelectedAssetUrl(fallback.assetUrl);
       setSelectedName(fallback.name);
       setSelectedWallpaperId(fallback.wallpaperId);
@@ -365,7 +377,8 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
   // Reset to System Default Action for selectedTarget
   const handleResetDefault = async () => {
     try {
-      const sysDefault = await wallpaperRepository.resetToSystemDefault(userId, selectedTarget);
+      const fallback = getTargetFallback(selectedTarget);
+      const sysDefault = await wallpaperRepository.setActiveWallpaper(fallback.wallpaperId, userId, selectedTarget);
       setActiveWallpaperState(sysDefault);
       setSelectedAssetUrl(sysDefault.assetUrl);
       setSelectedName(sysDefault.name);
@@ -375,7 +388,7 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
       const targetLabel = selectedTarget === 'login' ? 'Login default' : 'Home / Desktop default';
       showToast(`Wallpaper reset to ${targetLabel}.`, 'info');
     } catch (err: any) {
-      const fallback = selectedTarget === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
+      const fallback = getTargetFallback(selectedTarget);
       setSelectedAssetUrl(fallback.assetUrl);
       setSelectedName(fallback.name);
       setSelectedWallpaperId(fallback.wallpaperId);

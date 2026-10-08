@@ -1278,7 +1278,7 @@ export function DesktopWorkspace() {
                 className="mt-1 w-full max-w-[140px] px-1.5 py-0.5 text-center text-[12px] font-medium leading-[1.3] whitespace-normal break-words line-clamp-3 overflow-visible transition-colors pointer-events-none rounded select-none"
                 style={{
                   color: 'var(--orion-desktop-icon-label, #F3EBDD)',
-                  textShadow: '0 1px 3px rgba(0, 0, 0, 0.75)'
+                  textShadow: 'var(--orion-desktop-icon-shadow, 0 1px 3px rgba(0, 0, 0, 0.75))'
                 }}
                 title={shortcut.name}
               >

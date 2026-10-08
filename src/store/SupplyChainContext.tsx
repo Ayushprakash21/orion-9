@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
-import { applyThemeToDocument } from '../theme/themeResolver';
 import { DEFAULT_PERSONALIZATION_SETTINGS } from '../theme/themePresets';
 import { loadPreferences, savePreferences } from '../os/theme/OrionThemeStorage';
 import { isValidThemeId } from '../os/theme/OrionThemeRegistry';
@@ -413,16 +412,6 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
     });
   }, []);
 
-  // Sync Orion Theme to Document DOM
-  useEffect(() => {
-    const activePrefs = loadPreferences();
-    const pers = {
-      ...DEFAULT_PERSONALIZATION_SETTINGS,
-      ...settings.personalization,
-      themeId: activePrefs.themeId || settings.personalization?.themeId || 'graphite'
-    };
-    applyThemeToDocument(pers);
-  }, [settings.personalization, settings.theme]);
 
   // Keep SupplyChainContext synchronized with authoritative theme engine events
   useEffect(() => {

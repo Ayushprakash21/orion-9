@@ -49,6 +49,32 @@ export const DEFAULT_DESKTOP_WALLPAPER: WallpaperRecord = {
 };
 
 /**
+ * DEFAULT LIGHT DESKTOP WALLPAPER:
+ * "Orion Luminous Silver Horizon" (Target: HOME / DESKTOP, Light Mode)
+ */
+export const DEFAULT_LIGHT_DESKTOP_WALLPAPER: WallpaperRecord = {
+  wallpaperId: 'sys-orion-desktop-light-default',
+  tenantId: 'global',
+  ownerType: 'SYSTEM',
+  ownerId: 'system',
+  name: "Orion Luminous Silver Horizon",
+  assetUrl: '/wallpaper/orion9-desktop-light.svg',
+  thumbnailUrl: '/wallpaper/orion9-desktop-light.svg',
+  source: 'SYSTEM',
+  target: 'desktop',
+  aiGenerated: false,
+  width: 2560,
+  height: 1440,
+  aspectRatio: '16:9',
+  mode: 'STILL',
+  environment: 'DEMO',
+  status: 'APPROVED',
+  isSystemDefault: true,
+  createdAt: new Date(1700000000000).toISOString(),
+  updatedAt: new Date(1700000000000).toISOString(),
+};
+
+/**
  * DEFAULT LOGIN WALLPAPER:
  * Dark Cinematic Earth Horizon (Target: LOGIN)
  */
@@ -74,8 +100,44 @@ export const DEFAULT_LOGIN_WALLPAPER: WallpaperRecord = {
   updatedAt: new Date(1700000000000).toISOString(),
 };
 
+/**
+ * Resolves the effective runtime wallpaper taking active theme appearance into account.
+ * Rules:
+ * 1. If target is 'desktop':
+ *    - If mode is 'light' and active is system dark default -> return DEFAULT_LIGHT_DESKTOP_WALLPAPER.
+ *    - If mode is 'dark' and active is system light default -> return DEFAULT_DESKTOP_WALLPAPER.
+ * 2. Custom wallpapers, uploads, AI-generated wallpapers, and non-default system wallpapers
+ *    are NEVER mutated or overridden.
+ */
+export function resolveRuntimeWallpaper(
+  activeWallpaper: WallpaperRecord | null | undefined,
+  target: WallpaperTarget = 'desktop',
+  appearanceMode: 'light' | 'dark' = 'dark'
+): WallpaperRecord {
+  const isLight = appearanceMode === 'light';
+  const defaultRecord = isLight && target === 'desktop' 
+    ? DEFAULT_LIGHT_DESKTOP_WALLPAPER 
+    : (target === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER);
+
+  if (!activeWallpaper || !activeWallpaper.assetUrl) {
+    return defaultRecord;
+  }
+
+  if (target === 'desktop') {
+    if (isLight && activeWallpaper.wallpaperId === DEFAULT_DESKTOP_WALLPAPER.wallpaperId) {
+      return DEFAULT_LIGHT_DESKTOP_WALLPAPER;
+    }
+    if (!isLight && activeWallpaper.wallpaperId === DEFAULT_LIGHT_DESKTOP_WALLPAPER.wallpaperId) {
+      return DEFAULT_DESKTOP_WALLPAPER;
+    }
+  }
+
+  return activeWallpaper;
+}
+
 export const SYSTEM_DEFAULT_WALLPAPERS: WallpaperRecord[] = [
   DEFAULT_DESKTOP_WALLPAPER,
+  DEFAULT_LIGHT_DESKTOP_WALLPAPER,
   DEFAULT_LOGIN_WALLPAPER,
   {
     wallpaperId: 'sys-deep-orion-nebula',

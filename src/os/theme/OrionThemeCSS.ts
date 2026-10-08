@@ -199,6 +199,7 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
 
   // Desktop Icon Label styling
   root.style.setProperty('--orion-desktop-icon-label', theme.colors.desktopIconLabel || (theme.appearance.mode === 'light' ? '#17191B' : '#F3EBDD'));
+  root.style.setProperty('--orion-desktop-icon-shadow', theme.appearance.mode === 'light' ? '0 1px 2px rgba(255, 255, 255, 0.9)' : '0 1px 3px rgba(0, 0, 0, 0.75)');
 
   // Motion
   root.style.setProperty('--orion-transition-speed', preferences.reduceMotion ? '0ms' : '150ms');

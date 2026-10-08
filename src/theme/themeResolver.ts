@@ -1,6 +1,6 @@
 import { PersonalizationSettings, CustomThemeExport, AccentPresetKey } from './themeTypes';
 import { APPEARANCE_PRESETS, ACCENT_PRESETS, DEFAULT_PERSONALIZATION_SETTINGS } from './themePresets';
-import { getTheme, ORION_THEMES, isValidThemeId } from '../os/theme/OrionThemeRegistry';
+import { getTheme, ORION_THEMES, isValidThemeId, resolveCompatibleTheme } from '../os/theme/OrionThemeRegistry';
 import { loadPreferences } from '../os/theme/OrionThemeStorage';
 import { OrionThemeId } from '../os/theme/OrionThemeTypes';
 import { applyThemeToDOM } from '../os/theme/OrionThemeCSS';
@@ -206,6 +206,7 @@ export function resolveThemeVariables(
 
 /**
  * Applies the personalization settings to document.documentElement.
+ * Canonical delegate to applyThemeToDOM to eliminate dual-writer state fragmentation.
  */
 export function applyThemeToDocument(settings: PersonalizationSettings): void {
   if (typeof document === 'undefined') return;
@@ -218,53 +219,36 @@ export function applyThemeToDocument(settings: PersonalizationSettings): void {
   const targetThemeId: OrionThemeId = (settings.themeId && isValidThemeId(settings.themeId))
     ? settings.themeId
     : (activePrefs.themeId || 'graphite');
-  const canonicalTheme = getTheme(targetThemeId);
+  const targetTheme = getTheme(targetThemeId);
 
-  // Synchronize canonical DOM tokens first
+  let effectiveMode: 'light' | 'dark';
+  if (settings.themeId && isValidThemeId(settings.themeId)) {
+    effectiveMode = targetTheme.appearance.mode;
+  } else if (settings.appearanceMode === 'auto') {
+    effectiveMode = systemIsDark ? 'dark' : 'light';
+  } else {
+    effectiveMode = ((settings.appearanceMode as 'light' | 'dark') || (systemIsDark ? 'dark' : 'light'));
+  }
+
+  const canonicalTheme = resolveCompatibleTheme(targetThemeId, effectiveMode);
+
+  // Authoritative canonical DOM update
   applyThemeToDOM(canonicalTheme, {
     ...activePrefs,
-    themeId: targetThemeId,
+    themeId: canonicalTheme.id,
+    appearanceMode: effectiveMode,
     windowControlPosition: settings.windowControlPosition || activePrefs.windowControlPosition,
     reduceMotion: settings.reducedMotion ?? activePrefs.reduceMotion,
   });
 
-  const vars = resolveThemeVariables(settings, systemIsDark);
   const root = document.documentElement;
 
-  // Set CSS Custom Properties
-  Object.entries(vars).forEach(([key, value]) => {
-    root.style.setProperty(key, value);
-  });
-
-  // Set DOM Data Attributes for CSS targeted rules
-  let effectiveMode = settings.appearanceMode;
-  if (effectiveMode === 'auto') effectiveMode = systemIsDark ? 'dark' : 'light';
-  if (settings.highContrast) effectiveMode = 'monochrome';
-
-  root.setAttribute('data-theme', effectiveMode);
-  root.setAttribute('data-orion-theme', canonicalTheme.id);
-  root.setAttribute('data-orion-mode', canonicalTheme.appearance.mode);
-  root.setAttribute('data-window-style', settings.windowStyle);
-  root.setAttribute('data-corner-style', settings.cornerStyle);
-  root.setAttribute('data-density', settings.density);
-  root.setAttribute('data-window-control-position', settings.windowControlPosition || 'left');
-  root.setAttribute('data-reduced-motion', settings.reducedMotion ? 'true' : 'false');
-  root.setAttribute('data-reduced-transparency', settings.reducedTransparency ? 'true' : 'false');
+  // Set non-conflicting peripheral layout data attributes
+  root.setAttribute('data-theme', canonicalTheme.appearance.mode);
+  root.setAttribute('data-window-style', settings.windowStyle || activePrefs.windowStyle);
+  root.setAttribute('data-corner-style', settings.cornerStyle || 'rounded');
+  root.setAttribute('data-density', settings.density || 'comfortable');
   root.setAttribute('data-color-filter', settings.colorFilter || 'none');
-
-  // Toggle light/dark classes for Tailwind & system chrome
-  if (root.classList) {
-    root.classList.remove('light', 'dark');
-    root.classList.add(canonicalTheme.appearance.mode);
-  }
-  if (root.style) {
-    root.style.colorScheme = canonicalTheme.appearance.mode;
-  }
-
-  if (document.body) {
-    document.body.style.backgroundColor = canonicalTheme.colors.background;
-    document.body.style.color = canonicalTheme.colors.textPrimary;
-  }
 
   // Apply UI Scale transform variable if specified
   if (settings.uiScale && settings.uiScale !== 100) {

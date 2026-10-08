@@ -2,6 +2,7 @@
  * ORION-9 CANONICAL WALLPAPER RUNTIME
  * Single authoritative wallpaper runtime for Desktop and Login shells.
  * Receives resolved wallpaper exclusively from WallpaperRepository.
+ * Fully appearance-aware: seamlessly transitions between dark and light default wallpapers.
  * Contains zero independent persistence, zero competing state, and zero hardcoded blue CSS gradients.
  */
 
@@ -11,8 +12,11 @@ import {
   wallpaperRepository, 
   WallpaperTarget,
   DEFAULT_LOGIN_WALLPAPER,
-  DEFAULT_DESKTOP_WALLPAPER 
+  DEFAULT_DESKTOP_WALLPAPER,
+  DEFAULT_LIGHT_DESKTOP_WALLPAPER,
+  resolveRuntimeWallpaper
 } from '../../repositories/WallpaperRepository';
+import { loadPreferences } from '../theme/OrionThemeStorage';
 import { WallpaperRecord } from '../../types/wallpaper';
 
 export class WallpaperErrorBoundary extends Component<
@@ -63,6 +67,21 @@ export interface WallpaperRuntimeProps {
   quality?: string;
 }
 
+/**
+ * Reads effective appearance mode ('light' | 'dark') from DOM attributes or storage
+ */
+function getEffectiveAppearanceMode(): 'light' | 'dark' {
+  if (typeof document !== 'undefined') {
+    const docMode = document.documentElement.getAttribute('data-orion-mode');
+    if (docMode === 'light' || docMode === 'dark') return docMode;
+  }
+  const prefs = loadPreferences();
+  if (prefs.appearanceMode === 'light') return 'light';
+  if (prefs.appearanceMode === 'dark') return 'dark';
+  const prefersDark = typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches;
+  return prefersDark ? 'dark' : 'light';
+}
+
 export function WallpaperRuntime({
   target = 'desktop',
   userId,
@@ -70,13 +89,18 @@ export function WallpaperRuntime({
   className,
   overrideWallpaper
 }: WallpaperRuntimeProps) {
-  const getDefaultRecord = useCallback((): WallpaperRecord => {
-    return target === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
-  }, [target]);
+  const [appearanceMode, setAppearanceMode] = useState<'light' | 'dark'>(getEffectiveAppearanceMode);
+
+  const getDefaultRecord = useCallback((mode: 'light' | 'dark' = appearanceMode): WallpaperRecord => {
+    if (target === 'login') return DEFAULT_LOGIN_WALLPAPER;
+    return mode === 'light' ? DEFAULT_LIGHT_DESKTOP_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
+  }, [target, appearanceMode]);
 
   const getInitialRecord = useCallback((): WallpaperRecord => {
     if (overrideWallpaper && typeof overrideWallpaper === 'object') return overrideWallpaper;
-    return wallpaperRepository.getActiveWallpaperSync(userId, target);
+    const mode = getEffectiveAppearanceMode();
+    const raw = wallpaperRepository.getActiveWallpaperSync(userId, target);
+    return resolveRuntimeWallpaper(raw, target, mode);
   }, [overrideWallpaper, userId, target]);
 
   const [activeWallpaper, setActiveWallpaper] = useState<WallpaperRecord>(getInitialRecord);
@@ -89,6 +113,42 @@ export function WallpaperRuntime({
   const displayedWallpaperRef = useRef<WallpaperRecord>(getInitialRecord());
   const lastKnownGoodSrcRef = useRef<string>(imgSrc);
   const failedSrcRef = useRef<string | null>(null);
+  const mountedRef = useRef<boolean>(true);
+
+  // Preloading image commit to guarantee zero-flash transitions
+  const commitWallpaper = useCallback((wp: WallpaperRecord) => {
+    if (!wp.assetUrl) return;
+    const currentGen = ++wallpaperGenerationRef.current;
+
+    if (typeof Image !== 'undefined') {
+      const img = new Image();
+      img.src = wp.assetUrl;
+      img.onload = () => {
+        if (mountedRef.current && currentGen === wallpaperGenerationRef.current) {
+          displayedWallpaperRef.current = wp;
+          lastKnownGoodSrcRef.current = wp.assetUrl;
+          failedSrcRef.current = null;
+          setActiveWallpaper(wp);
+          setImgSrc(wp.assetUrl);
+        }
+      };
+      img.onerror = () => {
+        if (mountedRef.current && currentGen === wallpaperGenerationRef.current) {
+          console.warn(`[ORION-9] Wallpaper image failed to load for ${target}, using fallback`);
+          const fallback = getDefaultRecord();
+          displayedWallpaperRef.current = fallback;
+          setActiveWallpaper(fallback);
+          setImgSrc(fallback.assetUrl);
+        }
+      };
+    } else {
+      displayedWallpaperRef.current = wp;
+      lastKnownGoodSrcRef.current = wp.assetUrl;
+      failedSrcRef.current = null;
+      setActiveWallpaper(wp);
+      setImgSrc(wp.assetUrl);
+    }
+  }, [target, getDefaultRecord]);
 
   // Synchronize override wallpaper if provided
   useEffect(() => {
@@ -100,30 +160,28 @@ export function WallpaperRuntime({
     }
   }, [overrideWallpaper]);
 
-  // Subscribe to canonical wallpaper change events
+  // Subscribe to canonical wallpaper and appearance change events
   useEffect(() => {
+    mountedRef.current = true;
     if (overrideWallpaper) return;
 
-    let mounted = true;
-
-    // Load active wallpaper from repository
+    // Load active wallpaper from repository on mount or target change
     const loadFromRepository = async () => {
-      const currentGen = ++wallpaperGenerationRef.current;
       try {
+        const mode = getEffectiveAppearanceMode();
+        setAppearanceMode(mode);
         const wp = await wallpaperRepository.getActiveWallpaper(userId, tenantId || 'global', target);
-        if (!mounted || !wp || !wp.assetUrl) return;
+        if (!mountedRef.current || !wp || !wp.assetUrl) return;
 
-        if (wp.wallpaperId === displayedWallpaperRef.current.wallpaperId && wp.assetUrl === displayedWallpaperRef.current.assetUrl) {
+        const effectiveWp = resolveRuntimeWallpaper(wp, target, mode);
+        if (
+          effectiveWp.wallpaperId === displayedWallpaperRef.current.wallpaperId && 
+          effectiveWp.assetUrl === displayedWallpaperRef.current.assetUrl
+        ) {
           return;
         }
 
-        if (currentGen === wallpaperGenerationRef.current) {
-          displayedWallpaperRef.current = wp;
-          lastKnownGoodSrcRef.current = wp.assetUrl;
-          failedSrcRef.current = null;
-          setActiveWallpaper(wp);
-          setImgSrc(wp.assetUrl);
-        }
+        commitWallpaper(effectiveWp);
       } catch (err) {
         console.warn(`[ORION-9] WallpaperRepository load error for ${target}:`, err);
       }
@@ -131,6 +189,7 @@ export function WallpaperRuntime({
 
     loadFromRepository();
 
+    // Event listener for wallpaper selection changes
     const handleWallpaperChanged = (e: any) => {
       try {
         const detail = e.detail;
@@ -138,43 +197,63 @@ export function WallpaperRuntime({
           const wp = detail.wallpaper as WallpaperRecord;
           if (!wp.assetUrl) return;
 
-          const currentGen = ++wallpaperGenerationRef.current;
-          if (mounted && currentGen === wallpaperGenerationRef.current) {
-            displayedWallpaperRef.current = wp;
-            lastKnownGoodSrcRef.current = wp.assetUrl;
-            failedSrcRef.current = null;
-            setActiveWallpaper(wp);
-            setImgSrc(wp.assetUrl);
-          }
+          const mode = getEffectiveAppearanceMode();
+          const effectiveWp = resolveRuntimeWallpaper(wp, target, mode);
+          commitWallpaper(effectiveWp);
         }
       } catch (evtErr) {
         console.warn('[ORION-9] Error handling wallpaper event:', evtErr);
       }
     };
 
+    // Event listener for appearance preferences / mode changes
+    const handleAppearanceChanged = (e: any) => {
+      try {
+        const currentMode = getEffectiveAppearanceMode();
+        setAppearanceMode(currentMode);
+
+        if (target === 'desktop' && !overrideWallpaper) {
+          // Adapt wallpaper if currently displaying a system default
+          const currentWp = displayedWallpaperRef.current;
+          const adapted = resolveRuntimeWallpaper(currentWp, 'desktop', currentMode);
+
+          if (adapted.wallpaperId !== currentWp.wallpaperId || adapted.assetUrl !== currentWp.assetUrl) {
+            commitWallpaper(adapted);
+          }
+        }
+      } catch (err) {
+        console.warn('[ORION-9] Error handling appearance changed event in wallpaper runtime:', err);
+      }
+    };
+
     if (typeof window !== 'undefined') {
       window.addEventListener('orion-wallpaper-changed', handleWallpaperChanged as EventListener);
       window.addEventListener('orion-active-wallpaper-changed', handleWallpaperChanged as EventListener);
+      window.addEventListener('orion-appearance-preferences-changed', handleAppearanceChanged as EventListener);
     }
 
     return () => {
-      mounted = false;
+      mountedRef.current = false;
       if (typeof window !== 'undefined') {
         window.removeEventListener('orion-wallpaper-changed', handleWallpaperChanged as EventListener);
         window.removeEventListener('orion-active-wallpaper-changed', handleWallpaperChanged as EventListener);
+        window.removeEventListener('orion-appearance-preferences-changed', handleAppearanceChanged as EventListener);
       }
     };
-  }, [overrideWallpaper, target, userId, tenantId]);
+  }, [overrideWallpaper, target, userId, tenantId, commitWallpaper]);
 
   const handleImageError = useCallback(() => {
     console.warn(`[ORION-9] Wallpaper image failed to load for ${target}, using repository default record`);
     const defaultRecord = getDefaultRecord();
     failedSrcRef.current = imgSrc;
     if (defaultRecord.assetUrl && imgSrc !== defaultRecord.assetUrl) {
+      displayedWallpaperRef.current = defaultRecord;
       setActiveWallpaper(defaultRecord);
       setImgSrc(defaultRecord.assetUrl);
     }
   }, [target, imgSrc, getDefaultRecord]);
+
+  const isLight = appearanceMode === 'light';
 
   return (
     <WallpaperErrorBoundary>
@@ -182,6 +261,7 @@ export function WallpaperRuntime({
         data-testid="orion-live-wallpaper-container"
         data-wallpaper-runtime="true"
         data-target={target}
+        data-mode={appearanceMode}
         className={cn(
           "orion-static-wallpaper absolute inset-0 overflow-hidden pointer-events-none select-none z-0",
           className
@@ -211,12 +291,12 @@ export function WallpaperRuntime({
           className="orion-desktop-wallpaper-image orion-static-wallpaper-img absolute inset-0 w-full h-full object-cover object-center scale-100 select-none pointer-events-none z-[1]"
         />
 
-        {/* Layer 2: Dynamic Dim Overlay */}
+        {/* Layer 2: Dynamic Dim Overlay - Disabled in Light Mode to preserve clarity */}
         <div 
           data-testid="orion-wallpaper-dim-overlay"
           className="orion-wallpaper-dim-overlay absolute inset-0 pointer-events-none transition-opacity duration-300 z-[2]"
           style={{
-            backgroundColor: 'rgba(0, 0, 0, var(--orion-wallpaper-dim, 0))'
+            backgroundColor: isLight ? 'transparent' : 'rgba(0, 0, 0, var(--orion-wallpaper-dim, 0))'
           }}
         />
       </div>

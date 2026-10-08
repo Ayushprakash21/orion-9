@@ -1,5 +1,5 @@
 import { OrionTheme, OrionAppearancePreferences, OrionThemeId } from './OrionThemeTypes';
-import { getTheme } from './OrionThemeRegistry';
+import { getTheme, resolveCompatibleTheme, isThemeCompatibleWithMode } from './OrionThemeRegistry';
 import { DEFAULT_PREFERENCES } from './OrionThemeTypes';
 import { loadPreferences, savePreferences } from './OrionThemeStorage';
 import { applyThemeToDOM } from './OrionThemeCSS';
@@ -15,13 +15,28 @@ export class OrionThemeEngine {
   
   constructor() {
     this.preferences = loadPreferences();
+    this.ensureThemeCompatibility();
   }
 
   /** Reloads preferences from storage and reapplies */
   public reloadFromStorage(): void {
     this.preferences = loadPreferences();
+    this.ensureThemeCompatibility();
     this.apply();
     this.notify();
+  }
+
+  /** Ensures internal preferences state maintains theme and mode harmony */
+  private ensureThemeCompatibility(): void {
+    let mode = this.preferences.appearanceMode;
+    if (mode === 'auto') {
+      const prefersDark = typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      mode = prefersDark ? 'dark' : 'light';
+    }
+
+    if (!isThemeCompatibleWithMode(this.preferences.themeId, mode)) {
+      this.preferences.themeId = mode === 'dark' ? 'graphite' : 'silver';
+    }
   }
 
   /** Gets the current preferences */
@@ -42,27 +57,37 @@ export class OrionThemeEngine {
       mode = prefersDark ? 'dark' : 'light';
     }
 
-    const currentTheme = getTheme(this.preferences.themeId);
-    if (currentTheme.appearance.mode === mode) {
-      return currentTheme;
-    }
-
-    return getTheme(mode === 'dark' ? 'graphite' : 'silver');
+    return resolveCompatibleTheme(this.preferences.themeId, mode);
   }
 
   /** Updates the active theme ID */
   public setTheme(id: OrionThemeId): void {
-    this.preferences.themeId = id;
     const targetTheme = getTheme(id);
-    if (this.preferences.appearanceMode !== 'auto') {
-      this.preferences.appearanceMode = targetTheme.appearance.mode;
-    }
+    this.preferences.themeId = id;
+    this.preferences.appearanceMode = targetTheme.appearance.mode;
     this.persistAndApply();
   }
 
   /** Updates a single preference */
   public setPreference<K extends keyof OrionAppearancePreferences>(key: K, value: OrionAppearancePreferences[K]): void {
     this.preferences[key] = value;
+
+    if (key === 'appearanceMode') {
+      const mode = value as OrionAppearancePreferences['appearanceMode'];
+      let effectiveMode: 'light' | 'dark';
+      if (mode === 'auto') {
+        const prefersDark = typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        effectiveMode = prefersDark ? 'dark' : 'light';
+      } else {
+        effectiveMode = mode;
+      }
+
+      // Synchronize themeId with effective mode
+      if (!isThemeCompatibleWithMode(this.preferences.themeId, effectiveMode)) {
+        this.preferences.themeId = effectiveMode === 'dark' ? 'graphite' : 'silver';
+      }
+    }
+
     this.persistAndApply();
   }
 
@@ -107,5 +132,3 @@ export class OrionThemeEngine {
     this.listeners.forEach(cb => cb());
   }
 }
-
-
