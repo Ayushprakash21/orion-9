@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore } from 'firebase/firestore';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 const getEnvVar = (key: string, fallback: string): string => {
   try {
@@ -40,6 +41,7 @@ export const firebaseConfig = LIVE_FIREBASE_CONFIG;
 const appInstances: Map<string, FirebaseApp> = new Map();
 const authInstances: Map<string, Auth> = new Map();
 const firestoreInstances: Map<string, Firestore> = new Map();
+const storageInstances: Map<string, FirebaseStorage> = new Map();
 
 /**
  * Returns the isolated Firebase App instance for the given environment.
@@ -96,4 +98,16 @@ export const getFirebaseFirestore = (environment: 'LIVE' | 'DEMO' = 'LIVE'): Fir
     firestoreInstances.set(envKey, getFirestore(app));
   }
   return firestoreInstances.get(envKey)!;
+};
+
+/**
+ * Returns Firebase Storage instance strictly connected to the corresponding environment project.
+ */
+export const getFirebaseStorage = (environment: 'LIVE' | 'DEMO' = 'LIVE'): FirebaseStorage => {
+  const envKey = (environment || 'LIVE').toUpperCase();
+  if (!storageInstances.has(envKey)) {
+    const app = getFirebaseApp(environment);
+    storageInstances.set(envKey, getStorage(app));
+  }
+  return storageInstances.get(envKey)!;
 };

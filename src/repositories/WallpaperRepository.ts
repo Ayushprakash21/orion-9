@@ -3,7 +3,8 @@
  * Authoritative storage manager for static wallpaper records, user selections, system defaults,
  * and wallpaper policy controls with Cloud Firestore authoritative persistence & strict tenant/target isolation.
  *
- * ALL LIVE/3D/ANIMATION/CANVAS SYSTEMS HAVE BEEN COMPLETELY REMOVED.
+ * Hardened with bounded Firestore timeouts, memory-first lookups, race-safe active selections,
+ * and isolated DEMO vs LIVE persistence strategies.
  */
 
 import { dbManager } from '../core/database/DatabaseConnectionManager';
@@ -21,6 +22,40 @@ export { type WallpaperTarget } from '../types/wallpaper';
 const WALLPAPERS_COLLECTION = 'wallpapers';
 const POLICIES_COLLECTION = 'wallpaperPolicies';
 const SELECTIONS_COLLECTION = 'wallpaperSelections';
+
+export const DEFAULT_FIRESTORE_TIMEOUT_MS = 10000;
+export const DEMO_FIRESTORE_TIMEOUT_MS = 3000;
+
+export interface TimeoutContext {
+  isTimedOut: boolean;
+}
+
+/**
+ * Bounded timeout helper for all Firestore asynchronous queries and mutations.
+ * Prevents UI deadlock while ensuring late responses do not mutate stale state.
+ */
+export async function withFirestoreTimeout<T>(
+  action: (ctx: TimeoutContext) => Promise<T>,
+  timeoutMs: number = DEFAULT_FIRESTORE_TIMEOUT_MS,
+  operationName: string = 'Firestore operation'
+): Promise<T> {
+  const ctx: TimeoutContext = { isTimedOut: false };
+  let timer: any;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => {
+      ctx.isTimedOut = true;
+      const err = new Error(`[WALLPAPER:TIMEOUT] Operation "${operationName}" timed out after ${timeoutMs}ms.`);
+      (err as any).code = 'TIMEOUT';
+      reject(err);
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([action(ctx), timeoutPromise]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 /**
  * DEFAULT HOME / DESKTOP WALLPAPER:
@@ -102,12 +137,6 @@ export const DEFAULT_LOGIN_WALLPAPER: WallpaperRecord = {
 
 /**
  * Resolves the effective runtime wallpaper taking active theme appearance into account.
- * Rules:
- * 1. If target is 'desktop':
- *    - If mode is 'light' and active is system dark default -> return DEFAULT_LIGHT_DESKTOP_WALLPAPER.
- *    - If mode is 'dark' and active is system light default -> return DEFAULT_DESKTOP_WALLPAPER.
- * 2. Custom wallpapers, uploads, AI-generated wallpapers, and non-default system wallpapers
- *    are NEVER mutated or overridden.
  */
 export function resolveRuntimeWallpaper(
   activeWallpaper: WallpaperRecord | null | undefined,
@@ -251,7 +280,6 @@ export class WallpaperRepository {
             const list: WallpaperRecord[] = JSON.parse(savedCustoms);
             if (Array.isArray(list)) {
               for (const wp of list) {
-                // Ensure custom wallpapers do NOT overwrite or duplicate system default assets or IDs
                 if (
                   wp &&
                   wp.wallpaperId &&
@@ -286,7 +314,6 @@ export class WallpaperRepository {
           if (desktopActive) {
             localStorage?.setItem(`orion_active_wallpaper_id_desktop_${userKey}`, desktopActive);
             sessionStorage?.setItem(`orion_active_wallpaper_id_desktop_${userKey}`, desktopActive);
-            // Also maintain global fallback for desktop
             localStorage?.setItem('orion_active_wallpaper_id_desktop_global', desktopActive);
             sessionStorage?.setItem('orion_active_wallpaper_id_desktop_global', desktopActive);
           }
@@ -303,7 +330,7 @@ export class WallpaperRepository {
 
   /**
    * Retrieves all approved wallpapers accessible for tenant, user, and target destination.
-   * Guarantees target isolation, deduplication by canonical asset reference, and system default protection.
+   * Uses bounded timeout to protect against Firestore network hangs.
    */
   public async getAvailableWallpapers(
     tenantId: string = 'global', 
@@ -314,22 +341,28 @@ export class WallpaperRepository {
     const env = dbManager.getEnvironment();
 
     if (firestore) {
+      const timeoutMs = env === 'DEMO' ? DEMO_FIRESTORE_TIMEOUT_MS : DEFAULT_FIRESTORE_TIMEOUT_MS;
       try {
-        const wpCol = collection(firestore, WALLPAPERS_COLLECTION);
-        const snapshot = await getDocs(wpCol);
-        if (!snapshot.empty) {
-          snapshot.forEach(docSnap => {
-            const data = docSnap.data() as WallpaperRecord;
-            if (data.wallpaperId && data.assetUrl) {
-              if (!data.wallpaperId.startsWith('sys-') && data.ownerType !== 'SYSTEM' && !data.isSystemDefault) {
-                this.memoryWallpapers.set(data.wallpaperId, data);
+        await withFirestoreTimeout(async (ctx) => {
+          const wpCol = collection(firestore, WALLPAPERS_COLLECTION);
+          const snapshot = await getDocs(wpCol);
+          if (ctx.isTimedOut) return;
+          if (!snapshot.empty) {
+            snapshot.forEach(docSnap => {
+              const data = docSnap.data() as WallpaperRecord;
+              if (data.wallpaperId && data.assetUrl) {
+                if (!data.wallpaperId.startsWith('sys-') && data.ownerType !== 'SYSTEM' && !data.isSystemDefault) {
+                  this.memoryWallpapers.set(data.wallpaperId, data);
+                }
               }
-            }
-          });
-        }
+            });
+          }
+        }, timeoutMs, 'getAvailableWallpapers');
       } catch (err) {
         if (env === 'LIVE') {
-          console.error('[WALLPAPER-REPO] Firestore wallpaper fetch failed:', err);
+          console.error('[WALLPAPER-REPO] LIVE Firestore wallpaper fetch failed:', err);
+        } else {
+          console.warn('[WALLPAPER-REPO] DEMO Firestore wallpaper fetch timed out or failed, using memory/local cache.');
         }
       }
     }
@@ -353,7 +386,7 @@ export class WallpaperRepository {
       if (wp.status !== 'APPROVED') continue;
       if (!wp.assetUrl || wp.assetUrl.trim() === '') continue;
       if (wp.ownerType === 'SYSTEM' || wp.isSystemDefault || wp.wallpaperId.startsWith('sys-')) {
-        continue; // Already processed in system pass
+        continue;
       }
 
       // Target isolation: if target is specified, only include wallpapers matching target
@@ -367,7 +400,7 @@ export class WallpaperRepository {
 
       const norm = normalizeUrl(wp.assetUrl);
       if (seenIds.has(wp.wallpaperId) || seenAssets.has(norm)) {
-        continue; // Prevent duplicate cards for identical asset URL or ID
+        continue;
       }
 
       seenIds.add(wp.wallpaperId);
@@ -379,21 +412,51 @@ export class WallpaperRepository {
   }
 
   /**
-   * Gets single wallpaper by ID from Firestore / cache.
+   * Gets single wallpaper by ID.
+   * PHASE 2 ORDER:
+   * 1. Check memoryWallpapers FIRST for zero-latency resolution.
+   * 2. If missing, query Firestore with bounded timeout.
+   * 3. Graceful fallback on DEMO, deterministic error on LIVE.
    */
   public async getWallpaperById(wallpaperId: string): Promise<WallpaperRecord | null> {
+    // 1. Check memoryWallpapers FIRST
+    const cached = this.memoryWallpapers.get(wallpaperId);
+    if (cached && cached.wallpaperId && cached.assetUrl && cached.assetUrl.trim() !== '') {
+      return cached;
+    }
+
+    // 2. Only query Firestore if not in memory
+    const env = dbManager.getEnvironment();
     const firestore = dbManager.getFirestore();
     if (firestore) {
+      const timeoutMs = env === 'DEMO' ? DEMO_FIRESTORE_TIMEOUT_MS : DEFAULT_FIRESTORE_TIMEOUT_MS;
       try {
-        const docRef = doc(firestore, WALLPAPERS_COLLECTION, wallpaperId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data() as WallpaperRecord;
-          this.memoryWallpapers.set(data.wallpaperId, data);
-          return data;
+        const found = await withFirestoreTimeout(async (ctx) => {
+          const docRef = doc(firestore, WALLPAPERS_COLLECTION, wallpaperId);
+          const docSnap = await getDoc(docRef);
+          if (ctx.isTimedOut) return null;
+          if (docSnap.exists()) {
+            const data = docSnap.data() as WallpaperRecord;
+            if (data.wallpaperId && data.assetUrl) {
+              this.memoryWallpapers.set(data.wallpaperId, data);
+              return data;
+            }
+          }
+          return null;
+        }, timeoutMs, `getWallpaperById(${wallpaperId})`);
+
+        if (found) return found;
+      } catch (err: any) {
+        if (env === 'LIVE') {
+          console.error(`[WALLPAPER-REPO] LIVE getWallpaperById(${wallpaperId}) failed:`, err);
+          throw new Error(`Failed to retrieve wallpaper "${wallpaperId}" from authoritative database: ${err?.message || err}`);
+        } else {
+          console.warn(`[WALLPAPER-REPO] DEMO getWallpaperById(${wallpaperId}) timed out or failed, falling back to cache.`);
         }
-      } catch (e) {}
+      }
     }
+
+    // 3. Fallback to memory or null
     return this.memoryWallpapers.get(wallpaperId) || null;
   }
 
@@ -405,47 +468,93 @@ export class WallpaperRepository {
   }
 
   /**
-   * Saves or updates static wallpaper record in Cloud Firestore authoritative repository.
-   * Intercepts large Base64 images to prevent multi-megabyte payloads in Firestore.
+   * Saves or updates static wallpaper record.
+   * Sequence:
+   * 1. Validate wallpaper record.
+   * 2. Prepare asset via durable storage abstraction.
+   * 3. Construct canonical WallpaperRecord.
+   * 4. Update in-memory repository immediately.
+   * 5. Persist local cache.
+   * 6. DEMO: attempt Firestore sync without blocking UI.
+   * 7. LIVE: authoritative Firestore persistence with bounded timeout.
    */
   public async saveWallpaper(record: WallpaperRecord, target?: WallpaperTarget): Promise<WallpaperRecord> {
+    const startTime = Date.now();
     const env = dbManager.getEnvironment();
-    
-    // Process image asset string via storage abstraction
-    let safeAssetUrl = record.assetUrl;
-    if (safeAssetUrl && safeAssetUrl.startsWith('data:')) {
-      safeAssetUrl = await wallpaperAssetStorage.uploadAsset(safeAssetUrl, record.name);
+    const effectiveTarget = record.target || target || 'desktop';
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.info(`[WALLPAPER:APPLY] start action=saveWallpaper target=${effectiveTarget} wallpaperId=${record.wallpaperId} env=${env}`);
     }
 
+    // 1. Validate wallpaper record
+    if (!record || !record.wallpaperId) {
+      throw new Error('Invalid wallpaper record: missing wallpaperId.');
+    }
+    if (!record.assetUrl || record.assetUrl.trim() === '') {
+      throw new Error('Invalid wallpaper record: missing assetUrl.');
+    }
+
+    // 2. Prepare asset via durable storage abstraction
+    let safeAssetUrl = record.assetUrl;
+    if (safeAssetUrl && safeAssetUrl.startsWith('data:')) {
+      safeAssetUrl = await wallpaperAssetStorage.uploadAsset(safeAssetUrl, record.name, env);
+      if (process.env.NODE_ENV !== 'production') {
+        console.info(`[WALLPAPER:APPLY] asset-prepared wallpaperId=${record.wallpaperId}`);
+      }
+    }
+
+    // 3. Construct canonical WallpaperRecord
     const updated: WallpaperRecord = {
       ...record,
-      target: record.target || target,
+      target: effectiveTarget,
       assetUrl: safeAssetUrl,
-      thumbnailUrl: safeAssetUrl,
+      thumbnailUrl: record.thumbnailUrl && !record.thumbnailUrl.startsWith('data:') ? record.thumbnailUrl : safeAssetUrl,
       mode: 'STILL',
       environment: env,
       updatedAt: new Date().toISOString(),
     };
 
-    const firestore = dbManager.getFirestore();
-    if (firestore) {
-      try {
-        const docRef = doc(firestore, WALLPAPERS_COLLECTION, updated.wallpaperId);
-        await setDoc(docRef, updated, { merge: true });
-      } catch (err) {
-        console.error('[WALLPAPER-REPO] Firestore save wallpaper failed:', err);
-        if (env === 'LIVE') {
-          throw new Error('Failed to persist wallpaper to Cloud Firestore authoritative database.');
-        }
-      }
+    // 4. Update in-memory repository immediately
+    this.memoryWallpapers.set(updated.wallpaperId, updated);
+
+    // 5. Persist local cache
+    this.persistCache(updated.ownerId, effectiveTarget);
+    if (process.env.NODE_ENV !== 'production') {
+      console.info(`[WALLPAPER:APPLY] record-saved-local wallpaperId=${updated.wallpaperId}`);
     }
 
-    this.memoryWallpapers.set(updated.wallpaperId, updated);
-    this.persistCache(updated.ownerId, updated.target || target);
+    // 6. DEMO vs 7. LIVE Firestore persistence
+    const firestore = dbManager.getFirestore();
+    if (firestore) {
+      const timeoutMs = env === 'DEMO' ? DEMO_FIRESTORE_TIMEOUT_MS : DEFAULT_FIRESTORE_TIMEOUT_MS;
+      try {
+        await withFirestoreTimeout(async () => {
+          const docRef = doc(firestore, WALLPAPERS_COLLECTION, updated.wallpaperId);
+          await setDoc(docRef, updated, { merge: true });
+        }, timeoutMs, `saveWallpaper(${updated.wallpaperId})`);
+
+        if (process.env.NODE_ENV !== 'production') {
+          console.info(`[WALLPAPER:APPLY] record-saved wallpaperId=${updated.wallpaperId} env=${env}`);
+        }
+      } catch (err: any) {
+        if (env === 'LIVE') {
+          console.error(`[WALLPAPER:APPLY] failed operation=saveWallpaper environment=LIVE target=${effectiveTarget} wallpaperId=${updated.wallpaperId} durationMs=${Date.now() - startTime}`, err);
+          // Rollback in-memory state on LIVE failure to prevent claiming false success
+          this.memoryWallpapers.delete(updated.wallpaperId);
+          this.persistCache(updated.ownerId, effectiveTarget);
+          throw new Error('Failed to persist wallpaper to Cloud Firestore authoritative database: ' + (err?.message || err));
+        } else {
+          console.warn(`[WALLPAPER-REPO] DEMO Firestore sync timed out or failed for ${updated.wallpaperId}, continuing with local persistence.`);
+        }
+      }
+    } else if (env === 'LIVE') {
+      throw new Error('LIVE environment requires connected Cloud Firestore instance.');
+    }
 
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('orion-wallpaper-updated', { 
-        detail: { wallpaper: updated, target: updated.target || target } 
+        detail: { wallpaper: updated, target: effectiveTarget } 
       }));
     }
 
@@ -463,27 +572,34 @@ export class WallpaperRepository {
   ): Promise<WallpaperRecord> {
     const selectionKey = this.getSelectionKey(userId, target);
     const firestore = dbManager.getFirestore();
+    const env = dbManager.getEnvironment();
 
     if (firestore) {
+      const timeoutMs = env === 'DEMO' ? DEMO_FIRESTORE_TIMEOUT_MS : DEFAULT_FIRESTORE_TIMEOUT_MS;
       try {
-        const selRef = doc(firestore, SELECTIONS_COLLECTION, selectionKey);
-        const selSnap = await getDoc(selRef);
-        if (selSnap.exists()) {
-          const selData = selSnap.data();
-          if (selData?.wallpaperId) {
-            const wp = await this.getWallpaperById(selData.wallpaperId);
-            if (wp && wp.assetUrl) {
-              this.memoryActiveSelections.set(selectionKey, wp.wallpaperId);
-              return { ...wp, target };
+        await withFirestoreTimeout(async (ctx) => {
+          const selRef = doc(firestore, SELECTIONS_COLLECTION, selectionKey);
+          const selSnap = await getDoc(selRef);
+          if (ctx.isTimedOut) return;
+          if (selSnap.exists()) {
+            const selData = selSnap.data();
+            if (selData?.wallpaperId) {
+              const wp = await this.getWallpaperById(selData.wallpaperId);
+              if (wp && wp.assetUrl && !ctx.isTimedOut) {
+                this.memoryActiveSelections.set(selectionKey, wp.wallpaperId);
+              }
             }
           }
+        }, timeoutMs, `getActiveWallpaper(${selectionKey})`);
+      } catch (e) {
+        if (env === 'LIVE') {
+          console.warn(`[WALLPAPER-REPO] Notice getting active wallpaper from Firestore:`, e);
         }
-      } catch (e) {}
+      }
     }
 
     // Try in-memory active selection
     let savedId = this.memoryActiveSelections.get(selectionKey);
-    // If desktop and user-specific key not found, fallback to global_desktop
     if (!savedId && target === 'desktop') {
       savedId = this.memoryActiveSelections.get('global_desktop');
     }
@@ -511,9 +627,6 @@ export class WallpaperRepository {
       }
     }
 
-    // Default target fallbacks:
-    // LOGIN default: Dark Cinematic Earth Horizon (/wallpaper/orion9-earth-horizon-default.png)
-    // DESKTOP default: Earth's Luminous Cosmic Horizon (/wallpaper/orion9-desktop-horizon-moon.png)
     return target === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
   }
 
@@ -556,49 +669,89 @@ export class WallpaperRepository {
   }
 
   /**
-   * Sets active wallpaper for user/tenant and target (desktop or login) in Cloud Firestore.
+   * Sets active wallpaper for user/tenant and target (desktop or login).
    * Strict isolation: only updates the specified target. Never cross-writes.
+   * Emits canonical events exactly once after successful activation.
    */
   public async setActiveWallpaper(
     wallpaperId: string, 
     userId?: string,
     target: WallpaperTarget = 'desktop'
   ): Promise<WallpaperRecord> {
-    const wp = await this.getWallpaperById(wallpaperId) || this.memoryWallpapers.get(wallpaperId);
+    const startTime = Date.now();
+    const env = dbManager.getEnvironment();
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.info(`[WALLPAPER:APPLY] start action=setActiveWallpaper target=${target} wallpaperId=${wallpaperId} env=${env}`);
+    }
+
+    // 1. Resolve wallpaper from memory FIRST
+    let wp = this.memoryWallpapers.get(wallpaperId);
     if (!wp) {
-      throw new Error(`Wallpaper ID ${wallpaperId} not found.`);
+      // 2. If unavailable, bounded Firestore lookup
+      wp = (await this.getWallpaperById(wallpaperId)) || undefined;
+    }
+
+    // 3. Validate wallpaper exists and has a valid asset URL
+    if (!wp || !wp.assetUrl || wp.assetUrl.trim() === '') {
+      throw new Error(`Wallpaper ID "${wallpaperId}" not found or has invalid asset.`);
     }
 
     const selectionKey = this.getSelectionKey(userId, target);
     const targetUser = target === 'login' ? 'global' : (userId || 'global');
-    const env = dbManager.getEnvironment();
 
+    // 4. Update in-memory active selection
+    const previousSelection = this.memoryActiveSelections.get(selectionKey);
+    this.memoryActiveSelections.set(selectionKey, wp.wallpaperId);
+    if (target === 'desktop' && userId) {
+      this.memoryActiveSelections.set('global_desktop', wp.wallpaperId);
+    }
+
+    // 5. Persist local cache
+    this.persistCache(userId, target);
+    if (process.env.NODE_ENV !== 'production') {
+      console.info(`[WALLPAPER:APPLY] selection-persisted-local target=${target} wallpaperId=${wp.wallpaperId}`);
+    }
+
+    // 6. DEMO vs 7. LIVE Firestore persistence
     const firestore = dbManager.getFirestore();
     if (firestore) {
+      const timeoutMs = env === 'DEMO' ? DEMO_FIRESTORE_TIMEOUT_MS : DEFAULT_FIRESTORE_TIMEOUT_MS;
       try {
-        const selRef = doc(firestore, SELECTIONS_COLLECTION, selectionKey);
-        await setDoc(selRef, {
-          wallpaperId: wp.wallpaperId,
-          userId: targetUser,
-          target: target,
-          tenantId: wp.tenantId || 'global',
-          organizationId: wp.organizationId || 'ORION_PLATFORM',
-          environment: env,
-          updatedAt: new Date().toISOString(),
-        }, { merge: true });
-      } catch (err) {
-        console.error('[WALLPAPER-REPO] Firestore setActiveWallpaper failed:', err);
+        await withFirestoreTimeout(async () => {
+          const selRef = doc(firestore, SELECTIONS_COLLECTION, selectionKey);
+          await setDoc(selRef, {
+            wallpaperId: wp!.wallpaperId,
+            userId: targetUser,
+            target: target,
+            tenantId: wp!.tenantId || 'global',
+            organizationId: wp!.organizationId || 'ORION_PLATFORM',
+            environment: env,
+            updatedAt: new Date().toISOString(),
+          }, { merge: true });
+        }, timeoutMs, `setActiveWallpaper(${selectionKey})`);
+
+        if (process.env.NODE_ENV !== 'production') {
+          console.info(`[WALLPAPER:APPLY] selection-persisted target=${target} wallpaperId=${wp.wallpaperId} env=${env}`);
+        }
+      } catch (err: any) {
         if (env === 'LIVE') {
-          throw new Error('Failed to set active wallpaper in Cloud Firestore.');
+          console.error(`[WALLPAPER:APPLY] failed operation=setActiveWallpaper environment=LIVE target=${target} wallpaperId=${wp.wallpaperId} durationMs=${Date.now() - startTime}`, err);
+          // Rollback memory selection on LIVE failure
+          if (previousSelection) {
+            this.memoryActiveSelections.set(selectionKey, previousSelection);
+          } else {
+            this.memoryActiveSelections.delete(selectionKey);
+          }
+          this.persistCache(userId, target);
+          throw new Error('Failed to set active wallpaper in Cloud Firestore: ' + (err?.message || err));
+        } else {
+          console.warn(`[WALLPAPER-REPO] DEMO Firestore selection sync timed out or failed for ${selectionKey}, continuing with local activation.`);
         }
       }
+    } else if (env === 'LIVE') {
+      throw new Error('LIVE environment requires connected Cloud Firestore instance.');
     }
-
-    this.memoryActiveSelections.set(selectionKey, wallpaperId);
-    if (target === 'desktop' && userId) {
-      this.memoryActiveSelections.set('global_desktop', wallpaperId);
-    }
-    this.persistCache(userId, target);
 
     const targetWp: WallpaperRecord = {
       ...wp,
@@ -607,8 +760,10 @@ export class WallpaperRepository {
 
     if (process.env.NODE_ENV !== 'production') {
       console.info(`[ORION:WALLPAPER] target=${target} wallpaperId=${wp.wallpaperId} action=apply`);
+      console.info(`[WALLPAPER:APPLY] completed target=${target} wallpaperId=${wp.wallpaperId} durationMs=${Date.now() - startTime}`);
     }
 
+    // 8. Emit wallpaper events exactly once after successful activation
     if (typeof window !== 'undefined') {
       window.dispatchEvent(new CustomEvent('orion-active-wallpaper-changed', { 
         detail: { wallpaper: targetWp, target, wallpaperId: wp.wallpaperId } 
@@ -629,12 +784,16 @@ export class WallpaperRepository {
     const firestore = dbManager.getFirestore();
 
     if (firestore) {
+      const timeoutMs = env === 'DEMO' ? DEMO_FIRESTORE_TIMEOUT_MS : DEFAULT_FIRESTORE_TIMEOUT_MS;
       try {
-        const polRef = doc(firestore, POLICIES_COLLECTION, 'default');
-        const polSnap = await getDoc(polRef);
-        if (polSnap.exists()) {
-          this.memoryPolicy = { ...this.memoryPolicy, ...(polSnap.data() as WallpaperPolicy) };
-        }
+        await withFirestoreTimeout(async (ctx) => {
+          const polRef = doc(firestore, POLICIES_COLLECTION, 'default');
+          const polSnap = await getDoc(polRef);
+          if (ctx.isTimedOut) return;
+          if (polSnap.exists()) {
+            this.memoryPolicy = { ...this.memoryPolicy, ...(polSnap.data() as WallpaperPolicy) };
+          }
+        }, timeoutMs, 'getPolicy');
       } catch (e) {
         console.warn('[WALLPAPER-REPO] Notice fetching wallpaper policy from Firestore:', e);
       }
@@ -660,9 +819,12 @@ export class WallpaperRepository {
 
     const firestore = dbManager.getFirestore();
     if (firestore) {
+      const timeoutMs = env === 'DEMO' ? DEMO_FIRESTORE_TIMEOUT_MS : DEFAULT_FIRESTORE_TIMEOUT_MS;
       try {
-        const polRef = doc(firestore, POLICIES_COLLECTION, 'default');
-        await setDoc(polRef, this.memoryPolicy, { merge: true });
+        await withFirestoreTimeout(async () => {
+          const polRef = doc(firestore, POLICIES_COLLECTION, 'default');
+          await setDoc(polRef, this.memoryPolicy, { merge: true });
+        }, timeoutMs, 'updatePolicy');
       } catch (e) {
         console.error('[WALLPAPER-REPO] Failed to persist wallpaper policy in Firestore:', e);
         if (env === 'LIVE') {
@@ -714,9 +876,9 @@ export class WallpaperRepository {
 
     let replacement: WallpaperRecord | undefined;
     const currentTarget = target || wp.target;
+    const env = dbManager.getEnvironment();
 
     // 2. Active Wallpaper Protection & Target Isolation
-    // Check LOGIN target: only modify login if this wallpaper was active on login
     const currentLoginActive = this.memoryActiveSelections.get('global_login') || 
                                (typeof window !== 'undefined' ? (localStorage?.getItem('orion_active_wallpaper_id_login') || sessionStorage?.getItem('orion_active_wallpaper_id_login')) : null);
     if (currentLoginActive === wallpaperId) {
@@ -726,7 +888,6 @@ export class WallpaperRepository {
       }
     }
 
-    // Check DESKTOP target: only modify desktop if this wallpaper was active on desktop
     const userKey = userId || 'global';
     const currentDesktopActive = this.memoryActiveSelections.get(`${userKey}_desktop`) || 
                                  this.memoryActiveSelections.get('global_desktop') ||
@@ -738,14 +899,20 @@ export class WallpaperRepository {
       }
     }
 
-    // 3. Delete from Firestore if configured
+    // 3. Delete from Firestore if configured with timeout
     const firestore = dbManager.getFirestore();
     if (firestore) {
+      const timeoutMs = env === 'DEMO' ? DEMO_FIRESTORE_TIMEOUT_MS : DEFAULT_FIRESTORE_TIMEOUT_MS;
       try {
-        const docRef = doc(firestore, WALLPAPERS_COLLECTION, wallpaperId);
-        await deleteDoc(docRef);
+        await withFirestoreTimeout(async () => {
+          const docRef = doc(firestore, WALLPAPERS_COLLECTION, wallpaperId);
+          await deleteDoc(docRef);
+        }, timeoutMs, `deleteWallpaper(${wallpaperId})`);
       } catch (err) {
         console.warn('[WALLPAPER-REPO] Firestore delete error:', err);
+        if (env === 'LIVE') {
+          throw new Error('Failed to delete wallpaper from Cloud Firestore: ' + (err as any)?.message);
+        }
       }
     }
 

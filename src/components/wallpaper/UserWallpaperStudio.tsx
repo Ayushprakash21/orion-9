@@ -32,6 +32,7 @@ import { useI18n } from '../../store/LanguageContext';
 
 export type StudioLifecycleState = 'LOADING' | 'READY' | 'GENERATING' | 'GENERATED' | 'ERROR';
 export type AiEngineStatus = 'READY' | 'GENERATING' | 'UNAVAILABLE' | 'RATE_LIMITED' | 'ERROR';
+export type ApplyButtonState = 'IDLE' | 'APPLYING' | 'SUCCESS' | 'ERROR';
 
 export const TARGETS = {
   LOGIN: 'login' as WallpaperTarget,
@@ -124,6 +125,16 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
   const [selectedName, setSelectedName] = useState<string>(initialActive.name);
   const [selectedWallpaperId, setSelectedWallpaperId] = useState<string>(initialActive.wallpaperId);
   const [isApplying, setIsApplying] = useState(false);
+  const [applyState, setApplyState] = useState<ApplyButtonState>('IDLE');
+  const applyGenerationRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -289,17 +300,26 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
 
   // Apply Wallpaper Action (Persists selection to active target environment)
   const handleApplyWallpaper = async () => {
-    if (!selectedAssetUrl) return;
+    if (!selectedAssetUrl || applyState === 'APPLYING') return;
+
+    const currentGen = ++applyGenerationRef.current;
+    const startApplyTime = Date.now();
+    const currentEnv = dbManager.getEnvironment();
+    const targetAtStart = selectedTarget;
+
     setIsApplying(true);
-    try {
+    setApplyState('APPLYING');
+
+    console.info(`[WALLPAPER:APPLY] start generation=${currentGen} target=${targetAtStart} env=${currentEnv}`);
+
+    const doApplyTransaction = async (): Promise<WallpaperRecord> => {
       let appliedWallpaper: WallpaperRecord;
+
       if (activeTab === 'GALLERY') {
         const existing = galleryWallpapers.find(w => w.wallpaperId === selectedWallpaperId || w.assetUrl === selectedAssetUrl);
         const wpId = existing ? existing.wallpaperId : selectedWallpaperId;
-        appliedWallpaper = await wallpaperRepository.setActiveWallpaper(wpId, userId, selectedTarget);
-        setActiveWallpaperState(appliedWallpaper);
+        appliedWallpaper = await wallpaperRepository.setActiveWallpaper(wpId, userId, targetAtStart);
       } else {
-        const currentEnv = dbManager.getEnvironment();
         const activeWidth = selectedCandidate?.width || 1920;
         const activeHeight = selectedCandidate?.height || 1080;
 
@@ -312,7 +332,7 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
           assetUrl: selectedAssetUrl,
           thumbnailUrl: selectedCandidate?.thumbnailUrl || selectedAssetUrl,
           source: selectedCandidate ? 'AI' : activeTab === 'UPLOAD' ? 'UPLOAD' : 'SYSTEM',
-          target: selectedTarget,
+          target: targetAtStart,
           aiGenerated: !!selectedCandidate,
           prompt: selectedCandidate?.prompt || prompt,
           style: selectedCandidate?.style || style,
@@ -330,18 +350,48 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
           updatedAt: new Date().toISOString(),
         };
 
-        const saved = await wallpaperRepository.saveWallpaper(wpRecord, selectedTarget);
-        appliedWallpaper = await wallpaperRepository.setActiveWallpaper(saved.wallpaperId, userId, selectedTarget);
-        setActiveWallpaperState(appliedWallpaper);
-        const updated = await wallpaperRepository.getAvailableWallpapers(tenantId, userId, selectedTarget);
-        setGalleryWallpapers(updated);
+        const saved = await wallpaperRepository.saveWallpaper(wpRecord, targetAtStart);
+        appliedWallpaper = await wallpaperRepository.setActiveWallpaper(saved.wallpaperId, userId, targetAtStart);
       }
 
+      return appliedWallpaper;
+    };
+
+    try {
+      // PHASE 7: Bounded transaction timeout around complete apply operation
+      const appliedWallpaper = await Promise.race([
+        doApplyTransaction(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Wallpaper application transaction exceeded bounded timeout (12s).')), 12000)
+        )
+      ]);
+
+      // Guard against component unmount or newer rapid apply generation
+      if (!mountedRef.current || applyGenerationRef.current !== currentGen) {
+        console.info(`[WALLPAPER:APPLY] discarded stale result generation=${currentGen} current=${applyGenerationRef.current}`);
+        return;
+      }
+
+      // Update local React state immediately with canonical record
+      setActiveWallpaperState(appliedWallpaper);
+      setSelectedAssetUrl(appliedWallpaper.assetUrl);
+      setSelectedWallpaperId(appliedWallpaper.wallpaperId);
+      setSelectedName(appliedWallpaper.name);
+
+      // PHASE 6: Update local gallery state locally - NO unnecessary getAvailableWallpapers() collection read
+      setGalleryWallpapers(prev => {
+        const filtered = prev.filter(w => w.wallpaperId !== appliedWallpaper.wallpaperId);
+        return [appliedWallpaper, ...filtered];
+      });
+
+      console.info(`[WALLPAPER:APPLY] state-updated target=${targetAtStart} wallpaperId=${appliedWallpaper.wallpaperId}`);
+
+      // Dispatch canonical wallpaper changed event
       if (typeof window !== 'undefined') {
         window.dispatchEvent(
           new CustomEvent('orion-wallpaper-changed', {
             detail: {
-              target: selectedTarget,
+              target: targetAtStart,
               wallpaperId: appliedWallpaper.wallpaperId,
               wallpaper: appliedWallpaper
             }
@@ -349,12 +399,31 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
         );
       }
 
-      const targetLabel = selectedTarget === 'login' ? 'Login Wallpaper' : 'Home / Desktop Wallpaper';
+      const targetLabel = targetAtStart === 'login' ? 'Login Wallpaper' : 'Home / Desktop Wallpaper';
       showToast(`Static wallpaper applied to Orion ${targetLabel}!`, 'success');
+      setApplyState('SUCCESS');
+      console.info(`[WALLPAPER:APPLY] completed target=${targetAtStart} wallpaperId=${appliedWallpaper.wallpaperId} durationMs=${Date.now() - startApplyTime}`);
+
+      setTimeout(() => {
+        if (mountedRef.current && applyGenerationRef.current === currentGen) {
+          setApplyState('IDLE');
+        }
+      }, 2000);
     } catch (err: any) {
-      showToast('Failed to apply wallpaper: ' + (err?.message || 'Unknown error'), 'error');
+      console.error(`[WALLPAPER:APPLY] failed operation=handleApplyWallpaper environment=${currentEnv} target=${targetAtStart} wallpaperId=${selectedWallpaperId} durationMs=${Date.now() - startApplyTime}`, err);
+      if (mountedRef.current && applyGenerationRef.current === currentGen) {
+        setApplyState('ERROR');
+        showToast('Failed to apply wallpaper: ' + (err?.message || 'Unknown error'), 'error');
+        setTimeout(() => {
+          if (mountedRef.current && applyGenerationRef.current === currentGen) {
+            setApplyState('IDLE');
+          }
+        }, 3000);
+      }
     } finally {
-      setIsApplying(false);
+      if (mountedRef.current && applyGenerationRef.current === currentGen) {
+        setIsApplying(false);
+      }
     }
   };
 
@@ -408,11 +477,20 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
     }
   };
 
-  // Reset to System Default Action for selectedTarget
+  // Reset to System Default Action for selectedTarget (Bounded & Deterministic)
   const handleResetDefault = async () => {
+    const targetAtStart = selectedTarget;
     try {
-      const fallback = getTargetFallback(selectedTarget);
-      const sysDefault = await wallpaperRepository.setActiveWallpaper(fallback.wallpaperId, userId, selectedTarget);
+      const fallback = getTargetFallback(targetAtStart);
+      const sysDefault = await Promise.race([
+        wallpaperRepository.setActiveWallpaper(fallback.wallpaperId, userId, targetAtStart),
+        new Promise<WallpaperRecord>((_, reject) =>
+          setTimeout(() => reject(new Error('Reset default transaction timed out (10s).')), 10000)
+        )
+      ]);
+
+      if (!mountedRef.current) return;
+
       setActiveWallpaperState(sysDefault);
       setSelectedAssetUrl(sysDefault.assetUrl);
       setSelectedName(sysDefault.name);
@@ -424,7 +502,7 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
         window.dispatchEvent(
           new CustomEvent('orion-wallpaper-changed', {
             detail: {
-              target: selectedTarget,
+              target: targetAtStart,
               wallpaperId: sysDefault.wallpaperId,
               wallpaper: sysDefault
             }
@@ -432,10 +510,11 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
         );
       }
 
-      const targetLabel = selectedTarget === 'login' ? 'Login default' : 'Home / Desktop default';
+      const targetLabel = targetAtStart === 'login' ? 'Login default' : 'Home / Desktop default';
       showToast(`Wallpaper reset to ${targetLabel}.`, 'info');
     } catch (err: any) {
-      const fallback = getTargetFallback(selectedTarget);
+      if (!mountedRef.current) return;
+      const fallback = getTargetFallback(targetAtStart);
       setSelectedAssetUrl(fallback.assetUrl);
       setSelectedName(fallback.name);
       setSelectedWallpaperId(fallback.wallpaperId);
@@ -443,7 +522,7 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
         window.dispatchEvent(
           new CustomEvent('orion-wallpaper-changed', {
             detail: {
-              target: selectedTarget,
+              target: targetAtStart,
               wallpaperId: fallback.wallpaperId,
               wallpaper: fallback
             }
@@ -547,6 +626,8 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
             return (
               <div
                 key={wp.wallpaperId}
+                data-testid="wallpaper-card"
+                data-wallpaper-id={wp.wallpaperId}
                 onClick={() => {
                   setSelectedAssetUrl(wp.assetUrl);
                   setSelectedName(wp.name);
@@ -768,11 +849,39 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
         <button
           type="button"
           onClick={handleApplyWallpaper}
-          disabled={isApplying || !selectedAssetUrl}
-          className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-black font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-lg shadow-sky-500/20 disabled:opacity-50"
+          disabled={applyState === 'APPLYING' || !selectedAssetUrl}
+          data-testid="wallpaper-apply-button"
+          className={cn(
+            "px-4 py-1.5 rounded-xl font-semibold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-lg disabled:opacity-50",
+            applyState === 'SUCCESS' && "bg-emerald-500 text-black shadow-emerald-500/20",
+            applyState === 'ERROR' && "bg-rose-500 text-white shadow-rose-500/20 hover:bg-rose-400",
+            applyState !== 'SUCCESS' && applyState !== 'ERROR' && "bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-black shadow-sky-500/20"
+          )}
         >
-          <Check className="w-4 h-4" />
-          <span>{isApplying ? 'Applying...' : t('wallpaper.applyWallpaper')}</span>
+          {applyState === 'APPLYING' && (
+            <>
+              <RefreshCw className="w-4 h-4 animate-spin" />
+              <span>Applying...</span>
+            </>
+          )}
+          {applyState === 'SUCCESS' && (
+            <>
+              <Check className="w-4 h-4" />
+              <span>Applied!</span>
+            </>
+          )}
+          {applyState === 'ERROR' && (
+            <>
+              <AlertCircle className="w-4 h-4" />
+              <span>Retry Apply</span>
+            </>
+          )}
+          {applyState === 'IDLE' && (
+            <>
+              <Check className="w-4 h-4" />
+              <span>{t('wallpaper.applyWallpaper')}</span>
+            </>
+          )}
         </button>
       </div>
     </div>
@@ -795,6 +904,7 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
         <img
           src={selectedAssetUrl}
           alt={selectedName}
+          data-testid="wallpaper-preview-image"
           className="w-full h-full object-cover"
         />
         {/* Subtle CSS Vignette */}

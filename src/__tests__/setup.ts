@@ -49,5 +49,6 @@ vi.mock('../lib/firebaseClient', () => ({
     currentUser: null
   })),
   getFirebaseFirestore: vi.fn().mockReturnValue(null),
+  getFirebaseStorage: vi.fn().mockReturnValue(null),
 }));
 
