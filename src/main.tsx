@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
+import 'react-easy-crop/react-easy-crop.css';
 
 // Apply initial theme based on Orion appearance preferences before React mount
 try {

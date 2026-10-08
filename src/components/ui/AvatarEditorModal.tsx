@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Cropper from 'react-easy-crop';
+import 'react-easy-crop/react-easy-crop.css';
 import { X, Camera, Loader2, ZoomIn, ZoomOut } from 'lucide-react';
 
 export const getCroppedImg = async (
