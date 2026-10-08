@@ -32,7 +32,7 @@ export interface BrowserEngine {
 }
 
 // Known major domains that actively block iframe embedding via X-Frame-Options: DENY / SAMEORIGIN or CSP frame-ancestors
-const KNOWN_BLOCKED_DOMAINS = [
+export const KNOWN_BLOCKED_DOMAINS = [
   'google.com',
   'www.google.com',
   'github.com',
@@ -48,15 +48,33 @@ const KNOWN_BLOCKED_DOMAINS = [
   'netflix.com',
   'apple.com',
   'microsoft.com',
-  'yahoo.com'
+  'yahoo.com',
+  'duckduckgo.com',
+  'www.duckduckgo.com',
+  'bing.com',
+  'www.bing.com',
+  'ecosia.org',
+  'www.ecosia.org',
+  'stackoverflow.com',
+  'news.ycombinator.com',
+  'quora.com',
+  'twitch.tv',
+  'nytimes.com',
+  'medium.com'
 ];
 
 /**
- * URL and query resolver:
- * Distinguishes true URLs (e.g., https://example.com, example.org/test, localhost:3000)
- * from search text (e.g., "supply chain control tower").
+ * Canonical URL and query normalizer (Section 7 Authority):
+ * Enforces authoritative rules:
+ * - example.com -> https://example.com
+ * - www.example.com -> https://www.example.com
+ * - https://example.com -> unchanged
+ * - http://example.com -> preserve explicitly requested protocol
+ * - orion:// or about: -> preserved internal scheme
+ * - /route -> preserved internal route
+ * - Invalid URL / plain text -> search query via configured search engine
  */
-export function resolveAddressInput(
+export function normalizeUrl(
   input: string, 
   searchEngine: SearchEngineType | SearchEngineConfig = 'duckduckgo'
 ): string {
@@ -77,7 +95,7 @@ export function resolveAddressInput(
     return trimmed;
   }
 
-  // Explicit protocols
+  // Explicit protocols (e.g. http://, https://, ftp://)
   if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(trimmed)) {
     return trimmed;
   }
@@ -104,6 +122,11 @@ export function resolveAddressInput(
     : (SEARCH_ENGINES[searchEngine as SearchEngineType] || SEARCH_ENGINES.duckduckgo);
   return engine.searchUrl(trimmed);
 }
+
+/**
+ * Backward-compatible alias for normalizeUrl
+ */
+export const resolveAddressInput = normalizeUrl;
 
 /**
  * Validates whether a URL is structurally valid.

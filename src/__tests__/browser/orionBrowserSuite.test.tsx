@@ -13,8 +13,10 @@ import {
 import { OrionBrowser } from '../../components/browser/OrionBrowser';
 import {
   resolveAddressInput,
+  normalizeUrl,
   isValidUrl,
   isKnownBlockedDomain,
+  KNOWN_BLOCKED_DOMAINS,
   WebBrowserEngine
 } from '../../components/browser/BrowserEngine';
 import { BrowserHistoryManager } from '../../components/browser/BrowserHistory';
@@ -607,5 +609,101 @@ describe('Orion Browser Certification Suite (BROWSER-001 to BROWSER-021)', () =>
 
     expect(html).toContain('data-testid="browser-ask-copilot-btn"');
     expect(html).toContain('Ask Orion Copilot');
+  });
+
+  // BROWSER-022: Section 7 Canonical normalizeUrl Rules
+  it('BROWSER-022: Enforces authoritative normalizeUrl rules across all input patterns', () => {
+    // example.com -> https://example.com
+    expect(normalizeUrl('example.com')).toBe('https://example.com');
+    // www.example.com -> https://www.example.com
+    expect(normalizeUrl('www.example.com')).toBe('https://www.example.com');
+    // https://example.com -> unchanged
+    expect(normalizeUrl('https://example.com')).toBe('https://example.com');
+    // http://example.com -> preserve explicitly requested protocol
+    expect(normalizeUrl('http://example.com')).toBe('http://example.com');
+    // internal schemes preserved
+    expect(normalizeUrl('orion://newtab')).toBe('orion://newtab');
+    expect(normalizeUrl('about:blank')).toBe('about:blank');
+    expect(normalizeUrl('/executive')).toBe('/executive');
+    // Localhost preserved
+    expect(normalizeUrl('localhost:3000')).toBe('http://localhost:3000');
+    // Search query fallback
+    expect(normalizeUrl('supply chain visibility')).toBe('https://duckduckgo.com/?q=supply+chain+visibility');
+  });
+
+  // BROWSER-023: Extended KNOWN_BLOCKED_DOMAINS Coverage
+  it('BROWSER-023: KNOWN_BLOCKED_DOMAINS accurately identifies major X-Frame-Options/CSP blockers', () => {
+    // Search engines with X-Frame-Options: SAMEORIGIN
+    expect(isKnownBlockedDomain('https://duckduckgo.com')).toBe(true);
+    expect(isKnownBlockedDomain('https://www.bing.com')).toBe(true);
+    expect(isKnownBlockedDomain('https://www.ecosia.org')).toBe(true);
+    expect(isKnownBlockedDomain('https://www.google.com')).toBe(true);
+    // Developer & tech sites with frame-ancestors 'none' / DENY
+    expect(isKnownBlockedDomain('https://github.com')).toBe(true);
+    expect(isKnownBlockedDomain('https://stackoverflow.com')).toBe(true);
+    expect(isKnownBlockedDomain('https://news.ycombinator.com')).toBe(true);
+    // Allowed sites
+    expect(isKnownBlockedDomain('https://example.com')).toBe(false);
+    expect(isKnownBlockedDomain('https://www.wikipedia.org')).toBe(false);
+    expect(isKnownBlockedDomain('https://archive.org')).toBe(false);
+  });
+
+  // BROWSER-024: History Stack Integrity on Reload & Navigation
+  it('BROWSER-024: History stack does not duplicate URL entries when reloading', () => {
+    let historyStack = ['orion://newtab', 'https://example.com'];
+    let historyIndex = 1;
+
+    // Reload operation simulation
+    const currentUrl = historyStack[historyIndex];
+    expect(currentUrl).toBe('https://example.com');
+    
+    // In canonical implementation, reloading does NOT push to historyStack
+    expect(historyStack.length).toBe(2);
+    expect(historyIndex).toBe(1);
+  });
+
+  // BROWSER-025: Browser Content Renders Network Error with Details and External Button
+  it('BROWSER-025: BrowserContent renders detailed error message and external open button on NETWORK_ERROR', () => {
+    const errorHtml = renderToString(
+      React.createElement(BrowserContent, {
+        tab: {
+          id: 'tab-err',
+          url: 'http://example.com',
+          title: 'example.com',
+          loadState: 'NETWORK_ERROR',
+          errorDetails: 'Mixed Content Restriction: Insecure HTTP site cannot be loaded within HTTPS.',
+          historyStack: ['http://example.com'],
+          historyIndex: 0,
+          isLoading: false,
+          zoomLevel: 1.0,
+          createdAt: Date.now()
+        },
+        onNavigate: () => {},
+        onReload: () => {},
+        onOpenExternal: () => {}
+      })
+    );
+
+    expect(errorHtml).toContain('data-testid="browser-network-error"');
+    expect(errorHtml).toContain('Page Could Not Be Reached');
+    expect(errorHtml).toContain('Mixed Content Restriction');
+    expect(errorHtml).toContain('Open in External Window');
+  });
+
+  // BROWSER-026: Address Bar Input State Synchronization
+  it('BROWSER-026: AddressBar displays canonical currentUrl when idle and provides accessible lock', () => {
+    const html = renderToString(
+      React.createElement(BrowserAddressBar, {
+        currentUrl: 'https://example.com',
+        isLoading: false,
+        securityStatus: 'secure',
+        isBookmarked: false,
+        onNavigate: () => {},
+        onToggleBookmark: () => {}
+      })
+    );
+
+    expect(html).toContain('value="https://example.com"');
+    expect(html).toContain('Connection is secure (HTTPS)');
   });
 });

@@ -35,10 +35,11 @@ export const BrowserWebRuntime: React.FC<BrowserWebRuntimeProps> = ({
     onLoadStart?.();
     let mounted = true;
 
-    // Safety timeout: if iframe takes longer than 15s to load, check or notify
+    // Safety timeout: if iframe takes longer than 15s to load, stop spinner
     const timeout = setTimeout(() => {
-      if (mounted && isLoading) {
+      if (mounted) {
         setIsLoading(false);
+        onLoadComplete?.();
       }
     }, 15000);
 

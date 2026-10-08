@@ -15,6 +15,8 @@ export interface BrowserContentProps {
   onNavigate?: (url: string) => void;
   onReload?: () => void;
   onBlocked?: () => void;
+  onLoadComplete?: () => void;
+  onError?: (err?: string) => void;
   onRemoveHistoryItem?: (id: string) => void;
   onOpenExternal?: () => void;
 }
@@ -27,6 +29,8 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
   onNavigate = () => {},
   onReload = () => {},
   onBlocked = () => {},
+  onLoadComplete = () => {},
+  onError = () => {},
   onRemoveHistoryItem,
   onOpenExternal,
 }) => {
@@ -146,17 +150,32 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
         </h2>
 
         <p className="text-xs text-os-text-muted mb-6 max-w-md leading-relaxed">
-          Orion Browser could not connect to <span className="font-mono text-os-text-secondary">{activeTab.url}</span>. Verify your network connection or target host status.
+          {activeTab.errorDetails ? (
+            activeTab.errorDetails
+          ) : (
+            <>Orion Browser could not connect to <span className="font-mono text-os-text-secondary">{activeTab.url}</span>. Verify your network connection or target host status.</>
+          )}
         </p>
 
-        <button
-          type="button"
-          onClick={onReload}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-os-accent hover:opacity-90 text-os-bg text-xs font-medium transition-all cursor-pointer shadow-md"
-        >
-          <RotateCw className="w-4 h-4" />
-          Try Again
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onReload}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-os-accent hover:opacity-90 text-os-bg text-xs font-medium transition-all cursor-pointer shadow-md"
+          >
+            <RotateCw className="w-4 h-4" />
+            Try Again
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onOpenExternal ? onOpenExternal() : window.open(activeTab.url, '_blank', 'noopener,noreferrer')}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-os-surface hover:bg-os-surface-hover border border-os-border text-os-text-secondary text-xs font-medium transition-colors cursor-pointer"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Open in External Window
+          </button>
+        </div>
       </div>
     );
   }
@@ -176,6 +195,8 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
         url={activeTab.url}
         generation={activeTab.generation}
         onBlocked={onBlocked}
+        onLoadComplete={onLoadComplete}
+        onError={onError}
       />
     </div>
   );

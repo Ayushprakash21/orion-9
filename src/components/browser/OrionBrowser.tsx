@@ -14,7 +14,7 @@ import { BrowserMenu } from './BrowserMenu';
 import { browserHistory } from './BrowserHistory';
 import { browserBookmarks } from './BrowserBookmarks';
 import { browserDownloadManager } from './BrowserDownloadManager';
-import { resolveAddressInput, isKnownBlockedDomain, isValidUrl } from './BrowserEngine';
+import { normalizeUrl, resolveAddressInput, isKnownBlockedDomain, isValidUrl } from './BrowserEngine';
 import { useWindowManager } from '../../os/WindowManagerContext';
 import { useToast } from '../../store/ToastContext';
 import { Search, X, ChevronUp, ChevronDown, Clock, Bookmark as BookmarkIcon, Trash2, Settings, ExternalLink } from 'lucide-react';
@@ -99,14 +99,38 @@ export function OrionBrowser() {
     return tabs.find(t => t.id === activeTabId) || tabs[0];
   }, [tabs, activeTabId]);
 
+  // Tab Completion Callbacks
+  const handleLoadComplete = useCallback((tabId: string) => {
+    setTabs(prev => prev.map(tab => {
+      if (tab.id !== tabId) return tab;
+      return {
+        ...tab,
+        loading: false,
+        loadState: tab.loadState === 'BLOCKED_EMBEDDING' ? 'BLOCKED_EMBEDDING' : 'PAGE_LOADED',
+      };
+    }));
+  }, []);
+
+  const handleLoadError = useCallback((tabId: string, err?: string) => {
+    setTabs(prev => prev.map(tab => {
+      if (tab.id !== tabId) return tab;
+      return {
+        ...tab,
+        loading: false,
+        loadState: 'NETWORK_ERROR',
+        errorDetails: err || 'Failed to load page content',
+      };
+    }));
+  }, []);
+
   // Tab Navigation with Generation / Race Protection
   const navigateTab = useCallback((tabId: string, targetUrl: string) => {
-    const resolvedUrl = resolveAddressInput(targetUrl, preferences.defaultSearchEngine);
+    const resolvedUrl = normalizeUrl(targetUrl, preferences.defaultSearchEngine);
 
     setTabs(prev => prev.map(tab => {
       if (tab.id !== tabId) return tab;
 
-      const newGen = tab.generation + 1;
+      const newGen = (tab.generation || 0) + 1;
       const isInternal = resolvedUrl === 'orion://newtab' || resolvedUrl.startsWith('/');
       const isSecure = resolvedUrl.startsWith('https://');
       const securityStatus = isInternal ? 'internal' : (isSecure ? 'secure' : 'insecure');
@@ -128,6 +152,7 @@ export function OrionBrowser() {
           canGoForward: false,
           generation: newGen,
           securityStatus: 'internal',
+          errorDetails: undefined,
         };
       }
 
@@ -144,6 +169,28 @@ export function OrionBrowser() {
           canGoForward: false,
           generation: newGen,
           securityStatus,
+          errorDetails: undefined,
+        };
+      }
+
+      // Check Mixed Content: Insecure HTTP requests blocked within HTTPS origins
+      if (typeof window !== 'undefined' && window.location.protocol === 'https:' && resolvedUrl.startsWith('http://')) {
+        let domainTitle = resolvedUrl;
+        try { domainTitle = new URL(resolvedUrl).hostname; } catch {}
+        browserHistory.addEntry({ url: resolvedUrl, title: domainTitle });
+        return {
+          ...tab,
+          url: resolvedUrl,
+          title: domainTitle,
+          loading: false,
+          loadState: 'NETWORK_ERROR',
+          errorDetails: `Mixed Content Restriction: Modern browser security policies prevent loading unencrypted HTTP sites (${resolvedUrl}) within a secure HTTPS origin. Use HTTPS or open the site in an external window.`,
+          historyStack: newStack,
+          historyIndex: newIndex,
+          canGoBack: newIndex > 0,
+          canGoForward: false,
+          generation: newGen,
+          securityStatus: 'insecure',
         };
       }
 
@@ -153,7 +200,6 @@ export function OrionBrowser() {
           domainTitle = new URL(resolvedUrl).hostname;
         } catch {}
 
-        // Add to history
         browserHistory.addEntry({ url: resolvedUrl, title: domainTitle });
 
         return {
@@ -168,6 +214,7 @@ export function OrionBrowser() {
           canGoForward: false,
           generation: newGen,
           securityStatus,
+          errorDetails: undefined,
         };
       }
 
@@ -191,10 +238,11 @@ export function OrionBrowser() {
         canGoForward: false,
         generation: newGen,
         securityStatus,
+        errorDetails: undefined,
       };
     }));
 
-    // Simulate completion after load starts
+    // Safety timeout: stop spinner if iframe does not fire load within 12s
     setTimeout(() => {
       setTabs(prev => prev.map(tab => {
         if (tab.id === tabId && tab.loadState === 'LOADING') {
@@ -206,7 +254,7 @@ export function OrionBrowser() {
         }
         return tab;
       }));
-    }, 400);
+    }, 12000);
   }, [preferences.defaultSearchEngine]);
 
   // Tab Operations
@@ -292,6 +340,9 @@ export function OrionBrowser() {
     if (!activeTab || activeTab.historyIndex <= 0) return;
     const prevIndex = activeTab.historyIndex - 1;
     const prevUrl = activeTab.historyStack[prevIndex];
+    const isInternal = prevUrl === 'orion://newtab' || prevUrl.startsWith('/');
+    const isBlocked = isKnownBlockedDomain(prevUrl);
+    const isSecure = prevUrl.startsWith('https://');
 
     setTabs(prev => prev.map(t => {
       if (t.id !== activeTab.id) return t;
@@ -302,7 +353,10 @@ export function OrionBrowser() {
         historyIndex: prevIndex,
         canGoBack: prevIndex > 0,
         canGoForward: true,
-        loadState: prevUrl === 'orion://newtab' ? 'EMPTY_TAB' : (isKnownBlockedDomain(prevUrl) ? 'BLOCKED_EMBEDDING' : 'PAGE_LOADED'),
+        loading: !isInternal && !isBlocked,
+        loadState: isInternal ? 'EMPTY_TAB' : (isBlocked ? 'BLOCKED_EMBEDDING' : 'PAGE_LOADED'),
+        generation: (t.generation || 0) + 1,
+        securityStatus: isInternal ? 'internal' : (isSecure ? 'secure' : 'insecure'),
       };
     }));
   }, [activeTab]);
@@ -311,6 +365,9 @@ export function OrionBrowser() {
     if (!activeTab || activeTab.historyIndex >= activeTab.historyStack.length - 1) return;
     const nextIndex = activeTab.historyIndex + 1;
     const nextUrl = activeTab.historyStack[nextIndex];
+    const isInternal = nextUrl === 'orion://newtab' || nextUrl.startsWith('/');
+    const isBlocked = isKnownBlockedDomain(nextUrl);
+    const isSecure = nextUrl.startsWith('https://');
 
     setTabs(prev => prev.map(t => {
       if (t.id !== activeTab.id) return t;
@@ -321,15 +378,29 @@ export function OrionBrowser() {
         historyIndex: nextIndex,
         canGoBack: true,
         canGoForward: nextIndex < t.historyStack.length - 1,
-        loadState: nextUrl === 'orion://newtab' ? 'EMPTY_TAB' : (isKnownBlockedDomain(nextUrl) ? 'BLOCKED_EMBEDDING' : 'PAGE_LOADED'),
+        loading: !isInternal && !isBlocked,
+        loadState: nextUrl === 'orion://newtab' ? 'EMPTY_TAB' : (isBlocked ? 'BLOCKED_EMBEDDING' : 'PAGE_LOADED'),
+        generation: (t.generation || 0) + 1,
+        securityStatus: isInternal ? 'internal' : (isSecure ? 'secure' : 'insecure'),
       };
     }));
   }, [activeTab]);
 
   const handleReload = useCallback(() => {
     if (!activeTab) return;
-    navigateTab(activeTab.id, activeTab.url);
-  }, [activeTab, navigateTab]);
+    if (activeTab.url === 'orion://newtab') return;
+
+    setTabs(prev => prev.map(t => {
+      if (t.id !== activeTab.id) return t;
+      const isBlocked = isKnownBlockedDomain(t.url);
+      return {
+        ...t,
+        loading: !isBlocked,
+        loadState: isBlocked ? 'BLOCKED_EMBEDDING' : 'LOADING',
+        generation: (t.generation || 0) + 1,
+      };
+    }));
+  }, [activeTab]);
 
   const handleStop = useCallback(() => {
     setTabs(prev => prev.map(t => {
@@ -593,6 +664,13 @@ export function OrionBrowser() {
             }
             return t;
           }));
+        }}
+        onLoadComplete={() => handleLoadComplete(activeTabId)}
+        onError={(err) => handleLoadError(activeTabId, err)}
+        onOpenExternal={() => {
+          if (activeTab && activeTab.url !== 'orion://newtab') {
+            window.open(activeTab.url, '_blank', 'noopener,noreferrer');
+          }
         }}
         onRemoveHistoryItem={(id) => browserHistory.removeEntry(id)}
       />
