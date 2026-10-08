@@ -41,6 +41,17 @@ describe('ORION-9 Single Authoritative Environment & Wallpaper Invariants', () =
     expect(observedEnv).toBe(targetEnv);
 
     unsubscribe();
+
+    // Restore environment to DEMO for subsequent tests
+    if (environmentService.getOperatingEnvironment() !== 'DEMO') {
+      await environmentService.switchEnvironment({
+        targetEnvironment: 'DEMO',
+        actorUserId: 'admin-test',
+        actorRole: 'platform_admin',
+        callerType: 'human_admin',
+        stepUpConfirmed: true,
+      });
+    }
   });
 
   it('3. verifies AI Wallpaper Provider status check returns truthful state', async () => {

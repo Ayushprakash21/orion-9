@@ -120,14 +120,18 @@ describe('ORION-9 OS Shell, Login, Environment & Browser Architecture Verificati
       const engine = getBrowserEngine('WEB_EMBEDDED');
       expect(engine).toBeInstanceOf(WebBrowserEngine);
 
-      // Google, GitHub navigation attempts are NOT preemptively rejected
+      // Google, GitHub navigation attempts start in honest LOADING state without artificial domain blocklists
       const googleRes = await engine.navigate('https://google.com');
-      expect(googleRes.state).toBe('PAGE_LOADED');
+      expect(googleRes.state).toBe('LOADING');
       expect(googleRes.url).toBe('https://google.com');
+      (engine as WebBrowserEngine).notifyLoadComplete('https://google.com', 'Google');
+      expect(engine.getContentState()).toBe('PAGE_LOADED');
 
       const githubRes = await engine.navigate('https://github.com');
-      expect(githubRes.state).toBe('PAGE_LOADED');
+      expect(githubRes.state).toBe('LOADING');
       expect(githubRes.url).toBe('https://github.com');
+      (engine as WebBrowserEngine).notifyLoadComplete('https://github.com', 'GitHub');
+      expect(engine.getContentState()).toBe('PAGE_LOADED');
     });
 
     it('creates NativeBrowserEngine for NATIVE_WEBVIEW mode supporting native browsing', async () => {
