@@ -51,7 +51,6 @@ export const BrowserAddressBar: React.FC<BrowserAddressBarProps> = ({
 
   const handleFocus = () => {
     setIsFocused(true);
-    // Select all text when clicking or focusing the address bar
     setTimeout(() => {
       activeInputRef.current?.select();
     }, 10);
@@ -62,7 +61,7 @@ export const BrowserAddressBar: React.FC<BrowserAddressBarProps> = ({
   };
 
   return (
-    <div className="relative flex-1 flex items-center min-w-[200px] h-8 bg-os-bg border border-os-border focus-within:border-os-accent rounded-lg shadow-xs transition-all overflow-hidden">
+    <div className="relative flex-1 flex items-center min-w-[200px] h-8 bg-white/[0.05] backdrop-blur-md border border-white/[0.08] focus-within:border-[var(--orion-accent,#0071E3)]/60 focus-within:ring-2 focus-within:ring-[var(--orion-accent,#0071E3)]/25 rounded-[8px] shadow-[inset_0_1px_1px_rgba(0,0,0,0.15)] transition-all overflow-hidden">
       {/* Security Status Badge */}
       <div 
         className="flex items-center pl-2.5 pr-1.5 shrink-0 select-none text-xs"
@@ -77,7 +76,7 @@ export const BrowserAddressBar: React.FC<BrowserAddressBarProps> = ({
         {securityStatus === 'secure' ? (
           <Lock className="w-3.5 h-3.5 text-emerald-500" />
         ) : securityStatus === 'internal' ? (
-          <Shield className="w-3.5 h-3.5 text-os-accent" />
+          <Shield className="w-3.5 h-3.5 text-[var(--orion-accent,#0071E3)]" />
         ) : (
           <Unlock className="w-3.5 h-3.5 text-amber-500" />
         )}
@@ -95,33 +94,24 @@ export const BrowserAddressBar: React.FC<BrowserAddressBarProps> = ({
         onFocus={handleFocus}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        className="flex-1 bg-transparent text-xs text-os-text-primary placeholder:text-os-text-muted focus:outline-none px-1 py-1 selection:bg-os-accent/30"
+        className="flex-1 bg-transparent text-xs text-[var(--orion-text-primary,#F2F2EF)] placeholder:text-[var(--orion-text-muted,#747875)] focus:outline-none px-1 py-1 selection:bg-[var(--orion-accent,#0071E3)]/30"
       />
 
-      {/* Bookmark Star Toggle Button */}
+      {/* Bookmark Action */}
       <button
         type="button"
-        aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark this tab'}
+        aria-label={isBookmarked ? 'Remove bookmark' : 'Bookmark this page'}
         onClick={onToggleBookmark}
-        className={cn(
-          "px-2 py-1 text-os-text-muted hover:text-os-text-primary transition-colors cursor-pointer shrink-0 focus:outline-none",
-          isBookmarked && "text-amber-400 hover:text-amber-300"
-        )}
-        title={isBookmarked ? 'Bookmark saved (Ctrl+D)' : 'Bookmark this tab (Ctrl+D)'}
+        className="p-1.5 mr-1 rounded-[5px] text-[var(--orion-text-muted,#747875)] hover:text-amber-400 hover:bg-white/[0.08] transition-colors cursor-pointer"
+        title={isBookmarked ? 'Bookmarked' : 'Add bookmark'}
       >
-        <Star 
-          className={cn("w-3.5 h-3.5", isBookmarked && "fill-amber-400 text-amber-400")} 
-        />
+        <Star className={cn('w-3.5 h-3.5', isBookmarked && 'fill-amber-400 text-amber-400')} />
       </button>
 
       {/* Loading Progress Bar Indicator */}
       {isLoading && (
-        <div 
-          className="absolute bottom-0 left-0 right-0 h-[2px] bg-os-accent/20 overflow-hidden"
-          role="progressbar"
-          aria-label="Page loading"
-        >
-          <div className="h-full bg-os-accent animate-pulse w-full" />
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--orion-accent,#0071E3)]/20 overflow-hidden">
+          <div className="h-full bg-[var(--orion-accent,#0071E3)] animate-pulse w-2/3" />
         </div>
       )}
     </div>

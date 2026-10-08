@@ -49,7 +49,10 @@ export const BrowserToolbar: React.FC<BrowserToolbarProps> = ({
   onAskCopilot,
 }) => {
   return (
-    <div data-testid="browser-toolbar" className="flex flex-col bg-os-surface border-b border-os-border select-none">
+    <div
+      data-testid="browser-toolbar"
+      className="flex flex-col bg-white/[0.03] backdrop-blur-md border-b border-white/[0.08] select-none"
+    >
       {/* Primary Toolbar Row */}
       <div className="flex items-center gap-1.5 px-3 py-1.5">
         {/* Back Button */}
@@ -60,8 +63,8 @@ export const BrowserToolbar: React.FC<BrowserToolbarProps> = ({
           disabled={!canGoBack}
           onClick={onBack}
           className={cn(
-            "p-1.5 rounded-lg transition-colors cursor-pointer text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-hover focus:outline-none",
-            !canGoBack && "opacity-40 cursor-not-allowed hover:bg-transparent hover:text-os-text-secondary"
+            "p-1.5 rounded-[6px] transition-colors cursor-pointer text-[var(--orion-text-secondary,#A7AAA8)] hover:text-[var(--orion-text-primary,#F2F2EF)] hover:bg-white/[0.08] focus:outline-none",
+            !canGoBack && "opacity-35 cursor-not-allowed hover:bg-transparent hover:text-[var(--orion-text-secondary,#A7AAA8)]"
           )}
           title="Back (Alt+Left)"
         >
@@ -76,8 +79,8 @@ export const BrowserToolbar: React.FC<BrowserToolbarProps> = ({
           disabled={!canGoForward}
           onClick={onForward}
           className={cn(
-            "p-1.5 rounded-lg transition-colors cursor-pointer text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-hover focus:outline-none",
-            !canGoForward && "opacity-40 cursor-not-allowed hover:bg-transparent hover:text-os-text-secondary"
+            "p-1.5 rounded-[6px] transition-colors cursor-pointer text-[var(--orion-text-secondary,#A7AAA8)] hover:text-[var(--orion-text-primary,#F2F2EF)] hover:bg-white/[0.08] focus:outline-none",
+            !canGoForward && "opacity-35 cursor-not-allowed hover:bg-transparent hover:text-[var(--orion-text-secondary,#A7AAA8)]"
           )}
           title="Forward (Alt+Right)"
         >
@@ -90,7 +93,7 @@ export const BrowserToolbar: React.FC<BrowserToolbarProps> = ({
           data-testid={isLoading ? "browser-stop-btn" : "browser-reload-btn"}
           aria-label={isLoading ? "Stop loading (Esc)" : "Reload page (Ctrl+R)"}
           onClick={isLoading ? onStop : onReload}
-          className="p-1.5 rounded-lg transition-colors cursor-pointer text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-hover focus:outline-none"
+          className="p-1.5 rounded-[6px] transition-colors cursor-pointer text-[var(--orion-text-secondary,#A7AAA8)] hover:text-[var(--orion-text-primary,#F2F2EF)] hover:bg-white/[0.08] focus:outline-none"
           title={isLoading ? "Stop loading" : "Reload page (Ctrl+R)"}
         >
           {isLoading ? (
@@ -106,7 +109,7 @@ export const BrowserToolbar: React.FC<BrowserToolbarProps> = ({
           data-testid="browser-home-btn"
           aria-label="Home page"
           onClick={onHome}
-          className="p-1.5 rounded-lg transition-colors cursor-pointer text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-hover focus:outline-none"
+          className="p-1.5 rounded-[6px] transition-colors cursor-pointer text-[var(--orion-text-secondary,#A7AAA8)] hover:text-[var(--orion-text-primary,#F2F2EF)] hover:bg-white/[0.08] focus:outline-none"
           title="Open New Tab / Home"
         >
           <Home className="w-4 h-4" />
@@ -129,7 +132,7 @@ export const BrowserToolbar: React.FC<BrowserToolbarProps> = ({
           data-testid="browser-ask-copilot-btn"
           aria-label="Ask Orion Copilot about this page"
           onClick={onAskCopilot}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-os-accent/10 hover:bg-os-accent/20 border border-os-accent/30 text-os-accent hover:text-os-accent text-xs font-medium transition-colors cursor-pointer shrink-0 focus:outline-none"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] bg-[var(--orion-accent,#0071E3)]/12 hover:bg-[var(--orion-accent,#0071E3)]/20 border border-[var(--orion-accent,#0071E3)]/25 text-[var(--orion-accent,#0071E3)] text-xs font-medium transition-colors cursor-pointer shrink-0 focus:outline-none"
           title="Ask Orion Copilot"
         >
           <Sparkles className="w-3.5 h-3.5" />
@@ -141,7 +144,7 @@ export const BrowserToolbar: React.FC<BrowserToolbarProps> = ({
           type="button"
           aria-label="Browser menu"
           onClick={onOpenMenu}
-          className="p-1.5 rounded-lg transition-colors cursor-pointer text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-hover focus:outline-none"
+          className="p-1.5 rounded-[6px] transition-colors cursor-pointer text-[var(--orion-text-secondary,#A7AAA8)] hover:text-[var(--orion-text-primary,#F2F2EF)] hover:bg-white/[0.08] focus:outline-none"
           title="Customize and control Orion Browser"
         >
           <MoreVertical className="w-4 h-4" />
@@ -150,16 +153,16 @@ export const BrowserToolbar: React.FC<BrowserToolbarProps> = ({
 
       {/* Bookmarks Quick Bar (Optional Sub-row) */}
       {showBookmarksBar && bookmarks.length > 0 && (
-        <div className="flex items-center gap-1 px-3 py-1 bg-os-bg/50 border-t border-os-border/40 overflow-x-auto custom-scrollbar">
+        <div className="flex items-center gap-1 px-3 py-1 bg-black/20 border-t border-white/[0.04] overflow-x-auto">
           {bookmarks.slice(0, 8).map((bm) => (
             <button
               key={bm.id}
               type="button"
               onClick={() => onNavigate(bm.url)}
-              className="flex items-center gap-1.5 px-2 py-0.5 rounded-md hover:bg-os-surface-hover text-[11px] text-os-text-muted hover:text-os-text-primary truncate max-w-[150px] transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-[4px] hover:bg-white/[0.08] text-[11px] text-[var(--orion-text-muted,#747875)] hover:text-[var(--orion-text-primary,#F2F2EF)] truncate max-w-[150px] transition-colors cursor-pointer"
               title={`${bm.title} (${bm.url})`}
             >
-              <BookmarkIcon className="w-3 h-3 text-os-accent/70 shrink-0" />
+              <BookmarkIcon className="w-3 h-3 text-[var(--orion-accent,#0071E3)]/70 shrink-0" />
               <span className="truncate">{bm.title}</span>
             </button>
           ))}

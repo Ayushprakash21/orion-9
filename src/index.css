@@ -175,10 +175,10 @@
   --orion-chart-4: #B07DA3;
   --orion-chart-5: #6DBAB0;
 
-  /* Desktop Icon Label & Dock Tokens (Enterprise Cream Foundation) */
+  /* Desktop Icon Label & Dock Tokens (Translucent Liquid Glass Foundation) */
   --orion-desktop-icon-label: #F3EBDD;
-  --orion-dock-bg: rgba(241, 236, 226, 0.94);
-  --orion-dock-border: rgba(70, 65, 55, 0.16);
+  --orion-dock-bg: rgba(22, 25, 29, 0.72);
+  --orion-dock-border: rgba(255, 255, 255, 0.12);
   --orion-dock-shadow: 0 20px 48px rgba(0, 0, 0, 0.45);
 
   /* Canonical Morphic Foundation Defaults (Glassmorphism Default) */

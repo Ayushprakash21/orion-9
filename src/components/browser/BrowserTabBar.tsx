@@ -20,12 +20,12 @@ export const BrowserTabBar: React.FC<BrowserTabBarProps> = ({
 }) => {
   return (
     <div 
-      className="flex items-center gap-1 px-2 pt-2 pb-0 bg-os-surface border-b border-os-border select-none overflow-x-auto custom-scrollbar"
+      className="flex items-center gap-1 px-2 pt-1.5 pb-0 bg-white/[0.02] border-b border-white/[0.08] select-none overflow-x-auto"
       role="tablist"
       aria-label="Orion Browser tabs"
       data-testid="browser-tab-bar"
     >
-      <div className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto custom-scrollbar">
+      <div className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto">
         {tabs.map((tab, index) => {
           const isActive = tab.id === activeTabId;
           return (
@@ -50,26 +50,26 @@ export const BrowserTabBar: React.FC<BrowserTabBarProps> = ({
                 }
               }}
               className={cn(
-                "group relative flex items-center gap-2 px-3 py-1.5 rounded-t-lg text-xs font-medium max-w-[200px] min-w-[120px] cursor-pointer transition-all border-t border-x",
+                "group relative flex items-center gap-2 px-3 py-1.5 rounded-t-[7px] text-xs font-medium max-w-[200px] min-w-[120px] cursor-pointer transition-all border-t border-x",
                 isActive
-                  ? "bg-os-bg text-os-text-primary border-os-border shadow-xs z-10 -mb-[1px] pb-2"
-                  : "bg-os-surface-hover/40 hover:bg-os-surface-hover text-os-text-muted hover:text-os-text-secondary border-transparent"
+                  ? "bg-white/[0.07] text-[var(--orion-text-primary,#F2F2EF)] border-white/[0.10] shadow-xs z-10 -mb-[1px] pb-2"
+                  : "bg-transparent hover:bg-white/[0.04] text-[var(--orion-text-muted,#747875)] hover:text-[var(--orion-text-primary,#F2F2EF)] border-transparent"
               )}
               title={`${tab.title} (${tab.url})`}
             >
               {/* Tab Icon / Spinner */}
               <div className="shrink-0">
                 {tab.loading ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-os-accent" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--orion-accent,#0071E3)]" />
                 ) : tab.favicon ? (
-                  <img src={tab.favicon} alt="" className="w-3.5 h-3.5 rounded-xs" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
+                  <img src={tab.favicon} alt="" className="w-3.5 h-3.5 rounded-[2px]" onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }} />
                 ) : (
-                  <Globe className="w-3.5 h-3.5 text-os-text-muted" />
+                  <Globe className="w-3.5 h-3.5 text-[var(--orion-text-muted,#747875)]" />
                 )}
               </div>
 
               {/* Tab Title */}
-              <span className="truncate flex-1 text-left">
+              <span className="truncate flex-1 text-left text-[12px]">
                 {tab.title || 'New Tab'}
               </span>
 
@@ -83,7 +83,7 @@ export const BrowserTabBar: React.FC<BrowserTabBarProps> = ({
                   onCloseTab(tab.id, e);
                 }}
                 className={cn(
-                  "p-0.5 rounded-sm hover:bg-os-surface-active text-os-text-muted hover:text-os-text-primary transition-colors opacity-70 group-hover:opacity-100",
+                  "p-0.5 rounded-[3px] hover:bg-white/10 text-[var(--orion-text-muted,#747875)] hover:text-white transition-colors opacity-70 group-hover:opacity-100",
                   tabs.length === 1 && "opacity-40 hover:opacity-100"
                 )}
               >
@@ -98,10 +98,10 @@ export const BrowserTabBar: React.FC<BrowserTabBarProps> = ({
       <button
         type="button"
         data-testid="browser-new-tab-btn"
-        aria-label="New tab (Ctrl+T)"
+        aria-label="New Tab (Ctrl+T)"
         onClick={onNewTab}
-        className="p-1.5 rounded-lg hover:bg-os-surface-hover text-os-text-muted hover:text-os-text-primary transition-colors cursor-pointer shrink-0 ml-1"
-        title="New tab (Ctrl+T)"
+        className="p-1.5 rounded-[5px] text-[var(--orion-text-muted,#747875)] hover:text-[var(--orion-text-primary,#F2F2EF)] hover:bg-white/[0.06] transition-colors cursor-pointer mb-1 focus:outline-none"
+        title="New Tab (Ctrl+T)"
       >
         <Plus className="w-4 h-4" />
       </button>

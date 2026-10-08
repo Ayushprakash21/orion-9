@@ -9,6 +9,7 @@ import { ORION_REGISTRY } from '../OrionApplicationRegistry';
 import { useI18n } from '../../store/LanguageContext';
 import { useSupplyChain } from '../../store/SupplyChainContext';
 import { cn } from '../../lib/utils';
+import { LiquidGlass } from '../../design-system/LiquidGlass';
 
 interface OrionSystemMenuProps {
   onClose: () => void;
@@ -28,7 +29,7 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
 
   useEffect(() => {
     if (menuRef.current) {
-      menuRef.current.classList.add('animate-in', 'fade-in', 'slide-in-from-top-2');
+      menuRef.current.classList.add('animate-in', 'fade-in', 'slide-in-from-top-1.5');
     }
   }, []);
 
@@ -52,40 +53,41 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
   };
 
   return (
-    <div 
+    <LiquidGlass 
       ref={menuRef}
-      className="w-64 bg-os-surface/95 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_25px_50px_-12px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.02)] py-1.5 text-[13px] font-sans overflow-hidden origin-top-left"
+      tier="menu"
+      className="w-64 rounded-[10px] p-1.5 text-[12px] font-sans overflow-hidden origin-top-left shadow-[0_16px_40px_rgba(0,0,0,0.42)]"
     >
       <button 
         onClick={() => handleAction(() => openApplication('executive-overview'))}
-        className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors font-medium cursor-pointer flex items-center justify-between"
+        className="w-full text-left px-2.5 py-1 hover:bg-white/[0.08] active:bg-white/[0.12] text-[var(--orion-text-primary,#F2F2EF)] transition-colors font-medium cursor-pointer flex items-center justify-between rounded-[5px]"
       >
         <span>Executive Command Center</span>
-        <span className="text-[10px] font-mono text-[#39C77A] px-1.5 py-0.2 rounded bg-[#39C77A]/10 border border-[#39C77A]/30">C3</span>
+        <span className="text-[9px] font-mono text-[#39C77A] px-1.5 py-0.2 rounded bg-[#39C77A]/10 border border-[#39C77A]/30">C3</span>
       </button>
 
       <button 
         onClick={() => handleAction(() => openApplication('about'))}
-        className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors font-medium cursor-pointer"
+        className="w-full text-left px-2.5 py-1 hover:bg-white/[0.08] active:bg-white/[0.12] text-[var(--orion-text-primary,#F2F2EF)] transition-colors font-medium cursor-pointer rounded-[5px]"
       >
         {t('desktop.aboutOrion')}
       </button>
       
       {/* Operating UX Mode Switcher */}
-      <div className="px-4 py-2 bg-white/[0.02] border-y border-white/[0.04]">
-        <div className="text-[10px] font-mono text-os-text-muted uppercase tracking-wider mb-1.5 flex justify-between items-center">
+      <div className="px-2.5 py-1.5 bg-white/[0.02] border-y border-white/[0.04] my-1 rounded-[6px]">
+        <div className="text-[10px] font-mono text-[var(--orion-text-muted,#747875)] uppercase tracking-wider mb-1 flex justify-between items-center">
           <span>Operating Mode</span>
-          <span className={cn("font-bold text-[10px]", settings.userExperienceMode === 'ADVANCED' ? "text-purple-400" : "text-emerald-400")}>
+          <span className={cn("font-semibold text-[10px]", settings.userExperienceMode === 'ADVANCED' ? "text-purple-400" : "text-emerald-400")}>
             {settings.userExperienceMode === 'ADVANCED' ? 'ADVANCED SCM' : 'SIMPLE MODE'}
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-1 p-0.5 bg-black/40 rounded-lg border border-os-border text-[11px] font-mono">
+        <div className="grid grid-cols-2 gap-1 p-0.5 bg-black/40 rounded-[6px] border border-white/[0.06] text-[11px] font-mono">
           <button
             type="button"
             onClick={() => handleAction(() => updateSettings({ userExperienceMode: 'SIMPLE' }))}
             className={cn(
-              "px-2 py-1 rounded-md transition-all cursor-pointer text-center font-medium",
-              settings.userExperienceMode !== 'ADVANCED' ? "bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30" : "text-os-text-muted hover:text-white"
+              "px-2 py-0.5 rounded-[4px] transition-all cursor-pointer text-center font-medium",
+              settings.userExperienceMode !== 'ADVANCED' ? "bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30" : "text-[var(--orion-text-muted,#747875)] hover:text-white"
             )}
           >
             Simple
@@ -94,8 +96,8 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
             type="button"
             onClick={() => handleAction(() => updateSettings({ userExperienceMode: 'ADVANCED' }))}
             className={cn(
-              "px-2 py-1 rounded-md transition-all cursor-pointer text-center font-medium",
-              settings.userExperienceMode === 'ADVANCED' ? "bg-purple-500/20 text-purple-400 font-bold border border-purple-500/30" : "text-os-text-muted hover:text-white"
+              "px-2 py-0.5 rounded-[4px] transition-all cursor-pointer text-center font-medium",
+              settings.userExperienceMode === 'ADVANCED' ? "bg-purple-500/20 text-purple-400 font-semibold border border-purple-500/30" : "text-[var(--orion-text-muted,#747875)] hover:text-white"
             )}
           >
             Advanced
@@ -103,52 +105,52 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
         </div>
       </div>
       
-      <div className="h-px bg-white/[0.06] my-1.5 mx-2" />
+      <div className="h-px bg-white/[0.06] my-1 mx-1.5" />
       
       <button 
         onClick={() => handleAction(() => setLauncherOpen(true))}
-        className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors flex items-center justify-between cursor-pointer"
+        className="w-full text-left px-2.5 py-1 hover:bg-white/[0.08] active:bg-white/[0.12] text-[var(--orion-text-primary,#F2F2EF)] transition-colors flex items-center justify-between cursor-pointer rounded-[5px]"
       >
         <span>{t('desktop.applications')}</span>
-        <kbd className="text-[10px] font-mono text-slate-500 bg-os-surface-hover px-1.5 py-0.5 rounded border border-os-border">F4</kbd>
+        <kbd className="text-[10px] font-mono text-white/50 bg-white/[0.06] px-1.5 py-0.5 rounded border border-white/10">F4</kbd>
       </button>
 
       {/* Recent Applications sub-menu */}
-      <div className="relative group w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors flex items-center justify-between cursor-default">
+      <div className="relative group w-full text-left px-2.5 py-1 hover:bg-white/[0.08] text-[var(--orion-text-primary,#F2F2EF)] transition-colors flex items-center justify-between cursor-default rounded-[5px]">
         <span>{t('desktop.recentApplications')}</span>
         <ChevronRight className="w-3.5 h-3.5 opacity-50" />
         
         {/* Sub-menu (appears on hover) */}
-        <div className="absolute top-0 left-[100%] w-48 bg-os-surface/95 backdrop-blur-2xl border border-os-border rounded-xl shadow-2xl py-1.5 hidden group-hover:block ml-1">
+        <div className="absolute top-0 left-[100%] w-48 bg-black/85 backdrop-blur-2xl border border-white/10 rounded-[8px] shadow-2xl py-1 hidden group-hover:block ml-1">
           {recentApps.length > 0 ? (
             recentApps.map(app => (
               <button 
                 key={app.id}
                 onClick={(e) => { e.stopPropagation(); handleApp(app.id); }}
-                className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors flex items-center gap-2 cursor-pointer"
+                className="w-full text-left px-2.5 py-1 hover:bg-white/[0.08] text-[var(--orion-text-primary,#F2F2EF)] transition-colors flex items-center gap-2 cursor-pointer rounded-[4px]"
               >
                 <app.icon className="w-3.5 h-3.5" style={{ color: app.color }} />
                 <span className="truncate">{app.name}</span>
               </button>
             ))
           ) : (
-            <div className="px-4 py-1.5 text-slate-500 text-xs italic">{t('desktop.noRecentApplications')}</div>
+            <div className="px-2.5 py-1 text-white/40 text-[11px] italic">{t('desktop.noRecentApplications')}</div>
           )}
         </div>
       </div>
 
-      <div className="h-px bg-white/[0.06] my-1.5 mx-2" />
+      <div className="h-px bg-white/[0.06] my-1 mx-1.5" />
 
       <button 
         onClick={() => handleAction(() => openApplication('settings'))}
-        className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors cursor-pointer"
+        className="w-full text-left px-2.5 py-1 hover:bg-white/[0.08] active:bg-white/[0.12] text-[var(--orion-text-primary,#F2F2EF)] transition-colors cursor-pointer rounded-[5px]"
       >
         {t('desktop.systemSettings')}...
       </button>
 
       <button 
         onClick={() => handleAction(() => openApplication('observability'))}
-        className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors cursor-pointer"
+        className="w-full text-left px-2.5 py-1 hover:bg-white/[0.08] active:bg-white/[0.12] text-[var(--orion-text-primary,#F2F2EF)] transition-colors cursor-pointer rounded-[5px]"
       >
         {t('desktop.activityMonitor')}...
       </button>
@@ -165,29 +167,29 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
               'Close All'
             );
           })}
-          className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors flex items-center gap-2 cursor-pointer"
+          className="w-full text-left px-2.5 py-1 hover:bg-white/[0.08] active:bg-white/[0.12] text-[var(--orion-text-primary,#F2F2EF)] transition-colors flex items-center gap-2 cursor-pointer rounded-[5px]"
         >
-          <XSquare className="w-3.5 h-3.5 text-os-text-muted" />
+          <XSquare className="w-3.5 h-3.5 text-[var(--orion-text-muted,#747875)]" />
           <span>{t('desktop.closeAllWindows')}</span>
         </button>
       )}
 
-      <div className="h-px bg-white/[0.06] my-1.5 mx-2" />
+      <div className="h-px bg-white/[0.06] my-1 mx-1.5" />
 
       <button 
         onClick={() => handleAction(() => triggerLock())}
-        className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors flex items-center justify-between cursor-pointer"
+        className="w-full text-left px-2.5 py-1 hover:bg-white/[0.08] active:bg-white/[0.12] text-[var(--orion-text-primary,#F2F2EF)] transition-colors flex items-center justify-between cursor-pointer rounded-[5px]"
       >
         <span>{t('desktop.lockWorkstation')}</span>
-        <div className="flex gap-1 text-[10px] font-mono text-slate-500">
-          <kbd className="bg-os-surface-hover px-1 py-0.5 rounded border border-os-border">⌘</kbd>
-          <kbd className="bg-os-surface-hover px-1 py-0.5 rounded border border-os-border">L</kbd>
+        <div className="flex gap-1 text-[10px] font-mono text-white/50">
+          <kbd className="bg-white/[0.06] px-1 py-0.5 rounded border border-white/10">⌘</kbd>
+          <kbd className="bg-white/[0.06] px-1 py-0.5 rounded border border-white/10">L</kbd>
         </div>
       </button>
 
       <button 
         onClick={() => handleAction(() => triggerSleep())}
-        className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors cursor-pointer"
+        className="w-full text-left px-2.5 py-1 hover:bg-white/[0.08] active:bg-white/[0.12] text-[var(--orion-text-primary,#F2F2EF)] transition-colors cursor-pointer rounded-[5px]"
       >
         {t('desktop.sleep')}
       </button>
@@ -201,20 +203,20 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
             'Restart'
           );
         })}
-        className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors cursor-pointer"
+        className="w-full text-left px-2.5 py-1 hover:bg-white/[0.08] active:bg-white/[0.12] text-[var(--orion-text-primary,#F2F2EF)] transition-colors cursor-pointer rounded-[5px]"
       >
         {t('auth.restart')}...
       </button>
 
-      <div className="h-px bg-white/[0.06] my-1.5 mx-2" />
+      <div className="h-px bg-white/[0.06] my-1 mx-1.5" />
       
       <button 
         onClick={() => handleAction(() => logout())}
-        className="w-full text-left px-4 py-1.5 hover:bg-os-surface-hover hover:text-os-text-primary text-os-text-primary transition-colors cursor-pointer"
+        className="w-full text-left px-2.5 py-1 hover:bg-white/[0.08] active:bg-white/[0.12] text-[var(--orion-text-primary,#F2F2EF)] transition-colors cursor-pointer rounded-[5px]"
       >
         {t('auth.signOut')} {currentUser?.displayName || 'User'}...
       </button>
 
-    </div>
+    </LiquidGlass>
   );
 }

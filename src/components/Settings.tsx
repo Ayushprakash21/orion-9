@@ -950,56 +950,56 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
   };
 
   return (
-    <div className="flex flex-col md:flex-row w-full h-full bg-[var(--orion-bg,#0c0e11)] text-[var(--orion-text-primary,#fff)] overflow-hidden font-sans select-none">
-      {/* ─── LEFT SIDEBAR ─── */}
-      <div className="w-full md:w-[230px] max-h-[35vh] md:max-h-full shrink-0 bg-[var(--orion-surface-elevated)] border-b md:border-b-0 md:border-r border-[var(--orion-border)] flex flex-col">
+    <div className="flex flex-col md:flex-row w-full h-full bg-transparent text-[var(--orion-text-primary,#fff)] overflow-hidden font-sans select-none">
+      {/* ─── LEFT SIDEBAR (macOS System Settings Style) ─── */}
+      <div className="w-full md:w-[230px] max-h-[35vh] md:max-h-full shrink-0 bg-white/[0.03] backdrop-blur-xl border-b md:border-b-0 md:border-r border-white/[0.08] flex flex-col">
         {/* Search */}
-        <div className="p-3 border-b border-[var(--orion-border)] sticky top-0 z-10 bg-[var(--orion-surface-elevated)]">
+        <div className="p-3 border-b border-white/[0.06] sticky top-0 z-10 bg-black/10 backdrop-blur-md">
           <div className="relative">
-            <Search className="absolute left-2.5 top-2 text-[var(--orion-text-muted)]" size={14} />
+            <Search className="absolute left-2.5 top-2 text-[var(--orion-text-muted,#747875)]" size={13} />
             <input 
               type="text" 
               placeholder="Search Settings" 
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-md pl-7.5 pr-2.5 py-1 text-[12px] text-[var(--orion-text-primary)] placeholder:text-[var(--orion-text-muted)] focus:outline-none focus:border-[var(--orion-accent)] transition-colors"
+              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-[6px] pl-7.5 pr-2.5 py-1 text-[12px] text-[var(--orion-text-primary,#F2F2EF)] placeholder:text-[var(--orion-text-muted,#747875)] focus:outline-none focus:border-[var(--orion-accent,#0071E3)]/60 focus:ring-1 focus:ring-[var(--orion-accent,#0071E3)]/30 transition-colors"
             />
           </div>
         </div>
 
         {/* User Badge */}
-        <div className="p-3 border-b border-[var(--orion-border)] flex items-center gap-2.5 bg-[var(--orion-surface-hover)]">
-          <div className="w-8 h-8 rounded-full overflow-hidden bg-[var(--orion-surface)] flex items-center justify-center shrink-0 border border-[var(--orion-border)]">
+        <div className="p-3 border-b border-white/[0.06] flex items-center gap-2.5 bg-white/[0.02]">
+          <div className="w-8 h-8 rounded-full overflow-hidden bg-white/[0.06] flex items-center justify-center shrink-0 border border-white/[0.08]">
             {avatarUrl ? (
               <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
             ) : (
-              <User size={15} className="text-[var(--orion-text-secondary)]" />
+              <User size={15} className="text-[var(--orion-text-secondary,#A7AAA8)]" />
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[12px] font-medium text-[var(--orion-text-primary)] truncate">{profile?.fullName || 'Administrator'}</div>
-            <div className="text-[10px] text-[var(--orion-accent)] font-mono truncate uppercase tracking-wider">{profile?.role?.replace('_', ' ') || 'Platform Admin'}</div>
+            <div className="text-[12px] font-medium text-[var(--orion-text-primary,#F2F2EF)] truncate">{profile?.fullName || 'Administrator'}</div>
+            <div className="text-[10px] text-[var(--orion-accent,#0071E3)] font-mono truncate uppercase tracking-wider">{profile?.role?.replace('_', ' ') || 'Platform Admin'}</div>
           </div>
         </div>
         
         {/* Navigation List */}
-        <div className="flex-1 overflow-y-auto p-2.5 space-y-3 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-2 space-y-3 custom-scrollbar">
           {/* USER & SYSTEM SECTIONS */}
           <div>
-            <div className="px-2 mb-1 text-[10px] font-semibold tracking-wider uppercase text-[var(--orion-text-muted)]">System Preferences</div>
+            <div className="px-2 mb-1 text-[10px] font-semibold tracking-wider uppercase text-[var(--orion-text-muted,#747875)]">System Preferences</div>
             <div className="space-y-0.5">
               {filteredNav.map(item => (
                 <button
                   key={item.id}
                   onClick={() => setActiveSection(item.id as SettingsSection)}
                   className={cn(
-                    "w-full flex items-center gap-2.5 px-2.5 h-[32px] rounded-md text-[13px] font-medium transition-colors text-left cursor-pointer",
+                    "w-full flex items-center gap-2.5 px-2.5 h-[30px] rounded-[6px] text-[12px] font-medium transition-colors text-left cursor-pointer",
                     activeSection === item.id 
-                      ? "bg-[var(--orion-accent-soft)] text-[var(--orion-text-primary)] font-medium border border-[var(--orion-border-strong)]" 
-                      : "text-[var(--orion-text-secondary)] hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] border border-transparent"
+                      ? "bg-[var(--orion-accent,#0071E3)]/15 text-[var(--orion-text-primary,#F2F2EF)] border border-[var(--orion-accent,#0071E3)]/30 shadow-xs" 
+                      : "text-[var(--orion-text-secondary,#A7AAA8)] hover:bg-white/[0.06] hover:text-[var(--orion-text-primary,#F2F2EF)] border border-transparent"
                   )}
                 >
-                  <item.icon size={15} className={activeSection === item.id ? "text-[var(--orion-accent)]" : "text-[var(--orion-text-muted)]"} /> 
+                  <item.icon size={14} className={activeSection === item.id ? "text-[var(--orion-accent,#0071E3)]" : "text-[var(--orion-text-muted,#747875)]"} /> 
                   <span className="truncate">{item.label}</span>
                 </button>
               ))}
@@ -1009,20 +1009,20 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
           {/* ADMINISTRATION SECTIONS */}
           {isAdmin && filteredAdminNav.length > 0 && (
             <div>
-              <div className="px-2 mb-1 text-[10px] font-semibold tracking-wider uppercase text-[var(--orion-text-muted)]">Administration</div>
+              <div className="px-2 mb-1 text-[10px] font-semibold tracking-wider uppercase text-[var(--orion-text-muted,#747875)]">Administration</div>
               <div className="space-y-0.5">
                 {filteredAdminNav.map(item => (
                   <button
                     key={item.id}
                     onClick={() => setActiveSection(item.id as SettingsSection)}
                     className={cn(
-                      "w-full flex items-center gap-2.5 px-2.5 h-[32px] rounded-md text-[13px] font-medium transition-colors text-left cursor-pointer",
+                      "w-full flex items-center gap-2.5 px-2.5 h-[30px] rounded-[6px] text-[12px] font-medium transition-colors text-left cursor-pointer",
                       activeSection === item.id 
-                        ? "bg-[var(--orion-accent-soft)] text-[var(--orion-text-primary)] font-medium border border-[var(--orion-border-strong)]" 
-                        : "text-[var(--orion-text-secondary)] hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] border border-transparent"
+                        ? "bg-[var(--orion-accent,#0071E3)]/15 text-[var(--orion-text-primary,#F2F2EF)] border border-[var(--orion-accent,#0071E3)]/30 shadow-xs" 
+                        : "text-[var(--orion-text-secondary,#A7AAA8)] hover:bg-white/[0.06] hover:text-[var(--orion-text-primary,#F2F2EF)] border border-transparent"
                     )}
                   >
-                    <item.icon size={15} className={activeSection === item.id ? "text-emerald-400" : "text-[var(--orion-text-muted)]"} /> 
+                    <item.icon size={14} className={activeSection === item.id ? "text-emerald-400" : "text-[var(--orion-text-muted,#747875)]"} /> 
                     <span className="truncate">{item.label}</span>
                   </button>
                 ))}
@@ -1033,18 +1033,18 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
       </div>
 
       {/* ─── MAIN CONTENT PANEL (FULL DESKTOP SPAN, TWO-PANE SPLIT) ─── */}
-      <div className="flex-1 flex flex-col overflow-hidden relative bg-[var(--orion-bg,#0c0e11)] w-full min-w-0 h-full">
+      <div className="flex-1 flex flex-col overflow-hidden relative bg-transparent w-full min-w-0 h-full">
         <div className="flex-1 overflow-y-auto overflow-x-hidden relative flex flex-col min-h-0 custom-scrollbar pb-16 sm:pb-20">
           {renderSectionContent()}
         </div>
         
         {/* Compact Footer Action Bar for non-admin sections */}
         {!isAdminSection && (
-          <div className="px-4 py-2.5 sm:px-6 sm:py-3 border-t border-[var(--orion-border,rgba(255,255,255,0.08))] bg-[var(--orion-surface,#12151a)]/95 backdrop-blur-xl shrink-0 flex items-center justify-between z-20 text-xs">
-            <span className="text-[11px] text-[var(--orion-text-muted,#94a3b8)] font-mono">
-              Environment: <strong className="text-[var(--orion-text-primary,#e2e8f0)]">{dataMode === 'real' ? 'LIVE' : 'DEMO'}</strong>
+          <div className="px-4 py-2 sm:px-6 sm:py-2.5 border-t border-white/[0.08] bg-black/30 backdrop-blur-xl shrink-0 flex items-center justify-between z-20 text-xs">
+            <span className="text-[11px] text-[var(--orion-text-muted,#747875)] font-mono">
+              Environment: <strong className="text-[var(--orion-text-primary,#F2F2EF)]">{dataMode === 'real' ? 'LIVE' : 'DEMO'}</strong>
             </span>
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 sm:gap-2.5">
               {saveError && (
                 <span className="text-rose-400 text-xs font-semibold flex items-center gap-1 mr-1 animate-in fade-in">
                   Failed to save
@@ -1058,7 +1058,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
               <button 
                 onClick={handleResetSettings}
                 type="button"
-                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-[var(--orion-text-secondary,#cbd5e1)] border border-[var(--orion-border,rgba(255,255,255,0.08))] rounded-xl hover:bg-[var(--orion-surface-hover,rgba(255,255,255,0.06))] hover:text-[var(--orion-text-primary,#ffffff)] transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-[var(--orion-text-secondary,#A7AAA8)] border border-white/[0.08] bg-white/[0.04] rounded-[6px] hover:bg-white/[0.08] hover:text-white transition-colors cursor-pointer"
               >
                 <RotateCcw size={12} /> Reset
               </button>
@@ -1066,7 +1066,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
                 onClick={handleSaveSettings}
                 disabled={isSaving}
                 type="button"
-                className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-semibold text-[var(--orion-bg,#0B0D0F)] bg-[var(--orion-accent,#D8DDE3)] hover:opacity-90 rounded-xl disabled:opacity-50 transition-all cursor-pointer shadow-sm"
+                className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-white bg-[var(--orion-accent,#0071E3)] hover:brightness-105 rounded-[6px] disabled:opacity-40 transition-all cursor-pointer shadow-xs"
               >
                 <Save size={13} />
                 {isSaving ? 'Saving...' : 'Apply Changes'}

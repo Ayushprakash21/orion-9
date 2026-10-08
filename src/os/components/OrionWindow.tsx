@@ -475,12 +475,13 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
       onPointerDown={() => focusApplication(win.id)}
       style={windowStyles}
       className={cn(
-        "orion-window-surface flex flex-col text-os-text-primary overflow-hidden select-text pointer-events-auto",
+        "orion-window-surface flex flex-col text-os-text-primary overflow-hidden select-text pointer-events-auto transition-opacity duration-150",
         isMinimized && "pointer-events-none",
         isMaximized 
           ? "rounded-none border-none shadow-none bg-[var(--orion-surface,#0c0e11)]" 
-          : "rounded-xl border border-[var(--orion-morph-border,rgba(255,255,255,0.08))] bg-[var(--orion-morph-surface,rgba(18,20,23,0.72))] backdrop-blur-[var(--orion-morph-blur,14px)] shadow-[var(--orion-morph-shadow,0_12px_36px_rgba(0,0,0,0.5))]",
-        isActive && !isMaximized && "border-[var(--orion-morph-border-strong,rgba(255,255,255,0.18))] shadow-[var(--orion-morph-shadow-deep,0_20px_50px_rgba(0,0,0,0.7))]"
+          : "rounded-[14px] border border-white/[0.08] bg-[var(--orion-morph-surface,rgba(18,20,23,0.78))] backdrop-blur-[20px] backdrop-saturate-[140%] shadow-[0_16px_40px_rgba(0,0,0,0.35)]",
+        isActive && !isMaximized && "border-white/[0.14] shadow-[0_24px_64px_rgba(0,0,0,0.50),inset_0_1px_0_0_rgba(255,255,255,0.12)] opacity-100",
+        !isActive && !isMaximized && "opacity-95"
       )}
     >
       {/* Title Bar / Chrome */}
@@ -502,16 +503,14 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
         }}
         style={{
           backgroundColor: 'var(--orion-surface-elevated, #080a0d)',
-          opacity: 1,
-          backgroundImage: 'none',
-          backdropFilter: 'none',
-          WebkitBackdropFilter: 'none',
+          backdropFilter: isMaximized ? 'none' : 'blur(16px)',
+          WebkitBackdropFilter: isMaximized ? 'none' : 'blur(16px)',
           mixBlendMode: 'normal',
           isolation: 'isolate',
         }}
         className={cn(
-          "orion-window-titlebar h-[38px] bg-[var(--orion-surface-elevated)] border-b border-[var(--orion-border)] px-3.5 flex items-center justify-between select-none relative z-20 cursor-default",
-          isActive ? "text-[var(--orion-text-primary)]" : "text-[var(--orion-text-muted)]"
+          "orion-window-titlebar h-[38px] border-b border-white/[0.06] px-3.5 flex items-center justify-between select-none relative z-20 cursor-default",
+          isActive ? "text-[var(--orion-text-primary)]" : "text-[var(--orion-text-muted)] opacity-80"
         )}
       >
         {/* Left Section: Either Traffic-Light Controls + App Identity OR Just App Identity */}

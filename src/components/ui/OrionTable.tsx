@@ -42,10 +42,15 @@ export function OrionTable<T>({
   className,
 }: OrionTableProps<T>) {
   return (
-    <div className={cn('w-full overflow-x-auto rounded-xl border border-os-border bg-os-surface shadow-xs', className)}>
-      <table className="w-full text-left border-collapse text-os-text-primary text-xs sm:text-sm select-text">
+    <div
+      className={cn(
+        'w-full overflow-x-auto rounded-[10px] border border-white/[0.08] bg-white/[0.03] backdrop-blur-md shadow-[0_4px_16px_rgba(0,0,0,0.15)]',
+        className
+      )}
+    >
+      <table className="w-full text-left border-collapse text-[var(--orion-text-primary,#F2F2EF)] text-xs select-text">
         <thead>
-          <tr className="border-b border-os-border bg-os-surface-secondary/90 font-semibold text-os-text-muted uppercase tracking-wider text-[11px]">
+          <tr className="border-b border-white/[0.06] bg-white/[0.03] text-[var(--orion-text-muted,#747875)] text-[11px] font-medium tracking-tight">
             {columns.map((col) => {
               const isSorted = sortColumn === col.key;
               return (
@@ -53,22 +58,33 @@ export function OrionTable<T>({
                   key={col.key}
                   style={{ width: col.width }}
                   className={cn(
-                    'px-4 py-3 font-semibold transition-colors',
+                    'px-3.5 py-2.5 font-medium transition-colors',
                     col.align === 'center' && 'text-center',
                     col.align === 'right' && 'text-right',
-                    col.sortable && 'cursor-pointer hover:text-os-text-primary select-none',
+                    col.sortable &&
+                      'cursor-pointer hover:text-[var(--orion-text-primary,#F2F2EF)] select-none',
                     col.className
                   )}
                   onClick={() => col.sortable && onSort?.(col.key)}
                 >
-                  <div className={cn('flex items-center gap-1.5', col.align === 'center' && 'justify-center', col.align === 'right' && 'justify-end')}>
+                  <div
+                    className={cn(
+                      'flex items-center gap-1.5',
+                      col.align === 'center' && 'justify-center',
+                      col.align === 'right' && 'justify-end'
+                    )}
+                  >
                     <span>{col.header}</span>
                     {col.sortable && (
-                      <span className="shrink-0 text-os-text-muted">
+                      <span className="shrink-0 text-[var(--orion-text-muted,#747875)]">
                         {isSorted ? (
-                          sortDirection === 'asc' ? <ChevronUp className="w-3.5 h-3.5 text-os-accent" /> : <ChevronDown className="w-3.5 h-3.5 text-os-accent" />
+                          sortDirection === 'asc' ? (
+                            <ChevronUp className="w-3 h-3 text-[var(--orion-accent,#0071E3)]" />
+                          ) : (
+                            <ChevronDown className="w-3 h-3 text-[var(--orion-accent,#0071E3)]" />
+                          )
                         ) : (
-                          <ArrowUpDown className="w-3.5 h-3.5 opacity-40 hover:opacity-100" />
+                          <ArrowUpDown className="w-3 h-3 opacity-30 hover:opacity-100" />
                         )}
                       </span>
                     )}
@@ -78,19 +94,22 @@ export function OrionTable<T>({
             })}
           </tr>
         </thead>
-        <tbody className="divide-y divide-os-border/60">
+        <tbody className="divide-y divide-white/[0.04]">
           {loading ? (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-12 text-center text-os-text-muted">
+              <td colSpan={columns.length} className="px-4 py-12 text-center text-[var(--orion-text-muted,#747875)]">
                 <div className="flex flex-col items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-2 border-os-accent border-t-transparent rounded-full animate-spin" />
-                  <span className="text-xs font-medium">Loading data...</span>
+                  <div className="w-4 h-4 border-2 border-[var(--orion-accent,#0071E3)] border-t-transparent rounded-full animate-spin" />
+                  <span className="text-[11px] font-medium">Loading data...</span>
                 </div>
               </td>
             </tr>
           ) : data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-12 text-center text-os-text-muted text-xs font-medium">
+              <td
+                colSpan={columns.length}
+                className="px-4 py-10 text-center text-[var(--orion-text-muted,#747875)] text-xs font-medium"
+              >
                 {emptyText}
               </td>
             </tr>
@@ -103,9 +122,11 @@ export function OrionTable<T>({
                   key={key}
                   onClick={() => onRowClick?.(row)}
                   className={cn(
-                    'transition-colors font-mono-data text-xs',
-                    striped && !isEven ? 'bg-os-surface-secondary/40' : 'bg-os-surface',
-                    onRowClick ? 'cursor-pointer hover:bg-os-surface-hover/80 active:bg-os-surface-active/60' : 'hover:bg-os-surface-hover/40'
+                    'transition-colors text-xs',
+                    striped && !isEven ? 'bg-white/[0.015]' : 'bg-transparent',
+                    onRowClick
+                      ? 'cursor-pointer hover:bg-white/[0.06] active:bg-white/[0.09]'
+                      : 'hover:bg-white/[0.03]'
                   )}
                 >
                   {columns.map((col) => {
@@ -114,8 +135,8 @@ export function OrionTable<T>({
                       <td
                         key={`${key}-${col.key}`}
                         className={cn(
-                          compact ? 'px-3 py-2' : 'px-4 py-3',
-                          'text-os-text-primary whitespace-nowrap',
+                          compact ? 'px-3 py-1.5' : 'px-3.5 py-2.5',
+                          'text-[var(--orion-text-primary,#F2F2EF)] whitespace-nowrap',
                           col.align === 'center' && 'text-center',
                           col.align === 'right' && 'text-right',
                           col.className
