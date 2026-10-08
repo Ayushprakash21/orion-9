@@ -20,6 +20,7 @@ import { DocumentWorkspace } from '../components/DocumentWorkspace';
 import { Settings } from '../components/Settings';
 import { Notepad } from '../components/Notepad';
 import { FileManager } from '../components/FileManager';
+import { OrionBrowser } from '../components/browser/OrionBrowser';
 import { OrionComputer } from '../components/OrionComputer';
 import { Inbound } from '../components/Inbound';
 import { Outbound } from '../components/Outbound';
@@ -232,6 +233,7 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'orion-sheets': OrionSheets,
   'orion-slides': OrionSlides,
   'orion-pdf': OrionPdf,
+  'browser': OrionBrowser,
 };
 
 export function getAppComponent(appId: string): React.ComponentType<any> | null {

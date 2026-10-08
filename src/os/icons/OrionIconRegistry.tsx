@@ -128,7 +128,7 @@ export interface OrionIconDefinition {
   appId: string;
   iconId: string;
   name: string;
-  category: 'Operations' | 'Intelligence' | 'Control' | 'Platform' | 'AI';
+  category: 'Operations' | 'Intelligence' | 'Control' | 'Platform' | 'AI' | 'System';
   description: string;
   palette: {
     from: string;
@@ -231,6 +231,16 @@ export const IconOrionGeneric: React.FC<{ size?: number; className?: string; act
   <OrionSquircleBase gradientId="icon-generic" from="#334155" to="#0F172A" {...props}>
     <circle cx="64" cy="64" r="28" stroke="#94A3B8" strokeWidth="2.5" fill="none" />
     <polygon points="64,42 78,74 50,74" fill="#00F2FE" />
+  </OrionSquircleBase>
+);
+
+export const IconOrionBrowser: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
+  <OrionSquircleBase gradientId="icon-browser-sq" from="#0284C7" to="#0369A1" {...props}>
+    <circle cx="64" cy="64" r="30" stroke="#E0F2FE" strokeWidth="3" fill="none" />
+    <line x1="34" y1="64" x2="94" y2="64" stroke="#38BDF8" strokeWidth="2.5" />
+    <ellipse cx="64" cy="64" rx="16" ry="30" stroke="#38BDF8" strokeWidth="2.5" fill="none" />
+    <path d="M40 45 Q64 52 88 45" stroke="#38BDF8" strokeWidth="2" fill="none" />
+    <path d="M40 83 Q64 76 88 83" stroke="#38BDF8" strokeWidth="2" fill="none" />
   </OrionSquircleBase>
 );
 
@@ -1292,6 +1302,15 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
         <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
       </svg>
     )
+  },
+  'browser': {
+    appId: 'browser',
+    iconId: 'icon-orion-browser',
+    name: 'Orion Browser',
+    category: 'System',
+    description: 'First-class web workstation, multi-tab browsing, bookmarking, and native OS navigation.',
+    palette: { from: '#0284C7', to: '#0369A1', accent: '#38BDF8', surface: '#38BDF815' },
+    component: IconOrionBrowser
   }
 };
 

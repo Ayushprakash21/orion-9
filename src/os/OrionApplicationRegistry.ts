@@ -18,7 +18,7 @@ export interface OrionApp {
   id: string;
   name: string;
   route: string;
-  category: 'Operations' | 'Intelligence' | 'Control' | 'Platform' | 'AI';
+  category: 'Operations' | 'Intelligence' | 'Control' | 'Platform' | 'AI' | 'System';
   icon: any; // Lucide icon or OrionIcons string/component
   color: string;
   description: string;
@@ -1131,6 +1131,16 @@ export const ORION_REGISTRY: Record<string, OrionApp> = {
     icon: FileText,
     color: '#EF4444',
     description: 'Cryptographic document reader, annotation engine, and PDF viewer.',
+    dockDefault: true,
+  },
+  'browser': {
+    id: 'browser',
+    name: 'Orion Browser',
+    route: '/browser',
+    category: 'System',
+    icon: Globe,
+    color: '#0284C7',
+    description: 'First-class web workstation, multi-tab browsing, bookmarking, and native OS navigation.',
     dockDefault: true,
   },
 };

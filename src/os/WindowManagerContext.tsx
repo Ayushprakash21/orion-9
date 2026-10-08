@@ -78,6 +78,7 @@ interface WindowManagerContextProps {
 const WindowManagerContext = createContext<WindowManagerContextProps | undefined>(undefined);
 
 const DEFAULT_DOCK_PINNED = [
+  'browser',
   'file-manager',
   'orion-documents',
   'orion-sheets',
@@ -95,6 +96,7 @@ const normalizeAppId = (id: string): string => {
   if (id === 'about-orion') return 'about';
   if (id === 'buy' || id === 'buy-something') return 'buy-workflow';
   if (id === 'executive' || id === 'exec-overview') return 'executive-overview';
+  if (id === 'orion-browser' || id === 'web-browser') return 'browser';
   return id;
 };
 
@@ -271,7 +273,7 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
     const cat = app.category.toLowerCase();
     if (cat === 'operations' || cat === 'intelligence' || cat === 'control') {
       mappedWorkspace = cat as WorkspaceId;
-    } else if (cat === 'ai' || cat === 'platform' || cat === 'administration') {
+    } else if (cat === 'ai' || cat === 'platform' || cat === 'administration' || cat === 'system') {
       mappedWorkspace = 'control'; // Fallback mapping for system apps
     }
 

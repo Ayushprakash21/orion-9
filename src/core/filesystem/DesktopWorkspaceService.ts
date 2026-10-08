@@ -106,6 +106,7 @@ export class DesktopWorkspaceService {
       const defaultApps: Array<{ id: string; name: string; type: DesktopItemType; iconId: string; isDir: boolean }> = [
         { id: 'orion-computer', name: 'This Computer', type: 'system', iconId: 'computer', isDir: false },
         { id: 'file-manager', name: 'File Manager', type: 'system', iconId: 'folder', isDir: true },
+        { id: 'browser', name: 'Browser', type: 'application', iconId: 'browser', isDir: false },
         { id: 'notepad', name: 'Notepad', type: 'application', iconId: 'notepad', isDir: false },
         { id: 'inventory', name: 'Inventory', type: 'application', iconId: 'inventory', isDir: false },
         { id: 'documents-folder', name: 'Documents', type: 'folder', iconId: 'documents-folder', isDir: true },
