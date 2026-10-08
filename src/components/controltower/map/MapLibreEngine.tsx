@@ -5,8 +5,7 @@
  */
 
 import React, { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
-import { Map as MapLibreMap, GeoJSONSource } from 'maplibre-gl';
-import 'maplibre-gl/dist/maplibre-gl.css';
+import type { Map as MapLibreMap, GeoJSONSource } from 'maplibre-gl';
 import { ORION_GRAPHITE_MAP_STYLE } from './cartographyStyle';
 import { 
   MapProjectionMode, 
@@ -132,92 +131,100 @@ export const MapLibreEngine = forwardRef<MapEngineRef, MapLibreEngineProps>(({
   // Initialize MapLibre GL Instance
   useEffect(() => {
     if (!containerRef.current || !isSupported) return;
+    let isCancelled = false;
 
-    let mapInstance: MapLibreMap;
-    try {
-      mapInstance = new MapLibreMap({
-        container: containerRef.current,
-        style: ORION_GRAPHITE_MAP_STYLE,
-        center: [60, 20],
-        zoom: 1.8,
-        attributionControl: false,
-      });
-
-      // Attempt to configure globe projection if requested
-      if (projectionMode === 'globe') {
-        try {
-          (mapInstance as any).setProjection({ type: 'globe' });
-        } catch (e) {
-          // Fallback to mercator
-        }
-      }
-
-      mapInstance.on('load', () => {
-        setMapLoaded(true);
-      });
-
-      // Cluster click zoom behavior
-      mapInstance.on('click', 'clusters-vessels', (e) => {
-        const features = mapInstance.queryRenderedFeatures(e.point, { layers: ['clusters-vessels'] });
-        const clusterId = features[0]?.properties?.cluster_id;
-        const source = mapInstance.getSource('transport-vessels') as GeoJSONSource;
-        if (source && clusterId !== undefined) {
-          source.getClusterExpansionZoom(clusterId).then((zoom) => {
-            const coords = (features[0].geometry as any).coordinates;
-            mapInstance.easeTo({ center: coords, zoom });
-          });
-        }
-      });
-
-      // Entity selection on click
-      mapInstance.on('click', (e) => {
-        const interactiveLayers = [
-          'unclustered-vessels-circle',
-          'unclustered-aircraft-circle',
-          'unclustered-trucks-circle',
-          'unclustered-ports',
-          'unclustered-airports',
-          'layer-routes-line',
-          'risk-exceptions-core',
-        ];
-
-        const features = mapInstance.queryRenderedFeatures(e.point, {
-          layers: interactiveLayers.filter((l) => mapInstance.getLayer(l)),
+    import('maplibre-gl').then((maplibre) => {
+      try {
+        const lib = maplibre as any;
+        const MapConstructor = lib.Map || lib.default?.Map || lib.default;
+        const mapInstance: MapLibreMap = new MapConstructor({
+          container: containerRef.current,
+          style: ORION_GRAPHITE_MAP_STYLE,
+          center: [60, 20],
+          zoom: 1.8,
+          attributionControl: false,
         });
 
-        if (features && features.length > 0) {
-          const feat = features[0];
-          const id = feat.properties?.id;
-
-          if (feat.layer.id === 'unclustered-vessels-circle') {
-            const v = vessels.find((item) => item.id === id);
-            if (v) onSelectEntity({ type: 'vessel', entity: v });
-          } else if (feat.layer.id === 'unclustered-aircraft-circle') {
-            const a = aircraft.find((item) => item.id === id);
-            if (a) onSelectEntity({ type: 'aircraft', entity: a });
-          } else if (feat.layer.id === 'unclustered-trucks-circle') {
-            const t = trucks.find((item) => item.id === id);
-            if (t) onSelectEntity({ type: 'truck', entity: t });
-          } else if (feat.layer.id === 'unclustered-ports') {
-            const p = ports.find((item) => item.id === id);
-            if (p) onSelectEntity({ type: 'port', entity: p });
-          } else if (feat.layer.id === 'unclustered-airports') {
-            const air = airports.find((item) => item.id === id);
-            if (air) onSelectEntity({ type: 'airport', entity: air });
-          } else if (feat.layer.id === 'layer-routes-line') {
-            const r = shipmentRoutes.find((item) => item.shipmentId === id);
-            if (r) onSelectEntity({ type: 'shipment', entity: r });
+        // Attempt to configure globe projection if requested
+        if (projectionMode === 'globe') {
+          try {
+            (mapInstance as any).setProjection({ type: 'globe' });
+          } catch (e) {
+            // Fallback to mercator
           }
         }
-      });
 
-      mapRef.current = mapInstance;
-    } catch (err) {
-      console.warn('[MapLibreEngine] WebGL initialization fallback:', err);
+        mapInstance.on('load', () => {
+          if (!isCancelled) setMapLoaded(true);
+        });
+
+        // Cluster click zoom behavior
+        mapInstance.on('click', 'clusters-vessels', (e) => {
+          const features = mapInstance.queryRenderedFeatures(e.point, { layers: ['clusters-vessels'] });
+          const clusterId = features[0]?.properties?.cluster_id;
+          const source = mapInstance.getSource('transport-vessels') as GeoJSONSource;
+          if (source && clusterId !== undefined) {
+            source.getClusterExpansionZoom(clusterId).then((zoom) => {
+              const coords = (features[0].geometry as any).coordinates;
+              mapInstance.easeTo({ center: coords, zoom });
+            });
+          }
+        });
+
+        // Entity selection on click
+        mapInstance.on('click', (e) => {
+          const interactiveLayers = [
+            'unclustered-vessels-circle',
+            'unclustered-aircraft-circle',
+            'unclustered-trucks-circle',
+            'unclustered-ports',
+            'unclustered-airports',
+            'layer-routes-line',
+            'risk-exceptions-core',
+          ];
+
+          const features = mapInstance.queryRenderedFeatures(e.point, {
+            layers: interactiveLayers.filter((l) => mapInstance.getLayer(l)),
+          });
+
+          if (features && features.length > 0) {
+            const feat = features[0];
+            const id = feat.properties?.id;
+
+            if (feat.layer.id === 'unclustered-vessels-circle') {
+              const v = vessels.find((item) => item.id === id);
+              if (v) onSelectEntity({ type: 'vessel', entity: v });
+            } else if (feat.layer.id === 'unclustered-aircraft-circle') {
+              const a = aircraft.find((item) => item.id === id);
+              if (a) onSelectEntity({ type: 'aircraft', entity: a });
+            } else if (feat.layer.id === 'unclustered-trucks-circle') {
+              const t = trucks.find((item) => item.id === id);
+              if (t) onSelectEntity({ type: 'truck', entity: t });
+            } else if (feat.layer.id === 'unclustered-ports') {
+              const p = ports.find((item) => item.id === id);
+              if (p) onSelectEntity({ type: 'port', entity: p });
+            } else if (feat.layer.id === 'unclustered-airports') {
+              const air = airports.find((item) => item.id === id);
+              if (air) onSelectEntity({ type: 'airport', entity: air });
+            } else if (feat.layer.id === 'layer-routes-line') {
+              const r = shipmentRoutes.find((item) => item.shipmentId === id);
+              if (r) onSelectEntity({ type: 'shipment', entity: r });
+            }
+          }
+        });
+
+        mapRef.current = mapInstance;
+      } catch (err) {
+        console.warn('[MapLibreEngine] WebGL initialization fallback:', err);
+        setIsSupported(false);
+      }
+    }).catch((err) => {
+      console.warn('[MapLibreEngine] Failed to dynamically load maplibre-gl:', err);
       setIsSupported(false);
-    }
+    });
 
     return () => {
+      isCancelled = true;
       mapRef.current?.remove();
       mapRef.current = null;
     };

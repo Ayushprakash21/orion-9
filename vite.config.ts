@@ -69,10 +69,10 @@ export default defineConfig(() => {
         output: {
           manualChunks(id) {
             if (id.includes('node_modules')) {
+              if (id.includes('@babel') || id.includes('tslib')) return 'vendor-react';
               if (id.includes('three')) return 'vendor-three';
               if (id.includes('maplibre-gl')) return 'vendor-maps';
               if (id.includes('firebase')) return 'vendor-firebase';
-              if (id.includes('jspdf') || id.includes('html2canvas')) return 'vendor-documents';
               if (id.includes('xlsx')) return 'vendor-excel';
               if (id.includes('recharts') || id.includes('d3')) return 'vendor-charts';
               if (id.includes('lucide-react')) return 'vendor-icons';

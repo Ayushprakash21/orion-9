@@ -5,7 +5,6 @@ import { formatCurrency } from '../lib/utils';
 import { AnalyticsEngine } from '../services/AnalyticsEngine';
 import { FileText, Printer, ChevronDown, Download, ShieldCheck, BarChart3, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
-import { generatePlatformIntelligencePdf } from '../services/platformPdfService';
 
 type ReportType = 
   | 'Monthly Executive Report' 
@@ -96,7 +95,9 @@ export const Reports = () => {
       }
     };
 
-    generatePlatformIntelligencePdf(reportData);
+    import('../services/platformPdfService').then(({ generatePlatformIntelligencePdf }) => {
+      generatePlatformIntelligencePdf(reportData);
+    });
   };
 
   const getReportDescription = () => {

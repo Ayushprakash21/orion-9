@@ -981,10 +981,64 @@ export class ToolRegistry {
       throw new Error('AI Execution Violation: Agent operating mode is PROHIBITED. All operations denied.');
     }
 
-    // 4. Validate input parameters schema
+    // 4. Validate input parameters schema & adversarial parameter attacks
+    if (params && typeof params === 'object') {
+      // Prohibit client/agent attempts to pass privileged authorization overrides
+      const forbiddenParamKeys = ['isAdmin', 'role', 'roles', 'bypassApproval', 'bypassGovernance', 'selfApprove', 'executeDirectly'];
+      for (const forbiddenKey of forbiddenParamKeys) {
+        if (forbiddenKey in params) {
+          throw new Error(`Tool Security Violation: Privileged parameter override '${forbiddenKey}' is strictly forbidden.`);
+        }
+      }
+
+      // Prohibit attempts to self-approve via tool parameters
+      if (params.approval === true || params.approved === true || params.approvalStatus === 'APPROVED') {
+        throw new Error("Tool Security Violation: Self-approval or approval overrides ('approval=true') inside tool arguments are strictly forbidden.");
+      }
+
+      // Check for SQL injection and Path Traversal in string parameters
+      const sqlPattern = /(\b(DROP\s+TABLE|TRUNCATE\s+TABLE|DELETE\s+FROM|UNION\s+SELECT)\b|--|\bEXEC\s*\()/i;
+      const pathTraversalPattern = /\.\.[\/\\]|\.\.$/;
+
+      for (const [key, val] of Object.entries(params)) {
+        if (typeof val === 'string') {
+          if (sqlPattern.test(val)) {
+            throw new Error(`Tool Validation Violation: Parameter '${key}' contains prohibited SQL pattern.`);
+          }
+          if (pathTraversalPattern.test(val)) {
+            throw new Error(`Tool Validation Violation: Parameter '${key}' contains prohibited path traversal sequence.`);
+          }
+        }
+        if (key === 'quantity' && typeof val === 'number' && val <= 0) {
+          throw new Error(`Tool Validation Violation: Parameter 'quantity' must be a positive integer.`);
+        }
+        if (key === 'quantity' && typeof val === 'number' && val > 1000000) {
+          throw new Error(`Tool Validation Violation: Parameter 'quantity' exceeds maximum allowable single transaction threshold.`);
+        }
+      }
+
+      // Type checking against inputSchema properties
+      if (tool.inputSchema.properties) {
+        for (const [propKey, propDef] of Object.entries(tool.inputSchema.properties as Record<string, any>)) {
+          if (params[propKey] !== undefined && params[propKey] !== null) {
+            const expectedType = propDef.type;
+            if (expectedType === 'string' && typeof params[propKey] !== 'string') {
+              throw new Error(`Tool Validation Violation: Parameter '${propKey}' expected string, received ${typeof params[propKey]}.`);
+            }
+            if (expectedType === 'number' && typeof params[propKey] !== 'number') {
+              throw new Error(`Tool Validation Violation: Parameter '${propKey}' expected number, received ${typeof params[propKey]}.`);
+            }
+            if (expectedType === 'array' && !Array.isArray(params[propKey])) {
+              throw new Error(`Tool Validation Violation: Parameter '${propKey}' expected array.`);
+            }
+          }
+        }
+      }
+    }
+
     if (tool.inputSchema.required) {
       for (const req of tool.inputSchema.required) {
-        if (params[req] === undefined || params[req] === null) {
+        if (params[req] === undefined || params[req] === null || params[req] === '') {
           throw new Error(`Tool Validation Violation: Tool '${toolId}' missing required parameter '${req}'.`);
         }
       }

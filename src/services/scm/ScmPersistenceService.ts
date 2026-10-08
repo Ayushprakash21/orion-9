@@ -277,6 +277,8 @@ export class ScmPersistenceService {
    * Authoritative inventory stock adjustment with immutable inventory transaction posting.
    * Guarantees idempotency via correlationId tracking and strictly prevents negative inventory balances.
    */
+  private inventoryLocks: Map<string, Promise<any>> = new Map();
+
   public async adjustInventory(params: {
     tenantId: string;
     productId: string;
@@ -300,6 +302,31 @@ export class ScmPersistenceService {
       throw new Error('[SCM-VALIDATION-ERROR] warehouseId is required for inventory adjustment');
     }
 
+    const lockKey = `${params.tenantId}:${params.warehouseId}:${params.productId}`;
+    const previous = this.inventoryLocks.get(lockKey) || Promise.resolve();
+
+    const op = (async () => {
+      await previous;
+      return this.executeInventoryAdjustment(params);
+    })();
+
+    this.inventoryLocks.set(lockKey, op.catch(() => {}));
+    return op;
+  }
+
+  private async executeInventoryAdjustment(params: {
+    tenantId: string;
+    productId: string;
+    warehouseId: string;
+    quantityDelta: number;
+    transactionType: InventoryTransactionType;
+    referenceEntityType: 'GRN' | 'PUTAWAY' | 'CUSTOMER_ORDER' | 'CYCLE_COUNT' | 'TRANSFER' | 'PRODUCTION_ORDER' | 'RMA';
+    referenceEntityId: string;
+    actor: string;
+    correlationId: string;
+    lotNumber?: string;
+    batchNumber?: string;
+  }): Promise<{ balanceBefore: number; balanceAfter: number; transactionId: string; isDuplicate?: boolean }> {
     // 0. Idempotency pre-check via correlationId
     if (params.correlationId) {
       const existingTxs = this.listCachedRecords<InventoryTransactionRecord>('inventory_transactions', params.tenantId);

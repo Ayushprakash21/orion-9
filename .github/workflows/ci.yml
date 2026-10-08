@@ -1,0 +1,47 @@
+name: Orion-9 CI Production & Security Gate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  gate:
+    name: Production Release & Security Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Setup Java 21 (Required for Firebase Emulators)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Clean Dependency Installation
+        run: npm ci
+
+      - name: Gate 1A: TypeScript Strict Typecheck
+        run: npm run lint
+
+      - name: Gate 1B: Unit & Integration Suites
+        run: npm test
+
+      - name: Gate 1C: Mandatory Firebase Security Rules (Zero-Skip Enforcement)
+        run: npm run test:security
+
+      - name: Gate 2: Production Bundle Compilation
+        run: npm run build
+
+      - name: Gate 3: Playwright Browser E2E Test Suite
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test

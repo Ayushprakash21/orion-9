@@ -15,8 +15,6 @@ import { VendorOnboardingCenter } from '../components/VendorOnboardingCenter';
 import { AICopilot } from '../components/AICopilot';
 import { DataCenter } from '../components/DataCenter';
 import { Integrations } from '../components/Integrations';
-import { Reports } from '../components/Reports';
-import { DocumentWorkspace } from '../components/DocumentWorkspace';
 import { Settings } from '../components/Settings';
 import { Notepad } from '../components/Notepad';
 import { FileManager } from '../components/FileManager';
@@ -38,7 +36,6 @@ import { Observability } from '../components/Observability';
 import { ActionCenter } from '../components/ActionCenter';
 import { Autopilot } from '../components/Autopilot';
 import { WorkflowBuilder } from '../components/WorkflowBuilder';
-import { DigitalTwin } from '../components/DigitalTwin';
 import { RiskRadar } from '../components/RiskRadar';
 import { CostOptimizer } from '../components/CostOptimizer';
 import { WorkingCapital } from '../components/WorkingCapital';
@@ -47,7 +44,6 @@ import { SignalLanguageView } from '../components/deep-intelligence/SignalLangua
 import { OrionMemoryView } from '../components/deep-intelligence/OrionMemoryView';
 import { NetworkIntelligenceView } from '../components/deep-intelligence/NetworkIntelligenceView';
 import { DecisionScienceView } from '../components/deep-intelligence/DecisionScienceView';
-import { WorldModelView } from '../components/deep-intelligence/WorldModelView';
 import { AutonomyView } from '../components/deep-intelligence/AutonomyView';
 import { CausalIntelligenceView } from '../components/deep-intelligence/CausalIntelligenceView';
 import { EventFabricView } from '../components/deep-intelligence/EventFabricView';
@@ -66,12 +62,10 @@ import { VitalSignsView } from '../components/deep-intelligence/VitalSignsView';
 import { QuietRiskView } from '../components/deep-intelligence/QuietRiskView';
 import { About } from '../components/About';
 import { Profile } from '../components/Profile';
-import { TimeWorld } from '../components/TimeWorld';
 import { ManualCenter } from '../components/ManualCenter';
 
 import { AdminControlCenter } from '../components/admin/AdminControlCenter';
 import { AIWorkforceCenter } from '../components/admin/AIWorkforceCenter';
-import { PlatformIntelligence } from '../components/admin/PlatformIntelligence';
 import { WorkflowBuilder as AdminWorkflowBuilder } from '../components/admin/WorkflowBuilder';
 import { AutonomyCenter as AdminAutonomyCenter } from '../components/admin/AutonomyCenter';
 import { WorkflowMonitor } from '../components/admin/WorkflowMonitor';
@@ -107,12 +101,54 @@ import { WarrantyServiceCenter } from '../components/WarrantyServiceCenter';
 import { SupplierCollaborationCenter } from '../components/SupplierCollaborationCenter';
 import { NetworkDesignCenter } from '../components/NetworkDesignCenter';
 import { SustainabilityCenter } from '../components/SustainabilityCenter';
-import { OrionDocuments, OrionSheets, OrionSlides, OrionPdf } from '../components/office';
 import { AutonomousCommandCenter } from '../components/autonomy/AutonomousCommandCenter';
 import { MultiPartyNetworkPortal } from '../network/MultiPartyNetworkPortal';
 import { GuidedBuyWorkflow } from '../components/guided/GuidedBuyWorkflow';
 import { ExecutiveOverview } from '../components/executive/ExecutiveOverview';
 
+function createLazyApp(
+  loader: () => Promise<any>,
+  exportName?: string
+): React.ComponentType<any> {
+  const LazyComponent = React.lazy(async () => {
+    const mod = await loader();
+    if (exportName && mod[exportName]) {
+      return { default: mod[exportName] };
+    }
+    if (mod.default) {
+      return { default: mod.default };
+    }
+    const found = Object.values(mod).find((val) => typeof val === 'function');
+    return { default: (found as any) || (() => null) };
+  });
+
+  return function LazyAppWrapper(props: any) {
+    return (
+      <React.Suspense
+        fallback={
+          <div className="w-full h-full flex flex-col items-center justify-center p-8 text-slate-400 bg-slate-950/80 select-none">
+            <div className="w-8 h-8 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin mb-4" />
+            <div className="text-xs uppercase tracking-widest text-slate-400 font-mono">Loading Module...</div>
+          </div>
+        }
+      >
+        <LazyComponent {...props} />
+      </React.Suspense>
+    );
+  };
+}
+
+// Lazy-loaded heavy components (Office suite & Three.js 3D engines)
+const DigitalTwin = createLazyApp(() => import('../components/DigitalTwin'), 'DigitalTwin');
+const WorldModelView = createLazyApp(() => import('../components/deep-intelligence/WorldModelView'), 'WorldModelView');
+const TimeWorld = createLazyApp(() => import('../components/TimeWorld'), 'TimeWorld');
+const OrionDocuments = createLazyApp(() => import('../components/office'), 'OrionDocuments');
+const OrionSheets = createLazyApp(() => import('../components/office'), 'OrionSheets');
+const OrionSlides = createLazyApp(() => import('../components/office'), 'OrionSlides');
+const OrionPdf = createLazyApp(() => import('../components/office'), 'OrionPdf');
+const Reports = createLazyApp(() => import('../components/Reports'), 'Reports');
+const DocumentWorkspace = createLazyApp(() => import('../components/DocumentWorkspace'), 'DocumentWorkspace');
+const PlatformIntelligence = createLazyApp(() => import('../components/admin/PlatformIntelligence'), 'PlatformIntelligence');
 
 const ProfileUserView: React.FC = () => <Profile initialTab="profile" />;
 const ProfileOrgView: React.FC = () => <Profile initialTab="organization" />;

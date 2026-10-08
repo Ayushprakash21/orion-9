@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Globe, Clock, MapPin, Activity } from 'lucide-react';
-import { TimeWorldPanel } from '../TimeWorld';
+
+const LazyTimeWorldPanel = React.lazy(() => import('../TimeWorld').then(m => ({ default: m.TimeWorldPanel })));
 
 interface GlobalHub {
   city: string;
@@ -80,7 +81,14 @@ export const GlobalNetworkTimeMatrix: React.FC = () => {
 
       {/* 3D Live Earth Interactive Map Box */}
       <div className="h-[220px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#02070d] shrink-0 shadow-2xl relative">
-        <TimeWorldPanel />
+        <Suspense fallback={
+          <div className="w-full h-full flex flex-col items-center justify-center text-xs text-slate-500 font-mono gap-2">
+            <div className="w-5 h-5 border border-cyan-500/40 border-t-cyan-400 rounded-full animate-spin" />
+            <span>INITIALIZING 3D WORLD MATRIX...</span>
+          </div>
+        }>
+          <LazyTimeWorldPanel />
+        </Suspense>
       </div>
 
       {/* Multi-City Live Hub Matrix Grid */}

@@ -1,11 +1,10 @@
 import Papa from 'papaparse';
-import * as XLSX from 'xlsx';
 import { Product, Warehouse, Inventory, Supplier, PurchaseOrder, Shipment } from '../types';
 
 export class DataImporter {
   static async parseFile(file: File): Promise<any[]> {
-    return new Promise((resolve, reject) => {
-      if (file.name.endsWith('.csv')) {
+    if (file.name.endsWith('.csv')) {
+      return new Promise((resolve, reject) => {
         Papa.parse(file, {
           header: true,
           skipEmptyLines: true,
@@ -16,7 +15,10 @@ export class DataImporter {
             reject(error);
           }
         });
-      } else if (file.name.match(/\.xlsx?$/)) {
+      });
+    } else if (file.name.match(/\.xlsx?$/)) {
+      const XLSX = await import('xlsx');
+      return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => {
           const data = new Uint8Array(e.target?.result as ArrayBuffer);
@@ -27,10 +29,10 @@ export class DataImporter {
         };
         reader.onerror = (error) => reject(error);
         reader.readAsArrayBuffer(file);
-      } else {
-        reject(new Error('Unsupported file format. Please upload CSV or Excel.'));
-      }
-    });
+      });
+    } else {
+      throw new Error('Unsupported file format. Please upload CSV or Excel.');
+    }
   }
 
   static detectEntityType(headers: string[]): string {

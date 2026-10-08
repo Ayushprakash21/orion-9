@@ -1,5 +1,3 @@
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import { brandingRepository } from '../repositories/BrandingRepository';
 
 export interface PlatformReportData {
@@ -78,6 +76,10 @@ function formatCurrency(val: number, currency: string = 'USD'): string {
  * Generates an executive-grade PDF Report for Platform Administrators
  */
 export async function generatePlatformIntelligencePdf(data: PlatformReportData): Promise<void> {
+  const { jsPDF } = await import('jspdf');
+  const autoTableModule = await import('jspdf-autotable');
+  const autoTable = (autoTableModule as any).default || autoTableModule;
+
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',

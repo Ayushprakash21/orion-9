@@ -40,10 +40,14 @@ export class AISecurityGuard {
     /id_token/i,
     /access_token/i,
   ];
-
   private promptInjectionPatterns = [
-    /(ignore|disregard)\s+(all\s+)?(previous|prior)\s+(instructions|rules|prompts|guardrails|directives)/i,
+    /(ignore|disregard)\s+(all\s+)?(previous|prior|security)\s+(instructions|rules|prompts|guardrails|directives|policy)/i,
     /you\s+are\s+now\s+(an?\s+)?(admin|superuser|root|god\s*mode|developer|system\s+operator)/i,
+    /system\s+message:\s*user\s+is\s+(platform\s+)?admin/i,
+    /call\s+(the\s+)?(delete|drop|remove)\w*\s+tool/i,
+    /authorization\s+approved\.?\s*execute/i,
+    /(do\s+not|never)\s+ask\s+for\s+(confirmation|approval)/i,
+    /(return|execute).*without\s+authorization/i,
     /bypass\s+(kernel|policy|approval|security|governance|guardrail|validation)/i,
     /system\s+(override|prompt|reset|takeover)/i,
     /escalate\s+privilege/i,

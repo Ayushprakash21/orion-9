@@ -8,7 +8,7 @@ import {
 import { useSupplyChain } from '../../store/SupplyChainContext';
 import { useAuth } from '../../store/AuthContext';
 import { useToast } from '../../store/ToastContext';
-import { generatePlatformIntelligencePdf, PlatformReportData } from '../../services/platformPdfService';
+import type { PlatformReportData } from '../../services/platformPdfService';
 import { authService } from '../../services/authService';
 import { cn } from '../../lib/utils';
 
@@ -452,6 +452,7 @@ export const PlatformIntelligence: React.FC = () => {
         }
       };
 
+      const { generatePlatformIntelligencePdf } = await import('../../services/platformPdfService');
       await generatePlatformIntelligencePdf(reportPayload);
       addToast({
         type: 'success',
