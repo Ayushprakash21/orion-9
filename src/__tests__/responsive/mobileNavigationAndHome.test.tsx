@@ -113,7 +113,7 @@ describe('Mobile Home & Information Architecture Navigation Suite', () => {
       expect(html).toContain('System Operational');
     });
 
-    it('renders primary action section "What do you want to do?" with intuitive actions', () => {
+    it('renders primary quick actions with intuitive workflow entrypoints', () => {
       const html = renderToString(
         <MemoryRouter initialEntries={['/mobile/home']}>
           <MobileNavigationProvider>
@@ -122,12 +122,11 @@ describe('Mobile Home & Information Architecture Navigation Suite', () => {
         </MemoryRouter>
       );
 
-      expect(html).toContain('What do you want to do?');
-      expect(html).toContain('Check Inventory');
-      expect(html).toContain('Track Shipment');
-      expect(html).toContain('Check Order');
-      expect(html).toContain('Report Issue');
-      expect(html).toContain('Buy Something');
+      expect(html).toContain('Quick Actions');
+      expect(html).toContain('Search Network');
+      expect(html).toContain('New Requisition');
+      expect(html).toContain('System Health');
+      expect(html).toContain('Ask Orion AI');
     });
 
     it('renders 4 Quick Access buttons (Control, AI, Alerts, Apps)', () => {
@@ -158,7 +157,7 @@ describe('Mobile Home & Information Architecture Navigation Suite', () => {
       expect(html).toContain('ORION AI');
       expect(html).toContain('Ask ORION about your supply chain');
       expect(html).toContain('Recent Activity');
-      expect(html).toContain('Shipment Delay: TRK-9821');
+      expect(html).toContain('Reroute Feeder Vessel');
     });
 
     it('strictly does NOT render Control Tower Command Center telemetry, charts, or KPI grids on Mobile Home', () => {
@@ -198,7 +197,7 @@ describe('Mobile Home & Information Architecture Navigation Suite', () => {
   });
 
   describe('3. Mobile Navigation Header & Bottom Nav Semantics', () => {
-    it('displays ORION HOME title in header when on Home tab', () => {
+    it('displays canonical Orion brand logo in header when on Home tab', () => {
       const html = renderToString(
         <MemoryRouter initialEntries={['/mobile/home']}>
           <MobileNavigationProvider>
@@ -207,7 +206,8 @@ describe('Mobile Home & Information Architecture Navigation Suite', () => {
         </MemoryRouter>
       );
 
-      expect(html).toContain('ORION HOME');
+      expect(html).toContain('orion-9-official-logo.png');
+      expect(html).toContain('alt="ORION-9"');
     });
 
     it('renders 5 distinct bottom navigation destinations (Home, Control, AI, Alerts, Apps)', () => {
@@ -236,8 +236,8 @@ describe('Mobile Home & Information Architecture Navigation Suite', () => {
       );
 
       expect(html).toContain('data-orion-mobile-shell="true"');
-      expect(html).toContain('ORION HOME');
-      expect(html).toContain('What do you want to do?');
+      expect(html).toContain('Quick Actions');
+      expect(html).toContain('Recent Activity');
     });
   });
 });

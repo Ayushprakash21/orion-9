@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useMemo, useEffect } from '
 import { applyThemeToDocument } from '../theme/themeResolver';
 import { DEFAULT_PERSONALIZATION_SETTINGS } from '../theme/themePresets';
 import { loadPreferences, savePreferences } from '../os/theme/OrionThemeStorage';
+import { isValidThemeId } from '../os/theme/OrionThemeRegistry';
 import {
   Product, Warehouse, Inventory, Supplier, PurchaseOrder, Shipment, Exception,
   ImportHistory, Action, Decision, DecisionAuditEvent, UserProfile, OrganizationProfile,
@@ -418,10 +419,36 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
     const pers = {
       ...DEFAULT_PERSONALIZATION_SETTINGS,
       ...settings.personalization,
-      themeId: settings.personalization?.themeId || activePrefs.themeId || 'graphite'
+      themeId: activePrefs.themeId || settings.personalization?.themeId || 'graphite'
     };
     applyThemeToDocument(pers);
   }, [settings.personalization, settings.theme]);
+
+  // Keep SupplyChainContext synchronized with authoritative theme engine events
+  useEffect(() => {
+    const handleThemeChange = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail && customEvent.detail.themeId) {
+        setSettings(prev => ({
+          ...prev,
+          personalization: {
+            ...DEFAULT_PERSONALIZATION_SETTINGS,
+            ...(prev.personalization || {}),
+            themeId: customEvent.detail.themeId,
+            appearanceMode: customEvent.detail.appearanceMode || prev.personalization?.appearanceMode || 'dark',
+            windowControlPosition: customEvent.detail.windowControlPosition || prev.personalization?.windowControlPosition || 'left'
+          }
+        }));
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('orion-appearance-preferences-changed', handleThemeChange);
+      return () => {
+        window.removeEventListener('orion-appearance-preferences-changed', handleThemeChange);
+      };
+    }
+  }, []);
 
   // Real-time Authoritative Firestore Subscription Integration
   const effectiveTenantId = organizationProfile?.id || (userProfile as any)?.organizationId || (userProfile as any)?.tenantId || 'ORION_PLATFORM';
@@ -694,10 +721,16 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
       localStorage.setItem('orion_settings', JSON.stringify(normalized));
       if (normalized.personalization) {
         const activePrefs = loadPreferences();
+        const explicitThemeId = (newSettings?.personalization?.themeId && isValidThemeId(newSettings.personalization.themeId))
+          ? newSettings.personalization.themeId
+          : undefined;
+        const targetThemeId = explicitThemeId || activePrefs.themeId;
+        normalized.personalization.themeId = targetThemeId;
+
         savePreferences({
           ...activePrefs,
-          themeId: normalized.personalization.themeId || activePrefs.themeId,
-          appearanceMode: (normalized.personalization.appearanceMode as any) || activePrefs.appearanceMode,
+          themeId: targetThemeId,
+          appearanceMode: (newSettings?.personalization?.appearanceMode as any) || activePrefs.appearanceMode,
           windowControlPosition: normalized.personalization.windowControlPosition || activePrefs.windowControlPosition,
           dockPosition: (normalized.personalization.dockPosition as any) || activePrefs.dockPosition,
           dockAutoHide: normalized.personalization.dockAutoHide !== undefined ? normalized.personalization.dockAutoHide : activePrefs.dockAutoHide,

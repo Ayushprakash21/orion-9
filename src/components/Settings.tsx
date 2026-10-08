@@ -29,6 +29,8 @@ import { PersonalizationSettingsPanel } from './settings/PersonalizationSettings
 import { AccessibilitySettingsPanel } from './settings/AccessibilitySettingsPanel';
 import { DEFAULT_PERSONALIZATION_SETTINGS } from '../theme/themePresets';
 import { useOSGeometry } from '../os/dock/DockGeometry';
+import { loadPreferences } from '../os/theme/OrionThemeStorage';
+import { PersonalizationSettings } from '../theme/themeTypes';
 
 // Admin Components
 import { AdminOverview } from './admin/AdminOverview';
@@ -649,12 +651,22 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
       }
 
       case 'desktop': {
-        const currentPers = localSettings.personalization || DEFAULT_PERSONALIZATION_SETTINGS;
+        const activePrefs = loadPreferences();
+        const currentPers: PersonalizationSettings = {
+          ...DEFAULT_PERSONALIZATION_SETTINGS,
+          ...(localSettings.personalization || {}),
+          themeId: activePrefs.themeId,
+          dockPosition: (activePrefs.dockPosition as any) || localSettings.personalization?.dockPosition || 'bottom',
+          dockAutoHide: activePrefs.dockAutoHide !== undefined ? activePrefs.dockAutoHide : (localSettings.personalization?.dockAutoHide ?? false),
+          dockMagnification: activePrefs.dockMagnification !== undefined ? activePrefs.dockMagnification : (localSettings.personalization?.dockMagnification ?? true),
+          dockTransparency: activePrefs.transparencyIntensity !== undefined ? activePrefs.transparencyIntensity : (localSettings.personalization?.dockTransparency ?? 85),
+          windowControlPosition: activePrefs.windowControlPosition || localSettings.personalization?.windowControlPosition || 'left',
+        };
         return (
           <PersonalizationSettingsPanel
             settings={currentPers}
             onChange={(updated) => {
-              const newPers = { ...currentPers, ...updated };
+              const newPers = { ...currentPers, ...updated, themeId: activePrefs.themeId };
               const newSettings = { ...localSettings, personalization: newPers };
               setLocalSettings(newSettings);
               updateSettings(newSettings);

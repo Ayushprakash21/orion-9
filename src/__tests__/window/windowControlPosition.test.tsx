@@ -194,31 +194,17 @@ describe('ORION-9 Window Control Position Personalization Engine', () => {
     });
   });
 
-  describe('3. Appearance Settings Panel & Radiogroup Semantics', () => {
-    it('renders the Window Controls Position section with Mac and Windows preview cards and radiogroup semantics', () => {
+  describe('3. Appearance Settings Panel Non-Duplication', () => {
+    it('does not duplicate the Window Controls Position section in Appearance settings panel (Desktop & Windows is the single home)', () => {
       const html = renderToString(
         React.createElement(OrionThemeProvider, null, 
           React.createElement(AppearanceSettingsPanel, null)
         )
       );
 
-      // Section header & descriptions
-      expect(html).toContain('Window Controls Position');
-      expect(html).toContain('Choose whether Orion window traffic-light controls appear on the left');
-
-      // Radiogroup attributes
-      expect(html).toContain('role="radiogroup"');
-      expect(html).toContain('aria-label="Window control position"');
-
-      // Radios
-      expect(html).toContain('role="radio"');
-      expect(html).toContain('Left — Mac style');
-      expect(html).toContain('Right — Windows style');
-      expect(html).toContain('Red • Yellow • Green');
-      expect(html).toContain('Green • Yellow • Red');
-
-      // Initial state has Left as aria-checked="true"
-      expect(html).toContain('aria-checked="true"');
+      // Section header must NOT be duplicated in Appearance
+      expect(html).not.toContain('Window Controls Position');
+      expect(html).not.toContain('Right — Windows style');
     });
   });
 

@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
-  Image as ImageIcon, Monitor, Sliders, LayoutGrid, Check, 
-  Eye, RefreshCcw, Sparkles, Layers, ArrowUpRight, AppWindow
+  Monitor, LayoutGrid, Layers, AppWindow
 } from 'lucide-react';
 import { PersonalizationSettings, DesktopIconSize, DesktopIconLayout, DockPosition, DockSize, WindowControlPosition } from '../../theme/themeTypes';
 import { OrionWindowControls } from '../../os/components/OrionWindowControls';
-import { useToast } from '../../store/ToastContext';
 import { useOSGeometry } from '../../os/dock/DockGeometry';
 import { loadPreferences, savePreferences } from '../../os/theme/OrionThemeStorage';
 import { RuntimeSettingsAuthority } from '../../os/settings/RuntimeSettingsAuthority';
@@ -16,7 +14,6 @@ interface PersonalizationSettingsPanelProps {
 }
 
 export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanelProps> = ({ settings, onChange }) => {
-  const { showToast } = useToast();
   const { previewSettings } = useOSGeometry();
 
   const handleUpdate = (updated: Partial<PersonalizationSettings>) => {
@@ -42,11 +39,6 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
         desktop: {
           ...current.desktop,
           ...(updated.iconSize ? { iconSize: updated.iconSize } : (updated as any).desktopIconSize ? { iconSize: (updated as any).desktopIconSize } : {}),
-        },
-        wallpaper: {
-          ...current.wallpaper,
-          ...(updated.wallpaperValue ? { desktopWallpaperId: updated.wallpaperValue } : (updated as any).wallpaperUrl ? { desktopWallpaperId: (updated as any).wallpaperUrl } : {}),
-          ...(updated.wallpaperBlur !== undefined ? { wallpaperBlur: updated.wallpaperBlur } : {}),
         }
       });
     } catch (_) {}
@@ -88,106 +80,20 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
     onChange(updated);
   };
 
-  const wallpapers = [
-    { title: 'Graphite Mesh', value: 'linear-gradient(135deg, #0F1115 0%, #1A1F29 50%, #0F1115 100%)', type: 'gradient' },
-    { title: 'Orion Midnight', value: 'linear-gradient(180deg, #0A0C10 0%, #161A22 100%)', type: 'gradient' },
-    { title: 'Slate Geometry', value: 'linear-gradient(135deg, #1E293B 0%, #0F172A 100%)', type: 'gradient' },
-    { title: 'Emerald Deep', value: 'linear-gradient(135deg, #064E3B 0%, #022C22 100%)', type: 'gradient' },
-    { title: 'Solid Dark', value: '#0F1115', type: 'solid' },
-    { title: 'Solid Slate', value: '#1E293B', type: 'solid' }
-  ];
-
   return (
     <div className="w-full space-y-8 pb-[140px] p-4 sm:p-5 md:p-6 min-w-0">
       {/* Banner */}
       <div className="bg-[var(--orion-surface-secondary)] border border-[var(--orion-border)] rounded-xl p-5">
         <h2 className="text-xl font-bold text-[var(--orion-text)] flex items-center gap-2">
           <Monitor className="w-6 h-6 text-[var(--orion-accent)]" />
-          Desktop & Dock Personalization
+          Desktop & Windows
         </h2>
         <p className="text-sm text-[var(--orion-text-secondary)] mt-1">
-          Customize desktop wallpaper, desktop icon alignment and sizing, and taskbar/dock position, size, and auto-hide behaviors.
+          Configure desktop icon arrangement and sizing, dock/taskbar position and behavior, and window controls placement.
         </p>
       </div>
 
-      {/* 1. WALLPAPER & BACKGROUND SELECTION */}
-      <div className="space-y-4 bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-xl p-5">
-        <div className="flex items-center justify-between">
-          <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-[var(--orion-text-muted)] flex items-center gap-1.5">
-              <ImageIcon className="w-4 h-4 text-[var(--orion-accent)]" />
-              Desktop Wallpaper
-            </label>
-            <p className="text-xs text-[var(--orion-text-secondary)] mt-1">
-              Select a wallpaper preset or specify custom image URL/solid background.
-            </p>
-          </div>
-        </div>
-
-        {/* Wallpaper Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-          {wallpapers.map(wp => {
-            const isSelected = settings.wallpaperValue === wp.value;
-            return (
-              <button
-                key={wp.title}
-                type="button"
-                onClick={() => handleUpdate({ wallpaperType: wp.type as any, wallpaperValue: wp.value })}
-                className={`group relative h-24 rounded-lg border overflow-hidden transition-all flex flex-col justify-end p-2 text-left ${
-                  isSelected
-                    ? 'border-[var(--orion-accent)] ring-2 ring-[var(--orion-accent)]/50'
-                    : 'border-[var(--orion-border)] hover:border-[var(--orion-text-secondary)]'
-                }`}
-                style={{ background: wp.value }}
-              >
-                {isSelected && (
-                  <span className="absolute top-2 right-2 p-1 rounded-full bg-[var(--orion-accent)] text-[var(--orion-on-accent)] shadow-md">
-                    <Check className="w-3 h-3" />
-                  </span>
-                )}
-                <span className="text-[11px] font-semibold text-white drop-shadow-md bg-black/40 px-1.5 py-0.5 rounded backdrop-blur-sm">
-                  {wp.title}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Wallpaper Sliders */}
-        <div className="pt-4 border-t border-[var(--orion-border)] grid grid-cols-1 sm:grid-cols-2 gap-5">
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs">
-              <span className="font-semibold text-[var(--orion-text)]">Wallpaper Blur:</span>
-              <span className="font-mono text-[var(--orion-text-secondary)]">{settings.wallpaperBlur}px</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="20"
-              value={settings.wallpaperBlur}
-              onChange={(e) => handleUpdate({ wallpaperBlur: Number(e.target.value) })}
-              className="w-full accent-[var(--orion-accent)]"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs">
-              <span className="font-semibold text-[var(--orion-text)]">Wallpaper Dim Overlay:</span>
-              <span className="font-mono text-[var(--orion-text-secondary)]">{settings.wallpaperDim}%</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="80"
-              value={settings.wallpaperDim}
-              onChange={(e) => handleUpdate({ wallpaperDim: Number(e.target.value) })}
-              className="w-full accent-[var(--orion-accent)]"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* 2. DESKTOP ICONS SETTINGS */}
+      {/* 1. DESKTOP ICONS SETTINGS */}
       <div className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-xl p-5 space-y-4">
         <label className="text-xs font-bold uppercase tracking-wider text-[var(--orion-text-muted)] flex items-center gap-1.5">
           <LayoutGrid className="w-4 h-4 text-[var(--orion-accent)]" />
@@ -269,7 +175,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
         </div>
       </div>
 
-      {/* 3. DOCK / TASKBAR SETTINGS */}
+      {/* 2. DOCK / TASKBAR SETTINGS */}
       <div className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-xl p-5 space-y-4">
         <label className="text-xs font-bold uppercase tracking-wider text-[var(--orion-text-muted)] flex items-center gap-1.5">
           <Layers className="w-4 h-4 text-[var(--orion-accent)]" />
@@ -370,7 +276,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
         </div>
       </div>
 
-      {/* 4. WINDOW CONTROLS POSITION */}
+      {/* 3. WINDOW CONTROLS POSITION */}
       <div className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-xl p-5 space-y-4">
         <div>
           <label className="text-xs font-bold uppercase tracking-wider text-[var(--orion-text-muted)] flex items-center gap-1.5">
