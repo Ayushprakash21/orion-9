@@ -399,16 +399,20 @@ export const Login: React.FC<LoginProps> = () => {
       }}
     >
       {/* LAYERED CINEMATIC BACKGROUND SYSTEM */}
-      {/* Layer 2: Subtle Dark Translucent Gradient & Depth Overlay (~15–20% darker, deep cinematic space) */}
+      {/* Dedicated background treatment: base dark overlay + gradient + vignette (~15–20% darker) */}
       <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-black/52 via-black/32 to-black/68" />
+        {/* Layer 2A: Base cinematic dark overlay (18–24% uniform darkening) */}
+        <div className="absolute inset-0 bg-black/[0.20]" />
+
+        {/* Layer 2B: Subtle Dark Translucent Gradient & Depth Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/25 to-black/60" />
         
         {/* Layer 3: Atmospheric Vignette around screen edges */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(0,0,0,0.45)_75%,rgba(0,0,0,0.85)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(0,0,0,0.40)_70%,rgba(0,0,0,0.80)_100%)]" />
 
         {/* Layer 4: Soft Focus & Ambient Light Halo behind Login Subject */}
         <div 
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] rounded-full bg-[var(--orion-accent,#38BDF8)]/[0.05] blur-[140px]"
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[680px] h-[680px] rounded-full bg-[var(--orion-accent,#38BDF8)]/[0.05] blur-[140px]"
           style={shouldReduceMotion ? undefined : {
             transform: `translate3d(calc(-50% + ${parallax.x * 4}px), calc(-50% + ${parallax.y * 4}px), 0)`,
             transition: 'transform 0.15s ease-out',
@@ -489,8 +493,8 @@ export const Login: React.FC<LoginProps> = () => {
           {/* 1. ORION-9 LOGO — Floating Naturally Above Identity (+5–10% visual clarity & contrast) */}
           <motion.div variants={itemVariants} className="mb-5 flex flex-col items-center justify-center text-center">
             <div className="relative">
-              <div className="absolute inset-0 rounded-full bg-[var(--orion-accent,#38BDF8)]/20 blur-2xl scale-125 pointer-events-none" />
-              <BrandLogo variant="mark" sizePreset="md" width={138} className="relative z-10 mx-auto drop-shadow-[0_10px_32px_rgba(0,0,0,0.85)] filter brightness-[1.06] contrast-[1.05]" />
+              <div className="absolute inset-0 rounded-full bg-[var(--orion-accent,#38BDF8)]/22 blur-2xl scale-125 pointer-events-none" />
+              <BrandLogo variant="mark" sizePreset="md" width={138} className="relative z-10 mx-auto drop-shadow-[0_10px_32px_rgba(0,0,0,0.85)] filter brightness-[1.08] contrast-[1.06]" />
             </div>
           </motion.div>
 
@@ -500,8 +504,8 @@ export const Login: React.FC<LoginProps> = () => {
             <div className="absolute inset-0 rounded-full bg-[var(--orion-accent,#38BDF8)]/25 blur-xl scale-115 pointer-events-none transition-all duration-500" />
             
             {/* Glass surround ring */}
-            <div className="relative w-22 h-22 sm:w-24 sm:h-24 rounded-full p-[2px] bg-gradient-to-b from-white/35 via-white/18 to-white/10 shadow-[0_20px_48px_rgba(0,0,0,0.75),inset_0_1px_1px_rgba(255,255,255,0.35)] backdrop-blur-2xl">
-              <div className="w-full h-full rounded-full overflow-hidden bg-black/55 border border-white/20 flex items-center justify-center backdrop-blur-md">
+            <div className="relative w-22 h-22 sm:w-24 sm:h-24 rounded-full p-[2px] bg-gradient-to-b from-white/40 via-white/20 to-white/10 shadow-[0_20px_48px_rgba(0,0,0,0.75),inset_0_1px_1px_rgba(255,255,255,0.4)] backdrop-blur-2xl">
+              <div className="w-full h-full rounded-full overflow-hidden bg-black/60 border border-white/25 flex items-center justify-center backdrop-blur-md">
                 {stage === 2 && (resolvedUser?.avatarUrl || (resolvedUser as any)?.photoURL) ? (
                   <img 
                     src={resolvedUser?.avatarUrl || (resolvedUser as any)?.photoURL} 
@@ -509,12 +513,12 @@ export const Login: React.FC<LoginProps> = () => {
                     className="w-full h-full object-cover"
                   />
                 ) : stage === 2 && resolvedUser ? (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-white/20 to-white/10 text-white font-medium text-2xl tracking-wider drop-shadow-md">
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-white/25 to-white/10 text-white font-medium text-2xl tracking-wider drop-shadow-md">
                     {(resolvedUser.displayName || resolvedUser.username || 'U').charAt(0).toUpperCase()}
                   </div>
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-b from-white/[0.12] to-transparent text-white/90">
-                    <User className="w-10 h-10 text-white/80 drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)]" />
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-b from-white/[0.14] to-transparent text-white">
+                    <User className="w-10 h-10 text-white/90 drop-shadow-[0_2px_8px_rgba(0,0,0,0.7)]" />
                   </div>
                 )}
               </div>
@@ -523,12 +527,12 @@ export const Login: React.FC<LoginProps> = () => {
 
           {/* 3. WELCOME TYPOGRAPHY — Understated, Semibold, Native OS Hierarchy (+10% contrast) */}
           <motion.div variants={itemVariants} className="text-center mb-6 select-none">
-            <h1 className="text-white font-semibold tracking-tight text-[28px] sm:text-[34px] leading-tight drop-shadow-[0_2px_16px_rgba(0,0,0,0.9)]">
+            <h1 className="text-white font-semibold tracking-tight text-[28px] sm:text-[34px] leading-tight drop-shadow-[0_2px_16px_rgba(0,0,0,0.95)]">
               {stage === 2 && resolvedUser 
                 ? (resolvedUser?.displayName || resolvedUser?.fullName || username)
                 : t.signInTitle}
             </h1>
-            <p className="text-white/75 text-[13px] sm:text-[14px] font-normal mt-1 tracking-wide drop-shadow-[0_1px_6px_rgba(0,0,0,0.8)]">
+            <p className="text-white/80 text-[13px] sm:text-[14px] font-normal mt-1 tracking-wide drop-shadow-[0_1px_6px_rgba(0,0,0,0.85)]">
               {stage === 2 && resolvedUser
                 ? `@${resolvedUser?.username || username}`
                 : 'Unlock ORION-9'}
@@ -557,15 +561,15 @@ export const Login: React.FC<LoginProps> = () => {
                     {/* Floating Glass Capsule (+10% prominence: brighter glass, clearer edge, subtle depth) */}
                     <div className={cn(
                       "relative flex items-center h-[48px] sm:h-[52px] rounded-full",
-                      "bg-white/[0.12] hover:bg-white/[0.16] transition-all duration-300",
-                      "backdrop-blur-2xl border shadow-[0_14px_40px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.22)]",
+                      "bg-white/[0.14] hover:bg-white/[0.18] transition-all duration-300",
+                      "backdrop-blur-2xl border shadow-[0_16px_44px_rgba(0,0,0,0.55),inset_0_1px_0_0_rgba(255,255,255,0.28)]",
                       isInputFocused 
-                        ? "border-[var(--orion-accent,#38BDF8)]/80 ring-4 ring-[var(--orion-accent,#38BDF8)]/20 bg-white/[0.16]" 
-                        : "border-white/25",
-                      errorMsg && "border-red-400/70 ring-4 ring-red-400/20"
+                        ? "border-[var(--orion-accent,#38BDF8)]/85 ring-4 ring-[var(--orion-accent,#38BDF8)]/25 bg-white/[0.18]" 
+                        : "border-white/30",
+                      errorMsg && "border-red-400/80 ring-4 ring-red-400/25"
                     )}>
-                      <div className="pl-4.5 pr-2 flex items-center pointer-events-none text-white/70">
-                        <User className="w-4 h-4 text-white/70" />
+                      <div className="pl-4.5 pr-2 flex items-center pointer-events-none text-white/75">
+                        <User className="w-4 h-4 text-white/75" />
                       </div>
                       <input
                         ref={usernameInputRef}
@@ -582,7 +586,7 @@ export const Login: React.FC<LoginProps> = () => {
                         }}
                         onFocus={() => setIsInputFocused(true)}
                         onBlur={() => setIsInputFocused(false)}
-                        className="flex-1 bg-transparent border-none text-white text-[14px] sm:text-[15px] placeholder:text-white/55 focus:outline-none focus:ring-0 px-2 font-normal"
+                        className="flex-1 bg-transparent border-none text-white text-[14px] sm:text-[15px] placeholder:text-white/60 focus:outline-none focus:ring-0 px-2 font-normal"
                         placeholder={t.userIdPlaceholder || "Username or email"}
                       />
 
@@ -595,8 +599,8 @@ export const Login: React.FC<LoginProps> = () => {
                         className={cn(
                           "w-[38px] h-[38px] mr-1.5 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer",
                           "text-white shadow-md disabled:opacity-35 disabled:cursor-not-allowed",
-                          "bg-sky-500 hover:bg-sky-400 active:scale-[0.96] hover:scale-[1.04] shadow-[0_0_24px_rgba(37,99,235,0.35)]",
-                          "border border-white/25"
+                          "bg-sky-500 hover:bg-sky-400 active:scale-[0.96] hover:scale-[1.04] shadow-[0_0_24px_rgba(37,99,235,0.4)]",
+                          "border border-white/30"
                         )}
                       >
                         <span className="sr-only">Continue</span>
@@ -645,15 +649,15 @@ export const Login: React.FC<LoginProps> = () => {
                     {/* Floating Glass Capsule with Password Input (+10% prominence) */}
                     <div className={cn(
                       "relative flex items-center h-[48px] sm:h-[52px] rounded-full",
-                      "bg-white/[0.12] hover:bg-white/[0.16] transition-all duration-300",
-                      "backdrop-blur-2xl border shadow-[0_14px_40px_rgba(0,0,0,0.5),inset_0_1px_0_0_rgba(255,255,255,0.22)]",
+                      "bg-white/[0.14] hover:bg-white/[0.18] transition-all duration-300",
+                      "backdrop-blur-2xl border shadow-[0_16px_44px_rgba(0,0,0,0.55),inset_0_1px_0_0_rgba(255,255,255,0.28)]",
                       isInputFocused 
-                        ? "border-[var(--orion-accent,#38BDF8)]/80 ring-4 ring-[var(--orion-accent,#38BDF8)]/20 bg-white/[0.16]" 
-                        : "border-white/25",
-                      errorMsg && "border-red-400/70 ring-4 ring-red-400/20"
+                        ? "border-[var(--orion-accent,#38BDF8)]/85 ring-4 ring-[var(--orion-accent,#38BDF8)]/25 bg-white/[0.18]" 
+                        : "border-white/30",
+                      errorMsg && "border-red-400/80 ring-4 ring-red-400/25"
                     )}>
-                      <div className="pl-4.5 pr-2 flex items-center pointer-events-none text-white/70">
-                        <Lock className="w-4 h-4 text-white/70" />
+                      <div className="pl-4.5 pr-2 flex items-center pointer-events-none text-white/75">
+                        <Lock className="w-4 h-4 text-white/75" />
                       </div>
                       <input
                         ref={passwordInputRef}
@@ -670,7 +674,7 @@ export const Login: React.FC<LoginProps> = () => {
                         }}
                         onFocus={() => setIsInputFocused(true)}
                         onBlur={() => setIsInputFocused(false)}
-                        className="flex-1 bg-transparent border-none text-white text-[14px] sm:text-[15px] placeholder:text-white/55 focus:outline-none focus:ring-0 px-2 font-normal"
+                        className="flex-1 bg-transparent border-none text-white text-[14px] sm:text-[15px] placeholder:text-white/60 focus:outline-none focus:ring-0 px-2 font-normal"
                         placeholder={t.enterPassword || "Password"}
                       />
 
@@ -678,7 +682,7 @@ export const Login: React.FC<LoginProps> = () => {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="px-2 text-white/50 hover:text-white/90 transition-colors cursor-pointer"
+                        className="px-2 text-white/60 hover:text-white transition-colors cursor-pointer"
                         aria-label={showPassword ? t.hidePassword : t.showPassword}
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -693,8 +697,8 @@ export const Login: React.FC<LoginProps> = () => {
                         className={cn(
                           "w-[38px] h-[38px] mr-1.5 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer",
                           "text-white shadow-md disabled:opacity-35 disabled:cursor-not-allowed",
-                          "bg-[var(--orion-accent,#0284C7)] hover:bg-[var(--orion-accent,#38BDF8)] active:scale-[0.96] hover:scale-[1.04] shadow-[0_0_24px_rgba(37,99,235,0.35)]",
-                          "border border-white/25"
+                          "bg-[var(--orion-accent,#0284C7)] hover:bg-[var(--orion-accent,#38BDF8)] active:scale-[0.96] hover:scale-[1.04] shadow-[0_0_24px_rgba(37,99,235,0.4)]",
+                          "border border-white/30"
                         )}
                       >
                         <span className="sr-only">{t.enterOrionBtn || "Enter Orion"}</span>
