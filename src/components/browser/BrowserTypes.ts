@@ -9,6 +9,7 @@ export type BrowserContentState =
   | 'LOADING'
   | 'PAGE_LOADED'
   | 'BLOCKED_EMBEDDING'
+  | 'EXTERNAL_REQUIRED'
   | 'INVALID_URL'
   | 'NETWORK_ERROR'
   | 'UNSUPPORTED_URL'
@@ -23,6 +24,7 @@ export type WebNavigationState =
   | 'NAVIGATING'
   | 'LOADED'
   | 'BLOCKED'
+  | 'EXTERNAL_REQUIRED'
   | 'ERROR';
 
 /** Explicit Native Mode WebView surface lifecycle states */

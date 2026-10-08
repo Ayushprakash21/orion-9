@@ -13,6 +13,7 @@ import { BrowserRuntimeCapability, detectBrowserRuntimeCapability, BrowserRuntim
 import { browserNativeRuntime, BrowserNativeRuntimeBridge } from './BrowserNativeRuntime';
 import { normalizeUrl, isValidUrl } from './BrowserEngine';
 import { validateBrowserUrl } from './BrowserSecurity';
+import { resolveWebModePolicy } from './WebModePolicy';
 
 export interface BrowserBounds {
   x: number;
@@ -265,25 +266,45 @@ export class WebEmbeddedBrowserAdapter implements BrowserRuntimeAdapter {
   }
 
   public async navigate(url: string): Promise<void> {
-    const validation = validateBrowserUrl(url);
-    if (!validation.valid) {
+    const policy = resolveWebModePolicy(url);
+    if (policy.decision === 'INVALID') {
       this.emitEvent('navigation-failed', {
         tabId: this.currentTabId,
         url,
-        error: validation.error || 'INVALID_URL',
+        error: policy.reason || 'INVALID_URL',
         loading: false,
       });
       return;
     }
 
-    const resolved = validation.normalizedUrl;
-    this.currentUrl = resolved;
-
-    try {
-      this.currentTitle = new URL(resolved).hostname.replace(/^www\./, '');
-    } catch {
-      this.currentTitle = resolved;
+    if (policy.decision === 'EXTERNAL_REQUIRED') {
+      this.currentUrl = policy.normalizedUrl;
+      this.currentTitle = policy.displayName;
+      this.emitEvent('navigation-failed', {
+        tabId: this.currentTabId,
+        url: this.currentUrl,
+        error: 'EXTERNAL_REQUIRED',
+        loading: false,
+      });
+      return;
     }
+
+    if (policy.decision === 'INTERNAL_ORION') {
+      this.currentUrl = policy.normalizedUrl;
+      this.currentTitle = policy.displayName;
+      this.emitEvent('navigation-finished', {
+        tabId: this.currentTabId,
+        url: this.currentUrl,
+        title: this.currentTitle,
+        loading: false,
+      });
+      return;
+    }
+
+    // EMBED_ALLOWED
+    const resolved = policy.normalizedUrl;
+    this.currentUrl = resolved;
+    this.currentTitle = policy.displayName;
 
     // Step 1: Honest transition to NAVIGATING
     this.emitEvent('navigation-started', {

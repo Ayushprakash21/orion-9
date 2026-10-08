@@ -75,19 +75,6 @@ export const BrowserWebRuntime: React.FC<BrowserWebRuntimeProps> = ({
   }, [url, generation]);
 
   const handleIframeLoad = () => {
-    // In standard browsers, cross-origin iframes refusing embedding trigger a load event with about:blank
-    // or inaccessible contentDocument.
-    try {
-      const doc = iframeRef.current?.contentDocument;
-      if (doc && doc.location.href === 'about:blank' && url !== 'about:blank') {
-        updateState('BLOCKED');
-        onBlocked?.();
-        return;
-      }
-    } catch {
-      // Cross-origin restriction: typical browser security response
-    }
-
     updateState('LOADED');
     onLoad?.();
     onLoadComplete?.();

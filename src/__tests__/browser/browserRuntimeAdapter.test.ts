@@ -101,8 +101,36 @@ describe('Browser Runtime Adapter & Architecture Suite', () => {
       expect(adapter.getCapability().runtimeType).toBe('WEB_EMBEDDED');
     });
 
-    it('honestly initiates navigation in LOADING state and transitions only on real load', async () => {
+    it('honestly initiates navigation in LOADING state and transitions only on real load for embeddable sites', async () => {
       const adapter = new WebEmbeddedBrowserAdapter('tab-1', 'orion://newtab');
+      const events: { type: NavigationEventType; detail: NavigationEventDetail }[] = [];
+
+      adapter.addEventListener((type, detail) => {
+        events.push({ type, detail });
+      });
+
+      await adapter.navigate('https://example.com');
+
+      expect(adapter.getCurrentUrl()).toBe('https://example.com');
+      expect(adapter.getTitle()).toBe('example.com');
+
+      // Check navigation-started event was emitted with loading: true
+      const started = events.find(e => e.type === 'navigation-started');
+      expect(started).toBeDefined();
+      expect(started?.detail.loading).toBe(true);
+      expect(started?.detail.url).toBe('https://example.com');
+
+      // Authoritative DOM load notification
+      adapter.notifyIframeLoaded('https://example.com/', 'Example Domain');
+      const finished = events.find(e => e.type === 'navigation-finished');
+      expect(finished).toBeDefined();
+      expect(finished?.detail.loading).toBe(false);
+      expect(finished?.detail.title).toBe('Example Domain');
+      expect(adapter.getCurrentUrl()).toBe('https://example.com/');
+    });
+
+    it('emits EXTERNAL_REQUIRED for non-embeddable public websites in Web Mode', async () => {
+      const adapter = new WebEmbeddedBrowserAdapter('tab-ext', 'orion://newtab');
       const events: { type: NavigationEventType; detail: NavigationEventDetail }[] = [];
 
       adapter.addEventListener((type, detail) => {
@@ -111,22 +139,10 @@ describe('Browser Runtime Adapter & Architecture Suite', () => {
 
       await adapter.navigate('https://google.com');
 
-      expect(adapter.getCurrentUrl()).toBe('https://google.com');
-      expect(adapter.getTitle()).toBe('google.com');
-
-      // Check navigation-started event was emitted with loading: true
-      const started = events.find(e => e.type === 'navigation-started');
-      expect(started).toBeDefined();
-      expect(started?.detail.loading).toBe(true);
-      expect(started?.detail.url).toBe('https://google.com');
-
-      // Authoritative DOM load notification
-      adapter.notifyIframeLoaded('https://www.google.com/', 'Google');
-      const finished = events.find(e => e.type === 'navigation-finished');
-      expect(finished).toBeDefined();
-      expect(finished?.detail.loading).toBe(false);
-      expect(finished?.detail.title).toBe('Google');
-      expect(adapter.getCurrentUrl()).toBe('https://www.google.com/');
+      const failed = events.find(e => e.type === 'navigation-failed');
+      expect(failed).toBeDefined();
+      expect(failed?.detail.error).toBe('EXTERNAL_REQUIRED');
+      expect(failed?.detail.loading).toBe(false);
     });
 
     it('notifies BLOCKED_EMBEDDING when site forbids iframe framing', async () => {
@@ -137,8 +153,8 @@ describe('Browser Runtime Adapter & Architecture Suite', () => {
         events.push({ type, detail });
       });
 
-      await adapter.navigate('https://github.com');
-      adapter.notifyIframeBlocked('https://github.com');
+      await adapter.navigate('https://example.com');
+      adapter.notifyIframeBlocked('https://example.com');
 
       const failed = events.find(e => e.type === 'navigation-failed');
       expect(failed).toBeDefined();

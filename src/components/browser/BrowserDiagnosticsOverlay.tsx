@@ -13,6 +13,7 @@ import React from 'react';
 import { X, Activity, ShieldCheck, ShieldAlert, Monitor, Terminal } from 'lucide-react';
 import { BrowserRuntimeCapability } from './BrowserRuntimeCapability';
 import { BrowserTab } from './BrowserTypes';
+import { resolveWebModePolicy } from './WebModePolicy';
 
 export interface BrowserDiagnosticsProps {
   isOpen: boolean;
@@ -35,6 +36,12 @@ export const BrowserDiagnosticsOverlay: React.FC<BrowserDiagnosticsProps> = ({
 }) => {
   if (!isOpen) return null;
 
+  const isNative = capability.mode === 'NATIVE_WEBVIEW';
+  const webPolicy = !isNative && activeTab ? resolveWebModePolicy(activeTab.url) : null;
+  const iframeStatus = isNative 
+    ? 'N/A (NATIVE_WEBVIEW)' 
+    : (webPolicy?.iframeAllowed ? 'CREATED' : 'NOT_CREATED');
+
   return (
     <div 
       data-testid="browser-diagnostics-panel"
@@ -56,10 +63,11 @@ export const BrowserDiagnosticsOverlay: React.FC<BrowserDiagnosticsProps> = ({
       </div>
 
       <div className="space-y-2.5">
+        {/* Runtime Mode */}
         <div className="flex justify-between items-center py-1 px-2 rounded-lg bg-os-bg/50">
-          <span className="text-os-text-muted">Runtime Mode:</span>
+          <span className="text-os-text-muted">Runtime:</span>
           <span className={`font-bold px-2 py-0.5 rounded text-[11px] ${
-            capability.mode === 'NATIVE_WEBVIEW' 
+            isNative 
               ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' 
               : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
           }`}>
@@ -67,44 +75,84 @@ export const BrowserDiagnosticsOverlay: React.FC<BrowserDiagnosticsProps> = ({
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div className="py-1 px-2 rounded-lg bg-os-bg/50 flex justify-between items-center">
-            <span className="text-os-text-muted">Native Avail:</span>
-            <span className={capability.nativeAvailable ? 'text-emerald-400 font-bold' : 'text-os-text-muted font-bold'}>
-              {capability.nativeAvailable ? 'YES' : 'NO'}
-            </span>
-          </div>
+        {/* Web Mode Specific Diagnostics */}
+        {!isNative && webPolicy && (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="py-1 px-2 rounded-lg bg-os-bg/50 flex justify-between items-center">
+                <span className="text-os-text-muted text-[10px]">Policy:</span>
+                <span className={`font-bold text-[11px] ${
+                  webPolicy.decision === 'EMBED_ALLOWED' ? 'text-emerald-400' :
+                  webPolicy.decision === 'EXTERNAL_REQUIRED' ? 'text-amber-400' : 'text-cyan-400'
+                }`}>
+                  {webPolicy.decision}
+                </span>
+              </div>
+              <div className="py-1 px-2 rounded-lg bg-os-bg/50 flex justify-between items-center">
+                <span className="text-os-text-muted text-[10px]">Iframe:</span>
+                <span className={`font-bold text-[11px] ${
+                  webPolicy.iframeAllowed ? 'text-emerald-400' : 'text-red-400'
+                }`}>
+                  {iframeStatus}
+                </span>
+              </div>
+            </div>
 
-          <div className="py-1 px-2 rounded-lg bg-os-bg/50 flex justify-between items-center">
-            <span className="text-os-text-muted">IPC Verified:</span>
-            <span className={capability.verifiedNative ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
-              {capability.verifiedNative ? 'YES' : 'NO'}
-            </span>
-          </div>
-        </div>
+            <div className="py-1 px-2 rounded-lg bg-os-bg/50">
+              <span className="text-os-text-muted block text-[10px]">Policy Reason:</span>
+              <div className="text-[10px] text-os-text-secondary leading-tight mt-0.5">
+                {webPolicy.reason}
+              </div>
+            </div>
+          </>
+        )}
 
+        {/* Native Mode Specific Diagnostics */}
+        {isNative && (
+          <div className="grid grid-cols-2 gap-2">
+            <div className="py-1 px-2 rounded-lg bg-os-bg/50 flex justify-between items-center">
+              <span className="text-os-text-muted text-[10px]">Native Verified:</span>
+              <span className={capability.verifiedNative ? 'text-emerald-400 font-bold' : 'text-amber-400 font-bold'}>
+                {capability.verifiedNative ? 'YES' : 'NO'}
+              </span>
+            </div>
+            <div className="py-1 px-2 rounded-lg bg-os-bg/50 flex justify-between items-center">
+              <span className="text-os-text-muted text-[10px]">Surface:</span>
+              <span className="text-os-accent font-bold text-[11px]">
+                {activeTab?.nativeLifecycleState || 'READY'}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* Active Tab & Surface Label */}
         <div className="py-1 px-2 rounded-lg bg-os-bg/50">
           <div className="flex justify-between items-center mb-1">
-            <span className="text-os-text-muted">Active Tab:</span>
+            <span className="text-os-text-muted">Tab:</span>
             <span className="text-os-accent font-semibold">{activeTab?.id || 'None'} ({tabsCount} tabs)</span>
           </div>
-          <div className="text-[10px] text-os-text-secondary truncate">
+          {isNative && activeTab?.id && (
+            <div className="text-[10px] text-os-text-muted font-mono">
+              Native label: orion-browser-{activeTab.id.replace(/[^a-zA-Z0-9_-]/g, '_')}
+            </div>
+          )}
+          <div className="text-[10px] text-os-text-secondary truncate mt-0.5">
             {activeTab?.title || 'No Title'}
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <div className="py-1 px-2 rounded-lg bg-os-bg/50">
-            <span className="text-os-text-muted block text-[10px]">Surface State:</span>
-            <span className="font-semibold text-[11px] text-os-text-primary">
-              {activeTab?.nativeLifecycleState || (capability.mode === 'NATIVE_WEBVIEW' ? 'READY' : 'N/A')}
-            </span>
+        {/* Active URL & Navigation State */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="col-span-2 py-1 px-2 rounded-lg bg-os-bg/50">
+            <span className="text-os-text-muted block text-[10px]">URL:</span>
+            <div className="text-[10px] text-os-text-secondary truncate font-mono select-all">
+              {activeTab?.url || 'about:blank'}
+            </div>
           </div>
-
           <div className="py-1 px-2 rounded-lg bg-os-bg/50">
-            <span className="text-os-text-muted block text-[10px]">Navigation:</span>
-            <span className={`font-semibold text-[11px] ${
-              activeTab?.loadState === 'BLOCKED_EMBEDDING' ? 'text-amber-400' :
+            <span className="text-os-text-muted block text-[10px]">State:</span>
+            <span className={`font-semibold text-[10px] ${
+              activeTab?.loadState === 'EXTERNAL_REQUIRED' || activeTab?.loadState === 'BLOCKED_EMBEDDING' ? 'text-amber-400' :
               activeTab?.loadState === 'PAGE_LOADED' ? 'text-emerald-400' :
               activeTab?.loadState === 'LOADING' ? 'text-cyan-400' : 'text-os-text-primary'
             }`}>
@@ -113,25 +161,19 @@ export const BrowserDiagnosticsOverlay: React.FC<BrowserDiagnosticsProps> = ({
           </div>
         </div>
 
-        <div className="py-1.5 px-2 rounded-lg bg-os-bg/50">
-          <span className="text-os-text-muted block text-[10px] mb-0.5">Active URL:</span>
-          <div className="text-[10px] text-os-text-secondary truncate font-mono select-all">
-            {activeTab?.url || 'about:blank'}
-          </div>
-        </div>
-
-        <div className="py-1.5 px-2 rounded-lg bg-os-bg/50">
-          <div className="flex justify-between text-[10px] text-os-text-muted mb-0.5">
-            <span>Last Native Event:</span>
+        {/* Event Stream */}
+        <div className="py-1 px-2 rounded-lg bg-os-bg/50">
+          <div className="flex justify-between text-[10px] text-os-text-muted">
+            <span>Last Event:</span>
             <span>{lastEvent ? new Date(lastEvent.timestamp).toLocaleTimeString() : '-'}</span>
           </div>
-          <div className="text-[10px] text-os-accent truncate">
+          <div className="text-[10px] text-os-accent truncate mt-0.5">
             {lastEvent?.type || 'None'}
           </div>
         </div>
 
         {lastError && (
-          <div className="py-1.5 px-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px]">
+          <div className="py-1 px-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-[10px]">
             <span className="font-bold block">Last Error:</span>
             <span className="break-all">{lastError}</span>
           </div>

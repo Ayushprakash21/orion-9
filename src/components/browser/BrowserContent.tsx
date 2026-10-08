@@ -10,6 +10,7 @@ import { BrowserBounds } from './BrowserRuntimeAdapter';
 import { isNativeRuntimeAvailable } from './BrowserRuntimeCapability';
 import { openExternally } from './BrowserSecurity';
 import { browserNativeRuntime } from './BrowserNativeRuntime';
+import { resolveWebModePolicy } from './WebModePolicy';
 
 export interface BrowserContentProps {
   activeTab?: BrowserTab;
@@ -135,12 +136,28 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
     );
   }
 
-  // 2. STATE: BLOCKED EMBEDDING (Only in Web Embedded mode, NEVER in native mode)
-  if (!isNative && (activeTab.loadState === 'BLOCKED_EMBEDDING' || activeTab.contentState === 'BLOCKED_EMBEDDING')) {
+  // 2. STATE: BLOCKED EMBEDDING OR EXTERNAL REQUIRED (Only in Web Embedded mode, NEVER in native mode)
+  const isWebBlockedOrExternal = 
+    !isNative && (
+      activeTab.loadState === 'EXTERNAL_REQUIRED' || 
+      activeTab.contentState === 'EXTERNAL_REQUIRED' ||
+      activeTab.webNavigationState === 'EXTERNAL_REQUIRED' ||
+      activeTab.loadState === 'BLOCKED_EMBEDDING' || 
+      activeTab.contentState === 'BLOCKED_EMBEDDING' ||
+      resolveWebModePolicy(activeTab.url).decision === 'EXTERNAL_REQUIRED'
+    );
+
+  if (isWebBlockedOrExternal) {
+    let siteName = 'This website';
+    try {
+      siteName = new URL(activeTab.url).hostname.replace(/^www\./, '');
+      siteName = siteName.charAt(0).toUpperCase() + siteName.slice(1);
+    } catch {}
+
     return (
       <div 
         data-testid="browser-blocked-embedding"
-        className="flex-1 h-full flex flex-col items-center justify-center p-8 bg-os-bg text-center select-none"
+        className="flex-1 h-full flex flex-col items-center justify-center p-8 bg-os-bg text-center select-none animate-in fade-in duration-150"
       >
         <div className="w-16 h-16 rounded-3xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 mb-4 shadow-xl">
           <ShieldAlert className="w-8 h-8" />
@@ -156,7 +173,7 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
         </h2>
 
         <p className="text-xs text-os-text-muted mb-6 max-w-md leading-relaxed">
-          This website prevents embedded browser viewing for security reasons. ORION-9 Web Mode cannot override the website's browser security policy.
+          {siteName} cannot be embedded safely inside ORION-9 Web Mode. This website controls its own iframe embedding security policy. Web Mode cannot override that policy.
         </p>
 
         <div className="flex flex-wrap items-center justify-center gap-3">
