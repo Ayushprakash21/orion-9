@@ -87,18 +87,20 @@ export function resolveThemeVariables(
             textSecondary: canonicalTheme.colors.textSecondary,
             textMuted: canonicalTheme.colors.textMuted,
             windowHeaderBg: canonicalTheme.colors.surface,
-            dockBg: canonicalTheme.colors.dockBg || 'rgba(241, 236, 226, 0.94)',
-            dockBorder: canonicalTheme.colors.dockBorder || canonicalTheme.colors.border,
-            dockShadow: canonicalTheme.colors.dockShadow || '0 20px 48px rgba(0,0,0,0.45)',
+            dockBg: canonicalTheme.colors.dockBg || canonicalTheme.colors.surfaceElevated,
+            dockBorder: canonicalTheme.colors.dockBorder || canonicalTheme.colors.borderStrong,
+            dockShadow: canonicalTheme.colors.dockShadow || '0 20px 48px rgba(0,0,0,0.50)',
             cardBg: canonicalTheme.colors.surfaceElevated,
             desktopIconLabel: canonicalTheme.colors.desktopIconLabel || (canonicalTheme.appearance.mode === 'light' ? '#17191B' : '#F3EBDD')
           }
         : presetColors
       );
 
-  // 2. Resolve Accent Color
+  // 2. Resolve Accent Color (Prioritize active persistent custom accent)
   let accentHex = canonicalTheme.colors.accent; // Default to canonical theme accent
-  if (settings.accentKey === 'custom' && settings.customAccentHex) {
+  if (activePrefs.customAccentEnabled && activePrefs.customAccent) {
+    accentHex = activePrefs.customAccent;
+  } else if (settings.accentKey === 'custom' && settings.customAccentHex) {
     accentHex = settings.customAccentHex;
   } else if (settings.accentKey && settings.accentKey !== 'neutral' && ACCENT_PRESETS[settings.accentKey as AccentPresetKey]) {
     accentHex = ACCENT_PRESETS[settings.accentKey as AccentPresetKey].hex;
@@ -106,7 +108,11 @@ export function resolveThemeVariables(
 
   const textOnAccent = calculateContrastColor(accentHex);
   const accentHover = adjustHexBrightness(accentHex, effectiveMode === 'light' ? -12 : 12);
-  const accentSubtle = `${accentHex}22`; // 13% opacity hex
+  const accentActive = adjustHexBrightness(accentHex, effectiveMode === 'light' ? -20 : 20);
+  const accentSubtle = `${accentHex}26`; // 15% opacity hex
+  const dockSurface = canonicalTheme.colors.dockBg || canonicalTheme.colors.surfaceElevated;
+  const dockBorder = canonicalTheme.colors.dockBorder || canonicalTheme.colors.borderStrong;
+  const dockShadow = canonicalTheme.colors.dockShadow || '0 20px 48px rgba(0,0,0,0.50)';
 
   // 3. Resolve Geometry / Radius
   let radius = '8px';
@@ -159,11 +165,25 @@ export function resolveThemeVariables(
     '--os-accent-subtle': accentSubtle,
 
     '--orion-accent': accentHex,
-    '--orion-accent-soft': accentSubtle,
     '--orion-accent-hover': accentHover,
+    '--orion-accent-active': accentActive,
+    '--orion-accent-muted': accentSubtle,
+    '--orion-accent-soft': accentSubtle,
     '--orion-accent-subtle': accentSubtle,
+    '--orion-accent-foreground': textOnAccent,
     '--orion-on-accent': textOnAccent,
+    '--orion-focus': `${accentHex}66`,
     '--orion-focus-ring': settings.highContrastFocusRing ? '#F59E0B' : accentHex,
+
+    '--orion-dock-surface': dockSurface,
+    '--orion-dock-bg': dockSurface,
+    '--orion-dock-opacity': `${(settings.dockTransparency ?? 85) / 100}`,
+    '--orion-dock-border': dockBorder,
+    '--orion-dock-shadow': dockShadow,
+    '--orion-dock-active': accentHex,
+    '--orion-dock-hover': accentSubtle,
+    '--orion-dock-text': canonicalTheme.colors.textPrimary,
+    '--orion-dock-text-muted': canonicalTheme.colors.textMuted,
 
     '--orion-radius': radius,
     '--orion-window-blur': windowBlur,
@@ -171,10 +191,6 @@ export function resolveThemeVariables(
     '--orion-density-padding': densityPadding,
 
     '--orion-window-header-bg': baseColors.windowHeaderBg,
-    '--orion-dock-bg': baseColors.dockBg,
-    '--orion-dock-opacity': `${(settings.dockTransparency ?? 85) / 100}`,
-    '--orion-dock-border': baseColors.dockBorder || baseColors.border,
-    '--orion-dock-shadow': baseColors.dockShadow || '0 20px 48px rgba(0,0,0,0.45)',
     '--orion-card-bg': baseColors.cardBg,
     '--orion-desktop-icon-label': baseColors.desktopIconLabel || '#F3EBDD',
 

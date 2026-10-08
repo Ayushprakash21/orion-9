@@ -241,7 +241,7 @@ describe('Orion-9 Dock Auto-Hide & Global Theme Authority', () => {
 
       expect(html).not.toContain('focus-visible:ring-sky-500');
       expect(html).not.toContain('hover:bg-sky-500/50');
-      expect(html).toContain('focus-visible:ring-[var(--orion-accent,#4A5056)]');
+      expect(html).toContain('focus-visible:ring-[var(--orion-accent)]');
     });
   });
 

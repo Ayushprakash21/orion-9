@@ -27,9 +27,9 @@ export const ORION_THEMES: Record<OrionThemeId, OrionTheme> = {
       info: '#AEB5BE',
       focus: 'rgba(216,221,227,.40)',
       desktopIconLabel: '#F3EBDD', // Warm off-white / cream
-      dockBg: 'rgba(241, 236, 226, 0.94)', // Soft ivory / warm cream
-      dockBorder: 'rgba(70, 65, 55, 0.16)',
-      dockShadow: '0 20px 48px rgba(0, 0, 0, 0.45)',
+      dockBg: 'rgba(22, 25, 29, 0.88)', // Deep charcoal graphite glass
+      dockBorder: 'rgba(255, 255, 255, 0.10)',
+      dockShadow: '0 20px 48px rgba(0, 0, 0, 0.55)',
     },
     effects: {
       glassOpacity: 0.12,
@@ -70,9 +70,9 @@ export const ORION_THEMES: Record<OrionThemeId, OrionTheme> = {
       info: '#646B72',
       focus: 'rgba(74,80,86,.30)',
       desktopIconLabel: '#17191B', // Dark graphite
-      dockBg: 'rgba(245, 241, 233, 0.95)', // Soft warm porcelain
-      dockBorder: 'rgba(70, 65, 55, 0.14)',
-      dockShadow: '0 16px 40px rgba(0, 0, 0, 0.14)',
+      dockBg: 'rgba(255, 255, 255, 0.90)', // Translucent porcelain glass
+      dockBorder: 'rgba(0, 0, 0, 0.10)',
+      dockShadow: '0 16px 40px rgba(0, 0, 0, 0.12)',
     },
     effects: {
       glassOpacity: 0.08,
@@ -113,9 +113,9 @@ export const ORION_THEMES: Record<OrionThemeId, OrionTheme> = {
       info: '#AAB2BC',
       focus: 'rgba(191,198,206,.35)',
       desktopIconLabel: '#F3F0E8', // Light ivory
-      dockBg: 'rgba(240, 236, 226, 0.94)',
-      dockBorder: 'rgba(70, 65, 55, 0.16)',
-      dockShadow: '0 20px 48px rgba(0, 0, 0, 0.55)',
+      dockBg: 'rgba(15, 19, 27, 0.88)', // Deep sapphire slate glass
+      dockBorder: 'rgba(255, 255, 255, 0.12)',
+      dockShadow: '0 20px 48px rgba(0, 0, 0, 0.65)',
     },
     effects: {
       glassOpacity: 0.14,
@@ -156,9 +156,9 @@ export const ORION_THEMES: Record<OrionThemeId, OrionTheme> = {
       info: '#A9B5AE',
       focus: 'rgba(127,165,141,.35)',
       desktopIconLabel: '#F3ECE0', // Warm ivory
-      dockBg: 'rgba(241, 237, 227, 0.94)',
-      dockBorder: 'rgba(70, 65, 55, 0.16)',
-      dockShadow: '0 20px 48px rgba(0, 0, 0, 0.45)',
+      dockBg: 'rgba(18, 25, 21, 0.88)', // Deep forest moss glass
+      dockBorder: 'rgba(255, 255, 255, 0.10)',
+      dockShadow: '0 20px 48px rgba(0, 0, 0, 0.55)',
     },
     effects: {
       glassOpacity: 0.11,
@@ -199,9 +199,9 @@ export const ORION_THEMES: Record<OrionThemeId, OrionTheme> = {
       info: '#AAA49C',
       focus: 'rgba(199,183,164,.35)',
       desktopIconLabel: '#F5ECE1', // Soft cream
-      dockBg: 'rgba(243, 237, 226, 0.94)',
-      dockBorder: 'rgba(70, 65, 55, 0.16)',
-      dockShadow: '0 20px 48px rgba(0, 0, 0, 0.45)',
+      dockBg: 'rgba(26, 22, 19, 0.88)', // Dark warm espresso glass
+      dockBorder: 'rgba(255, 255, 255, 0.10)',
+      dockShadow: '0 20px 48px rgba(0, 0, 0, 0.55)',
     },
     effects: {
       glassOpacity: 0.11,

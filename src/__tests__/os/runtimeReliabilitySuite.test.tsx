@@ -148,15 +148,15 @@ describe('ORION-9 Runtime Reliability Suite (Dock, Wallpaper & File Manager)', (
   describe('Dock Auto-Hide State Machine & Persistence', () => {
     it('DOCK-AUTOHIDE-001: preserves explicit dockAutoHide=false without normalizing undefined to false', () => {
       const prefs = loadPreferences();
-      expect(prefs.dockAutoHide).toBe(false);
+      expect(prefs.dockAutoHide).toBe(true);
 
-      savePreferences({ ...prefs, dockAutoHide: true });
+      savePreferences({ ...prefs, dockAutoHide: false });
       const updated = loadPreferences();
-      expect(updated.dockAutoHide).toBe(true);
+      expect(updated.dockAutoHide).toBe(false);
 
-      savePreferences({ ...updated, dockAutoHide: false });
+      savePreferences({ ...updated, dockAutoHide: true });
       const reverted = loadPreferences();
-      expect(reverted.dockAutoHide).toBe(false);
+      expect(reverted.dockAutoHide).toBe(true);
       expect(reverted.dockAutoHide !== undefined).toBe(true);
     });
 

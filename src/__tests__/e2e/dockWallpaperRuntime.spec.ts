@@ -66,13 +66,30 @@ test.describe('ORION-9 Dock Auto-Hide and Wallpaper Runtime E2E Suite', () => {
     expect(src).toMatch(/\.(png|jpg|jpeg|webp)/i);
   });
 
-  test('E2E-002: Verifies Dock mounts with authoritative data attributes and responsive geometry', async ({ page }) => {
+  test('E2E-002: Verifies Dock mounts with authoritative data attributes, defaults to auto-hidden, and reveals on bottom-edge trigger', async ({ page }) => {
     const dock = page.locator('[data-dock="true"]').first();
-    await expect(dock).toBeVisible({ timeout: 10000 });
-
-    // Verify dock has authoritative data attributes
+    // Dock is mounted in DOM
+    await expect(dock).toBeAttached({ timeout: 10000 });
     await expect(dock).toHaveAttribute('data-dock', 'true');
-    await expect(dock).toHaveAttribute('data-dock-visible', 'true');
+
+    // By default, dock starts hidden in the modern OS shell
+    await expect(dock).toHaveAttribute('data-dock-visibility-state', 'hidden');
+
+    // Trigger reveal by moving pointer to the bottom screen edge
+    await page.mouse.move(720, 898);
+
+    // Dock transitions to visible
+    await expect(dock).toHaveAttribute('data-dock-visible', 'true', { timeout: 5000 });
     await expect(dock).toHaveAttribute('data-dock-visibility-state', 'visible');
+
+    // Hover directly over the dock to keep it visible
+    await dock.hover();
+    await expect(dock).toHaveAttribute('data-dock-visible', 'true');
+
+    // Move pointer away into the workspace
+    await page.mouse.move(720, 450);
+
+    // Dock auto-hides back to hidden state
+    await expect(dock).toHaveAttribute('data-dock-visibility-state', 'hidden', { timeout: 5000 });
   });
 });

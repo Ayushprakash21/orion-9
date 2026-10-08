@@ -137,7 +137,7 @@ export const DEFAULT_PREFERENCES: OrionAppearancePreferences = {
   windowControlPosition: 'left',
   dockPosition: 'bottom',
   dockAlignment: 'center',
-  dockAutoHide: false,
+  dockAutoHide: true,
   dockMagnification: true,
   dockSize: 'medium',
   dockShowRunningIndicators: true,

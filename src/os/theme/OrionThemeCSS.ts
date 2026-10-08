@@ -2,6 +2,56 @@ import { OrionTheme, OrionAppearancePreferences, OrionCornerRadius } from './Ori
 import { computeMorphismTokens } from './OrionMorphismTokens';
 
 /**
+ * Calculates WCAG relative luminance to determine optimal foreground text color (#FFFFFF or #0F172A).
+ */
+export function calculateContrastColor(hexColor: string): string {
+  let hex = hexColor.replace('#', '');
+  if (hex.length === 3) {
+    hex = hex.split('').map(c => c + c).join('');
+  }
+  if (hex.length !== 6) return '#FFFFFF';
+
+  const r = parseInt(hex.substring(0, 2), 16) / 255;
+  const g = parseInt(hex.substring(2, 4), 16) / 255;
+  const b = parseInt(hex.substring(4, 6), 16) / 255;
+
+  const toLinear = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+
+  return luminance > 0.45 ? '#0F172A' : '#FFFFFF';
+}
+
+/**
+ * Lightens or darkens a hex color for hover/subtle states.
+ */
+export function adjustHexBrightness(hexColor: string, percent: number): string {
+  let hex = hexColor.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+  if (hex.length !== 6) return hexColor;
+
+  const num = parseInt(hex, 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+  const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
+  const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+
+  return `#${(1 << 24 | R << 16 | G << 8 | B).toString(16).slice(1)}`;
+}
+
+/**
+ * Converts a hex color to an rgba string with specified opacity.
+ */
+export function hexToRgba(hexColor: string, alpha: number): string {
+  let hex = hexColor.replace('#', '');
+  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+  if (hex.length !== 6) return `rgba(216, 221, 227, ${alpha})`;
+  const r = parseInt(hex.substring(0, 2), 16);
+  const g = parseInt(hex.substring(2, 4), 16);
+  const b = parseInt(hex.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+/**
  * Maps corner radius preset to actual pixel value
  */
 export function getCornerRadiusValue(preset: OrionCornerRadius): number {
@@ -32,11 +82,10 @@ export function injectBaseTransitions(): void {
     :root {
       transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease, 
                   --orion-bg 200ms ease, --orion-surface 200ms ease, 
-                  --orion-surface-elevated 200ms ease, --orion-accent 200ms ease;
-    }
-    
-    *, *::before, *::after {
-      /* Apply theme transition globally if needed or scoped */
+                  --orion-surface-elevated 200ms ease, --orion-accent 200ms ease,
+                  --orion-accent-soft 200ms ease, --orion-dock-surface 200ms ease,
+                  --orion-dock-bg 200ms ease, --orion-dock-border 200ms ease,
+                  --orion-dock-active 200ms ease, --orion-dock-hover 200ms ease;
     }
   `;
   document.head.appendChild(style);
@@ -53,7 +102,9 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   // Apply basic color palette
   root.style.setProperty('--orion-bg', theme.colors.background);
   root.style.setProperty('--orion-background', theme.colors.background);
+  root.style.setProperty('--orion-background-secondary', theme.colors.surface);
   root.style.setProperty('--orion-surface', theme.colors.surface);
+  root.style.setProperty('--orion-surface-secondary', theme.colors.surfaceElevated);
   root.style.setProperty('--orion-surface-elevated', theme.colors.surfaceElevated);
   root.style.setProperty('--orion-surface-hover', theme.colors.surfaceHover);
   root.style.setProperty('--orion-surface-active', theme.colors.surfaceActive);
@@ -70,6 +121,7 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   // Synchronize OS aliases for complete shell compatibility
   root.style.setProperty('--os-bg', theme.colors.background);
   root.style.setProperty('--os-surface', theme.colors.surface);
+  root.style.setProperty('--os-surface-secondary', theme.colors.surfaceElevated);
   root.style.setProperty('--os-surface-elevated', theme.colors.surfaceElevated);
   root.style.setProperty('--os-surface-hover', theme.colors.surfaceHover);
   root.style.setProperty('--os-surface-active', theme.colors.surfaceActive);
@@ -80,14 +132,30 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   root.style.setProperty('--os-border', theme.colors.border);
   root.style.setProperty('--os-border-strong', theme.colors.borderStrong);
 
-  // Accent logic
+  // ── ACCENT RESOLUTION & LIVE PROPAGATION ───────────────────────────────────
+  const isDark = theme.appearance.mode === 'dark';
   const accent = (preferences.customAccentEnabled && preferences.customAccent) 
     ? preferences.customAccent 
     : theme.colors.accent;
+
+  const accentForeground = calculateContrastColor(accent);
+  const accentHover = adjustHexBrightness(accent, isDark ? 12 : -12);
+  const accentActive = adjustHexBrightness(accent, isDark ? 20 : -20);
+  const accentSoft = hexToRgba(accent, 0.15);
+  const accentFocusGlow = hexToRgba(accent, 0.40);
+
   root.style.setProperty('--orion-accent', accent);
-  root.style.setProperty('--orion-accent-soft', theme.colors.accentSoft);
+  root.style.setProperty('--orion-accent-hover', accentHover);
+  root.style.setProperty('--orion-accent-active', accentActive);
+  root.style.setProperty('--orion-accent-muted', accentSoft);
+  root.style.setProperty('--orion-accent-soft', accentSoft);
+  root.style.setProperty('--orion-accent-subtle', accentSoft);
+  root.style.setProperty('--orion-accent-foreground', accentForeground);
+  root.style.setProperty('--orion-on-accent', accentForeground);
   root.style.setProperty('--os-accent', accent);
-  root.style.setProperty('--os-accent-subtle', theme.colors.accentSoft);
+  root.style.setProperty('--os-accent-subtle', accentSoft);
+  root.style.setProperty('--orion-focus', accentFocusGlow);
+  root.style.setProperty('--orion-focus-ring', accent);
 
   // Status colors
   root.style.setProperty('--orion-success', theme.colors.success);
@@ -95,7 +163,20 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   root.style.setProperty('--orion-danger', theme.colors.danger);
   root.style.setProperty('--orion-critical', theme.colors.danger);
   root.style.setProperty('--orion-info', theme.colors.info);
-  root.style.setProperty('--orion-focus', theme.colors.focus);
+
+  // ── DOCK TOKENS (THEME & ACCENT UNIFIED) ───────────────────────────────────
+  const dockSurface = theme.colors.dockBg || theme.colors.surfaceElevated;
+  const dockBorder = theme.colors.dockBorder || theme.colors.borderStrong;
+  const dockShadow = theme.colors.dockShadow || '0 20px 48px rgba(0, 0, 0, 0.50)';
+
+  root.style.setProperty('--orion-dock-surface', dockSurface);
+  root.style.setProperty('--orion-dock-bg', dockSurface);
+  root.style.setProperty('--orion-dock-border', dockBorder);
+  root.style.setProperty('--orion-dock-shadow', dockShadow);
+  root.style.setProperty('--orion-dock-active', accent);
+  root.style.setProperty('--orion-dock-hover', accentSoft);
+  root.style.setProperty('--orion-dock-text', theme.colors.textPrimary);
+  root.style.setProperty('--orion-dock-text-muted', theme.colors.textMuted);
 
   // Effects and UI vars
   const glassOpacity = preferences.transparencyEnabled ? (preferences.transparencyIntensity / 100) * theme.effects.glassOpacity : 1;
@@ -115,11 +196,8 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   root.style.setProperty('--orion-chart-4', theme.chart.chart4);
   root.style.setProperty('--orion-chart-5', theme.chart.chart5);
 
-  // Desktop Icon Label & Dock styling
+  // Desktop Icon Label styling
   root.style.setProperty('--orion-desktop-icon-label', theme.colors.desktopIconLabel || (theme.appearance.mode === 'light' ? '#17191B' : '#F3EBDD'));
-  root.style.setProperty('--orion-dock-bg', theme.colors.dockBg || 'rgba(241, 236, 226, 0.94)');
-  root.style.setProperty('--orion-dock-border', theme.colors.dockBorder || 'rgba(70, 65, 55, 0.16)');
-  root.style.setProperty('--orion-dock-shadow', theme.colors.dockShadow || '0 20px 48px rgba(0, 0, 0, 0.45)');
 
   // Motion
   root.style.setProperty('--orion-transition-speed', preferences.reduceMotion ? '0ms' : '150ms');

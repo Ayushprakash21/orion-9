@@ -70,7 +70,7 @@ export const DEFAULT_RUNTIME_SETTINGS: RuntimeSettings = {
   },
   dock: {
     dockPosition: 'bottom',
-    dockAutoHide: false,
+    dockAutoHide: true,
     dockSize: 'medium',
     dockMagnification: true,
     dockOpacity: 1.0,

@@ -165,18 +165,18 @@ export const OSGeometryProvider: React.FC<OSGeometryProviderProps> = ({ children
 
   const persistentSettings = useMemo(() => {
     const scPers = supplyChain?.settings?.personalization;
-    let fallbackAutoHide: boolean | undefined = undefined;
+    let authoritativeAutoHide: boolean | undefined = undefined;
     try {
       const prefs = loadPreferences();
       if (prefs?.dockAutoHide !== undefined) {
-        fallbackAutoHide = Boolean(prefs.dockAutoHide);
+        authoritativeAutoHide = Boolean(prefs.dockAutoHide);
       }
     } catch {}
 
     return {
       ...DEFAULT_PERSONALIZATION_SETTINGS,
       ...(scPers || {}),
-      ...(fallbackAutoHide !== undefined && scPers?.dockAutoHide === undefined ? { dockAutoHide: fallbackAutoHide } : {})
+      ...(authoritativeAutoHide !== undefined ? { dockAutoHide: authoritativeAutoHide } : {})
     };
   }, [supplyChain?.settings?.personalization]);
 
