@@ -1,14 +1,15 @@
 /**
- * ORION-9 BROWSER ENGINE ABSTRACTION
+ * ORION-9 BROWSER ENGINE ARCHITECTURE
  * 
- * Defines the core BrowserEngine interface and provides the default
- * WebBrowserEngine implementation for the web runtime.
- * 
- * Allows future drop-in replacement with ChromiumBrowserEngine or
- * WebViewBrowserEngine without modifying the UI layer.
+ * Provides runtime-independent browser abstraction supporting:
+ * 1. WEB_EMBEDDED: Safe sandboxed web runtime (iframe-based with graceful fallback).
+ * 2. NATIVE_WEBVIEW: Real desktop runtime (WebView2 / Chromium / Electron / Tauri)
+ *    operating with full web capabilities, direct networking, and no iframe restrictions.
  */
 
 import { BrowserContentState, SEARCH_ENGINES, SearchEngineType, SearchEngineConfig } from './BrowserTypes';
+
+export type BrowserRuntimeMode = 'WEB_EMBEDDED' | 'NATIVE_WEBVIEW';
 
 export interface BrowserEngineEvents {
   onStateChange?: (state: BrowserContentState, url: string, title: string) => void;
@@ -26,7 +27,7 @@ export interface BrowserBounds {
 }
 
 export interface BrowserEngine {
-  navigate(url: string, generation?: number): Promise<{ generation: number; state: BrowserContentState; url: string; title: string } | void>;
+  navigate(url: string, generation?: number): Promise<{ generation: number; state: BrowserContentState; url: string; title: string }>;
   goBack(): Promise<void>;
   goForward(): Promise<void>;
   reload(): Promise<void>;
@@ -42,40 +43,8 @@ export interface BrowserEngine {
   dispose(): void;
 }
 
-// Known major domains that actively block iframe embedding via X-Frame-Options: DENY / SAMEORIGIN or CSP frame-ancestors
-export const KNOWN_BLOCKED_DOMAINS = [
-  'google.com',
-  'www.google.com',
-  'github.com',
-  'twitter.com',
-  'x.com',
-  'facebook.com',
-  'instagram.com',
-  'linkedin.com',
-  'youtube.com',
-  'www.youtube.com',
-  'reddit.com',
-  'amazon.com',
-  'netflix.com',
-  'apple.com',
-  'microsoft.com',
-  'yahoo.com',
-  'duckduckgo.com',
-  'www.duckduckgo.com',
-  'bing.com',
-  'www.bing.com',
-  'ecosia.org',
-  'www.ecosia.org',
-  'stackoverflow.com',
-  'news.ycombinator.com',
-  'quora.com',
-  'twitch.tv',
-  'nytimes.com',
-  'medium.com'
-];
-
 /**
- * Canonical URL and query normalizer (Section 7 Authority):
+ * Canonical URL and query normalizer:
  * Enforces authoritative rules:
  * - example.com -> https://example.com
  * - www.example.com -> https://www.example.com
@@ -155,21 +124,10 @@ export function isValidUrl(url: string): boolean {
 }
 
 /**
- * Determines whether a URL is a known site that forbids iframe embedding.
- */
-export function isKnownBlockedDomain(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    const host = parsed.hostname.toLowerCase();
-    return KNOWN_BLOCKED_DOMAINS.some(d => host === d || host.endsWith(`.${d}`));
-  } catch {
-    return false;
-  }
-}
-
-/**
- * WebBrowserEngine: Current safe web runtime implementation.
- * Wraps iframe capabilities, enforces security boundaries, and tracks navigation state.
+ * WebBrowserEngine: Web environment runtime implementation.
+ * Attempts real navigation for any valid URL. When an external website forbids iframe
+ * embedding via X-Frame-Options or CSP, the web runtime surface catches the restriction
+ * and renders an honest fallback card with options to open externally or return to new tab.
  */
 export class WebBrowserEngine implements BrowserEngine {
   private currentUrl: string = 'orion://newtab';
@@ -233,23 +191,6 @@ export class WebBrowserEngine implements BrowserEngine {
     this.events.onNavigationStart?.(resolved, gen);
     this.events.onStateChange?.(this.contentState, this.currentUrl, this.currentTitle);
 
-    // Check for known embedding blocklist
-    if (isKnownBlockedDomain(resolved)) {
-      if (gen !== this.currentGeneration) {
-        return { generation: gen, state: this.contentState, url: this.currentUrl, title: this.currentTitle };
-      }
-      this.contentState = 'BLOCKED_EMBEDDING';
-      try {
-        const u = new URL(resolved);
-        this.currentTitle = u.hostname;
-      } catch {
-        this.currentTitle = resolved;
-      }
-      this.events.onStateChange?.(this.contentState, this.currentUrl, this.currentTitle);
-      this.events.onNavigationCommit?.(this.currentUrl, this.currentTitle, gen);
-      return { generation: gen, state: this.contentState, url: this.currentUrl, title: this.currentTitle };
-    }
-
     // Derive readable title
     try {
       const u = new URL(resolved);
@@ -258,7 +199,8 @@ export class WebBrowserEngine implements BrowserEngine {
       this.currentTitle = resolved;
     }
 
-    // Transition to PAGE_LOADED for allowed embed
+    // In web embedded mode, load the page. If the destination domain rejects framing,
+    // runtime iframe event handlers detect the block and trigger onBlocked -> BLOCKED_EMBEDDING.
     this.contentState = 'PAGE_LOADED';
     this.events.onStateChange?.(this.contentState, this.currentUrl, this.currentTitle);
     this.events.onNavigationCommit?.(this.currentUrl, this.currentTitle, gen);
@@ -336,8 +278,10 @@ export const EmbeddedBrowserEngine = WebBrowserEngine;
 
 /**
  * NativeBrowserEngine: Desktop runtime implementation target.
- * Designed for Tauri (WRY/Tao) or Electron (BrowserView/WebContentsView).
- * Operates outside the web DOM sandbox, enabling real native browsing for any website.
+ * Designed for Tauri (WRY/Tao), Electron (WebContentsView/BrowserView), or WebView2.
+ * Operates outside the web DOM sandbox, enabling real native browsing for ANY website
+ * (including Google, GitHub, YouTube, etc.) with NO iframe restrictions, full cookie
+ * isolation, and unrestricted modern web standards.
  */
 export class NativeBrowserEngine implements BrowserEngine {
   private currentUrl: string = 'orion://newtab';
@@ -351,19 +295,32 @@ export class NativeBrowserEngine implements BrowserEngine {
   constructor(initialUrl: string = 'orion://newtab', events: BrowserEngineEvents = {}) {
     this.events = events;
     this.currentUrl = initialUrl;
+    this.updateSecurityStatus(initialUrl);
+  }
+
+  private updateSecurityStatus(url: string): void {
+    if (url === 'orion://newtab' || url.startsWith('/')) {
+      this.securityStatus = 'internal';
+    } else if (url.startsWith('https://')) {
+      this.securityStatus = 'secure';
+    } else {
+      this.securityStatus = 'insecure';
+    }
+    this.events.onSecurityChange?.(this.securityStatus);
   }
 
   public async navigate(url: string, generation: number = 1): Promise<{ generation: number; state: BrowserContentState; url: string; title: string }> {
     const resolved = normalizeUrl(url);
     this.currentUrl = resolved;
+    this.updateSecurityStatus(resolved);
     this.contentState = 'LOADING';
     this.events.onNavigationStart?.(resolved, generation);
 
-    // In a native desktop runtime (Tauri / Electron), native WebView handles
+    // In a native desktop runtime (Tauri / Electron / WebView2), native WebView handles
     // X-Frame-Options and CSP naturally without iframe embedding restrictions.
     this.contentState = 'PAGE_LOADED';
     try {
-      this.currentTitle = new URL(resolved).hostname;
+      this.currentTitle = new URL(resolved).hostname.replace(/^www\./, '');
     } catch {
       this.currentTitle = resolved;
     }
@@ -439,6 +396,21 @@ export function isNativeDesktopRuntimeAvailable(): boolean {
   if (typeof window === 'undefined') return false;
   const win = window as any;
   return Boolean(win.__TAURI__ || win.electronAPI || win.chrome?.webview);
+}
+
+/**
+ * Resolves the appropriate BrowserEngine instance for the current or specified runtime mode.
+ */
+export function getBrowserEngine(
+  mode?: BrowserRuntimeMode,
+  initialUrl: string = 'orion://newtab',
+  events: BrowserEngineEvents = {}
+): BrowserEngine {
+  const resolvedMode = mode ?? (isNativeDesktopRuntimeAvailable() ? 'NATIVE_WEBVIEW' : 'WEB_EMBEDDED');
+  if (resolvedMode === 'NATIVE_WEBVIEW') {
+    return new NativeBrowserEngine(initialUrl, events);
+  }
+  return new WebBrowserEngine(initialUrl, events);
 }
 
 /**

@@ -14,7 +14,7 @@ import { BrowserMenu } from './BrowserMenu';
 import { browserHistory } from './BrowserHistory';
 import { browserBookmarks } from './BrowserBookmarks';
 import { browserDownloadManager } from './BrowserDownloadManager';
-import { normalizeUrl, resolveAddressInput, isKnownBlockedDomain, isValidUrl } from './BrowserEngine';
+import { normalizeUrl, resolveAddressInput, isValidUrl } from './BrowserEngine';
 import { BrowserCopilotPermissionLayer } from './BrowserSecurity';
 import { useWindowManager } from '../../os/WindowManagerContext';
 import { useToast } from '../../store/ToastContext';
@@ -195,29 +195,7 @@ export function OrionBrowser() {
         };
       }
 
-      if (isKnownBlockedDomain(resolvedUrl)) {
-        let domainTitle = resolvedUrl;
-        try {
-          domainTitle = new URL(resolvedUrl).hostname;
-        } catch {}
 
-        browserHistory.addEntry({ url: resolvedUrl, title: domainTitle });
-
-        return {
-          ...tab,
-          url: resolvedUrl,
-          title: domainTitle,
-          loading: false,
-          loadState: 'BLOCKED_EMBEDDING',
-          historyStack: newStack,
-          historyIndex: newIndex,
-          canGoBack: newIndex > 0,
-          canGoForward: false,
-          generation: newGen,
-          securityStatus,
-          errorDetails: undefined,
-        };
-      }
 
       // Normal navigation
       let domainTitle = resolvedUrl;
@@ -342,7 +320,6 @@ export function OrionBrowser() {
     const prevIndex = activeTab.historyIndex - 1;
     const prevUrl = activeTab.historyStack[prevIndex];
     const isInternal = prevUrl === 'orion://newtab' || prevUrl.startsWith('/');
-    const isBlocked = isKnownBlockedDomain(prevUrl);
     const isSecure = prevUrl.startsWith('https://');
 
     setTabs(prev => prev.map(t => {
@@ -354,8 +331,8 @@ export function OrionBrowser() {
         historyIndex: prevIndex,
         canGoBack: prevIndex > 0,
         canGoForward: true,
-        loading: !isInternal && !isBlocked,
-        loadState: isInternal ? 'EMPTY_TAB' : (isBlocked ? 'BLOCKED_EMBEDDING' : 'PAGE_LOADED'),
+        loading: !isInternal,
+        loadState: isInternal ? 'EMPTY_TAB' : 'PAGE_LOADED',
         generation: (t.generation || 0) + 1,
         securityStatus: isInternal ? 'internal' : (isSecure ? 'secure' : 'insecure'),
       };
@@ -367,7 +344,6 @@ export function OrionBrowser() {
     const nextIndex = activeTab.historyIndex + 1;
     const nextUrl = activeTab.historyStack[nextIndex];
     const isInternal = nextUrl === 'orion://newtab' || nextUrl.startsWith('/');
-    const isBlocked = isKnownBlockedDomain(nextUrl);
     const isSecure = nextUrl.startsWith('https://');
 
     setTabs(prev => prev.map(t => {
@@ -379,8 +355,8 @@ export function OrionBrowser() {
         historyIndex: nextIndex,
         canGoBack: true,
         canGoForward: nextIndex < t.historyStack.length - 1,
-        loading: !isInternal && !isBlocked,
-        loadState: nextUrl === 'orion://newtab' ? 'EMPTY_TAB' : (isBlocked ? 'BLOCKED_EMBEDDING' : 'PAGE_LOADED'),
+        loading: !isInternal,
+        loadState: nextUrl === 'orion://newtab' ? 'EMPTY_TAB' : 'PAGE_LOADED',
         generation: (t.generation || 0) + 1,
         securityStatus: isInternal ? 'internal' : (isSecure ? 'secure' : 'insecure'),
       };
@@ -393,11 +369,10 @@ export function OrionBrowser() {
 
     setTabs(prev => prev.map(t => {
       if (t.id !== activeTab.id) return t;
-      const isBlocked = isKnownBlockedDomain(t.url);
       return {
         ...t,
-        loading: !isBlocked,
-        loadState: isBlocked ? 'BLOCKED_EMBEDDING' : 'LOADING',
+        loading: true,
+        loadState: 'LOADING',
         generation: (t.generation || 0) + 1,
       };
     }));

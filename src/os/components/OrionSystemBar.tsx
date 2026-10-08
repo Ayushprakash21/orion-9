@@ -108,9 +108,6 @@ export function OrionSystemBar() {
           aria-expanded={menuOpen}
         >
           <BrandLogo sizePreset="sm" variant="mark" />
-          <span className="font-semibold text-[13px] tracking-wide text-os-text-primary group-hover:text-white transition-all hidden sm:inline-block shrink-0">
-            Orion OS
-          </span>
           <span 
             onClick={(e) => {
               if (isAdmin) {

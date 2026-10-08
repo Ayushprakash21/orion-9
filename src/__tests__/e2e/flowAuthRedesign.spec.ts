@@ -34,8 +34,8 @@ test.describe('Orion-9 Enterprise Authentication (No Public Signup - Login Only)
     // Stage 1 User ID input visible
     await expect(page.locator('input#username')).toBeVisible();
 
-    // Environment badge visible
-    await expect(page.locator('[data-testid="environment-badge"]')).toBeVisible();
+    // Environment badge should NOT be exposed on enterprise login screen
+    await expect(page.locator('[data-testid="environment-badge"]')).toHaveCount(0);
 
     // Brand logo image visible
     await expect(page.locator('img.orion-brand-image').first()).toBeVisible();

@@ -27,6 +27,7 @@ import { TimeDateSettingsPanel } from './settings/TimeDateSettingsPanel';
 import { AppearanceSettingsPanel } from './settings/AppearanceSettingsPanel';
 import { PersonalizationSettingsPanel } from './settings/PersonalizationSettingsPanel';
 import { AccessibilitySettingsPanel } from './settings/AccessibilitySettingsPanel';
+import { EnvironmentSettingsPanel } from './settings/EnvironmentSettingsPanel';
 import { DEFAULT_PERSONALIZATION_SETTINGS } from '../theme/themePresets';
 import { useOSGeometry } from '../os/dock/DockGeometry';
 import { loadPreferences } from '../os/theme/OrionThemeStorage';
@@ -64,6 +65,7 @@ export type SettingsSection =
   | 'ai_automation'
   | 'network'
   | 'storage'
+  | 'environment'
   // Admin Sections
   | 'admin'
   | 'admin_overview'
@@ -309,6 +311,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
     { id: 'ai_automation', label: t('navigation.aiAutomation'), icon: BrainCircuit, group: 'system' },
     { id: 'network', label: t('navigation.network'), icon: Wifi, group: 'system' },
     { id: 'storage', label: t('navigation.storage'), icon: HardDrive, group: 'system' },
+    { id: 'environment', label: 'System Environment', icon: Database, group: 'system' },
   ];
 
   const adminSections = [
@@ -937,6 +940,9 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
             }
           />
         );
+
+      case 'environment':
+        return <EnvironmentSettingsPanel />;
 
       default:
         return null;

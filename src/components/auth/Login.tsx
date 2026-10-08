@@ -101,8 +101,7 @@ export const Login: React.FC<LoginProps> = () => {
   const [isTyping, setIsTyping] = useState(false);
   const typingTimerRef = useRef<any>(null);
 
-  // Live Runtime Environment & Health Probes State
-  const [dbEnv, setDbEnv] = useState<'DEMO' | 'LIVE'>(() => dbManager.getEnvironment());
+  // Health Probes State
   const [systemHealth, setSystemHealth] = useState<{
     runtimeStatus: 'ONLINE' | 'INITIALIZING';
     authStatus: 'READY' | 'DEGRADED';
@@ -118,7 +117,7 @@ export const Login: React.FC<LoginProps> = () => {
     latencyMs: 12,
   });
 
-  // Query authoritative health probes on mount & listen to environment changes
+  // Query authoritative health probes on mount
   useEffect(() => {
     let mounted = true;
 
@@ -139,7 +138,6 @@ export const Login: React.FC<LoginProps> = () => {
         }
 
         if (mounted) {
-          setDbEnv(env);
           setSystemHealth({
             runtimeStatus: health.livenessProbe ? 'ONLINE' : 'INITIALIZING',
             authStatus: auth ? 'READY' : 'DEGRADED',
@@ -161,22 +159,11 @@ export const Login: React.FC<LoginProps> = () => {
 
     const handleEnvChange = () => {
       if (mounted) {
-        const newEnv = dbManager.getEnvironment();
-        setDbEnv(newEnv);
-        if (newEnv === 'DEMO') {
-          setUsername('admin');
-          setPassword('admin');
-        }
         runProbe();
       }
     };
 
     window.addEventListener('orion-database-environment-changed', handleEnvChange);
-    // Demo auto-login default for DEMO environment
-    if (dbManager.getEnvironment() === 'DEMO') {
-      setUsername('admin');
-      setPassword('admin');
-    }
 
     return () => {
       mounted = false;
@@ -399,41 +386,8 @@ export const Login: React.FC<LoginProps> = () => {
 
       {/* Header — Top Bar */}
       <header className="relative z-50 w-full flex items-center justify-between px-4 sm:px-8 py-3.5 sm:py-6 pt-[calc(14px+env(safe-area-inset-top,0px))] select-none">
-        {/* Environment Badge & Quick Switcher */}
-        <div className="flex items-center gap-2">
-          <div
-            data-testid="environment-badge"
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border backdrop-blur-md text-xs font-semibold shadow-lg transition-all ${
-              dbEnv === 'DEMO'
-                ? 'bg-amber-500/15 border-amber-500/30 text-amber-300'
-                : 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
-            }`}
-          >
-            <span className={`w-2 h-2 rounded-full ${dbEnv === 'DEMO' ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`} />
-            <span>{dbEnv === 'DEMO' ? 'DEMO SANDBOX' : 'LIVE ENVIRONMENT'}</span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              const target = dbEnv === 'DEMO' ? 'LIVE' : 'DEMO';
-              dbManager.setEnvironment(target);
-              setDbEnv(target);
-              setErrorMsg('');
-              setSuccessMsg('');
-              if (target === 'DEMO') {
-                setUsername('admin');
-                setPassword('admin');
-              } else {
-                setUsername('');
-                setPassword('');
-              }
-            }}
-            className="text-[11px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-full border border-white/15 backdrop-blur-md transition-colors cursor-pointer"
-          >
-            {dbEnv === 'DEMO' ? 'Switch to LIVE' : 'Switch to DEMO'}
-          </button>
-        </div>
+        {/* Left header spacer */}
+        <div className="flex items-center gap-2" />
 
         {/* Top Right Functional Language Selector Dropdown */}
         <div className="relative" ref={langMenuRef} data-testid="language-selector">

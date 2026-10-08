@@ -631,7 +631,6 @@ export function DesktopWorkspace() {
         cancelLongPress();
         if (session.element) {
           session.element.classList.add('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-1', 'ring-sky-500/50');
-          session.element.classList.remove('cursor-grab');
         }
         setActiveDraggingId(session.shortcutId);
       } else {
@@ -717,7 +716,6 @@ export function DesktopWorkspace() {
           }
         } catch (err) {}
         session.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-1', 'ring-white/20', 'ring-2', 'ring-white/30');
-        session.element.classList.add('cursor-grab');
       }
 
       if (session.moved) {
@@ -819,7 +817,6 @@ export function DesktopWorkspace() {
         session.element.style.transform = '';
         session.element.style.zIndex = '';
         session.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-1', 'ring-white/20', 'ring-2', 'ring-white/30');
-        session.element.classList.add('cursor-grab');
       }
       dragRef.current = null;
     }
@@ -1256,7 +1253,6 @@ export function DesktopWorkspace() {
                   dragRef.current.element.style.transform = '';
                   dragRef.current.element.style.zIndex = '';
                   dragRef.current.element.classList.remove('cursor-grabbing', 'opacity-90', 'scale-105', 'shadow-2xl', 'ring-1', 'ring-white/20', 'ring-2', 'ring-white/30');
-                  dragRef.current.element.classList.add('cursor-grab');
                 }
                 dragRef.current = null;
                 setActiveDraggingId(null);
@@ -1267,7 +1263,7 @@ export function DesktopWorkspace() {
                 setItemMenu({ x: e.clientX, y: e.clientY, shortcut });
               }}
               className={cn(
-                "absolute top-0 left-0 flex flex-col items-center justify-start p-1.5 rounded-xl transition-all duration-150 select-none group touch-none min-h-[44px] min-w-[44px] cursor-grab focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-os-accent",
+                "absolute top-0 left-0 flex flex-col items-center justify-start p-1.5 rounded-xl transition-all duration-150 select-none group touch-none min-h-[44px] min-w-[44px] cursor-default focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-os-accent",
                 isBeingDragged && "cursor-grabbing z-[1000] opacity-90 scale-105 shadow-2xl ring-1 ring-white/20 backdrop-blur-md",
                 isDropTarget && "bg-white/[0.12] ring-2 ring-white/30 scale-105 shadow-lg z-30",
                 isSelected && !isBeingDragged
@@ -1279,12 +1275,7 @@ export function DesktopWorkspace() {
                 {renderShortcutIcon(shortcut, isSelected)}
               </div>
               <div
-                className={cn(
-                  "mt-1 w-full max-w-[140px] px-1.5 py-0.5 text-center text-[12px] font-medium leading-[1.3] whitespace-normal break-words line-clamp-3 overflow-visible transition-colors pointer-events-none rounded select-none",
-                  isSelected
-                    ? "bg-black/50 shadow-xs"
-                    : "hover:bg-black/25"
-                )}
+                className="mt-1 w-full max-w-[140px] px-1.5 py-0.5 text-center text-[12px] font-medium leading-[1.3] whitespace-normal break-words line-clamp-3 overflow-visible transition-colors pointer-events-none rounded select-none"
                 style={{
                   color: 'var(--orion-desktop-icon-label, #F3EBDD)',
                   textShadow: '0 1px 3px rgba(0, 0, 0, 0.75)'

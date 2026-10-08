@@ -15,8 +15,8 @@ import {
   resolveAddressInput,
   normalizeUrl,
   isValidUrl,
-  isKnownBlockedDomain,
-  KNOWN_BLOCKED_DOMAINS,
+  BrowserRuntimeMode,
+  getBrowserEngine,
   WebBrowserEngine,
   EmbeddedBrowserEngine,
   NativeBrowserEngine,
@@ -636,21 +636,27 @@ describe('Orion Browser Certification Suite (BROWSER-001 to BROWSER-021)', () =>
     expect(normalizeUrl('supply chain visibility')).toBe('https://duckduckgo.com/?q=supply+chain+visibility');
   });
 
-  // BROWSER-023: Extended KNOWN_BLOCKED_DOMAINS Coverage
-  it('BROWSER-023: KNOWN_BLOCKED_DOMAINS accurately identifies major X-Frame-Options/CSP blockers', () => {
-    // Search engines with X-Frame-Options: SAMEORIGIN
-    expect(isKnownBlockedDomain('https://duckduckgo.com')).toBe(true);
-    expect(isKnownBlockedDomain('https://www.bing.com')).toBe(true);
-    expect(isKnownBlockedDomain('https://www.ecosia.org')).toBe(true);
-    expect(isKnownBlockedDomain('https://www.google.com')).toBe(true);
-    // Developer & tech sites with frame-ancestors 'none' / DENY
-    expect(isKnownBlockedDomain('https://github.com')).toBe(true);
-    expect(isKnownBlockedDomain('https://stackoverflow.com')).toBe(true);
-    expect(isKnownBlockedDomain('https://news.ycombinator.com')).toBe(true);
-    // Allowed sites
-    expect(isKnownBlockedDomain('https://example.com')).toBe(false);
-    expect(isKnownBlockedDomain('https://www.wikipedia.org')).toBe(false);
-    expect(isKnownBlockedDomain('https://archive.org')).toBe(false);
+  // BROWSER-023: Runtime mode architecture and unblocked domain navigation
+  it('BROWSER-023: BrowserEngine supports runtime modes and does not artificially block major domains', async () => {
+    // 1. Web Embedded Engine allows navigating to major domains without artificial static rejection
+    const webEngine = getBrowserEngine('WEB_EMBEDDED');
+    const webGoogle = await webEngine.navigate('https://google.com');
+    expect(webGoogle?.state).toBe('PAGE_LOADED');
+    expect(webGoogle?.url).toBe('https://google.com');
+
+    const webGithub = await webEngine.navigate('https://github.com');
+    expect(webGithub?.state).toBe('PAGE_LOADED');
+    expect(webGithub?.url).toBe('https://github.com');
+
+    // 2. Native Desktop WebView Engine permits full native navigation for any domain
+    const nativeEngine = getBrowserEngine('NATIVE_WEBVIEW');
+    const nativeGoogle = await nativeEngine.navigate('https://google.com');
+    expect(nativeEngine.getContentState()).toBe('PAGE_LOADED');
+    expect(nativeGoogle?.url).toBe('https://google.com');
+
+    const nativeGithub = await nativeEngine.navigate('https://github.com');
+    expect(nativeEngine.getContentState()).toBe('PAGE_LOADED');
+    expect(nativeGithub?.url).toBe('https://github.com');
   });
 
   // BROWSER-024: History Stack Integrity on Reload & Navigation

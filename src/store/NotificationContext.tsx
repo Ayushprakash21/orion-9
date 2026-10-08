@@ -29,7 +29,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const { openEntity } = useEntityDrawer();
 
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
-    const saved = localStorage.getItem('orion_notifications');
+    const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('orion_notifications') : null;
     if (saved) {
       try { return JSON.parse(saved); } catch (e) { /* fallback */ }
     }
@@ -66,7 +66,9 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   });
 
   useEffect(() => {
-    localStorage.setItem('orion_notifications', JSON.stringify(notifications));
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('orion_notifications', JSON.stringify(notifications));
+    }
   }, [notifications]);
 
   // Synchronize exceptions into notifications if new ones appear
