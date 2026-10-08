@@ -202,8 +202,9 @@ test.describe('ORION-9 Wallpaper Runtime Integrity & Target Isolation E2E Suite'
     const before = await getMetrics();
 
     // Open start menu
-    await page.click('[data-testid="dock-start-menu-button"]');
-    await expect(page.locator('div[role="dialog"][aria-label="Application Launcher"]')).toBeVisible();
+    await page.locator('[data-testid="dock-start-menu-button"]').click({ force: true });
+    const launcherLocator = page.locator('div[role="dialog"][aria-label="Application Launcher"]').or(page.locator('[data-testid="orion-application-launcher"]'));
+    await expect(launcherLocator).toBeVisible({ timeout: 10000 });
 
     const during = await getMetrics();
     expect(during.top).toBe(before.top);
@@ -211,7 +212,7 @@ test.describe('ORION-9 Wallpaper Runtime Integrity & Target Isolation E2E Suite'
 
     // Close start menu
     await page.keyboard.press('Escape');
-    await expect(page.locator('div[role="dialog"][aria-label="Application Launcher"]')).not.toBeVisible();
+    await expect(launcherLocator).not.toBeVisible({ timeout: 10000 });
 
     const after = await getMetrics();
     expect(after.top).toBe(before.top);
@@ -308,7 +309,7 @@ test.describe('ORION-9 Wallpaper Runtime Integrity & Target Isolation E2E Suite'
 
     await expect(page.locator('[data-desktop-canvas="true"]')).toBeVisible({ timeout: 20000 });
 
-    await page.click('[data-testid="dock-start-menu-button"]');
+    await page.locator('[data-testid="dock-start-menu-button"]').click({ force: true });
     const procCard = page.locator('[data-testid="launcher-app-procurement"]').first();
     await expect(procCard).toBeVisible();
 

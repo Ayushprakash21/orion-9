@@ -6,6 +6,7 @@
 import { RuntimeSettings, DEFAULT_RUNTIME_SETTINGS } from "./RuntimeSettingsModel";
 import { loadPreferences, savePreferences, clearPreferences } from "../theme/OrionThemeStorage";
 import { OrionAppearancePreferences } from "../theme/OrionThemeTypes";
+import { wallpaperRepository } from "../../repositories/WallpaperRepository";
 
 type Listener = (settings: RuntimeSettings) => void;
 
@@ -16,6 +17,7 @@ export class RuntimeSettingsAuthority {
   // Generation counter for race‑condition protection during async updates.
   private _generation: number = 0;
   private _initialized: boolean = false;
+  private _eventsAttached: boolean = false;
 
   private constructor() {
     this.reload();
@@ -27,6 +29,7 @@ export class RuntimeSettingsAuthority {
     if (!this._instance) {
       this._instance = new RuntimeSettingsAuthority();
     }
+    this._instance._attachEventListeners();
     return this._instance;
   }
 
@@ -42,15 +45,30 @@ export class RuntimeSettingsAuthority {
 
   /** Attach browser event listeners safely */
   private _attachEventListeners(): void {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || this._eventsAttached) return;
+    this._eventsAttached = true;
 
     const handleExternalChange = () => {
       this.reload();
     };
 
+    const handleWallpaperChanged = (e: any) => {
+      const detail = e?.detail;
+      const target = detail?.target;
+      if (detail?.wallpaperId && (target === 'desktop' || !target)) {
+        this._settings.wallpaper.desktopWallpaperId = detail.wallpaperId;
+        if (typeof document !== 'undefined' && document.documentElement) {
+          document.documentElement.style.setProperty('--orion-wallpaper-id', detail.wallpaperId);
+        }
+        this._notify();
+      }
+    };
+
     try {
       window.addEventListener('storage', handleExternalChange);
       window.addEventListener('orion-appearance-preferences-changed', handleExternalChange);
+      window.addEventListener('orion-wallpaper-changed', handleWallpaperChanged as EventListener);
+      window.addEventListener('orion-active-wallpaper-changed', handleWallpaperChanged as EventListener);
     } catch (_) {
       // safe fallback in test environments
     }
@@ -86,12 +104,26 @@ export class RuntimeSettingsAuthority {
     try {
       const persisted = loadPreferences();
       const migrated = this._migrateLegacy(persisted);
+
+      // Mirror authoritative active desktop wallpaper ID from WallpaperRepository
+      let activeDesktopWpId = migrated.wallpaper?.desktopWallpaperId || 'sys-orion-desktop-default';
+      try {
+        const repoActive = wallpaperRepository.getActiveWallpaperSync();
+        if (repoActive?.wallpaperId) {
+          activeDesktopWpId = repoActive.wallpaperId;
+        }
+      } catch (_) {}
+
       this._settings = {
         ...DEFAULT_RUNTIME_SETTINGS,
         ...migrated,
         theme: { ...DEFAULT_RUNTIME_SETTINGS.theme, ...(migrated.theme ?? {}) },
         dock: { ...DEFAULT_RUNTIME_SETTINGS.dock, ...(migrated.dock ?? {}) },
-        wallpaper: { ...DEFAULT_RUNTIME_SETTINGS.wallpaper, ...(migrated.wallpaper ?? {}) },
+        wallpaper: { 
+          ...DEFAULT_RUNTIME_SETTINGS.wallpaper, 
+          ...(migrated.wallpaper ?? {}),
+          desktopWallpaperId: activeDesktopWpId
+        },
         window: { ...DEFAULT_RUNTIME_SETTINGS.window, ...(migrated.window ?? {}) },
         desktop: { ...DEFAULT_RUNTIME_SETTINGS.desktop, ...(migrated.desktop ?? {}) },
       };

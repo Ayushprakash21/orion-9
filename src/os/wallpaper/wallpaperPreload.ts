@@ -7,6 +7,7 @@
 
 const PRELOAD_ASSETS = [
   '/wallpaper/orion9-desktop-horizon-moon.png',
+  '/wallpaper/orion9-desktop-light.svg',
   '/wallpaper/orion9-earth-horizon-default.png',
   '/orion-9-official-logo.png',
 ];

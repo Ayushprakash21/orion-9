@@ -292,13 +292,12 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
     if (!selectedAssetUrl) return;
     setIsApplying(true);
     try {
+      let appliedWallpaper: WallpaperRecord;
       if (activeTab === 'GALLERY') {
         const existing = galleryWallpapers.find(w => w.wallpaperId === selectedWallpaperId || w.assetUrl === selectedAssetUrl);
         const wpId = existing ? existing.wallpaperId : selectedWallpaperId;
-        await wallpaperRepository.setActiveWallpaper(wpId, userId, selectedTarget);
-        if (existing) {
-          setActiveWallpaperState(existing);
-        }
+        appliedWallpaper = await wallpaperRepository.setActiveWallpaper(wpId, userId, selectedTarget);
+        setActiveWallpaperState(appliedWallpaper);
       } else {
         const currentEnv = dbManager.getEnvironment();
         const activeWidth = selectedCandidate?.width || 1920;
@@ -331,12 +330,25 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
           updatedAt: new Date().toISOString(),
         };
 
-        await wallpaperRepository.saveWallpaper(wpRecord, selectedTarget);
-        await wallpaperRepository.setActiveWallpaper(wpRecord.wallpaperId, userId, selectedTarget);
-        setActiveWallpaperState(wpRecord);
+        const saved = await wallpaperRepository.saveWallpaper(wpRecord, selectedTarget);
+        appliedWallpaper = await wallpaperRepository.setActiveWallpaper(saved.wallpaperId, userId, selectedTarget);
+        setActiveWallpaperState(appliedWallpaper);
         const updated = await wallpaperRepository.getAvailableWallpapers(tenantId, userId, selectedTarget);
         setGalleryWallpapers(updated);
       }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('orion-wallpaper-changed', {
+            detail: {
+              target: selectedTarget,
+              wallpaperId: appliedWallpaper.wallpaperId,
+              wallpaper: appliedWallpaper
+            }
+          })
+        );
+      }
+
       const targetLabel = selectedTarget === 'login' ? 'Login Wallpaper' : 'Home / Desktop Wallpaper';
       showToast(`Static wallpaper applied to Orion ${targetLabel}!`, 'success');
     } catch (err: any) {
@@ -357,11 +369,33 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
         setSelectedAssetUrl(res.replacementWallpaper.assetUrl);
         setSelectedName(res.replacementWallpaper.name);
         setSelectedWallpaperId(res.replacementWallpaper.wallpaperId);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('orion-wallpaper-changed', {
+              detail: {
+                target: selectedTarget,
+                wallpaperId: res.replacementWallpaper.wallpaperId,
+                wallpaper: res.replacementWallpaper
+              }
+            })
+          );
+        }
       } else if (selectedWallpaperId === wallpaperToDelete.wallpaperId) {
-        const fallback = selectedTarget === 'login' ? DEFAULT_LOGIN_WALLPAPER : DEFAULT_DESKTOP_WALLPAPER;
+        const fallback = getTargetFallback(selectedTarget);
         setSelectedAssetUrl(fallback.assetUrl);
         setSelectedName(fallback.name);
         setSelectedWallpaperId(fallback.wallpaperId);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('orion-wallpaper-changed', {
+              detail: {
+                target: selectedTarget,
+                wallpaperId: fallback.wallpaperId,
+                wallpaper: fallback
+              }
+            })
+          );
+        }
       }
       const updated = await wallpaperRepository.getAvailableWallpapers(tenantId, userId, selectedTarget);
       setGalleryWallpapers(updated);
@@ -385,6 +419,19 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
       setSelectedWallpaperId(sysDefault.wallpaperId);
       setStudioState('READY');
       setErrorMessage('');
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('orion-wallpaper-changed', {
+            detail: {
+              target: selectedTarget,
+              wallpaperId: sysDefault.wallpaperId,
+              wallpaper: sysDefault
+            }
+          })
+        );
+      }
+
       const targetLabel = selectedTarget === 'login' ? 'Login default' : 'Home / Desktop default';
       showToast(`Wallpaper reset to ${targetLabel}.`, 'info');
     } catch (err: any) {
@@ -392,6 +439,17 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
       setSelectedAssetUrl(fallback.assetUrl);
       setSelectedName(fallback.name);
       setSelectedWallpaperId(fallback.wallpaperId);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('orion-wallpaper-changed', {
+            detail: {
+              target: selectedTarget,
+              wallpaperId: fallback.wallpaperId,
+              wallpaper: fallback
+            }
+          })
+        );
+      }
       showToast('Wallpaper reset to system default.', 'info');
     }
   };

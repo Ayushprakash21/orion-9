@@ -398,6 +398,13 @@ export class WallpaperRepository {
   }
 
   /**
+   * Synchronously returns cached wallpaper record by ID for zero-latency lookups.
+   */
+  public getWallpaperByIdSync(wallpaperId: string): WallpaperRecord | null {
+    return this.memoryWallpapers.get(wallpaperId) || null;
+  }
+
+  /**
    * Saves or updates static wallpaper record in Cloud Firestore authoritative repository.
    * Intercepts large Base64 images to prevent multi-megabyte payloads in Firestore.
    */
