@@ -320,23 +320,23 @@ export const OrionMobileAICopilot: React.FC = () => {
   return (
     <div
       data-orion-ai-surface="true"
-      className="flex flex-col flex-1 min-h-0 w-full max-w-full overflow-hidden pb-2 select-none"
+      className="flex flex-col flex-1 min-h-0 w-full max-w-full overflow-hidden select-none"
     >
       {/* 1. ORION AI STATUS HEADER */}
-      <div className="bg-os-surface border border-os-border rounded-2xl p-3.5 mb-2.5 shrink-0 flex items-center justify-between shadow-xs">
+      <div className="bg-os-surface border border-os-border rounded-2xl p-3 mb-2 shrink-0 flex items-center justify-between gap-2 shadow-xs w-full max-w-full min-w-0">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-os-accent-subtle border border-os-border flex items-center justify-center text-os-accent shrink-0">
             <Sparkles size={16} />
           </div>
           <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-os-text-primary tracking-wide">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs font-mono font-bold text-os-text-primary tracking-wide shrink-0">
                 ORION AI
               </span>
               
               {/* Truthful Provider Status Badge */}
               <div 
-                className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase border ${
+                className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold uppercase border shrink-0 ${
                   isGeminiLive
                     ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30'
                     : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
@@ -366,40 +366,44 @@ export const OrionMobileAICopilot: React.FC = () => {
         </div>
       </div>
 
-
-
-
-
       {/* 2. SCM TELEMETRY INDICATOR BAR */}
-      <div className="bg-os-surface-secondary/80 border border-os-border/70 rounded-xl px-3 py-1.5 mb-2.5 shrink-0 flex items-center justify-between text-[10px] font-mono text-os-text-secondary overflow-x-auto no-scrollbar gap-3">
-        <div className="flex items-center gap-1 whitespace-nowrap">
-          <Activity size={12} className="text-os-accent" />
-          <span>Health:</span>
-          <span className="font-bold text-os-text-primary">{healthScore}%</span>
+      <div className="bg-os-surface-secondary/80 border border-os-border/70 rounded-xl p-2 mb-2 shrink-0 grid grid-cols-2 min-[480px]:grid-cols-4 gap-1.5 text-[10px] font-mono text-os-text-secondary w-full max-w-full">
+        <div className="flex items-center justify-between gap-1 px-2.5 py-1.5 rounded-lg bg-os-surface/60 border border-os-border/50 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Activity size={12} className="text-os-accent shrink-0" />
+            <span className="text-os-text-muted truncate">Health:</span>
+          </div>
+          <span className="font-bold text-os-text-primary shrink-0">{healthScore}%</span>
         </div>
-        <div className="flex items-center gap-1 whitespace-nowrap">
-          <AlertTriangle size={12} className="text-red-400" />
-          <span>Critical:</span>
-          <span className="font-bold text-red-400">{criticalExceptions.length}</span>
+        <div className="flex items-center justify-between gap-1 px-2.5 py-1.5 rounded-lg bg-os-surface/60 border border-os-border/50 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <AlertTriangle size={12} className="text-red-400 shrink-0" />
+            <span className="text-os-text-muted truncate">Critical:</span>
+          </div>
+          <span className="font-bold text-red-400 shrink-0">{criticalExceptions.length}</span>
         </div>
-        <div className="flex items-center gap-1 whitespace-nowrap">
-          <Truck size={12} className="text-amber-400" />
-          <span>Delays:</span>
-          <span className="font-bold text-amber-400">{delayedShipments.length}</span>
+        <div className="flex items-center justify-between gap-1 px-2.5 py-1.5 rounded-lg bg-os-surface/60 border border-os-border/50 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Truck size={12} className="text-amber-400 shrink-0" />
+            <span className="text-os-text-muted truncate">Delays:</span>
+          </div>
+          <span className="font-bold text-amber-400 shrink-0">{delayedShipments.length}</span>
         </div>
-        <div className="flex items-center gap-1 whitespace-nowrap">
-          <Package size={12} className="text-emerald-400" />
-          <span>Stock:</span>
-          <span className="font-bold text-os-text-primary">{formatNumber(totalOnHandUnits)}</span>
+        <div className="flex items-center justify-between gap-1 px-2.5 py-1.5 rounded-lg bg-os-surface/60 border border-os-border/50 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Package size={12} className="text-emerald-400 shrink-0" />
+            <span className="text-os-text-muted truncate">Stock:</span>
+          </div>
+          <span className="font-bold text-os-text-primary shrink-0">{formatNumber(totalOnHandUnits)}</span>
         </div>
       </div>
 
       {/* 3. CONVERSATION MESSAGE LIST */}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-3.5 pr-0.5 overscroll-contain">
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-3 pr-0.5 overscroll-contain w-full max-w-full">
         {messages.map(msg => (
           <div 
             key={msg.id}
-            className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+            className={`flex flex-col w-full max-w-full ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
           >
             <div className="flex items-center gap-1.5 text-[9px] font-mono text-os-text-muted mb-1 px-1">
               {msg.sender === 'ai' ? (
@@ -420,18 +424,18 @@ export const OrionMobileAICopilot: React.FC = () => {
             </div>
 
             <div 
-              className={`max-w-[92%] rounded-2xl p-3.5 text-xs leading-relaxed ${
+              className={`max-w-[92%] sm:max-w-[85%] rounded-2xl p-3.5 text-xs leading-relaxed break-words [overflow-wrap:anywhere] ${
                 msg.sender === 'user'
                   ? 'bg-os-accent text-os-text-primary-inverse font-medium rounded-tr-xs shadow-xs select-text'
                   : 'bg-os-surface border border-os-border text-os-text-primary rounded-tl-xs shadow-xs select-text'
               }`}
             >
               {msg.sender === 'ai' ? (
-                <div className="prose prose-invert prose-xs max-w-none space-y-2 text-os-text-primary font-sans">
+                <div className="prose prose-invert prose-xs max-w-none space-y-2 text-os-text-primary font-sans break-words [overflow-wrap:anywhere]">
                   <ReactMarkdown>{msg.text}</ReactMarkdown>
                 </div>
               ) : (
-                <p className="whitespace-pre-wrap">{msg.text}</p>
+                <p className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{msg.text}</p>
               )}
 
               {/* Action recommendations inside AI messages */}
@@ -443,10 +447,10 @@ export const OrionMobileAICopilot: React.FC = () => {
                       type="button"
                       onClick={() => handleSend(act.label)}
                       disabled={isProcessing}
-                      className="px-2.5 py-1.5 rounded-lg bg-os-surface-secondary hover:bg-os-surface-hover border border-os-border text-[10px] font-mono text-os-accent flex items-center gap-1 active:scale-95 transition-all min-h-[36px] cursor-pointer disabled:opacity-50"
+                      className="px-2.5 py-1.5 rounded-lg bg-os-surface-secondary hover:bg-os-surface-hover border border-os-border text-[10px] font-mono text-os-accent flex items-center gap-1.5 active:scale-95 transition-all min-h-[36px] max-w-full cursor-pointer disabled:opacity-50"
                     >
-                      <span>{act.label}</span>
-                      <ArrowRight size={11} />
+                      <span className="line-clamp-1">{act.label}</span>
+                      <ArrowRight size={11} className="shrink-0" />
                     </button>
                   ))}
                 </div>
@@ -458,8 +462,8 @@ export const OrionMobileAICopilot: React.FC = () => {
         {/* Dynamic Response State Indicator */}
         {isProcessing && (
           <div className="flex items-center gap-2 text-os-text-secondary text-xs font-mono p-3 bg-os-surface border border-os-border/60 rounded-xl animate-pulse max-w-[85%]">
-            <Bot size={15} className="text-os-accent animate-spin" />
-            <span>{processingState || 'AI analyzing operational telemetry...'}</span>
+            <Bot size={15} className="text-os-accent animate-spin shrink-0" />
+            <span className="truncate">{processingState || 'AI analyzing operational telemetry...'}</span>
           </div>
         )}
 
@@ -467,11 +471,11 @@ export const OrionMobileAICopilot: React.FC = () => {
       </div>
 
       {/* 4. PROMPT QUICK ACTIONS CHIPS & GALLERY BUTTON */}
-      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-2 shrink-0">
+      <div className="flex flex-wrap items-center gap-1.5 py-1.5 shrink-0 w-full max-w-full">
         <button
           type="button"
           onClick={() => setIsGalleryOpen(true)}
-          className="px-3 py-1.5 rounded-full bg-os-accent-subtle border border-os-border text-[10px] font-mono font-bold text-os-accent flex items-center gap-1 hover:bg-os-surface-hover active:scale-95 transition-all min-h-[44px] cursor-pointer shrink-0"
+          className="px-3 py-1.5 rounded-full bg-os-accent-subtle border border-os-border text-[10px] font-mono font-bold text-os-accent flex items-center gap-1.5 hover:bg-os-surface-hover active:scale-95 transition-all min-h-[36px] cursor-pointer shrink-0"
           aria-label="Open Prompt Gallery"
         >
           <BookOpen size={12} />
@@ -483,10 +487,10 @@ export const OrionMobileAICopilot: React.FC = () => {
             type="button"
             onClick={() => setInputMessage(promptText)}
             disabled={isProcessing}
-            className="px-3 py-1.5 rounded-full bg-os-surface border border-os-border hover:border-os-accent/50 active:bg-os-surface-active text-[10px] font-mono text-os-text-secondary hover:text-os-text-primary whitespace-nowrap active:scale-95 transition-all min-h-[44px] flex items-center cursor-pointer disabled:opacity-50"
+            className="px-3 py-1.5 rounded-full bg-os-surface border border-os-border hover:border-os-accent/50 active:bg-os-surface-active text-[10px] font-mono text-os-text-secondary hover:text-os-text-primary text-left active:scale-95 transition-all min-h-[36px] flex items-center cursor-pointer disabled:opacity-50 max-w-full"
             aria-label={`Select prompt suggestion: ${promptText}`}
           >
-            {promptText}
+            <span className="line-clamp-1">{promptText}</span>
           </button>
         ))}
       </div>
@@ -497,9 +501,9 @@ export const OrionMobileAICopilot: React.FC = () => {
           e.preventDefault();
           handleSend();
         }}
-        className="flex items-end gap-2 shrink-0 pt-1 pb-[max(8px,env(safe-area-inset-bottom,8px))]"
+        className="flex items-end gap-2 shrink-0 pt-1 pb-1.5 w-full max-w-full"
       >
-        <div className="relative flex-1">
+        <div className="relative flex-1 min-w-0">
           <textarea
             ref={textareaRef}
             rows={1}
@@ -507,19 +511,19 @@ export const OrionMobileAICopilot: React.FC = () => {
             onChange={(e) => {
               setInputMessage(e.target.value);
               e.target.style.height = 'auto';
-              e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+              e.target.style.height = `${Math.min(e.target.scrollHeight, 100)}px`;
             }}
             onKeyDown={handleKeyDown}
             disabled={isProcessing}
-            placeholder={isProcessing ? 'AI is processing query...' : 'Ask Orion AI about inventory, suppliers, shipments...'}
-            className="w-full bg-os-surface border border-os-border focus:border-os-accent rounded-xl px-3.5 py-2.5 text-xs text-os-text-primary placeholder:text-os-text-muted focus:outline-none min-h-[44px] max-h-[120px] resize-none leading-relaxed"
+            placeholder={isProcessing ? 'AI is processing query...' : 'Ask Orion AI...'}
+            className="w-full bg-os-surface border border-os-border focus:border-os-accent rounded-xl px-3.5 py-2.5 text-xs text-os-text-primary placeholder:text-os-text-muted focus:outline-none min-h-[44px] max-h-[100px] resize-none leading-relaxed min-w-0"
           />
         </div>
         <button
           type="submit"
           role="button"
           disabled={!inputMessage.trim() || isProcessing}
-          className="p-3 rounded-xl bg-os-accent text-os-text-primary-inverse font-bold disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-transform min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer shadow-xs shrink-0"
+          className="p-3 rounded-xl bg-os-accent text-os-text-primary-inverse font-bold disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-transform min-h-[44px] min-w-[44px] h-[44px] w-[44px] flex items-center justify-center cursor-pointer shadow-xs shrink-0"
           aria-label="Send Message to Orion AI"
           title="Send Message (Enter)"
         >
