@@ -777,7 +777,7 @@ html, body, #root {
   grid-template-columns: minmax(0, 1fr) !important;
   overflow: hidden !important;
   isolation: isolate !important;
-  background-color: #02050a !important;
+  background-color: var(--orion-bg) !important;
 }
 
 /* OS Layer 0: Wallpaper background — Full-bleed zero-gap canvas across entire shell */

@@ -151,6 +151,7 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   root.style.setProperty('--orion-accent-soft', accentSoft);
   root.style.setProperty('--orion-accent-subtle', accentSoft);
   root.style.setProperty('--orion-accent-foreground', accentForeground);
+  root.style.setProperty('--orion-accent-glow', accentFocusGlow);
   root.style.setProperty('--orion-on-accent', accentForeground);
   root.style.setProperty('--os-accent', accent);
   root.style.setProperty('--os-accent-subtle', accentSoft);

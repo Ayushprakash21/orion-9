@@ -11,14 +11,38 @@ export function migratePreferences(raw: unknown): OrionAppearancePreferences {
     return { ...DEFAULT_PREFERENCES };
   }
 
-  const prefs = { ...DEFAULT_PREFERENCES, ...raw } as OrionAppearancePreferences;
+  const rawObj = raw as any;
+  const prefs = { ...DEFAULT_PREFERENCES, ...rawObj } as OrionAppearancePreferences;
   
   if (!isValidThemeId(prefs.themeId)) {
     // If an appearanceMode was specified in raw or legacy config
-    if ((raw as any).appearanceMode === 'light') {
+    if (rawObj.appearanceMode === 'light') {
       prefs.themeId = 'silver';
     } else {
       prefs.themeId = 'graphite';
+    }
+  }
+
+  // Idempotent migration from legacy accentKey to canonical customAccent
+  if (rawObj.accentKey && !rawObj.customAccent) {
+    const ACCENT_PRESET_MAP: Record<string, string> = {
+      green: '#5FAF8A',
+      blue: '#7BA3C9',
+      orange: '#C6A15B',
+      purple: '#B07DA3',
+      teal: '#6DBAB0',
+      red: '#C96B72',
+      indigo: '#7B8EC9',
+      pink: '#C97BA8',
+      neutral: '#D8DDE3',
+    };
+
+    if (rawObj.accentKey === 'custom' && rawObj.customAccentHex) {
+      prefs.customAccentEnabled = true;
+      prefs.customAccent = rawObj.customAccentHex;
+    } else if (ACCENT_PRESET_MAP[rawObj.accentKey]) {
+      prefs.customAccentEnabled = true;
+      prefs.customAccent = ACCENT_PRESET_MAP[rawObj.accentKey];
     }
   }
 
@@ -27,6 +51,13 @@ export function migratePreferences(raw: unknown): OrionAppearancePreferences {
     prefs.morphismMode = 'glass';
   }
   
+  // Ensure default dockAutoHide is true unless explicitly false
+  if (rawObj.dockAutoHide !== undefined) {
+    prefs.dockAutoHide = Boolean(rawObj.dockAutoHide);
+  } else {
+    prefs.dockAutoHide = true;
+  }
+
   // Ensure version is correct
   prefs.version = 1;
 

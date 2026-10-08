@@ -244,9 +244,13 @@ export function OrionDock() {
       const hoveringDock = !!dockRef.current?.matches(':hover');
 
       if (atEdge || hoveringDock) {
-        clearTimers();
         if (visibilityStateRef.current === 'hidden' || visibilityStateRef.current === 'hiding') {
           handleActivationTrigger();
+        } else if (visibilityStateRef.current === 'visible') {
+          if (hideTimerRef.current) {
+            window.clearTimeout(hideTimerRef.current);
+            hideTimerRef.current = null;
+          }
         }
       } else {
         if (visibilityStateRef.current === 'visible') {

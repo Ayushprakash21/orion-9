@@ -342,7 +342,7 @@ function AppBootstrap() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.4 }}
-          className="w-full h-full min-h-screen bg-[#02050a] relative z-20 orion-auth-portal overflow-hidden"
+          className="w-full h-full min-h-screen bg-[var(--orion-bg)] relative z-20 orion-auth-portal overflow-hidden"
         >
           <OrionLiveWallpaper target="login" showLogo={false} />
           <div className="relative z-10 w-full h-full">

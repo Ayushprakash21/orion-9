@@ -544,6 +544,9 @@ export class WallpaperRepository {
       window.dispatchEvent(new CustomEvent('orion-active-wallpaper-changed', { 
         detail: { wallpaper: targetWp, target, wallpaperId: wp.wallpaperId } 
       }));
+      window.dispatchEvent(new CustomEvent('orion-wallpaper-changed', { 
+        detail: { target, wallpaperId: wp.wallpaperId, wallpaper: targetWp } 
+      }));
     }
 
     return targetWp;
