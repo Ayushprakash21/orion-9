@@ -26,8 +26,8 @@ export const OrionLifecyclePowerControl: React.FC<OrionLifecyclePowerControlProp
     <div className={cn('flex flex-col items-center select-none', className)}>
       {/* Invisible Accessible Hit Target with Floating Power Glyph */}
       <motion.button
-        whileHover={!disabled && !isBooting ? { scale: 1.04 } : undefined}
-        whileTap={!disabled && !isBooting ? { scale: 0.96 } : undefined}
+        whileHover={!disabled && !isBooting ? { scale: 1.05 } : undefined}
+        whileTap={!disabled && !isBooting ? { scale: 0.95 } : undefined}
         transition={{ ease: ORION_EASE, duration: 0.2 }}
         type="button"
         data-testid="start-orion-button"
@@ -35,12 +35,26 @@ export const OrionLifecyclePowerControl: React.FC<OrionLifecyclePowerControlProp
         disabled={disabled || isBooting}
         autoFocus
         aria-label="Start Orion"
+        style={{
+          background: 'transparent',
+          backgroundColor: 'transparent',
+          border: 'none',
+          borderWidth: 0,
+          outline: 'none',
+          boxShadow: 'none',
+          borderRadius: 0,
+          backdropFilter: 'none',
+          WebkitBackdropFilter: 'none',
+          padding: 0,
+          margin: 0,
+        }}
         className={cn(
-          // Completely transparent hit target, no visual container/border/shadow/background
-          'group relative flex items-center justify-center cursor-pointer',
-          'w-20 h-20 bg-transparent border-0 outline-none shadow-none ring-0 p-0',
-          // Accessible subtle focus ring
-          'focus-visible:ring-1 focus-visible:ring-white/25 focus-visible:rounded-full focus-visible:ring-offset-4 focus-visible:ring-offset-transparent'
+          // Completely transparent hit target, zero visual container, border, shadow, or background
+          'group relative flex items-center justify-center cursor-pointer select-none',
+          'w-20 h-20 bg-transparent border-none outline-none shadow-none ring-0 p-0 m-0',
+          'hover:bg-transparent hover:border-none hover:shadow-none',
+          'active:bg-transparent active:border-none active:shadow-none',
+          'focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0'
         )}
       >
         {/* Minimal Floating Power Glyph */}
@@ -49,9 +63,12 @@ export const OrionLifecyclePowerControl: React.FC<OrionLifecyclePowerControlProp
           className={cn(
             // Desktop: ~40-42px visual area, Tablet: ~38px, Mobile: ~36px
             'w-9 h-9 sm:w-10 sm:h-10 md:w-11 md:h-11',
-            // Neutral silver/white theme color, subtle hover brightening
-            'text-[var(--orion-text-primary,#F2F2EF)] opacity-80 group-hover:opacity-100',
-            'transition-opacity duration-200 pointer-events-none drop-shadow-none',
+            // Neutral silver/white theme color, subtle hover/focus brightening & glow directly on glyph
+            'text-[var(--orion-text-primary,#F2F2EF)] opacity-80 group-hover:opacity-100 group-focus-visible:opacity-100',
+            'transition-all duration-200 pointer-events-none drop-shadow-none',
+            'group-hover:drop-shadow-[0_0_14px_rgba(255,255,255,0.7)]',
+            'group-focus-visible:drop-shadow-[0_0_18px_rgba(255,255,255,0.85)]',
+            'group-active:scale-95 group-active:opacity-100',
             isBooting ? 'animate-pulse' : ''
           )}
         />
