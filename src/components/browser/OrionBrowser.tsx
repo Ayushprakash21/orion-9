@@ -15,6 +15,7 @@ import { browserHistory } from './BrowserHistory';
 import { browserBookmarks } from './BrowserBookmarks';
 import { browserDownloadManager } from './BrowserDownloadManager';
 import { normalizeUrl, resolveAddressInput, isKnownBlockedDomain, isValidUrl } from './BrowserEngine';
+import { BrowserCopilotPermissionLayer } from './BrowserSecurity';
 import { useWindowManager } from '../../os/WindowManagerContext';
 import { useToast } from '../../store/ToastContext';
 import { Search, X, ChevronUp, ChevronDown, Clock, Bookmark as BookmarkIcon, Trash2, Settings, ExternalLink } from 'lucide-react';
@@ -432,17 +433,17 @@ export function OrionBrowser() {
   const handleAskCopilot = useCallback(() => {
     if (!activeTab) return;
 
-    // Strict security boundary: never extract tokens, passwords, cookies
+    // Strict security boundary: permission layer extracts only safe, sanitized context
     const selectedText = typeof window !== 'undefined' ? window.getSelection()?.toString() : undefined;
-    const context = {
-      url: activeTab.url,
-      title: activeTab.title,
-      selectedText: selectedText ? selectedText.slice(0, 500) : undefined,
-    };
+    const safeContext = BrowserCopilotPermissionLayer.extractSafeContext(activeTab, selectedText);
 
     // Open Orion Copilot window
-    openApplication('orion-ai');
-    showToast(`Context shared with Orion Copilot: "${activeTab.title}"`, 'info', 'Orion Copilot');
+    if (openApplication) {
+      openApplication('orion-ai');
+    }
+    if (showToast) {
+      showToast(`Context shared with Orion Copilot: "${safeContext.title}"`, 'info', 'Orion Copilot');
+    }
   }, [activeTab, openApplication, showToast]);
 
   // Zoom Controls

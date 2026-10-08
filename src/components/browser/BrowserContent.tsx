@@ -72,7 +72,7 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
         </div>
 
         <h2 className="text-xl font-semibold text-os-text-primary mb-2 max-w-md">
-          Embedding Restricted
+          Website Cannot Be Embedded
         </h2>
 
         <p className="text-xs text-os-text-muted mb-6 max-w-md leading-relaxed">
@@ -87,11 +87,12 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-os-accent hover:opacity-90 text-os-bg text-xs font-medium transition-all cursor-pointer shadow-md"
           >
             <ExternalLink className="w-4 h-4" />
-            Open in External Window
+            Open Externally
           </button>
 
           <button
             type="button"
+            data-testid="browser-back-to-newtab-btn"
             onClick={() => onNavigate('orion://newtab')}
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-os-surface hover:bg-os-surface-hover border border-os-border text-os-text-secondary text-xs font-medium transition-colors cursor-pointer"
           >

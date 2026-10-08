@@ -17,8 +17,12 @@ import {
   isValidUrl,
   isKnownBlockedDomain,
   KNOWN_BLOCKED_DOMAINS,
-  WebBrowserEngine
+  WebBrowserEngine,
+  EmbeddedBrowserEngine,
+  NativeBrowserEngine,
+  createBrowserEngine
 } from '../../components/browser/BrowserEngine';
+import { BrowserCopilotPermissionLayer } from '../../components/browser/BrowserSecurity';
 import { BrowserHistoryManager } from '../../components/browser/BrowserHistory';
 import { BrowserBookmarksManager } from '../../components/browser/BrowserBookmarks';
 import { BrowserDownloadManager } from '../../components/browser/BrowserDownloadManager';
@@ -580,9 +584,10 @@ describe('Orion Browser Certification Suite (BROWSER-001 to BROWSER-021)', () =>
     );
 
     expect(htmlBlocked).toContain('data-testid="browser-blocked-embedding"');
-    expect(htmlBlocked).toContain('Embedding Restricted');
-    expect(htmlBlocked).toContain('Open in External Window');
+    expect(htmlBlocked).toContain('Website Cannot Be Embedded');
+    expect(htmlBlocked).toContain('Open Externally');
     expect(htmlBlocked).toContain('data-testid="browser-open-external-btn"');
+    expect(htmlBlocked).toContain('data-testid="browser-back-to-newtab-btn"');
   });
 
   // BROWSER-021: Copilot Integration Foundation
@@ -705,5 +710,52 @@ describe('Orion Browser Certification Suite (BROWSER-001 to BROWSER-021)', () =>
 
     expect(html).toContain('value="https://example.com"');
     expect(html).toContain('Connection is secure (HTTPS)');
+  });
+
+  // BROWSER-027: Browser Engine Abstraction (Embedded vs Native)
+  it('BROWSER-027: BrowserEngine abstraction supports Embedded and Native desktop engines via factory', async () => {
+    // Embedded engine verification
+    const embedded = createBrowserEngine('embedded');
+    expect(embedded).toBeInstanceOf(EmbeddedBrowserEngine);
+    const tabInfo = await embedded.createTab('https://example.com');
+    expect(tabInfo.url).toBe('https://example.com');
+
+    // Native desktop engine verification
+    const native = createBrowserEngine('native');
+    expect(native).toBeInstanceOf(NativeBrowserEngine);
+    const navResult = await native.navigate('https://google.com');
+    expect(navResult).toBeDefined();
+    if (navResult) {
+      expect(navResult.url).toBe('https://google.com');
+      expect(navResult.state).toBe('PAGE_LOADED');
+    }
+    expect(native.getCurrentUrl()).toBe('https://google.com');
+
+    // Auto detection fallback in web environment
+    const autoEngine = createBrowserEngine('auto');
+    expect(autoEngine).toBeInstanceOf(EmbeddedBrowserEngine);
+  });
+
+  // BROWSER-028: Copilot Zero-Trust Permission Boundary
+  it('BROWSER-028: BrowserCopilotPermissionLayer enforces zero-trust boundaries and redacts sensitive credentials', () => {
+    const mockTab: BrowserTab = {
+      id: 'tab-sec-1',
+      url: 'https://bank.enterprise.com/portal',
+      title: 'Enterprise Banking',
+      historyIndex: 0,
+      historyStack: ['https://bank.enterprise.com/portal'],
+      createdAt: Date.now(),
+    };
+
+    // Sensitive text containing leaked bearer token and password
+    const rawSelectedText = 'User authentication details: Bearer secret_token_xyz123 and password=SuperSecretPassword!';
+    const safeContext = BrowserCopilotPermissionLayer.extractSafeContext(mockTab, rawSelectedText);
+
+    // Verify redactions
+    expect(safeContext.selectedText).not.toContain('secret_token_xyz123');
+    expect(safeContext.selectedText).not.toContain('SuperSecretPassword');
+    expect(safeContext.selectedText).toContain('[REDACTED_TOKEN]');
+    expect(safeContext.selectedText).toContain('password:[REDACTED]');
+    expect(safeContext.source).toBe('orion-browser');
   });
 });

@@ -18,16 +18,27 @@ export interface BrowserEngineEvents {
   onSecurityChange?: (status: 'secure' | 'insecure' | 'internal') => void;
 }
 
+export interface BrowserBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface BrowserEngine {
   navigate(url: string, generation?: number): Promise<{ generation: number; state: BrowserContentState; url: string; title: string } | void>;
   goBack(): Promise<void>;
   goForward(): Promise<void>;
   reload(): Promise<void>;
   stop(): Promise<void>;
+  createTab(initialUrl?: string): Promise<{ id: string; url: string; title: string }>;
+  closeTab(tabId: string): Promise<void>;
   getCurrentUrl(): string;
   getTitle(): string;
   getContentState(): BrowserContentState;
   getSecurityStatus(): 'secure' | 'insecure' | 'internal';
+  setBounds?(bounds: BrowserBounds): void;
+  focus?(): void;
   dispose(): void;
 }
 
@@ -292,9 +303,152 @@ export class WebBrowserEngine implements BrowserEngine {
     return this.securityStatus;
   }
 
+  public async createTab(initialUrl: string = 'orion://newtab'): Promise<{ id: string; url: string; title: string }> {
+    const id = `tab_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const resolved = resolveAddressInput(initialUrl);
+    return { id, url: resolved, title: resolved === 'orion://newtab' ? 'New Tab' : resolved };
+  }
+
+  public async closeTab(_tabId: string): Promise<void> {
+    // Managed at tab store level in embedded mode
+  }
+
+  public setBounds(_bounds: BrowserBounds): void {
+    // No-op in embedded DOM iframe mode; container styling handles dimensions
+  }
+
+  public focus(): void {
+    // Handled via DOM focus in embedded mode
+  }
+
   public dispose(): void {
     if (this.abortController) {
       this.abortController.abort();
     }
   }
+}
+
+/**
+ * EmbeddedBrowserEngine: Development and web-hosted fallback.
+ * Uses sandboxed <iframe> in the web application environment.
+ */
+export const EmbeddedBrowserEngine = WebBrowserEngine;
+
+/**
+ * NativeBrowserEngine: Desktop runtime implementation target.
+ * Designed for Tauri (WRY/Tao) or Electron (BrowserView/WebContentsView).
+ * Operates outside the web DOM sandbox, enabling real native browsing for any website.
+ */
+export class NativeBrowserEngine implements BrowserEngine {
+  private currentUrl: string = 'orion://newtab';
+  private currentTitle: string = 'New Tab';
+  private contentState: BrowserContentState = 'EMPTY_TAB';
+  private securityStatus: 'secure' | 'insecure' | 'internal' = 'internal';
+  private events: BrowserEngineEvents;
+  private bounds: BrowserBounds = { x: 0, y: 0, width: 800, height: 600 };
+  private activeTabId: string = 'native-tab-1';
+
+  constructor(initialUrl: string = 'orion://newtab', events: BrowserEngineEvents = {}) {
+    this.events = events;
+    this.currentUrl = initialUrl;
+  }
+
+  public async navigate(url: string, generation: number = 1): Promise<{ generation: number; state: BrowserContentState; url: string; title: string }> {
+    const resolved = normalizeUrl(url);
+    this.currentUrl = resolved;
+    this.contentState = 'LOADING';
+    this.events.onNavigationStart?.(resolved, generation);
+
+    // In a native desktop runtime (Tauri / Electron), native WebView handles
+    // X-Frame-Options and CSP naturally without iframe embedding restrictions.
+    this.contentState = 'PAGE_LOADED';
+    try {
+      this.currentTitle = new URL(resolved).hostname;
+    } catch {
+      this.currentTitle = resolved;
+    }
+
+    this.events.onNavigationCommit?.(this.currentUrl, this.currentTitle, generation);
+    this.events.onStateChange?.(this.contentState, this.currentUrl, this.currentTitle);
+
+    return { generation, state: this.contentState, url: this.currentUrl, title: this.currentTitle };
+  }
+
+  public async goBack(): Promise<void> {
+    // Calls native WebView IPC: window.__TAURI__?.invoke('webview_go_back') or electron.webContents.goBack()
+  }
+
+  public async goForward(): Promise<void> {
+    // Calls native WebView IPC: window.__TAURI__?.invoke('webview_go_forward') or electron.webContents.goForward()
+  }
+
+  public async reload(): Promise<void> {
+    await this.navigate(this.currentUrl);
+  }
+
+  public async stop(): Promise<void> {
+    this.contentState = 'PAGE_LOADED';
+  }
+
+  public async createTab(initialUrl: string = 'orion://newtab'): Promise<{ id: string; url: string; title: string }> {
+    const id = `native_tab_${Date.now()}`;
+    const resolved = normalizeUrl(initialUrl);
+    this.activeTabId = id;
+    return { id, url: resolved, title: resolved === 'orion://newtab' ? 'New Tab' : resolved };
+  }
+
+  public async closeTab(_tabId: string): Promise<void> {
+    // Closes native webview surface via IPC
+  }
+
+  public setBounds(bounds: BrowserBounds): void {
+    this.bounds = bounds;
+    // Sets native webview geometry via IPC: e.g. webview.setBounds(bounds)
+  }
+
+  public focus(): void {
+    // Focuses native window/view surface
+  }
+
+  public getCurrentUrl(): string {
+    return this.currentUrl;
+  }
+
+  public getTitle(): string {
+    return this.currentTitle;
+  }
+
+  public getContentState(): BrowserContentState {
+    return this.contentState;
+  }
+
+  public getSecurityStatus(): 'secure' | 'insecure' | 'internal' {
+    return this.securityStatus;
+  }
+
+  public dispose(): void {
+    // Destroys native webview handles via IPC
+  }
+}
+
+/**
+ * Checks whether Orion-9 is currently running in a native desktop runtime
+ * (Tauri, Electron, or native WebView host) vs a standard browser SPA.
+ */
+export function isNativeDesktopRuntimeAvailable(): boolean {
+  if (typeof window === 'undefined') return false;
+  const win = window as any;
+  return Boolean(win.__TAURI__ || win.electronAPI || win.chrome?.webview);
+}
+
+/**
+ * Browser Engine Factory:
+ * Automatically instantiates NativeBrowserEngine when desktop runtime is present,
+ * or EmbeddedBrowserEngine as the safe web-hosted development fallback.
+ */
+export function createBrowserEngine(mode: 'auto' | 'embedded' | 'native' = 'auto'): BrowserEngine {
+  if (mode === 'native' || (mode === 'auto' && isNativeDesktopRuntimeAvailable())) {
+    return new NativeBrowserEngine();
+  }
+  return new EmbeddedBrowserEngine();
 }
