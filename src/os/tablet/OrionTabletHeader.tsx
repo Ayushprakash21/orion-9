@@ -10,8 +10,8 @@ import { useConnectivity } from '../../store/ConnectivityContext';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { useTabletNavigation } from './OrionTabletNavigation';
 import { NotificationCenter } from '../../components/modals/NotificationCenter';
+import { BrandLogo } from '../../components/brand/BrandLogo';
 import { 
-  Infinity, 
   Search, 
   Bell, 
   Wifi, 
@@ -54,9 +54,7 @@ export const OrionTabletHeader: React.FC = () => {
           onClick={() => navigateToTab('home')}
           className="flex items-center gap-2 cursor-pointer active:scale-95 transition-transform"
         >
-          <div className="w-7 h-7 rounded-lg bg-white/[0.08] border border-white/[0.1] flex items-center justify-center text-os-text-primary">
-            <Infinity size={16} />
-          </div>
+          <BrandLogo sizePreset="sm" variant="mark" height={26} />
           <span className="font-mono text-sm font-bold tracking-wider text-os-text-primary">
             ORION-9
           </span>

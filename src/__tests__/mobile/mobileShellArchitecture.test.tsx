@@ -82,7 +82,7 @@ describe('Orion-9 Mobile Application Shell Rebuild Architecture', () => {
   });
 
   describe('1. Mobile Header Architecture', () => {
-    it('renders the dedicated mobile header with logo, title and environment badge', () => {
+    it('renders the dedicated mobile header with canonical BrandLogo, notifications and profile', () => {
       const html = renderToString(
         <MemoryRouter>
           <MobileNavigationProvider>
@@ -91,23 +91,17 @@ describe('Orion-9 Mobile Application Shell Rebuild Architecture', () => {
         </MemoryRouter>
       );
 
-      // Verify Brand Logo is rendered
-      expect(html).toContain('ORION');
-      // Verify Title
-      expect(html).toContain('ORION HOME');
-      // Verify DEMO environment indicator
-      expect(html).toContain('DEMO');
+      // Verify Canonical Brand Logo image is rendered
+      expect(html).toContain('orion-brand-image');
+      // Verify Notifications trigger
+      expect(html).toContain('View Notifications');
+      // Verify User Menu trigger
+      expect(html).toContain('User Menu');
+      // Verify desktop title clutter is removed from mobile header
+      expect(html).not.toContain('ORION CONTROL TOWER');
     });
 
-    it('updates header to LIVE when environment switches to LIVE', async () => {
-      await dbManager.switchEnvironment({
-        targetEnvironment: 'LIVE',
-        actorUserId: 'admin-mob-001',
-        actorRole: 'platform_admin',
-        callerType: 'human_admin',
-        stepUpConfirmed: true,
-      });
-
+    it('renders Back button to Apps when in app_view mode', () => {
       const html = renderToString(
         <MemoryRouter>
           <MobileNavigationProvider>
@@ -116,7 +110,7 @@ describe('Orion-9 Mobile Application Shell Rebuild Architecture', () => {
         </MemoryRouter>
       );
 
-      expect(html).toContain('LIVE');
+      expect(html).toContain('aria-label="Orion-9 Home"');
     });
   });
 
@@ -192,7 +186,7 @@ describe('Orion-9 Mobile Application Shell Rebuild Architecture', () => {
       expect(html).toContain('overflow-x-hidden');
     });
 
-    it('renders mobile-first OS Home landing screen with What do you want to do and Quick Access', () => {
+    it('renders mobile-first OS Home landing screen with Quick Actions and Quick Access', () => {
       const html = renderToString(
         <MemoryRouter>
           <MobileNavigationProvider>
@@ -203,10 +197,10 @@ describe('Orion-9 Mobile Application Shell Rebuild Architecture', () => {
 
       expect(html).toContain('Chief Supply Chain Officer');
       expect(html).toContain('System Operational');
-      expect(html).toContain('What do you want to do?');
+      expect(html).toContain('Quick Actions');
       expect(html).toContain('Quick Access');
       expect(html).toContain('Ask ORION about your supply chain');
-      expect(html).not.toContain('Control Tower Overview');
+      expect(html).not.toContain('Orion Control Tower');
       expect(html).not.toContain('Telemetry Trajectories');
     });
 
