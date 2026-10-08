@@ -1,21 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import Cropper from 'react-easy-crop';
-import { X, Camera, Loader2 } from 'lucide-react';
+import { X, Camera, Loader2, ZoomIn, ZoomOut } from 'lucide-react';
 
-export const getCroppedImg = async (imageSrc: string, pixelCrop: any): Promise<string> => {
+export const getCroppedImg = async (
+  imageSrc: string,
+  pixelCrop: { x: number; y: number; width: number; height: number },
+  targetSize = 512
+): Promise<string> => {
+  if (!pixelCrop || pixelCrop.width === 0 || pixelCrop.height === 0) {
+    throw new Error('Invalid crop dimensions');
+  }
+
   const image = new Image();
+  image.crossOrigin = 'anonymous';
   image.src = imageSrc;
-  await new Promise((resolve, reject) => {
-    image.onload = resolve;
-    image.onerror = reject;
+  await new Promise<void>((resolve, reject) => {
+    image.onload = () => resolve();
+    image.onerror = () => reject(new Error('Failed to load image for cropping'));
   });
 
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  if (!ctx) return '';
+  if (!ctx) {
+    throw new Error('Canvas 2D context is unavailable');
+  }
 
-  canvas.width = pixelCrop.width;
-  canvas.height = pixelCrop.height;
+  const outputSize = Math.max(128, Math.min(1024, targetSize));
+  canvas.width = outputSize;
+  canvas.height = outputSize;
+
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
 
   ctx.drawImage(
     image,
@@ -25,11 +40,19 @@ export const getCroppedImg = async (imageSrc: string, pixelCrop: any): Promise<s
     pixelCrop.height,
     0,
     0,
-    pixelCrop.width,
-    pixelCrop.height
+    outputSize,
+    outputSize
   );
 
-  return canvas.toDataURL('image/jpeg', 0.92);
+  let dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+  // Enforce 2 MB limit on resulting data URL
+  const approxSizeBytes = Math.round((dataUrl.length * 3) / 4);
+  if (approxSizeBytes > 2 * 1024 * 1024) {
+    dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+  }
+
+  return dataUrl;
 };
 
 export interface AvatarEditorModalProps {
@@ -37,8 +60,10 @@ export interface AvatarEditorModalProps {
   imageSrc: string | null;
   onClose: () => void;
   onApply: (croppedImageDataUrl: string) => void | Promise<void>;
+  onError?: (error: Error) => void;
   title?: string;
   applyButtonText?: string;
+  targetSize?: number;
 }
 
 export const AvatarEditorModal: React.FC<AvatarEditorModalProps> = ({
@@ -46,11 +71,14 @@ export const AvatarEditorModal: React.FC<AvatarEditorModalProps> = ({
   imageSrc,
   onClose,
   onApply,
+  onError,
   title = 'Adjust Profile Avatar',
-  applyButtonText = 'Apply Changes'
+  applyButtonText = 'Apply Changes',
+  targetSize = 512
 }) => {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const [croppedAreaPercent, setCroppedAreaPercent] = useState<any>(null);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -58,6 +86,7 @@ export const AvatarEditorModal: React.FC<AvatarEditorModalProps> = ({
     if (isOpen) {
       setCrop({ x: 0, y: 0 });
       setZoom(1);
+      setCroppedAreaPercent(null);
       setCroppedAreaPixels(null);
       setIsProcessing(false);
     }
@@ -81,11 +110,17 @@ export const AvatarEditorModal: React.FC<AvatarEditorModalProps> = ({
     if (!croppedAreaPixels || isProcessing) return;
     setIsProcessing(true);
     try {
-      const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
+      const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels, targetSize);
+      if (!croppedImage) {
+        throw new Error('Could not generate cropped image');
+      }
       await onApply(croppedImage);
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to crop avatar image:', err);
+      if (onError) {
+        onError(err);
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -122,7 +157,7 @@ export const AvatarEditorModal: React.FC<AvatarEditorModalProps> = ({
         </div>
         
         {/* Modal Body */}
-        <div className="p-6 flex flex-col items-center gap-6 overflow-x-hidden">
+        <div className="p-6 flex flex-col items-center gap-5 overflow-x-hidden">
           {/* Constrained Crop Box */}
           <div className="relative w-full max-w-[360px] h-[360px] max-h-[min(360px,calc(100vw-80px))] aspect-square bg-black rounded-xl overflow-hidden border border-white/10 shadow-inner shrink-0 mx-auto">
             <Cropper
@@ -132,24 +167,79 @@ export const AvatarEditorModal: React.FC<AvatarEditorModalProps> = ({
               aspect={1}
               cropShape="round"
               showGrid={false}
+              restrictPosition={true}
               onCropChange={setCrop}
-              onCropComplete={(_area, pixels) => setCroppedAreaPixels(pixels)}
+              onCropComplete={(areaPercent, pixels) => {
+                setCroppedAreaPercent(areaPercent);
+                setCroppedAreaPixels(pixels);
+              }}
               onZoomChange={setZoom}
             />
           </div>
           
-          {/* Zoom Slider */}
+          {/* Zoom Slider & Accessible Controls */}
           <div className="w-full max-w-[360px] flex items-center gap-3 px-2">
             <span className="text-xs text-slate-400 font-medium font-mono uppercase tracking-wider shrink-0">Zoom</span>
+            <button
+              type="button"
+              aria-label="Zoom out"
+              onClick={() => setZoom(prev => Math.max(1, Math.round((prev - 0.1) * 10) / 10))}
+              disabled={zoom <= 1}
+              className="p-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-30 disabled:pointer-events-none text-slate-300 transition-colors cursor-pointer shrink-0"
+              title="Zoom out"
+            >
+              <ZoomOut size={14} />
+            </button>
             <input
               type="range"
+              aria-label="Zoom level"
               value={zoom}
               min={1}
               max={3}
-              step={0.1}
+              step={0.05}
               onChange={(e) => setZoom(Number(e.target.value))}
               className="w-full accent-sky-400 h-1 bg-white/[0.1] rounded-lg cursor-pointer"
             />
+            <button
+              type="button"
+              aria-label="Zoom in"
+              onClick={() => setZoom(prev => Math.min(3, Math.round((prev + 0.1) * 10) / 10))}
+              disabled={zoom >= 3}
+              className="p-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] disabled:opacity-30 disabled:pointer-events-none text-slate-300 transition-colors cursor-pointer shrink-0"
+              title="Zoom in"
+            >
+              <ZoomIn size={14} />
+            </button>
+          </div>
+
+          {/* Real-Time Circular Avatar Preview */}
+          <div className="w-full max-w-[360px] flex items-center gap-4 p-3 rounded-xl bg-white/[0.03] border border-white/[0.08] shadow-inner">
+            <div 
+              data-testid="avatar-crop-preview"
+              className="relative w-14 h-14 rounded-full overflow-hidden border-2 border-sky-400/80 bg-black shrink-0 shadow-md"
+            >
+              {imageSrc && croppedAreaPercent ? (
+                <img
+                  src={imageSrc}
+                  alt="Circular crop preview"
+                  className="absolute max-w-none pointer-events-none select-none"
+                  style={{
+                    width: `${(100 / (croppedAreaPercent.width || 100)) * 100}%`,
+                    height: `${(100 / (croppedAreaPercent.height || 100)) * 100}%`,
+                    left: `-${((croppedAreaPercent.x || 0) / (croppedAreaPercent.width || 100)) * 100}%`,
+                    top: `-${((croppedAreaPercent.y || 0) / (croppedAreaPercent.height || 100)) * 100}%`,
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full bg-white/5 flex items-center justify-center text-[10px] text-slate-500 font-mono">
+                  Preview
+                </div>
+              )}
+            </div>
+            <div className="flex flex-col text-left min-w-0">
+              <span className="text-xs font-semibold text-white tracking-wide">Live Circular Preview</span>
+              <span className="text-[11px] text-slate-400">Position and framing for final circular avatar</span>
+            </div>
           </div>
         </div>
         

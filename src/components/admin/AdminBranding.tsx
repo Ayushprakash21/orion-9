@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Palette, Camera, Save, Loader2, Check } from 'lucide-react';
 import { useToast } from '../../store/ToastContext';
 import { brandingRepository } from '../../repositories/BrandingRepository';
+import { AvatarEditorModal } from '../ui/AvatarEditorModal';
 
 export const AdminBranding = () => {
   const [appName, setAppName] = useState('');
@@ -14,6 +15,7 @@ export const AdminBranding = () => {
   const [creatorTitle, setCreatorTitle] = useState('Creator & Supply Chain OS Architect');
   const [creatorQuote, setCreatorQuote] = useState('What if the supply chain had an operating system?');
   const [creatorPhotoUrl, setCreatorPhotoUrl] = useState<string | null>(null);
+  const [selectedCropImage, setSelectedCropImage] = useState<string | null>(null);
   const [founderNote, setFounderNote] = useState('');
 
   const [isLoading, setIsLoading] = useState(true);
@@ -73,22 +75,56 @@ export const AdminBranding = () => {
       const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
       if (!validTypes.includes(file.type)) {
         showToast('Invalid photo format. Supported formats: PNG, JPG, WebP.', 'error');
+        e.target.value = '';
         return;
       }
       if (file.size > 2 * 1024 * 1024) {
         showToast('Creator photo is too large. Maximum size is 2MB.', 'error');
+        e.target.value = '';
         return;
       }
       const reader = new FileReader();
       reader.onloadend = () => {
         const photoData = reader.result as string;
-        setCreatorPhotoUrl(photoData);
-        try {
-          window.dispatchEvent(new CustomEvent('CREATOR_IDENTITY_PHOTO_CHANGED', { detail: { photoUrl: photoData } }));
-        } catch (err) {}
+        if (photoData) {
+          setSelectedCropImage(photoData);
+        }
+      };
+      reader.onerror = () => {
+        showToast('Failed to read image file. Please try again.', 'error');
       };
       reader.readAsDataURL(file);
     }
+    // Clear input value so selecting the same file again triggers onChange
+    e.target.value = '';
+  };
+
+  const handleApplyCreatorPhotoCrop = (croppedImageDataUrl: string) => {
+    try {
+      if (!croppedImageDataUrl) {
+        throw new Error('Cropped image data is empty');
+      }
+      const approxBytes = Math.round((croppedImageDataUrl.length * 3) / 4);
+      if (approxBytes > 2 * 1024 * 1024) {
+        throw new Error('Cropped image exceeds 2MB limit. Please crop tighter or use lower resolution.');
+      }
+      setCreatorPhotoUrl(croppedImageDataUrl);
+      try {
+        window.dispatchEvent(new CustomEvent('CREATOR_IDENTITY_PHOTO_CHANGED', { detail: { photoUrl: croppedImageDataUrl } }));
+      } catch (err) {}
+      setSelectedCropImage(null);
+      showToast('Creator photo cropped and applied. Click "Save Changes" to persist.', 'success');
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to apply cropped photo.', 'error');
+    }
+  };
+
+  const handleRemoveCreatorPhoto = () => {
+    setCreatorPhotoUrl(null);
+    try {
+      window.dispatchEvent(new CustomEvent('CREATOR_IDENTITY_PHOTO_CHANGED', { detail: { photoUrl: null } }));
+    } catch (err) {}
+    showToast('Creator photo removed.', 'info');
   };
 
   const handleSave = async () => {
@@ -334,20 +370,24 @@ export const AdminBranding = () => {
               <div className="text-sm text-os-text-secondary space-y-1">
                 <p className="font-medium text-os-text-primary">Creator Identity Photo</p>
                 <p className="text-xs text-os-text-muted">Supported formats: PNG, JPG, WebP. Max size: 2MB.</p>
-                {creatorPhotoUrl && (
+                <div className="flex items-center gap-3 pt-1">
                   <button 
                     type="button"
-                    onClick={() => {
-                      setCreatorPhotoUrl(null);
-                      try {
-                        window.dispatchEvent(new CustomEvent('CREATOR_IDENTITY_PHOTO_CHANGED', { detail: { photoUrl: null } }));
-                      } catch (err) {}
-                    }}
-                    className="text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer block pt-1"
+                    onClick={() => creatorFileInputRef.current?.click()}
+                    className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors cursor-pointer"
                   >
-                    Remove Photo
+                    {creatorPhotoUrl ? 'Change Photo' : 'Upload Photo'}
                   </button>
-                )}
+                  {creatorPhotoUrl && (
+                    <button 
+                      type="button"
+                      onClick={handleRemoveCreatorPhoto}
+                      className="text-xs text-red-400 hover:text-red-300 transition-colors cursor-pointer"
+                    >
+                      Remove Photo
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -443,6 +483,17 @@ export const AdminBranding = () => {
           </div>
         </div>
       </div>
+
+      {selectedCropImage && (
+        <AvatarEditorModal
+          isOpen={Boolean(selectedCropImage)}
+          imageSrc={selectedCropImage}
+          onClose={() => setSelectedCropImage(null)}
+          onApply={handleApplyCreatorPhotoCrop}
+          title="Adjust Creator Profile Photo"
+          applyButtonText="Apply Crop"
+        />
+      )}
     </div>
   );
 };
