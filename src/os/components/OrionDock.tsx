@@ -708,7 +708,7 @@ export function OrionDock() {
       >
         <div 
           className={cn(
-            "p-2 border transition-all duration-300 rounded-[20px] shadow-2xl",
+            "p-2 border transition-all duration-300 rounded-[20px]",
             isVertical ? "flex flex-col items-center gap-2 overflow-y-auto max-h-[80vh]" : "flex items-center gap-2 overflow-x-auto max-w-[calc(100vw-24px)]"
           )}
           style={{ 
@@ -716,7 +716,7 @@ export function OrionDock() {
             backdropFilter: 'var(--orion-morph-backdrop, blur(var(--orion-dock-blur, 24px)) saturate(160%))',
             WebkitBackdropFilter: 'var(--orion-morph-backdrop, blur(var(--orion-dock-blur, 24px)) saturate(160%))',
             borderColor: 'var(--orion-dock-border, var(--orion-border-strong))',
-            boxShadow: 'var(--orion-morph-shadow-deep, var(--orion-dock-shadow, 0 20px 48px rgba(0,0,0,0.45)))',
+            boxShadow: 'inset 0 1px 1px 0 rgba(255, 255, 255, 0.20), inset 0 0 0 0.5px rgba(255, 255, 255, 0.08), var(--orion-morph-shadow-deep, var(--orion-dock-shadow, 0 20px 48px rgba(0,0,0,0.45)))',
             scrollbarWidth: 'none' 
           }}
           onMouseLeave={() => { setHoveredApp(null); scheduleDockHide(); }}
@@ -752,13 +752,13 @@ export function OrionDock() {
             }}
             title={`${t('desktop.startMenu')} (All Applications)`}
           >
-            <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-[var(--orion-surface-hover)] hover:bg-[var(--orion-dock-hover)] border border-[var(--orion-border)] text-[var(--orion-text-primary)] hover:text-[var(--orion-accent)] transition-colors shadow-xs">
+            <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-white/[0.04] hover:bg-white/[0.09] active:bg-white/[0.13] border border-white/[0.08] hover:border-white/[0.16] text-[var(--orion-text-primary)] hover:text-[var(--orion-accent)] transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
               <Grid className="w-5 h-5 transition-transform duration-300 group-hover:scale-105" />
             </div>
 
             <div className={cn(
               tooltipClasses,
-              "px-3 py-1 bg-[var(--orion-surface-elevated)] backdrop-blur-xl text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-[var(--orion-border-strong)] shadow-xl z-50"
+              "px-3 py-1 bg-[#14171d]/90 backdrop-blur-2xl text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-[0_12px_24px_rgba(0,0,0,0.6)] z-50"
             )}>
               {t('desktop.startMenu')}
             </div>
@@ -786,20 +786,20 @@ export function OrionDock() {
             }}
             title={`${t('common.search')} (Ctrl+Space / ⌘K)`}
           >
-            <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-[var(--orion-surface-hover)] hover:bg-[var(--orion-dock-hover)] border border-[var(--orion-border)] text-[var(--orion-text-secondary)] hover:text-[var(--orion-accent)] transition-colors shadow-xs">
+            <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-white/[0.04] hover:bg-white/[0.09] active:bg-white/[0.13] border border-white/[0.08] hover:border-white/[0.16] text-[var(--orion-text-secondary)] hover:text-[var(--orion-accent)] transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
               <Search className="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-105" />
             </div>
 
             <div className={cn(
               tooltipClasses,
-              "px-3 py-1 bg-[var(--orion-surface-elevated)] backdrop-blur-xl text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-[var(--orion-border-strong)] shadow-xl z-50"
+              "px-3 py-1 bg-[#14171d]/90 backdrop-blur-2xl text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-[0_12px_24px_rgba(0,0,0,0.6)] z-50"
             )}>
               {t('common.search')} (Ctrl+Space)
             </div>
           </button>
 
           <div className={cn(
-            "bg-[var(--orion-border)] shrink-0",
+            "bg-white/[0.12] shrink-0",
             isVertical ? "w-7 h-px my-0.5" : "w-px h-7 mx-0.5"
           )} />
 
@@ -817,7 +817,7 @@ export function OrionDock() {
             const hoveredIndex = hoveredApp ? dockApps.indexOf(hoveredApp) : -1;
             const distance = hoveredIndex !== -1 ? Math.abs(hoveredIndex - index) : 100;
             const scale = magnificationEnabled
-              ? (distance === 0 ? 1.15 : distance === 1 ? 1.08 : distance === 2 ? 1.03 : 1)
+              ? (distance === 1.15 ? 1.15 : distance === 0 ? 1.15 : distance === 1 ? 1.08 : distance === 2 ? 1.03 : 1)
               : 1;
 
             return (
@@ -879,13 +879,13 @@ export function OrionDock() {
                     className={cn(
                       "absolute transition-all duration-200",
                       isVertical
-                        ? (dockPosition === 'left' ? "-left-1 top-1/2 -translate-y-1/2" : "-right-1 top-1/2 -translate-y-1/2")
-                        : (dockPosition === 'top' ? "-top-1 left-1/2 -translate-x-1/2" : "-bottom-1 left-1/2 -translate-x-1/2"),
+                        ? (dockPosition === 'left' ? "-left-1.5 top-1/2 -translate-y-1/2" : "-right-1.5 top-1/2 -translate-y-1/2")
+                        : (dockPosition === 'top' ? "-top-1.5 left-1/2 -translate-x-1/2" : "-bottom-1.5 left-1/2 -translate-x-1/2"),
                       isActive 
-                        ? (isVertical ? "h-2.5 w-1 rounded-full bg-[var(--orion-accent)] shadow-xs" : "w-2.5 h-1 rounded-full bg-[var(--orion-accent)] shadow-xs")
+                        ? (isVertical ? "h-3 w-1 rounded-full bg-[var(--orion-accent)] shadow-[0_0_6px_var(--orion-accent)]" : "w-3 h-1 rounded-full bg-[var(--orion-accent)] shadow-[0_0_6px_var(--orion-accent)]")
                         : isMinimized
-                        ? (isVertical ? "h-1 w-1 rounded-full bg-[var(--orion-text-muted)]/30" : "w-1 h-1 rounded-full bg-[var(--orion-text-muted)]/30")
-                        : (isVertical ? "h-1.5 w-1.5 rounded-full bg-[var(--orion-text-muted)]/50" : "w-1.5 h-1.5 rounded-full bg-[var(--orion-text-muted)]/50")
+                        ? (isVertical ? "h-1 w-1 rounded-full bg-white/30" : "w-1 h-1 rounded-full bg-white/30")
+                        : (isVertical ? "h-1.5 w-1.5 rounded-full bg-white/70 shadow-[0_0_4px_rgba(255,255,255,0.4)]" : "w-1.5 h-1.5 rounded-full bg-white/70 shadow-[0_0_4px_rgba(255,255,255,0.4)]")
                     )}
                   />
                 )}
@@ -893,7 +893,7 @@ export function OrionDock() {
                 {/* Tooltip */}
                 <div className={cn(
                   tooltipClasses,
-                  "px-3 py-1 bg-[var(--orion-surface-elevated)] backdrop-blur-xl text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-[var(--orion-border-strong)] shadow-xl z-50"
+                  "px-3 py-1 bg-[#14171d]/90 backdrop-blur-2xl text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-[0_12px_24px_rgba(0,0,0,0.6)] z-50"
                 )}>
                   {app.name}
                   {isMinimized && <span className="text-[var(--orion-text-muted)] ml-1.5 text-[10px]">(Minimized)</span>}
@@ -903,7 +903,7 @@ export function OrionDock() {
           })}
 
           <div className={cn(
-            "bg-[var(--orion-border)] shrink-0",
+            "bg-white/[0.12] shrink-0",
             isVertical ? "w-7 h-px my-0.5" : "w-px h-7 mx-0.5"
           )} />
 
@@ -929,13 +929,13 @@ export function OrionDock() {
             }}
             title="Task Switcher (Alt+Tab)"
           >
-            <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-[var(--orion-surface-hover)] hover:bg-[var(--orion-dock-hover)] border border-[var(--orion-border)] text-[var(--orion-text-secondary)] hover:text-[var(--orion-accent)] transition-colors shadow-xs">
+            <div className="flex items-center justify-center w-full h-full rounded-[14px] bg-white/[0.04] hover:bg-white/[0.09] active:bg-white/[0.13] border border-white/[0.08] hover:border-white/[0.16] text-[var(--orion-text-secondary)] hover:text-[var(--orion-accent)] transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]">
               <Layers className="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-105" />
             </div>
 
             <div className={cn(
               tooltipClasses,
-              "px-3 py-1 bg-[var(--orion-surface-elevated)] backdrop-blur-xl text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-[var(--orion-border-strong)] shadow-xl z-50"
+              "px-3 py-1 bg-[#14171d]/90 backdrop-blur-2xl text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-[0_12px_24px_rgba(0,0,0,0.6)] z-50"
             )}>
               Task Switcher (Alt+Tab)
             </div>

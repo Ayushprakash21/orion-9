@@ -497,7 +497,7 @@ export const ControlTowerWorkspace: React.FC = () => {
         /* DEFAULT NETWORK MISSION CONTROL 3-PANE COMPOSITION (REFERENCE A) */
         <div className="space-y-4">
           {/* TOP EXECUTIVE KPI STRIP (CLICKABLE WITH DEEP LINKING) */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 bg-os-surface/90 border border-os-border/80 rounded-xl p-3.5 shadow-xs backdrop-blur-md">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 bg-[#12151b]/80 border border-white/[0.08] rounded-2xl p-3.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_8px_24px_rgba(0,0,0,0.3)] backdrop-blur-xl">
             <div 
               onClick={() => setActiveView('network')}
               className="flex flex-col cursor-pointer hover:opacity-80 transition-opacity"
@@ -573,7 +573,7 @@ export const ControlTowerWorkspace: React.FC = () => {
           {/* AI OPPORTUNITY BANNER (CLICKABLE TO INVENTORY INTELLIGENCE) */}
           <div 
             onClick={() => setActiveView('inventory')}
-            className="p-3.5 rounded-xl border border-cyan-500/30 bg-gradient-to-r from-cyan-500/10 via-os-surface to-emerald-500/10 cursor-pointer hover:border-cyan-500/60 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
+            className="p-3.5 rounded-2xl border border-[var(--orion-accent)]/20 bg-gradient-to-r from-[var(--orion-accent)]/10 via-white/[0.03] to-emerald-500/10 cursor-pointer hover:border-[var(--orion-accent)]/40 hover:bg-white/[0.05] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_8px_20px_rgba(0,0,0,0.25)] backdrop-blur-xl"
           >
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">

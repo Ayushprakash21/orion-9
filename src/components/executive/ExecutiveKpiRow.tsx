@@ -45,7 +45,7 @@ export const ExecutiveKpiRow: React.FC<ExecutiveKpiRowProps> = ({
             key={kpi.id}
             onClick={kpi.onClick}
             className={cn(
-              "p-4 rounded-xl border border-[var(--orion-morph-border,rgba(255,255,255,0.08))] bg-[var(--orion-morph-surface,#101111)] hover:bg-[var(--orion-morph-surface-hover,#151616)] hover:border-[var(--orion-accent,#39C77A)]/40 shadow-[var(--orion-morph-shadow-soft,0_2px_8px_rgba(0,0,0,0.1))] hover:shadow-[var(--orion-morph-shadow,0_6px_16px_rgba(0,0,0,0.15))] backdrop-blur-[var(--orion-morph-blur,10px)] transition-all cursor-pointer group flex flex-col justify-between select-none hover:-translate-y-0.5"
+              "p-4 rounded-2xl border border-white/[0.08] hover:border-white/[0.18] bg-white/[0.03] hover:bg-white/[0.06] shadow-[inset_0_1px_1px_rgba(255,255,255,0.12),0_8px_20px_rgba(0,0,0,0.3)] hover:shadow-[inset_0_1px_1px_rgba(255,255,255,0.18),0_12px_28px_rgba(0,0,0,0.4)] backdrop-blur-xl transition-all cursor-pointer group flex flex-col justify-between select-none hover:-translate-y-0.5"
             )}
           >
 

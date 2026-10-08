@@ -293,7 +293,7 @@ export function OrionApplicationLauncher() {
           marginLeft: 'var(--orion-dock-workspace-left, 0px)',
           marginRight: 'var(--orion-dock-workspace-right, 0px)',
         }}
-        className="relative w-[calc(100%-16px)] sm:w-full max-w-3xl max-h-[82vh] flex flex-col bg-[#12151a]/95 backdrop-blur-2xl rounded-2xl border border-white/[0.1] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.85)] animate-in fade-in slide-in-from-bottom-6 duration-200 pointer-events-auto transition-all"
+        className="relative w-[calc(100%-16px)] sm:w-full max-w-3xl max-h-[82vh] flex flex-col bg-[#12151a]/90 backdrop-blur-2xl rounded-2xl border border-white/[0.12] shadow-[0_35px_60px_-15px_rgba(0,0,0,0.85),inset_0_1px_1px_0_rgba(255,255,255,0.18)] animate-in fade-in slide-in-from-bottom-6 duration-200 pointer-events-auto transition-all"
         onClick={e => e.stopPropagation()}
         role="dialog"
         aria-label="Application Launcher"
@@ -616,7 +616,7 @@ function AppGridCard({ app, onClick, onPointerDown, isPinned, pinToDock, unpinFr
       onContextMenu={handleContextMenu}
       onPointerDown={onPointerDown}
       onDragStart={e => e.preventDefault()}
-      className="min-h-[114px] rounded-xl border border-white/[0.08] bg-white/[0.03] p-3.5 text-left hover:bg-white/[0.07] hover:border-white/[0.15] transition-all outline-none group cursor-grab active:cursor-grabbing select-none"
+      className="min-h-[114px] rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] hover:border-white/[0.18] p-3.5 text-left transition-all outline-none group cursor-grab active:cursor-grabbing select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
     >
       <div className="flex items-start justify-between gap-2 pointer-events-none">
         <OrionAppIcon app={app.id} size={38} className="transition-transform duration-200 group-hover:scale-105 pointer-events-none" />
@@ -660,14 +660,14 @@ function AppRow({ app, onClick, onPointerDown, isPinned, pinToDock, unpinFromDoc
 
   return (
     <button 
-      type="button"
+      type="button" 
       data-testid={`launcher-app-${app.id}`}
       data-app-id={app.id}
-      onClick={onClick}
+      onClick={onClick} 
       onContextMenu={handleContextMenu}
       onPointerDown={onPointerDown}
       onDragStart={e => e.preventDefault()}
-      className="flex items-center gap-3.5 group outline-none w-full px-3 py-2.5 hover:bg-white/[0.06] focus:bg-white/[0.08] rounded-xl transition-all duration-150 cursor-grab active:cursor-grabbing text-left select-none"
+      className="flex items-center gap-3.5 group outline-none w-full px-3 py-2.5 bg-white/[0.02] hover:bg-white/[0.07] focus:bg-white/[0.08] border border-transparent hover:border-white/[0.1] rounded-xl transition-all duration-150 cursor-grab active:cursor-grabbing text-left select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
     >
       <OrionAppIcon app={app.id} size={36} className="transition-transform duration-200 group-hover:scale-105 shrink-0 pointer-events-none" />
       

@@ -1295,7 +1295,7 @@ export function DesktopWorkspace() {
           ref={desktopMenuRef}
           data-orion-context-menu="true"
           data-testid="desktop-context-menu"
-          className="fixed z-[2147483500] bg-os-surface/98 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.05)] py-1.5 w-60 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto select-none"
+          className="fixed z-[2147483500] bg-[#161a22]/90 backdrop-blur-2xl border border-white/[0.12] rounded-2xl shadow-[0_24px_60px_rgba(0,0,0,0.7),inset_0_1px_1px_0_rgba(255,255,255,0.18)] py-1.5 w-60 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto select-none"
           style={{
             top: `${clampedDesktopPos.y}px`,
             left: `${clampedDesktopPos.x}px`,
@@ -1494,7 +1494,7 @@ export function DesktopWorkspace() {
           ref={itemMenuRef}
           data-orion-context-menu="true"
           data-testid="desktop-item-context-menu"
-          className="fixed z-[2147483500] bg-os-surface/98 backdrop-blur-2xl border border-os-border rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.05)] py-1.5 w-56 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto select-none"
+          className="fixed z-[2147483500] bg-[#161a22]/90 backdrop-blur-2xl border border-white/[0.12] rounded-2xl shadow-[0_24px_60px_rgba(0,0,0,0.7),inset_0_1px_1px_0_rgba(255,255,255,0.18)] py-1.5 w-56 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto select-none"
           style={{
             top: `${clampedItemPos.y}px`,
             left: `${clampedItemPos.x}px`,
