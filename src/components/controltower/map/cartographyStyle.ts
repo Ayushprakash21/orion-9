@@ -16,18 +16,9 @@ export const ORION_GRAPHITE_MAP_STYLE: StyleSpecification = {
       type: 'geojson',
       data: WORLD_LANDMASS_GEOJSON,
     },
-    // Optional raster basemap for enhanced zoom detail (CARTO dark matter)
-    'carto-dark': {
-      type: 'raster',
-      tiles: [
-        'https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}@2x.png',
-        'https://b.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}@2x.png',
-        'https://c.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}@2x.png',
-      ],
-      tileSize: 256,
-      attribution: '© OpenStreetMap contributors © CARTO',
-      maxzoom: 19,
-    },
+    // NOTE: External CARTO raster basemap removed for offline‑first operation.
+    // If an external basemap is desired in the future, it can be added as an optional source
+    // and toggled via the Runtime Settings UI without breaking core functionality.
     // Dynamic GeoJSON sources populated by MapDataAdapter
     'transport-vessels': {
       type: 'geojson',
@@ -117,16 +108,9 @@ export const ORION_GRAPHITE_MAP_STYLE: StyleSpecification = {
       },
     },
     // 3. Tile layer overlay (subtle raster detail when online)
-    {
-      id: 'carto-dark-layer',
-      type: 'raster',
-      source: 'carto-dark',
-      paint: {
-        'raster-opacity': 0.45,
-        'raster-fade-duration': 300,
-      },
-      minzoom: 1,
-    },
+    // NOTE: External CARTO raster layer removed for offline‑first operation.
+    // If needed, it can be added back as an optional source via Runtime Settings.
+
     // 4. Shipment Routes (Great circle / corridors)
     {
       id: 'layer-routes-line-glow',
