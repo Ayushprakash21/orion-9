@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { useAuth } from '../../store/AuthContext';
 import { useLanguage, useI18n, SupportedLanguage } from '../../store/LanguageContext';
 import { userService } from '../../services/userService';
@@ -22,18 +22,13 @@ import {
   Globe,
   ChevronDown,
   Power,
-  Users,
-  LogOut,
-  Mail,
-  ShieldCheck,
-  CheckCircle2,
   Sparkles,
   KeyRound,
-  UserPlus
 } from "lucide-react";
 
 import { WorldLanguagePanel } from '../i18n/WorldLanguagePanel';
 import { SUPPORTED_LOCALES, SupportedLocale, TRANSLATIONS } from '../../i18n';
+import { cn } from '../../lib/utils';
 
 export interface LanguageOption {
   code: string;
@@ -57,7 +52,7 @@ export const AUTH_TRANSLATIONS: Record<string, Record<string, string>> = Object.
 );
 
 // Password Strength Evaluator Helper
-function getPasswordStrength(pass: string): { score: number; label: string; color: string; widthPct: string } {
+export function getPasswordStrength(pass: string): { score: number; label: string; color: string; widthPct: string } {
   if (!pass) return { score: 0, label: '', color: 'bg-white/10', widthPct: '0%' };
   let score = 0;
   if (pass.length >= 6) score += 1;
@@ -95,11 +90,32 @@ export const Login: React.FC<LoginProps> = () => {
   const [isIdentifying, setIsIdentifying] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [resolvedUser, setResolvedUser] = useState<UserProfile | null>(null);
+  const [isUnlocked, setIsUnlocked] = useState(false);
 
   // Focus & typing interaction tracking
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const typingTimerRef = useRef<any>(null);
+
+  // Subtle pointer parallax offset (stars: 1-2px, atmospheric: 3-4px, subject: 2-3px)
+  const [parallax, setParallax] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    if (shouldReduceMotion) return;
+    const isTouch = typeof window !== 'undefined' && ('ontouchstart' in window || navigator.maxTouchPoints > 0);
+    if (isTouch) return;
+
+    const handlePointerMove = (e: PointerEvent) => {
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+      const nx = (e.clientX - cx) / cx; // -1 to 1
+      const ny = (e.clientY - cy) / cy; // -1 to 1
+      setParallax({ x: nx, y: ny });
+    };
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    return () => window.removeEventListener('pointermove', handlePointerMove);
+  }, [shouldReduceMotion]);
 
   // Health Probes State
   const [systemHealth, setSystemHealth] = useState<{
@@ -182,28 +198,28 @@ export const Login: React.FC<LoginProps> = () => {
   const usernameInputRef = useRef<HTMLInputElement>(null);
 
   const t = {
-    signInTitle: translate('auth.signInTitle'),
-    userIdLabel: translate('auth.userIdLabel'),
-    userIdPlaceholder: translate('auth.userIdPlaceholder'),
-    continueBtn: translate('auth.continueBtn'),
-    identifying: translate('auth.identifying'),
-    userNotFound: translate('auth.userNotFound'),
-    enterPassword: translate('auth.enterPassword'),
-    enterOrionBtn: translate('auth.enterOrionBtn'),
-    otherUser: translate('auth.otherUser'),
-    rememberMe: translate('auth.rememberMe'),
-    forgotPassword: translate('auth.forgotPassword'),
-    invalidCredentials: translate('auth.invalidCredentials'),
-    switchUser: translate('auth.switchUser'),
-    lock: translate('auth.lock'),
-    signOut: translate('auth.signOut'),
-    restart: translate('auth.restart'),
-    shutDown: translate('auth.shutDown'),
-    selectLanguage: translate('auth.selectLanguage'),
-    subtitle: translate('auth.subtitle'),
-    showPassword: translate('auth.showPassword'),
-    hidePassword: translate('auth.hidePassword'),
-    enteringOrion: translate('auth.enteringOrion'),
+    signInTitle: translate('auth.signInTitle') || 'Sign in to Orion',
+    userIdLabel: translate('auth.userIdLabel') || 'User ID',
+    userIdPlaceholder: translate('auth.userIdPlaceholder') || 'Username or email',
+    continueBtn: translate('auth.continueBtn') || 'Continue',
+    identifying: translate('auth.identifying') || 'Identifying user...',
+    userNotFound: translate('auth.userNotFound') || 'User not found',
+    enterPassword: translate('auth.enterPassword') || 'Password',
+    enterOrionBtn: translate('auth.enterOrionBtn') || 'Enter Orion',
+    otherUser: translate('auth.otherUser') || 'Other user',
+    rememberMe: translate('auth.rememberMe') || 'Remember me',
+    forgotPassword: translate('auth.forgotPassword') || 'Forgot password?',
+    invalidCredentials: translate('auth.invalidCredentials') || 'Invalid password or credentials.',
+    switchUser: translate('auth.switchUser') || 'Switch User',
+    lock: translate('auth.lock') || 'Lock',
+    signOut: translate('auth.signOut') || 'Sign Out',
+    restart: translate('auth.restart') || 'Restart',
+    shutDown: translate('auth.shutDown') || 'Shut Down',
+    selectLanguage: translate('auth.selectLanguage') || 'Select language',
+    subtitle: translate('auth.subtitle') || 'Enter your User ID to access your workspace',
+    showPassword: translate('auth.showPassword') || 'Show password',
+    hidePassword: translate('auth.hidePassword') || 'Hide password',
+    enteringOrion: translate('auth.enteringOrion') || 'ENTERING ORION...',
   };
 
   // Close language menu on click outside
@@ -241,6 +257,7 @@ export const Login: React.FC<LoginProps> = () => {
   // STAGE 1 SUBMIT: Perform authoritative user lookup
   const handleStage1Submit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (isIdentifying) return;
     const cleanId = username.trim();
 
     if (!cleanId) {
@@ -256,7 +273,7 @@ export const Login: React.FC<LoginProps> = () => {
       // Look up user profile authoritatively
       const found = userService.getUserByIdentifier(cleanId) || userService.getUserByEmail(cleanId);
       
-      await new Promise(res => setTimeout(res, 150));
+      await new Promise(res => setTimeout(res, 120));
 
       if (found) {
         setResolvedUser(found);
@@ -303,6 +320,8 @@ export const Login: React.FC<LoginProps> = () => {
   // STAGE 2 SUBMIT: Perform password authentication
   const handleStage2Submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
+
     if (!password || !password.trim()) {
       setErrorMsg(t.invalidCredentials);
       return;
@@ -318,6 +337,7 @@ export const Login: React.FC<LoginProps> = () => {
       const defaultDest = isMobileDevice ? "/mobile/home" : "/";
       const from = (rawFrom && !rawFrom.startsWith('/admin') && rawFrom !== '/login') ? rawFrom : defaultDest;
       await login(username, password, { destination: from });
+      setIsUnlocked(true);
     } catch (err: any) {
       console.warn("Login authentication error:", err.message);
       if (err.message && err.message.includes('DEMO credentials are not permitted in the LIVE environment.')) {
@@ -345,51 +365,78 @@ export const Login: React.FC<LoginProps> = () => {
     setUsername("");
   };
 
+  // Staggered Entrance Animation Variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: shouldReduceMotion ? 0 : 0.08,
+        delayChildren: shouldReduceMotion ? 0 : 0.1,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: shouldReduceMotion ? 0 : 12 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: shouldReduceMotion ? 0.01 : 0.4,
+        ease: [0.16, 1, 0.3, 1] as const,
+      },
+    },
+  };
+
   return (
     <div 
-      className="w-screen h-[100dvh] max-h-[100dvh] flex flex-col justify-between overflow-hidden font-sans relative selection:bg-cyan-500/30 bg-transparent text-white"
+      className="w-screen h-[100dvh] max-h-[100dvh] flex flex-col justify-between overflow-hidden font-sans relative selection:bg-[var(--orion-accent,#38BDF8)]/30 bg-transparent text-white"
       onKeyDown={(e) => {
         if (e.key === 'Escape' && stage === 2) {
           handleBackToStage1();
         }
       }}
     >
-      {/* FLOWLOGIN Decorative Ambient Background Orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-        <motion.div
-          animate={shouldReduceMotion ? {} : {
-            scale: [1, 1.15, 1],
-            x: [0, 25, 0],
-            y: [0, -20, 0],
+      {/* LAYERED CINEMATIC BACKGROUND SYSTEM */}
+      {/* Layer 2: Subtle Dark Translucent Gradient & Depth Overlay */}
+      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/15 to-black/55" />
+        
+        {/* Layer 3: Atmospheric Vignette around screen edges */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_25%,rgba(0,0,0,0.35)_70%,rgba(0,0,0,0.75)_100%)]" />
+
+        {/* Layer 4: Soft Focus & Ambient Light Halo behind Login Subject */}
+        <div 
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] rounded-full bg-[var(--orion-accent,#38BDF8)]/[0.04] blur-[130px]"
+          style={shouldReduceMotion ? undefined : {
+            transform: `translate3d(calc(-50% + ${parallax.x * 4}px), calc(-50% + ${parallax.y * 4}px), 0)`,
+            transition: 'transform 0.15s ease-out',
           }}
-          transition={{
-            duration: 14,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute -top-32 -left-32 w-[550px] h-[550px] rounded-full bg-gradient-to-tr from-sky-950/20 via-slate-900/10 to-transparent blur-[120px]"
         />
-        <motion.div
-          animate={shouldReduceMotion ? {} : {
-            scale: [1.1, 1, 1.1],
-            x: [0, -30, 0],
-            y: [0, 25, 0],
+
+        {/* Subtle Star Dust Depth Layer */}
+        <div 
+          className="absolute inset-0 opacity-40 mix-blend-screen"
+          style={shouldReduceMotion ? undefined : {
+            transform: `translate3d(${parallax.x * 2}px, ${parallax.y * 2}px, 0)`,
+            transition: 'transform 0.2s ease-out',
           }}
-          transition={{
-            duration: 18,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute -bottom-32 -right-32 w-[600px] h-[600px] rounded-full bg-gradient-to-br from-slate-900/20 via-sky-950/10 to-transparent blur-[140px]"
-        />
+        >
+          <div className="absolute top-[18%] left-[22%] w-1 h-1 rounded-full bg-white/60 blur-[0.5px]" />
+          <div className="absolute top-[28%] right-[25%] w-1.5 h-1.5 rounded-full bg-cyan-200/50 blur-[0.5px]" />
+          <div className="absolute top-[68%] left-[15%] w-1 h-1 rounded-full bg-white/40 blur-[0.5px]" />
+          <div className="absolute top-[75%] right-[18%] w-1 h-1 rounded-full bg-sky-200/50 blur-[0.5px]" />
+          <div className="absolute top-[12%] right-[42%] w-1 h-1 rounded-full bg-white/50 blur-[0.5px]" />
+        </div>
       </div>
 
-      {/* Header — Top Bar */}
-      <header className="relative z-50 w-full flex items-center justify-between px-4 sm:px-8 py-3.5 sm:py-6 pt-[calc(14px+env(safe-area-inset-top,0px))] select-none">
+      {/* HEADER — TOP NATIVE OS BAR */}
+      <header className="relative z-50 w-full flex items-center justify-between px-6 sm:px-10 py-4 sm:py-6 pt-[calc(16px+env(safe-area-inset-top,0px))] select-none">
         {/* Left header spacer */}
         <div className="flex items-center gap-2" />
 
-        {/* Top Right Functional Language Selector Dropdown */}
+        {/* Top Right Native OS Language Selector Dropdown [ ◉ English ˅ ] */}
         <div className="relative" ref={langMenuRef} data-testid="language-selector">
           <button
             type="button"
@@ -402,14 +449,15 @@ export const Login: React.FC<LoginProps> = () => {
                 setIsLangMenuOpen(false);
               }
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 backdrop-blur-md transition-all duration-200 cursor-pointer text-white/90 hover:text-white text-xs font-medium group shadow-lg"
+            className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 backdrop-blur-2xl transition-all duration-200 cursor-pointer text-white/90 hover:text-white text-xs font-medium group shadow-lg active:scale-97"
             aria-label={t.selectLanguage}
             aria-haspopup="dialog"
             aria-expanded={isLangMenuOpen}
           >
+            <span className="w-2 h-2 rounded-full bg-[var(--orion-accent,#38BDF8)] ring-2 ring-[var(--orion-accent,#38BDF8)]/30 group-hover:scale-110 transition-transform" />
             <Globe className="w-3.5 h-3.5 text-white/70 group-hover:text-white transition-colors" />
             <span>{SUPPORTED_LOCALES[currentLang]?.nativeName || 'English'}</span>
-            <ChevronDown className={`w-3 h-3 text-white/50 group-hover:text-white transition-transform duration-200 ml-0.5 ${isLangMenuOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={cn("w-3 h-3 text-white/50 group-hover:text-white transition-transform duration-200 ml-0.5", isLangMenuOpen && "rotate-180")} />
           </button>
 
           {/* World Language Panel */}
@@ -425,253 +473,276 @@ export const Login: React.FC<LoginProps> = () => {
         </div>
       </header>
 
-      {/* Main Content — Enterprise Native Minimal Container */}
+      {/* CENTRAL FLOATING OS LOGIN COMPOSITION — MAC-STYLE SPATIAL UNLOCK */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 w-full my-auto">
         <motion.div
-          layout
-          initial={{ opacity: 0, y: 15, scale: 0.98 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-          className="backdrop-blur-2xl bg-[#0c1017]/90 border border-white/[0.12] shadow-[0_24px_60px_rgba(0,0,0,0.7)] rounded-[20px] p-7 sm:p-9 w-full max-w-[480px] flex flex-col justify-center mx-auto relative overflow-hidden"
+          initial="hidden"
+          animate={isUnlocked ? { opacity: 0, scale: 1.04, filter: 'blur(8px)' } : "visible"}
+          variants={containerVariants}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-[480px] flex flex-col items-center justify-center mx-auto relative select-none"
+          style={shouldReduceMotion ? undefined : {
+            transform: `translate3d(${parallax.x * -3}px, ${parallax.y * -3}px, 0)`,
+            transition: 'transform 0.15s ease-out',
+          }}
         >
-          <div className="flex h-full flex-col justify-center w-full">
-            <div className="w-full max-w-[380px] mx-auto flex flex-col justify-center">
-              
-              <AnimatePresence mode="wait">
+          {/* 1. ORION-9 LOGO — Floating Naturally Above Identity */}
+          <motion.div variants={itemVariants} className="mb-5 flex flex-col items-center justify-center text-center">
+            <div className="relative">
+              <div className="absolute inset-0 rounded-full bg-[var(--orion-accent,#38BDF8)]/15 blur-xl scale-125 pointer-events-none" />
+              <BrandLogo variant="mark" sizePreset="md" width={138} className="relative z-10 mx-auto drop-shadow-[0_8px_28px_rgba(0,0,0,0.65)]" />
+            </div>
+          </motion.div>
+
+          {/* 2. USER AVATAR / IDENTITY — 88–96px Circular Glass Frame */}
+          <motion.div variants={itemVariants} className="relative mb-4 flex items-center justify-center">
+            {/* Ambient soft glow ring */}
+            <div className="absolute inset-0 rounded-full bg-[var(--orion-accent,#38BDF8)]/20 blur-xl scale-110 pointer-events-none transition-all duration-500" />
+            
+            {/* Glass surround ring */}
+            <div className="relative w-22 h-22 sm:w-24 sm:h-24 rounded-full p-[2px] bg-gradient-to-b from-white/25 via-white/10 to-white/5 shadow-[0_16px_40px_rgba(0,0,0,0.65)] backdrop-blur-2xl">
+              <div className="w-full h-full rounded-full overflow-hidden bg-black/45 border border-white/15 flex items-center justify-center backdrop-blur-md">
+                {stage === 2 && (resolvedUser?.avatarUrl || (resolvedUser as any)?.photoURL) ? (
+                  <img 
+                    src={resolvedUser?.avatarUrl || (resolvedUser as any)?.photoURL} 
+                    alt={resolvedUser?.displayName || username} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : stage === 2 && resolvedUser ? (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-white/15 to-white/5 text-white/90 font-medium text-2xl tracking-wider">
+                    {(resolvedUser.displayName || resolvedUser.username || 'U').charAt(0).toUpperCase()}
+                  </div>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-b from-white/[0.08] to-transparent text-white/70">
+                    <User className="w-10 h-10 text-white/60" />
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+
+          {/* 3. WELCOME TYPOGRAPHY — Understated, Semibold, Native OS Hierarchy */}
+          <motion.div variants={itemVariants} className="text-center mb-6 select-none">
+            <h1 className="text-white font-semibold tracking-tight text-[28px] sm:text-[34px] leading-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.7)]">
+              {stage === 2 && resolvedUser 
+                ? (resolvedUser?.displayName || resolvedUser?.fullName || username)
+                : t.signInTitle}
+            </h1>
+            <p className="text-white/60 text-[13px] sm:text-[14px] font-normal mt-1 tracking-wide">
+              {stage === 2 && resolvedUser
+                ? `@${resolvedUser?.username || username}`
+                : 'Unlock ORION-9'}
+            </p>
+          </motion.div>
+
+          {/* 4. COMPACT FLOATING IDENTITY / PASSWORD FIELD (macOS Capsule Interaction Model) */}
+          <motion.div variants={itemVariants} className="w-full max-w-[340px] sm:max-w-[360px]">
+            <AnimatePresence mode="wait">
+              {/* STAGE 1: USER ID STAGE */}
+              {stage === 1 && (
                 <motion.div
-                  key="login-mode"
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 12 }}
-                  transition={{ duration: 0.25 }}
+                  key="stage-1"
+                  initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -8 }}
+                  transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
                   className="w-full"
                 >
-                  {/* STAGE 1: USER ID STAGE */}
-                  {stage === 1 && (
-                    <div className="w-full">
-                      <div className="flex flex-col items-center justify-center mb-6 select-none text-center">
-                        <BrandLogo variant="mark" sizePreset="lg" width={128} className="mx-auto mb-4" />
-                        <h1 className="text-white font-bold tracking-normal text-[21px] sm:text-[22px] leading-tight">
-                          {t.signInTitle}
-                        </h1>
-                        <p className="text-white/60 text-[13px] font-normal mt-1.5 max-w-[320px] leading-relaxed">
-                          {t.subtitle}
-                        </p>
+                  <form onSubmit={handleStage1Submit} noValidate className="w-full">
+                    {/* User ID Label for accessibility / testing */}
+                    <label htmlFor="username" className="sr-only">
+                      User ID
+                    </label>
+
+                    {/* Floating Glass Capsule */}
+                    <div className={cn(
+                      "relative flex items-center h-[48px] sm:h-[52px] rounded-full",
+                      "bg-white/[0.08] hover:bg-white/[0.12] transition-all duration-300",
+                      "backdrop-blur-2xl border shadow-[0_12px_36px_rgba(0,0,0,0.4)]",
+                      isInputFocused 
+                        ? "border-[var(--orion-accent,#38BDF8)]/70 ring-4 ring-[var(--orion-accent,#38BDF8)]/15 bg-white/[0.12]" 
+                        : "border-white/15",
+                      errorMsg && "border-red-400/60 ring-4 ring-red-400/15"
+                    )}>
+                      <div className="pl-4.5 pr-2 flex items-center pointer-events-none text-white/50">
+                        <User className="w-4 h-4 text-white/50" />
                       </div>
+                      <input
+                        ref={usernameInputRef}
+                        id="username"
+                        name="username"
+                        type="text"
+                        autoComplete="username"
+                        required
+                        value={username}
+                        onChange={(e) => {
+                          setUsername(e.target.value);
+                          handleInputChange();
+                          if (errorMsg) setErrorMsg("");
+                        }}
+                        onFocus={() => setIsInputFocused(true)}
+                        onBlur={() => setIsInputFocused(false)}
+                        className="flex-1 bg-transparent border-none text-white text-[14px] sm:text-[15px] placeholder:text-white/40 focus:outline-none focus:ring-0 px-2 font-normal"
+                        placeholder={t.userIdPlaceholder || "Username or email"}
+                      />
 
-                      <form className="space-y-4" onSubmit={handleStage1Submit} noValidate>
-                        <AnimatePresence>
-                          {errorMsg && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -6, height: 0 }}
-                              animate={{ opacity: 1, y: 0, height: 'auto' }}
-                              exit={{ opacity: 0, y: -6, height: 0 }}
-                              className="p-3 rounded-xl bg-red-500/20 border border-red-500/30 text-white text-xs flex items-start gap-2 font-medium backdrop-blur-md overflow-hidden"
-                            >
-                              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
-                              <span>{errorMsg}</span>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-
-                        {/* User ID Field */}
-                        <div className="relative">
-                          <label htmlFor="username" className="block text-xs sm:text-[13px] font-medium text-white/75 mb-2 select-none">
-                            {t.userIdLabel}
-                          </label>
-                          <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/40">
-                              <User className="w-4 h-4 text-white/40" />
-                            </div>
-                            <input
-                              ref={usernameInputRef}
-                              id="username"
-                              name="username"
-                              type="text"
-                              autoComplete="username"
-                              required
-                              value={username}
-                              onChange={(e) => {
-                                setUsername(e.target.value);
-                                handleInputChange();
-                                if (errorMsg) setErrorMsg("");
-                              }}
-                              onFocus={() => setIsInputFocused(true)}
-                              onBlur={() => setIsInputFocused(false)}
-                              className="w-full h-11 pl-10 pr-4 bg-[#141923] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/40 transition-all shadow-inner"
-                              placeholder={t.userIdPlaceholder}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Continue Button */}
-                        <motion.button
-                          whileHover={{ scale: 1.01 }}
-                          whileTap={{ scale: 0.98 }}
-                          type="submit"
-                          disabled={isIdentifying}
-                          className="h-[48px] w-full px-4 bg-sky-600 hover:bg-sky-500 text-white font-medium text-sm transition-all duration-200 rounded-xl disabled:opacity-50 cursor-pointer border border-sky-400/20 shadow-[0_0_24px_rgba(37,99,235,0.25)] flex items-center justify-center gap-2 mt-4"
-                        >
-                          {isIdentifying ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin text-white" />
-                              <span>{t.identifying}</span>
-                            </>
-                          ) : (
-                            <>
-                              <span>{t.continueBtn}</span>
-                              <ArrowRight className="w-4 h-4" />
-                            </>
-                          )}
-                        </motion.button>
-                      </form>
+                      {/* Circular Action Button [ → ] */}
+                      <button
+                        type="submit"
+                        disabled={isIdentifying || !username.trim()}
+                        aria-label={t.continueBtn || "Continue"}
+                        title={t.continueBtn || "Continue"}
+                        className={cn(
+                          "w-[38px] h-[38px] mr-1.5 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer",
+                          "text-white shadow-md disabled:opacity-35 disabled:cursor-not-allowed",
+                          "bg-sky-600 hover:bg-sky-500 active:scale-95 shadow-[0_0_24px_rgba(37,99,235,0.25)]",
+                          "border border-white/20"
+                        )}
+                      >
+                        <span className="sr-only">Continue</span>
+                        {isIdentifying ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-white" />
+                        ) : (
+                          <ArrowRight className="w-4 h-4" />
+                        )}
+                      </button>
                     </div>
-                  )}
 
-                  {/* STAGE 2: USER RECOGNIZED & PASSWORD STAGE */}
-                  {stage === 2 && (
-                    <div className="w-full">
-                      {/* Resolved User Photo & Name Display */}
-                      <div className="flex flex-col items-center justify-center mb-5 select-none text-center">
-                        {/* Avatar Photo */}
-                        <div className="w-18 h-18 rounded-full border-2 border-cyan-400/40 shadow-xl bg-[#0f172a] flex items-center justify-center overflow-hidden mb-3 backdrop-blur-md">
-                          {resolvedUser?.avatarUrl || (resolvedUser as any)?.photoURL ? (
-                            <img 
-                              src={resolvedUser?.avatarUrl || (resolvedUser as any)?.photoURL} 
-                              alt={resolvedUser?.displayName || username} 
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <User className="w-9 h-9 text-white/50" />
-                          )}
-                        </div>
-
-                        {/* Display Name & Username Handle */}
-                        <h2 className="text-white font-bold tracking-normal text-lg sm:text-[19px] leading-tight">
-                          {resolvedUser?.displayName || resolvedUser?.fullName || username}
-                        </h2>
-                        <span className="text-white/60 text-xs font-mono mt-1">
-                          @{resolvedUser?.username || username}
-                        </span>
-                      </div>
-
-                      <form className="space-y-4" onSubmit={handleStage2Submit} noValidate>
-                        <AnimatePresence>
-                          {errorMsg && (
-                            <motion.div
-                              initial={{ opacity: 0, y: -6, height: 0 }}
-                              animate={{ opacity: 1, y: 0, height: 'auto' }}
-                              exit={{ opacity: 0, y: -6, height: 0 }}
-                              className="p-3 rounded-xl bg-red-500/15 border border-red-500/25 text-white text-xs flex items-start gap-2 font-medium backdrop-blur-md overflow-hidden"
-                            >
-                              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
-                              <span>{errorMsg}</span>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                        
-                        {/* Password Input */}
-                        <div className="relative">
-                          <label htmlFor="password" className="block text-xs sm:text-[13px] font-medium text-white/75 mb-2 select-none">
-                            {t.enterPassword}
-                          </label>
-                          <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-white/40">
-                              <Lock className="w-4 h-4 text-white/40" />
-                            </div>
-                            <input
-                              ref={passwordInputRef}
-                              id="password"
-                              name="password"
-                              type={showPassword ? "text" : "password"}
-                              autoComplete="current-password"
-                              required
-                              value={password}
-                              onChange={(e) => {
-                                setPassword(e.target.value);
-                                handleInputChange();
-                                if (errorMsg) setErrorMsg("");
-                              }}
-                              onFocus={() => setIsInputFocused(true)}
-                              onBlur={() => setIsInputFocused(false)}
-                              className="w-full h-11 pl-10 pr-10 bg-[#141923] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500/40 transition-all shadow-inner"
-                              placeholder="••••••••"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowPassword(!showPassword)}
-                              className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-white/40 hover:text-white transition-colors cursor-pointer"
-                              aria-label={showPassword ? t.hidePassword : t.showPassword}
-                            >
-                              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                            </button>
-                          </div>
-                        </div>
-                        
-                        {/* Enter Orion Submit Button */}
-                        <motion.button
-                          whileHover={{ scale: 1.01 }}
-                          whileTap={{ scale: 0.98 }}
-                          type="submit"
-                          disabled={isSubmitting}
-                          className="h-[48px] w-full px-4 bg-sky-600 hover:bg-sky-500 text-white font-medium text-sm transition-all duration-200 rounded-xl disabled:opacity-50 cursor-pointer border border-sky-400/20 shadow-[0_0_24px_rgba(37,99,235,0.25)] flex items-center justify-center gap-2 mt-4"
+                    {/* Inline OS Error Feedback */}
+                    <AnimatePresence>
+                      {errorMsg && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          className="mt-3 text-center text-xs text-red-300/90 font-medium tracking-wide flex items-center justify-center gap-1.5"
                         >
-                          {isSubmitting ? (
-                            <>
-                              <Loader2 className="w-4 h-4 animate-spin text-white" />
-                              <span>{t.enteringOrion}</span>
-                            </>
-                          ) : (
-                            <>
-                              <span>{t.enterOrionBtn}</span>
-                              <ArrowRight className="w-4 h-4" />
-                            </>
-                          )}
-                        </motion.button>
-
-                        {/* Form Link Options */}
-                        <div className="flex items-center justify-between pt-1 select-none text-xs">
-                          <label className="flex items-center gap-2 cursor-pointer group text-white/70 hover:text-white transition-colors">
-                            <input 
-                              type="checkbox" 
-                              className="rounded border-white/20 bg-white/10 text-sky-500 focus:ring-0 w-3.5 h-3.5 cursor-pointer accent-sky-500"
-                              checked={rememberMe}
-                              onChange={(e) => setRememberMe(e.target.checked)}
-                            />
-                            <span>{t.rememberMe}</span>
-                          </label>
-                          
-                          <button type="button" className="text-white/60 hover:text-white transition-colors cursor-pointer">
-                            {t.forgotPassword}
-                          </button>
-                        </div>
-
-                        {/* Other User Button */}
-                        <div className="pt-2 flex justify-center">
-                          <button
-                            type="button"
-                            onClick={handleBackToStage1}
-                            className="flex items-center gap-1.5 text-xs text-white/70 hover:text-white transition-colors cursor-pointer group py-1 px-3 rounded-lg hover:bg-white/5"
-                          >
-                            <ArrowLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform" />
-                            <span>{t.otherUser}</span>
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  )}
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-400" />
+                          <span>{errorMsg}</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </form>
                 </motion.div>
-              </AnimatePresence>
+              )}
 
-            </div>
-          </div>
+              {/* STAGE 2: PASSWORD STAGE */}
+              {stage === 2 && (
+                <motion.div
+                  key="stage-2"
+                  initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: shouldReduceMotion ? 0 : -8 }}
+                  transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                  className="w-full"
+                >
+                  <form onSubmit={handleStage2Submit} noValidate className="w-full">
+                    {/* Password Label for accessibility / testing */}
+                    <label htmlFor="password" className="sr-only">
+                      Password
+                    </label>
+
+                    {/* Floating Glass Capsule with Password Input */}
+                    <div className={cn(
+                      "relative flex items-center h-[48px] sm:h-[52px] rounded-full",
+                      "bg-white/[0.08] hover:bg-white/[0.12] transition-all duration-300",
+                      "backdrop-blur-2xl border shadow-[0_12px_36px_rgba(0,0,0,0.4)]",
+                      isInputFocused 
+                        ? "border-[var(--orion-accent,#38BDF8)]/70 ring-4 ring-[var(--orion-accent,#38BDF8)]/15 bg-white/[0.12]" 
+                        : "border-white/15",
+                      errorMsg && "border-red-400/60 ring-4 ring-red-400/15"
+                    )}>
+                      <div className="pl-4.5 pr-2 flex items-center pointer-events-none text-white/50">
+                        <Lock className="w-4 h-4 text-white/50" />
+                      </div>
+                      <input
+                        ref={passwordInputRef}
+                        id="password"
+                        name="password"
+                        type={showPassword ? "text" : "password"}
+                        autoComplete="current-password"
+                        required
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          handleInputChange();
+                          if (errorMsg) setErrorMsg("");
+                        }}
+                        onFocus={() => setIsInputFocused(true)}
+                        onBlur={() => setIsInputFocused(false)}
+                        className="flex-1 bg-transparent border-none text-white text-[14px] sm:text-[15px] placeholder:text-white/40 focus:outline-none focus:ring-0 px-2 font-normal"
+                        placeholder={t.enterPassword || "Password"}
+                      />
+
+                      {/* Password visibility toggle */}
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="px-2 text-white/40 hover:text-white/80 transition-colors cursor-pointer"
+                        aria-label={showPassword ? t.hidePassword : t.showPassword}
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+
+                      {/* Circular Action Button [ → ] */}
+                      <button
+                        type="submit"
+                        disabled={isSubmitting || !password.trim()}
+                        aria-label={t.enterOrionBtn || "Enter Orion"}
+                        title={t.enterOrionBtn || "Enter Orion"}
+                        className={cn(
+                          "w-[38px] h-[38px] mr-1.5 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer",
+                          "text-white shadow-md disabled:opacity-35 disabled:cursor-not-allowed",
+                          "bg-[var(--orion-accent,#38BDF8)]/85 hover:bg-[var(--orion-accent,#38BDF8)] active:scale-95 shadow-[0_0_24px_rgba(37,99,235,0.25)]",
+                          "hover:scale-105 border border-white/20"
+                        )}
+                      >
+                        <span className="sr-only">{t.enterOrionBtn || "Enter Orion"}</span>
+                        {isSubmitting ? (
+                          <Loader2 className="w-4 h-4 animate-spin text-white" />
+                        ) : (
+                          <ArrowRight className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Inline OS Error Feedback */}
+                    <AnimatePresence>
+                      {errorMsg && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          className="mt-3 text-center text-xs text-red-300/90 font-medium tracking-wide flex items-center justify-center gap-1.5"
+                        >
+                          <AlertCircle className="w-3.5 h-3.5 shrink-0 text-red-400" />
+                          <span>{errorMsg}</span>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Helper Navigation Links: Other User */}
+                    <div className="mt-4 flex items-center justify-center gap-4 text-xs select-none">
+                      <button
+                        type="button"
+                        onClick={handleBackToStage1}
+                        className="text-white/60 hover:text-white transition-colors cursor-pointer flex items-center gap-1 py-1 px-3 rounded-full hover:bg-white/[0.08]"
+                      >
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        <span>{t.otherUser}</span>
+                      </button>
+                    </div>
+                  </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         </motion.div>
       </main>
 
-      {/* Footer — Bottom Bar */}
-      <footer className="relative z-10 w-full px-4 sm:px-8 py-3.5 sm:py-6 pb-[calc(14px+env(safe-area-inset-bottom,0px))] flex items-center justify-between select-none">
-        
-        {/* Bottom Left Power Button & OS Shutdown Control */}
+      {/* FOOTER — BOTTOM NATIVE OS BAR */}
+      <footer className="relative z-10 w-full px-6 sm:px-10 py-4 sm:py-6 pb-[calc(16px+env(safe-area-inset-bottom,0px))] flex items-center justify-between select-none">
+        {/* Bottom Left Subtle Circular Glass Power Button */}
         <div className="flex items-center">
           <button
             type="button"
@@ -679,30 +750,26 @@ export const Login: React.FC<LoginProps> = () => {
               setIsPowerMenuOpen(prev => !prev);
               triggerShutdown();
             }}
-            title={t.shutDown}
-            aria-label={t.shutDown}
-            className="group flex items-center h-8 px-2.5 rounded-full bg-white/5 hover:bg-red-950/80 border border-white/10 hover:border-red-500/60 transition-all duration-200 backdrop-blur-md cursor-pointer text-white/70 hover:text-red-400 hover:shadow-[0_0_20px_rgba(239,68,68,0.55)] overflow-hidden"
+            title="Shut Down"
+            aria-label="Shut Down"
+            className="group flex items-center justify-center w-10 h-10 rounded-full bg-white/[0.08] hover:bg-red-950/80 border border-white/10 hover:border-red-500/60 transition-all duration-200 backdrop-blur-2xl cursor-pointer text-white/70 hover:text-red-400 hover:shadow-[0_0_20px_rgba(239,68,68,0.55)] active:scale-95"
           >
-            <Power className="w-3.5 h-3.5 shrink-0 text-white/70 group-hover:text-red-400 transition-colors" />
-            <span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 group-hover:max-w-[120px] group-hover:opacity-100 group-hover:ml-2 transition-all duration-300 ease-out text-xs font-medium text-red-400 select-none">
-              {t.shutDown}
-            </span>
+            <Power className="w-4 h-4 shrink-0 text-white/70 group-hover:text-red-400 transition-colors" />
+            <span className="sr-only">{t.shutDown}</span>
           </button>
         </div>
 
-        {/* Bottom Right User Switch Button */}
+        {/* Bottom Right Subtle Circular Glass Switch User Button */}
         <div className="flex items-center">
           <button
             type="button"
             onClick={handleSwitchUser}
-            title={t.switchUser}
-            aria-label={t.switchUser}
-            className="group flex items-center h-8 px-2.5 rounded-full bg-white/5 hover:bg-blue-950/80 border border-white/10 hover:border-blue-500/60 transition-all duration-200 backdrop-blur-md cursor-pointer text-white/70 hover:text-blue-400 overflow-hidden"
+            title="Switch User"
+            aria-label="Switch User"
+            className="group flex items-center justify-center w-10 h-10 rounded-full bg-white/[0.08] hover:bg-blue-950/80 border border-white/10 hover:border-blue-500/60 transition-all duration-200 backdrop-blur-2xl cursor-pointer text-white/70 hover:text-blue-400 hover:shadow-[0_0_24px_rgba(59,130,246,0.45)] active:scale-95"
           >
-            <User className="w-3.5 h-3.5 shrink-0 text-white/70 group-hover:text-blue-400 transition-colors" />
-            <span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 group-hover:max-w-[120px] group-hover:opacity-100 group-hover:ml-2 transition-all duration-300 ease-out text-xs font-medium text-blue-400 select-none">
-              {t.switchUser}
-            </span>
+            <User className="w-4 h-4 shrink-0 text-white/70 group-hover:text-blue-400 transition-colors" />
+            <span className="sr-only">{t.switchUser}</span>
           </button>
         </div>
       </footer>
@@ -710,3 +777,4 @@ export const Login: React.FC<LoginProps> = () => {
   );
 };
 
+export default Login;
