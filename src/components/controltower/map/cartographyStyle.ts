@@ -5,7 +5,7 @@
  */
 
 import type { StyleSpecification } from 'maplibre-gl';
-import { WORLD_LANDMASS_GEOJSON } from './worldBoundariesGeoJSON';
+import { WORLD_LANDMASS_GEOJSON, WORLD_GRATICULES_GEOJSON } from './worldBoundariesGeoJSON';
 
 export const ORION_GRAPHITE_MAP_STYLE: StyleSpecification = {
   version: 8,
@@ -16,9 +16,23 @@ export const ORION_GRAPHITE_MAP_STYLE: StyleSpecification = {
       type: 'geojson',
       data: WORLD_LANDMASS_GEOJSON,
     },
-    // NOTE: External CARTO raster basemap removed for offline‑first operation.
-    // If an external basemap is desired in the future, it can be added as an optional source
-    // and toggled via the Runtime Settings UI without breaking core functionality.
+    // Precision aerospace graticules & equatorial reference grid
+    'world-graticules': {
+      type: 'geojson',
+      data: WORLD_GRATICULES_GEOJSON,
+    },
+    // Online dark matter cartography tiles for rich coastlines & ocean shading
+    'carto-dark': {
+      type: 'raster',
+      tiles: [
+        'https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
+        'https://b.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
+        'https://c.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
+      ],
+      tileSize: 256,
+      attribution: '© OpenStreetMap contributors © CARTO',
+      maxzoom: 19,
+    },
     // Dynamic GeoJSON sources populated by MapDataAdapter
     'transport-vessels': {
       type: 'geojson',
@@ -107,11 +121,40 @@ export const ORION_GRAPHITE_MAP_STYLE: StyleSpecification = {
         'line-width': 1.0,
       },
     },
-    // 3. Tile layer overlay (subtle raster detail when online)
-    // NOTE: External CARTO raster layer removed for offline‑first operation.
-    // If needed, it can be added back as an optional source via Runtime Settings.
+    // 3. Precision Graticules Reference Grid
+    {
+      id: 'world-graticules-lines',
+      type: 'line',
+      source: 'world-graticules',
+      paint: {
+        'line-color': 'rgba(255, 255, 255, 0.04)',
+        'line-width': 0.8,
+      },
+    },
+    {
+      id: 'world-equator-line',
+      type: 'line',
+      source: 'world-graticules',
+      filter: ['==', ['get', 'type'], 'equator'],
+      paint: {
+        'line-color': 'rgba(56, 189, 248, 0.16)',
+        'line-width': 1.2,
+        'line-dasharray': [4, 4],
+      },
+    },
+    // 4. Online CARTO Dark Matter Cartography Raster Layer
+    {
+      id: 'carto-dark-layer',
+      type: 'raster',
+      source: 'carto-dark',
+      paint: {
+        'raster-opacity': 0.65,
+        'raster-fade-duration': 300,
+      },
+      minzoom: 0,
+    },
 
-    // 4. Shipment Routes (Great circle / corridors)
+    // 5. Shipment Routes (Great circle / corridors)
     {
       id: 'layer-routes-line-glow',
       type: 'line',
@@ -345,4 +388,11 @@ export const ORION_GRAPHITE_MAP_STYLE: StyleSpecification = {
       },
     },
   ],
+  sky: {
+    'sky-color': '#020407',
+    'sky-horizon-blend': 0.4,
+    'horizon-color': '#09101A',
+    'horizon-fog-blend': 0.7,
+    'fog-color': '#05070B',
+  } as any,
 };

@@ -112,8 +112,10 @@ export const MapCommandBar: React.FC<MapCommandBarProps> = ({
         {/* Projection Mode Toggle (Globe vs 2D) */}
         <button
           onClick={onToggleProjection}
+          data-testid="projection-toggle-btn"
+          aria-label={projectionMode === 'globe' ? 'Switch to 2D Mercator' : 'Switch to 3D Globe'}
           title={projectionMode === 'globe' ? 'Switch to 2D Mercator' : 'Switch to 3D Globe'}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-os-surface/90 backdrop-blur-md border border-os-border text-xs font-mono text-os-text-secondary hover:text-os-text-primary hover:border-os-border-strong shadow-md transition-all"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-os-surface/90 backdrop-blur-md border border-os-border text-xs font-mono text-os-text-secondary hover:text-os-text-primary hover:border-os-border-strong shadow-md transition-all cursor-pointer"
         >
           <Globe size={13} className={projectionMode === 'globe' ? 'text-cyan-400' : ''} />
           <span className="hidden sm:inline">{projectionMode === 'globe' ? '3D Globe' : '2D Map'}</span>

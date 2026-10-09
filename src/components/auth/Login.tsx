@@ -342,6 +342,14 @@ export const Login: React.FC<LoginProps> = () => {
       console.warn("Login authentication error:", err.message);
       if (err.message && err.message.includes('DEMO credentials are not permitted in the LIVE environment.')) {
         setErrorMsg('DEMO credentials are not permitted in the LIVE environment.');
+      } else if (err.message && (
+        err.message.includes('network') ||
+        err.message.includes('Failed to fetch') ||
+        err.message.includes('unavailable') ||
+        err.message.includes('offline') ||
+        err.message.includes('timeout')
+      )) {
+        setErrorMsg('Authentication service or network unavailable. Please verify connectivity.');
       } else {
         setErrorMsg(t.invalidCredentials);
       }

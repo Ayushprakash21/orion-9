@@ -4,7 +4,7 @@
  * Computes great-circle flight & shipping trajectories and resolves spatial entity graphs.
  */
 
-import type { FeatureCollection, Feature, Point, LineString } from 'geojson';
+import type { FeatureCollection, Feature, Point, LineString, MultiLineString } from 'geojson';
 import { 
   VesselEntity, 
   AircraftEntity, 
@@ -39,11 +39,14 @@ export function calculateGreatCircleRoute(
   const rLat2 = (lat2 * Math.PI) / 180;
   const rLng2 = (lng2 * Math.PI) / 180;
 
+  // Longitudinal difference along shortest angular path (-PI to PI)
+  let dLng = rLng2 - rLng1;
+  if (dLng > Math.PI) dLng -= 2 * Math.PI;
+  if (dLng < -Math.PI) dLng += 2 * Math.PI;
+
   // Great-circle angular distance
-  const d = Math.acos(
-    Math.sin(rLat1) * Math.sin(rLat2) +
-    Math.cos(rLat1) * Math.cos(rLat2) * Math.cos(rLng2 - rLng1)
-  );
+  const cosD = Math.sin(rLat1) * Math.sin(rLat2) + Math.cos(rLat1) * Math.cos(rLat2) * Math.cos(dLng);
+  const d = Math.acos(Math.max(-1, Math.min(1, cosD)));
 
   if (isNaN(d) || d < 0.0001) {
     return [start, end];
@@ -55,15 +58,20 @@ export function calculateGreatCircleRoute(
     const a = Math.sin((1 - f) * d) / Math.sin(d);
     const b = Math.sin(f * d) / Math.sin(d);
 
-    const x = a * Math.cos(rLat1) * Math.cos(rLng1) + b * Math.cos(rLat2) * Math.cos(rLng2);
-    const y = a * Math.cos(rLat1) * Math.sin(rLng1) + b * Math.cos(rLat2) * Math.sin(rLng2);
+    const x = a * Math.cos(rLat1) + b * Math.cos(rLat2) * Math.cos(dLng);
+    const y = b * Math.cos(rLat2) * Math.sin(dLng);
     const z = a * Math.sin(rLat1) + b * Math.sin(rLat2);
 
     const lat = Math.atan2(z, Math.sqrt(x * x + y * y));
-    const lng = Math.atan2(y, x);
+    const lon = rLng1 + Math.atan2(y, x);
+
+    // Normalize longitude to [-180, 180]
+    let degLng = (lon * 180) / Math.PI;
+    while (degLng > 180) degLng -= 360;
+    while (degLng < -180) degLng += 360;
 
     points.push([
-      Number(((lng * 180) / Math.PI).toFixed(4)),
+      Number(degLng.toFixed(4)),
       Number(((lat * 180) / Math.PI).toFixed(4)),
     ]);
   }
@@ -134,26 +142,89 @@ export class MapDataAdapter {
   }
 
   /**
-   * Convert ShipmentRoutes to GeoJSON LineStrings
+   * Validate whether coordinates are finite and within WGS84 bounds [-180, 180] and [-90, 90]
    */
-  public static routesToGeoJSON(routes: ShipmentRoute[]): FeatureCollection<LineString> {
-    const features: Feature<LineString>[] = routes.map((r) => ({
-      type: 'Feature',
-      id: r.shipmentId,
-      properties: {
+  public static isValidCoordinate(lng: any, lat: any): boolean {
+    return (
+      typeof lng === 'number' &&
+      typeof lat === 'number' &&
+      !isNaN(lng) &&
+      !isNaN(lat) &&
+      isFinite(lng) &&
+      isFinite(lat) &&
+      lng >= -180 &&
+      lng <= 180 &&
+      lat >= -90 &&
+      lat <= 90
+    );
+  }
+
+  /**
+   * Convert ShipmentRoutes to GeoJSON Features (LineString or MultiLineString for antimeridian crossings)
+   */
+  public static routesToGeoJSON(routes: ShipmentRoute[]): FeatureCollection<LineString | MultiLineString> {
+    const features: Feature<LineString | MultiLineString>[] = (routes || []).map((r) => {
+      const coords = r.coordinates || [];
+      // Detect antimeridian crossings (gap in longitude > 180) and split into continuous segments
+      const segments: [number, number][][] = [];
+      let currentSegment: [number, number][] = [];
+
+      for (let i = 0; i < coords.length; i++) {
+        const pt = coords[i];
+        if (!MapDataAdapter.isValidCoordinate(pt[0], pt[1])) continue;
+
+        if (currentSegment.length > 0) {
+          const prev = currentSegment[currentSegment.length - 1];
+          if (Math.abs(pt[0] - prev[0]) > 180) {
+            // Crossed the antimeridian - finalize current segment and begin next
+            segments.push(currentSegment);
+            currentSegment = [];
+          }
+        }
+        currentSegment.push(pt);
+      }
+      if (currentSegment.length > 0) {
+        segments.push(currentSegment);
+      }
+
+      if (segments.length <= 1) {
+        return {
+          type: 'Feature',
+          id: r.shipmentId,
+          properties: {
+            id: r.shipmentId,
+            title: r.title,
+            status: r.status,
+            mode: r.mode,
+            carrier: r.carrier,
+            progress: r.progressPercent,
+            capitalAtRisk: r.capitalAtRisk,
+          },
+          geometry: {
+            type: 'LineString',
+            coordinates: segments[0] || [],
+          },
+        };
+      }
+
+      return {
+        type: 'Feature',
         id: r.shipmentId,
-        title: r.title,
-        status: r.status,
-        mode: r.mode,
-        carrier: r.carrier,
-        progress: r.progressPercent,
-        capitalAtRisk: r.capitalAtRisk,
-      },
-      geometry: {
-        type: 'LineString',
-        coordinates: r.coordinates,
-      },
-    }));
+        properties: {
+          id: r.shipmentId,
+          title: r.title,
+          status: r.status,
+          mode: r.mode,
+          carrier: r.carrier,
+          progress: r.progressPercent,
+          capitalAtRisk: r.capitalAtRisk,
+        },
+        geometry: {
+          type: 'MultiLineString',
+          coordinates: segments,
+        },
+      };
+    });
 
     return {
       type: 'FeatureCollection',
@@ -162,136 +233,146 @@ export class MapDataAdapter {
   }
 
   /**
-   * Convert Vessels to GeoJSON Points
+   * Convert Vessels to GeoJSON Points with strict coordinate validation
    */
   public static vesselsToGeoJSON(vessels: VesselEntity[]): FeatureCollection<Point> {
-    const features: Feature<Point>[] = vessels.map((v) => ({
-      type: 'Feature',
-      id: v.id,
-      properties: {
+    const features: Feature<Point>[] = (vessels || [])
+      .filter((v) => MapDataAdapter.isValidCoordinate(v.longitude, v.latitude))
+      .map((v) => ({
+        type: 'Feature',
         id: v.id,
-        name: v.name,
-        carrier: v.carrier,
-        status: v.status,
-        speed: v.speed,
-        heading: v.heading,
-        origin: v.origin,
-        destination: v.destination,
-        eta: v.eta,
-        dataSource: v.data_source,
-        vesselType: v.vessel_type,
-      },
-      geometry: {
-        type: 'Point',
-        coordinates: [v.longitude, v.latitude],
-      },
-    }));
+        properties: {
+          id: v.id,
+          name: v.name,
+          carrier: v.carrier,
+          status: v.status,
+          speed: v.speed,
+          heading: v.heading,
+          origin: v.origin,
+          destination: v.destination,
+          eta: v.eta,
+          dataSource: v.data_source,
+          vesselType: v.vessel_type,
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [v.longitude, v.latitude],
+        },
+      }));
 
     return { type: 'FeatureCollection', features };
   }
 
   /**
-   * Convert Aircraft to GeoJSON Points
+   * Convert Aircraft to GeoJSON Points with strict coordinate validation
    */
   public static aircraftToGeoJSON(aircraft: AircraftEntity[]): FeatureCollection<Point> {
-    const features: Feature<Point>[] = aircraft.map((a) => ({
-      type: 'Feature',
-      id: a.id,
-      properties: {
+    const features: Feature<Point>[] = (aircraft || [])
+      .filter((a) => MapDataAdapter.isValidCoordinate(a.longitude, a.latitude))
+      .map((a) => ({
+        type: 'Feature',
         id: a.id,
-        name: a.airline,
-        callsign: a.callsign,
-        status: a.status,
-        altitude: a.altitude,
-        speed: a.speed,
-        heading: a.heading,
-        origin: a.origin,
-        destination: a.destination,
-        dataSource: a.data_source,
-      },
-      geometry: {
-        type: 'Point',
-        coordinates: [a.longitude, a.latitude],
-      },
-    }));
+        properties: {
+          id: a.id,
+          name: a.airline,
+          callsign: a.callsign,
+          status: a.status,
+          altitude: a.altitude,
+          speed: a.speed,
+          heading: a.heading,
+          origin: a.origin,
+          destination: a.destination,
+          dataSource: a.data_source,
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [a.longitude, a.latitude],
+        },
+      }));
 
     return { type: 'FeatureCollection', features };
   }
 
   /**
-   * Convert Trucks to GeoJSON Points
+   * Convert Trucks to GeoJSON Points with strict coordinate validation
    */
   public static trucksToGeoJSON(trucks: TruckEntity[]): FeatureCollection<Point> {
-    const features: Feature<Point>[] = trucks.map((t) => ({
-      type: 'Feature',
-      id: t.id,
-      properties: {
+    const features: Feature<Point>[] = (trucks || [])
+      .filter((t) => MapDataAdapter.isValidCoordinate(t.longitude, t.latitude))
+      .map((t) => ({
+        type: 'Feature',
         id: t.id,
-        name: t.name,
-        fleet: t.fleet,
-        carrier: t.carrier,
-        status: t.status,
-        speed: t.speed,
-        heading: t.heading,
-        trafficCondition: t.trafficCondition,
-        dataSource: t.data_source,
-      },
-      geometry: {
-        type: 'Point',
-        coordinates: [t.longitude, t.latitude],
-      },
-    }));
+        properties: {
+          id: t.id,
+          name: t.name,
+          fleet: t.fleet,
+          carrier: t.carrier,
+          status: t.status,
+          speed: t.speed,
+          heading: t.heading,
+          trafficCondition: t.trafficCondition,
+          dataSource: t.data_source,
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [t.longitude, t.latitude],
+        },
+      }));
 
     return { type: 'FeatureCollection', features };
   }
 
   /**
-   * Convert Ports to GeoJSON Points
+   * Convert Ports to GeoJSON Points with strict coordinate validation
    */
   public static portsToGeoJSON(ports: PortFacility[] = MAJOR_WORLD_PORTS): FeatureCollection<Point> {
-    const features: Feature<Point>[] = ports.map((p) => ({
-      type: 'Feature',
-      id: p.id,
-      properties: {
+    const features: Feature<Point>[] = (ports || [])
+      .filter((p) => MapDataAdapter.isValidCoordinate(p.longitude, p.latitude))
+      .map((p) => ({
+        type: 'Feature',
         id: p.id,
-        name: p.name,
-        code: p.code,
-        country: p.country,
-        vesselsInPort: p.vesselsInPort,
-        congestion: p.congestion,
-        delayAverageHours: p.delayAverageHours,
-        capacityUtilization: p.capacityUtilization,
-      },
-      geometry: {
-        type: 'Point',
-        coordinates: [p.longitude, p.latitude],
-      },
-    }));
+        properties: {
+          id: p.id,
+          name: p.name,
+          code: p.code,
+          country: p.country,
+          vesselsInPort: p.vesselsInPort,
+          congestion: p.congestion,
+          delayAverageHours: p.delayAverageHours,
+          capacityUtilization: p.capacityUtilization,
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [p.longitude, p.latitude],
+        },
+      }));
 
     return { type: 'FeatureCollection', features };
   }
 
   /**
-   * Convert Cargo Airports to GeoJSON Points
+   * Convert Cargo Airports to GeoJSON Points with strict coordinate validation
    */
   public static airportsToGeoJSON(airports: AirportFacility[] = MAJOR_WORLD_AIRPORTS): FeatureCollection<Point> {
-    const features: Feature<Point>[] = airports.map((a) => ({
-      type: 'Feature',
-      id: a.id,
-      properties: {
+    const features: Feature<Point>[] = (airports || [])
+      .filter((a) => MapDataAdapter.isValidCoordinate(a.longitude, a.latitude))
+      .map((a) => ({
+        type: 'Feature',
         id: a.id,
-        name: a.name,
-        iata: a.iata,
-        icao: a.icao,
-        country: a.country,
-        aircraftCount: a.aircraftCount,
-        cargoActivity: a.cargoActivity,
-      },
-      geometry: {
-        type: 'Point',
-        coordinates: [a.longitude, a.latitude],
-      },
-    }));
+        properties: {
+          id: a.id,
+          name: a.name,
+          iata: a.iata,
+          icao: a.icao,
+          country: a.country,
+          aircraftCount: a.aircraftCount,
+          cargoActivity: a.cargoActivity,
+        },
+        geometry: {
+          type: 'Point',
+          coordinates: [a.longitude, a.latitude],
+        },
+      }));
 
     return { type: 'FeatureCollection', features };
   }

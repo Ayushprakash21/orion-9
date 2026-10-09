@@ -171,18 +171,32 @@ export const MapLibreEngine = forwardRef<MapEngineRef, MapLibreEngineProps>(({
         duration: 900,
       });
     },
-    setProjection: (mode: MapProjectionMode) => {
+    setProjection: (mode: MapProjectionMode): boolean => {
+      if (!mapRef.current) return false;
       try {
-        (mapRef.current as any)?.setProjection({ type: mode });
+        if (mapRef.current.isStyleLoaded()) {
+          (mapRef.current as any).setProjection({ type: mode });
+          const readBack = (mapRef.current as any).getProjection?.()?.type;
+          return readBack === mode || mode === 'mercator';
+        }
+        return false;
       } catch (e) {
-        // Fallback gracefully if not supported
+        console.warn('[MapLibreEngine] Projection transition failed:', mode, e);
+        return false;
       }
+    },
+    getProjection: (): MapProjectionMode => {
+      try {
+        const p = (mapRef.current as any)?.getProjection?.()?.type;
+        if (p === 'globe' || p === 'mercator') return p;
+      } catch (_) {}
+      return projectionMode;
     },
     resize: () => {
       mapRef.current?.resize();
     },
     isLoaded: () => mapLoaded,
-  }), [mapLoaded]);
+  }), [mapLoaded, projectionMode]);
 
   // Initialize MapLibre instance with container dimension measurement and resize observer
   useEffect(() => {
@@ -254,15 +268,6 @@ export const MapLibreEngine = forwardRef<MapEngineRef, MapLibreEngineProps>(({
             attributionControl: false,
           });
 
-          // Attempt to configure globe projection if requested
-          if (projectionMode === 'globe') {
-            try {
-              (mapInstance as any).setProjection({ type: 'globe' });
-            } catch (e) {
-              // Fallback to mercator
-            }
-          }
-
           // Register error handler for load or runtime issues
           mapInstance.on('error', (e) => {
             const err = (e as any)?.error || e;
@@ -292,6 +297,11 @@ export const MapLibreEngine = forwardRef<MapEngineRef, MapLibreEngineProps>(({
           // Style load event
           mapInstance.on('load', () => {
             if (isCancelled) return;
+            try {
+              (mapInstance as any).setProjection({ type: projectionMode });
+            } catch (err) {
+              console.warn('[MapLibreEngine] Initial projection verification notice:', err);
+            }
             setMapLoaded(true);
             syncAllSources(mapInstance);
             mapInstance.resize();
@@ -395,15 +405,17 @@ export const MapLibreEngine = forwardRef<MapEngineRef, MapLibreEngineProps>(({
       isCancelled = true;
       cleanupMap();
     };
-  }, [isSupported, projectionMode]);
+  }, [isSupported]);
 
-  // Dynamic projection mode toggle
+  // Dynamic projection mode toggle (transitions running map without destroying WebGL context)
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return;
     try {
-      (mapRef.current as any).setProjection({ type: projectionMode });
+      if (mapRef.current.isStyleLoaded()) {
+        (mapRef.current as any).setProjection({ type: projectionMode });
+      }
     } catch (e) {
-      // Ignore if projection type is unsupported by driver
+      console.warn('[MapLibreEngine] Dynamic projection toggle notice:', e);
     }
   }, [projectionMode, mapLoaded]);
 
