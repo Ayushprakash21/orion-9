@@ -6,15 +6,12 @@ import { timezones } from '../lib/timezones';
 
 const R = 2.45;
 
-// Real Earth imagery from the Three.js planet asset set. These are equirectangular
-// satellite-derived Earth maps, so the sphere is an actual textured Earth rather
-// than a procedural blue sphere. The URL is intentionally remote so the project
-// ZIP stays small; the browser caches these assets after the first load.
-const EARTH_TEXTURE_URL = 'https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg';
-const EARTH_NORMAL_URL = 'https://threejs.org/examples/textures/planets/earth_normal_2048.jpg';
-const EARTH_SPECULAR_URL = 'https://threejs.org/examples/textures/planets/earth_specular_2048.jpg';
-const EARTH_LIGHTS_URL = 'https://threejs.org/examples/textures/planets/earth_lights_2048.png';
-const EARTH_CLOUDS_URL = 'https://threejs.org/examples/textures/planets/earth_clouds_1024.png';
+// Offline-first real Earth imagery backed by local high-resolution NASA satellite maps
+const EARTH_TEXTURE_URL = '/textures/earth/earth-day.jpg';
+const EARTH_NORMAL_URL = '/textures/earth/earth-normal.jpg';
+const EARTH_SPECULAR_URL = '/textures/earth/earth-specular.jpg';
+const EARTH_LIGHTS_URL = '/textures/earth/earth-night.png';
+const EARTH_CLOUDS_URL = '/textures/earth/earth-clouds.png';
 
 function getOffsetMinutes(tz: string, date = new Date()) {
   const parts = new Intl.DateTimeFormat('en-US', { timeZone: tz, timeZoneName: 'longOffset' }).formatToParts(date);
@@ -105,8 +102,8 @@ export const TimeWorldPanel: React.FC = () => {
       const vFov = THREE.MathUtils.degToRad(camera.fov);
       const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
       const limitingFov = Math.min(vFov, hFov);
-      const distance = (R / Math.tan(limitingFov / 2)) * 1.12;
-      camera.position.z = THREE.MathUtils.clamp(distance, 6.2, 16);
+      const distance = (R / Math.tan(limitingFov / 2)) * 1.04;
+      camera.position.z = THREE.MathUtils.clamp(distance, 5.8, 16);
       camera.updateProjectionMatrix();
     };
 

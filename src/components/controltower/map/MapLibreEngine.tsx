@@ -245,7 +245,10 @@ export const MapLibreEngine = forwardRef<MapEngineRef, MapLibreEngineProps>(({
 
           const mapInstance: MapLibreMap = new MapConstructor({
             container: containerEl,
-            style: ORION_GRAPHITE_MAP_STYLE,
+            style: {
+              ...ORION_GRAPHITE_MAP_STYLE,
+              ...(projectionMode === 'globe' ? { projection: { type: 'globe' } as any } : {})
+            },
             center: [60, 20],
             zoom: 1.8,
             attributionControl: false,

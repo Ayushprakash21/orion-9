@@ -79,8 +79,8 @@ export const GlobalNetworkTimeMatrix: React.FC = () => {
         </span>
       </div>
 
-      {/* 3D Live Earth Interactive Map Box */}
-      <div className="h-[220px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#02070d] shrink-0 shadow-2xl relative">
+      {/* 3D Live Earth Interactive Map Box (Enlarged to 280px-320px diameter presentation) */}
+      <div className="h-[280px] sm:h-[320px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#02070d] shrink-0 shadow-2xl relative">
         <Suspense fallback={
           <div className="w-full h-full flex flex-col items-center justify-center text-xs text-slate-500 font-mono gap-2">
             <div className="w-5 h-5 border border-cyan-500/40 border-t-cyan-400 rounded-full animate-spin" />
