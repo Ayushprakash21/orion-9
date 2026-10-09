@@ -106,6 +106,33 @@ export function normalizeBranding(raw: any): BrandingConfig {
   };
 }
 
+export async function resolveAuthToken(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+
+  // 1. Check stored active session from localStorage or sessionStorage first (fastest, zero import overhead)
+  try {
+    const sessionStr = (typeof localStorage !== 'undefined' ? localStorage.getItem('orion_auth_session') : null) ||
+                       (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('orion_auth_session') : null);
+    if (sessionStr) {
+      const details = JSON.parse(sessionStr);
+      if (details?.token) return details.token;
+      if (details?.environment === 'DEMO') return 'demo-admin-token';
+    }
+  } catch {}
+
+  // 2. Try Firebase Auth current user ID token
+  try {
+    const { getFirebaseAuth } = await import('../lib/firebaseClient');
+    const auth = getFirebaseAuth();
+    if (auth && auth.currentUser) {
+      const idToken = await auth.currentUser.getIdToken();
+      if (idToken) return idToken;
+    }
+  } catch {}
+
+  return null;
+}
+
 function getRemoteApiUrl(): string | null {
   if (typeof window !== 'undefined' && window.location?.origin && window.location.origin !== 'null' && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
     return `${window.location.origin}/api/branding`;
@@ -148,7 +175,6 @@ export class BrandingService {
    */
   validateBranding(data: Partial<BrandingConfig>): void {
     if (data.logo && typeof data.logo === 'string') {
-      // Check if image data exceeds ~4MB data URL (approximates 2.5-3MB raw image)
       if (data.logo.length > 4 * 1024 * 1024) {
         throw new Error('Logo image is too large. Maximum size is 2MB.');
       }
@@ -158,23 +184,31 @@ export class BrandingService {
         throw new Error('Logo image is too large. Maximum size is 2MB.');
       }
     }
+    if (data.creatorPhotoUrl && typeof data.creatorPhotoUrl === 'string') {
+      if (data.creatorPhotoUrl.length > 4 * 1024 * 1024) {
+        throw new Error('Creator photo is too large. Maximum size is 2MB.');
+      }
+    }
   }
 
   /**
-   * Asynchronously loads branding configuration from remote API, falling back to local stores.
+   * Asynchronously loads branding configuration from remote authoritative API, falling back to local stores.
    */
-  async getBranding(): Promise<BrandingConfig> {
+  async getBranding(options?: { forceFresh?: boolean }): Promise<BrandingConfig> {
+    const forceFresh = options?.forceFresh === true;
+
     // 1. Try remote fetch if available in browser http/https context
     const apiUrl = getRemoteApiUrl();
     if (apiUrl) {
       try {
         const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        const timeoutId = controller ? setTimeout(() => controller.abort(), 2500) : null;
+        const timeoutId = controller ? setTimeout(() => controller.abort(), 4000) : null;
 
         const res = await fetch(apiUrl, {
           method: 'GET',
           headers: { 'Accept': 'application/json' },
           signal: controller ? controller.signal : undefined,
+          cache: forceFresh ? 'no-cache' : 'default',
         });
 
         if (timeoutId) clearTimeout(timeoutId);
@@ -183,6 +217,7 @@ export class BrandingService {
           const json = await res.json();
           if (json && json.success && json.data && typeof json.data === 'object') {
             const normalized = normalizeBranding(json.data);
+            this.cachedBranding = normalized;
             
             // Cache locally to both keys
             try {
@@ -203,8 +238,7 @@ export class BrandingService {
           }
         }
       } catch (err) {
-        // Non-fatal: remote backend route may be absent or offline in demo/hosted mode
-        console.warn('[ORION-BR] Remote branding fetch unavailable, using local persistence.', err);
+        console.warn('[ORION-BR] Remote branding fetch unavailable or failed, falling back to local.', err);
       }
     }
 
@@ -216,7 +250,9 @@ export class BrandingService {
         const raw = item1 || item2;
         if (raw) {
           const parsed = JSON.parse(raw);
-          return normalizeBranding(parsed);
+          const normalized = normalizeBranding(parsed);
+          this.cachedBranding = normalized;
+          return normalized;
         }
       }
     } catch (err) {
@@ -228,7 +264,9 @@ export class BrandingService {
   }
 
   /**
-   * Persists branding configuration across remote API and local storage mechanisms.
+   * Persists branding configuration to authoritative remote backend (when available) or local stores.
+   * Sends Authorization Bearer token to remote endpoint.
+   * Throws on remote write failure; never disguises a failure as a local success.
    */
   async saveBranding(data: Partial<BrandingConfig>): Promise<{ success: boolean; method: 'remote' | 'local'; config: BrandingConfig }> {
     this.validateBranding(data);
@@ -254,11 +292,91 @@ export class BrandingService {
         : (data.logoIncludesWordmark !== undefined ? Boolean(data.logoIncludesWordmark) : Boolean(existing.logoIncludesName)),
     });
 
+    const apiUrl = getRemoteApiUrl();
+    if (apiUrl) {
+      const token = await resolveAuthToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 10000) : null;
+
+      let res: Response;
+      try {
+        res = await fetch(apiUrl, {
+          method: 'PUT',
+          headers,
+          body: JSON.stringify(updated),
+          signal: controller ? controller.signal : undefined,
+        });
+      } catch (networkErr: any) {
+        if (timeoutId) clearTimeout(timeoutId);
+        throw new Error(`Remote branding save network error: ${networkErr?.message || 'Connection failed'}`);
+      }
+      if (timeoutId) clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        let errorMsg = `Server rejected branding update (HTTP ${res.status})`;
+        try {
+          const errJson = await res.json();
+          if (errJson && errJson.error) {
+            errorMsg = errJson.error;
+          }
+        } catch {}
+        throw new Error(errorMsg);
+      }
+
+      const resJson = await res.json();
+      if (!resJson || !resJson.success || !resJson.data) {
+        throw new Error('Backend failed to return confirmed branding configuration.');
+      }
+
+      const confirmedConfig = normalizeBranding(resJson.data);
+
+      // Update local storage and cache with confirmed record
+      this.cachedBranding = confirmedConfig;
+      try {
+        if (typeof localStorage !== 'undefined') {
+          localStorage.setItem(PRIMARY_BRANDING_KEY, JSON.stringify(confirmedConfig));
+          localStorage.setItem(LEGACY_BRANDING_KEY, JSON.stringify(confirmedConfig));
+        }
+        if (brandingStore) {
+          await brandingStore.setItem(PRIMARY_BRANDING_KEY, JSON.stringify(confirmedConfig));
+          await brandingStore.setItem(LEGACY_BRANDING_KEY, JSON.stringify(confirmedConfig));
+        }
+      } catch (cacheErr) {
+        console.warn('[ORION-BR] Non-fatal local cache write warning:', cacheErr);
+      }
+
+      if (typeof document !== 'undefined') {
+        document.title = confirmedConfig.productName || confirmedConfig.appName || 'ORION-9';
+      }
+
+      try {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('orion-branding-updated', { detail: confirmedConfig }));
+          window.dispatchEvent(new CustomEvent('CREATOR_IDENTITY_PHOTO_CHANGED', { detail: { photoUrl: confirmedConfig.creatorPhotoUrl } }));
+          window.dispatchEvent(new Event('storage'));
+        }
+      } catch (e) {}
+
+      return {
+        success: true,
+        method: 'remote',
+        config: confirmedConfig,
+      };
+    }
+
+    // Pure offline / mock environment without remote API
     let localSaved = false;
     let localForageError: any = null;
     let localStorageError: any = null;
 
-    // 1. Perform Local Persistence (LocalForage / IndexedDB)
     try {
       if (brandingStore) {
         await brandingStore.setItem(PRIMARY_BRANDING_KEY, JSON.stringify(updated));
@@ -267,10 +385,8 @@ export class BrandingService {
       }
     } catch (err) {
       localForageError = err;
-      console.warn('[ORION-BR] LocalForage branding save failed:', err);
     }
 
-    // 2. Perform Local Persistence (localStorage)
     try {
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem(PRIMARY_BRANDING_KEY, JSON.stringify(updated));
@@ -279,23 +395,8 @@ export class BrandingService {
       }
     } catch (err) {
       localStorageError = err;
-      console.warn('[ORION-BR] LocalStorage branding save failed:', err);
-
-      // Handle QuotaExceededError by storing metadata without large image in localStorage
-      // while IndexedDB retains the full asset
-      try {
-        if (typeof localStorage !== 'undefined') {
-          const lightweightConfig = { ...updated, logo: null, logoUrl: null };
-          localStorage.setItem(PRIMARY_BRANDING_KEY, JSON.stringify(lightweightConfig));
-          localStorage.setItem(LEGACY_BRANDING_KEY, JSON.stringify(lightweightConfig));
-          localSaved = true;
-        }
-      } catch (innerErr) {
-        console.warn('[ORION-BR] Fallback lightweight localStorage save failed:', innerErr);
-      }
     }
 
-    // 2b. Perform Local Persistence (sessionStorage)
     try {
       if (typeof sessionStorage !== 'undefined') {
         sessionStorage.setItem(PRIMARY_BRANDING_KEY, JSON.stringify(updated));
@@ -304,61 +405,28 @@ export class BrandingService {
       }
     } catch (sessionErr) {}
 
-    // Always update in-memory active cache
-    this.cachedBranding = updated;
-
-    // 3. Perform Remote Persistence (if server endpoint available)
-    let remoteSaved = false;
-    const apiUrl = getRemoteApiUrl();
-    if (apiUrl) {
-      try {
-        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        const timeoutId = controller ? setTimeout(() => controller.abort(), 3500) : null;
-
-        const res = await fetch(apiUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updated),
-          signal: controller ? controller.signal : undefined,
-        });
-
-        if (timeoutId) clearTimeout(timeoutId);
-
-        if (res.ok) {
-          remoteSaved = true;
-        } else {
-          console.warn('[ORION-BR] Remote branding save returned non-OK status:', res.status);
-        }
-      } catch (e) {
-        console.warn('[ORION-BR] Remote branding save network/timeout error, falling back to local.', e);
-      }
-    }
-
-    // 4. Verify outcome: Only throw if BOTH remote and local persistence failed
-    if (!remoteSaved && !localSaved) {
+    if (!localSaved) {
       throw new Error(
-        `Unable to persist branding configuration. LocalForage error: ${localForageError?.message || 'none'}, LocalStorage error: ${localStorageError?.message || 'none'}`
+        `Unable to persist branding locally. LocalForage error: ${localForageError?.message || 'none'}, LocalStorage error: ${localStorageError?.message || 'none'}`
       );
     }
 
-    const method: 'remote' | 'local' = remoteSaved ? 'remote' : 'local';
-
-    // 5. Update browser document title immediately
+    this.cachedBranding = updated;
     if (typeof document !== 'undefined') {
       document.title = updated.productName || updated.appName || 'ORION-9';
     }
 
-    // 6. Dispatch events to notify all active UI components immediately
     try {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('orion-branding-updated', { detail: updated }));
+        window.dispatchEvent(new CustomEvent('CREATOR_IDENTITY_PHOTO_CHANGED', { detail: { photoUrl: updated.creatorPhotoUrl } }));
         window.dispatchEvent(new Event('storage'));
       }
     } catch (e) {}
 
     return {
       success: true,
-      method,
+      method: 'local',
       config: updated,
     };
   }
@@ -371,22 +439,69 @@ export class BrandingService {
   }
 
   /**
-   * Resets branding configuration to defaults and persists the reset.
+   * Resets branding configuration to defaults and persists the reset to authoritative backend.
    */
   async resetBranding(): Promise<BrandingConfig> {
-    const resetConfig = { ...defaultBranding };
-
     const apiUrl = getRemoteApiUrl();
     if (apiUrl) {
+      const token = await resolveAuthToken();
+      const headers: Record<string, string> = {
+        'Accept': 'application/json',
+      };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch(apiUrl, {
+        method: 'DELETE',
+        headers,
+      });
+
+      if (!res.ok) {
+        let errorMsg = `Server rejected branding reset (HTTP ${res.status})`;
+        try {
+          const errJson = await res.json();
+          if (errJson && errJson.error) {
+            errorMsg = errJson.error;
+          }
+        } catch {}
+        throw new Error(errorMsg);
+      }
+
+      const resJson = await res.json();
+      const resetConfig = resJson?.data ? normalizeBranding(resJson.data) : { ...defaultBranding };
+
       try {
-        await fetch(apiUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(resetConfig),
-        });
+        if (brandingStore) {
+          await brandingStore.removeItem(PRIMARY_BRANDING_KEY);
+          await brandingStore.removeItem(LEGACY_BRANDING_KEY);
+        }
+        if (typeof localStorage !== 'undefined') {
+          localStorage.removeItem(PRIMARY_BRANDING_KEY);
+          localStorage.removeItem(LEGACY_BRANDING_KEY);
+        }
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.removeItem(PRIMARY_BRANDING_KEY);
+          sessionStorage.removeItem(LEGACY_BRANDING_KEY);
+        }
       } catch (e) {}
+
+      this.cachedBranding = resetConfig;
+
+      if (typeof document !== 'undefined') {
+        document.title = resetConfig.appName || 'ORION-9';
+      }
+
+      try {
+        window.dispatchEvent(new CustomEvent('orion-branding-updated', { detail: resetConfig }));
+        window.dispatchEvent(new CustomEvent('CREATOR_IDENTITY_PHOTO_CHANGED', { detail: { photoUrl: null } }));
+        window.dispatchEvent(new Event('storage'));
+      } catch (e) {}
+
+      return resetConfig;
     }
 
+    // Pure offline fallback
     try {
       if (brandingStore) {
         await brandingStore.removeItem(PRIMARY_BRANDING_KEY);
@@ -410,17 +525,18 @@ export class BrandingService {
 
     try {
       window.dispatchEvent(new CustomEvent('orion-branding-updated', { detail: defaultBranding }));
+      window.dispatchEvent(new CustomEvent('CREATOR_IDENTITY_PHOTO_CHANGED', { detail: { photoUrl: null } }));
       window.dispatchEvent(new Event('storage'));
     } catch (e) {}
 
-    return resetConfig;
+    return { ...defaultBranding };
   }
 }
 
 export const brandingRepository = new BrandingService();
 
-export const getBranding = async (): Promise<BrandingConfig> => {
-  return await brandingRepository.getBranding();
+export const getBranding = async (options?: { forceFresh?: boolean }): Promise<BrandingConfig> => {
+  return await brandingRepository.getBranding(options);
 };
 
 export const saveBranding = async (

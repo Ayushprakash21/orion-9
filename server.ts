@@ -8,6 +8,13 @@ import dotenv from "dotenv";
 import { demoPersistentSchedulerService } from "./src/services/demo/DemoPersistentSchedulerService";
 import { DEMO_PACKAGES_PER_HOUR } from "./src/core/database/DemoSyntheticDataEngine";
 import { checkCloudflareWallpaperStatus, generateCloudflareWallpapers } from "./src/server/cloudflareAiBackend";
+import {
+  getDurableBranding,
+  saveDurableBranding,
+  resetDurableBranding,
+  getDurableBrandingAsset,
+} from "./src/server/brandingBackend";
+import { verifyWorkerAuthToken } from "./src/server/workerSecurity";
 
 dotenv.config({ path: ['.env.local', '.env'] });
 
@@ -947,99 +954,98 @@ Analyze the supplied document and return a strict JSON object with:
     }
   });
 
-  
-  // Platform Branding API
-  const BRANDING_FILE_PATHS = [
-    path.join(process.cwd(), '.orion-branding.json'),
-    path.join('/tmp', '.orion-branding.json')
-  ];
-  let memoryBranding: any = null;
-
-  // Attempt initial branding load on startup from candidate file paths
-  for (const filePath of BRANDING_FILE_PATHS) {
+  // Platform Branding API (Cloud Firestore Single Source of Truth)
+  const handleGetBranding = async (req: express.Request, res: express.Response) => {
     try {
-      if (fs.existsSync(filePath)) {
-        const fileData = fs.readFileSync(filePath, 'utf8');
-        memoryBranding = JSON.parse(fileData);
-        break;
-      }
-    } catch (err) {
-      // Continue to next candidate
-    }
-  }
-  
-  const handleGetBranding = (req: express.Request, res: express.Response) => {
-    try {
-      if (memoryBranding) {
-        return res.json({ success: true, data: memoryBranding });
-      }
-      for (const filePath of BRANDING_FILE_PATHS) {
-        try {
-          if (fs.existsSync(filePath)) {
-            const fileData = fs.readFileSync(filePath, 'utf8');
-            memoryBranding = JSON.parse(fileData);
-            return res.json({ success: true, data: memoryBranding });
-          }
-        } catch (e) {}
-      }
-      res.json({ success: true, data: null });
-    } catch (e) {
+      const data = await getDurableBranding();
+      res.json({ success: true, data });
+    } catch (e: any) {
       console.warn("Error reading branding on server:", e);
-      res.json({ success: true, data: memoryBranding || null });
+      res.status(500).json({ success: false, error: e?.message || "Failed to load branding settings." });
     }
   };
 
-  const handleSaveBranding = (req: express.Request, res: express.Response) => {
+  const verifyAdminAuth = (req: express.Request): { authorized: boolean; error?: string; statusCode?: number } => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.toLowerCase().startsWith("bearer ")) {
+      return { authorized: false, error: "Authentication required. Missing Bearer token.", statusCode: 401 };
+    }
+    const token = authHeader.substring(7).trim();
+    const auth = verifyWorkerAuthToken(token, "LIVE");
+    if (!auth.authorized || !auth.user) {
+      // Also check DEMO environment token verification
+      const demoAuth = verifyWorkerAuthToken(token, "DEMO");
+      if (demoAuth.authorized && demoAuth.user) {
+        const isAdmin = demoAuth.user.role === "platform_admin" || demoAuth.user.role === "organization_admin";
+        if (!isAdmin) {
+          return { authorized: false, error: "Forbidden: Administrative privileges required.", statusCode: 403 };
+        }
+        return { authorized: true };
+      }
+      return { authorized: false, error: auth.error || "Authentication required.", statusCode: auth.statusCode || 401 };
+    }
+    const isAdmin = auth.user.role === "platform_admin" || auth.user.role === "organization_admin";
+    if (!isAdmin) {
+      return { authorized: false, error: "Forbidden: Administrative privileges required.", statusCode: 403 };
+    }
+    return { authorized: true };
+  };
+
+  const handleSaveBranding = async (req: express.Request, res: express.Response) => {
+    const authCheck = verifyAdminAuth(req);
+    if (!authCheck.authorized) {
+      return res.status(authCheck.statusCode || 401).json({ success: false, error: authCheck.error });
+    }
+
     try {
       const data = req.body;
       if (!data || typeof data !== 'object') {
         return res.status(400).json({ success: false, error: "Invalid branding configuration payload." });
       }
-      memoryBranding = data;
-      
-      let persistedToDisk = false;
-      for (const filePath of BRANDING_FILE_PATHS) {
-        try {
-          fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-          persistedToDisk = true;
-          break;
-        } catch (fsErr) {
-          console.warn(`Could not persist branding to ${filePath}:`, fsErr);
-        }
-      }
-
-      res.json({ success: true, data: memoryBranding, persistedToDisk });
-    } catch (e) {
+      const savedConfig = await saveDurableBranding(data);
+      res.json({ success: true, data: savedConfig });
+    } catch (e: any) {
       console.error("Branding save error:", e);
-      if (req.body && typeof req.body === 'object') {
-        memoryBranding = req.body;
-        return res.json({ success: true, data: memoryBranding, fallback: true });
-      }
-      res.status(500).json({ success: false, error: "Failed to save branding settings." });
+      res.status(500).json({ success: false, error: e?.message || "Failed to save branding settings to authoritative database." });
     }
   };
 
-  const handleResetBranding = (req: express.Request, res: express.Response) => {
-    try {
-      memoryBranding = null;
-      for (const filePath of BRANDING_FILE_PATHS) {
-        try {
-          if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-          }
-        } catch (e) {}
-      }
-      res.json({ success: true, data: null });
-    } catch (e) {
-      console.warn("Branding reset error on server:", e);
-      res.json({ success: true });
+  const handleResetBranding = async (req: express.Request, res: express.Response) => {
+    const authCheck = verifyAdminAuth(req);
+    if (!authCheck.authorized) {
+      return res.status(authCheck.statusCode || 401).json({ success: false, error: authCheck.error });
     }
+
+    try {
+      const resetConfig = await resetDurableBranding();
+      res.json({ success: true, data: resetConfig, message: "Branding reset to defaults." });
+    } catch (e: any) {
+      console.warn("Branding reset error on server:", e);
+      res.status(500).json({ success: false, error: e?.message || "Failed to reset branding in authoritative database." });
+    }
+  };
+
+  const handleGetBrandingAsset = async (req: express.Request, res: express.Response) => {
+    const assetId = req.params.assetId;
+    if (!assetId) {
+      return res.status(404).json({ error: "Asset not found" });
+    }
+    try {
+      const asset = await getDurableBrandingAsset(assetId);
+      if (asset && asset.bytes) {
+        res.setHeader("Content-Type", asset.mimeType);
+        res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
+        return res.send(Buffer.from(asset.bytes));
+      }
+    } catch (e) {}
+    res.status(404).json({ error: "Asset not found" });
   };
 
   app.get("/api/branding", handleGetBranding);
   app.put("/api/branding", handleSaveBranding);
   app.post("/api/branding", handleSaveBranding);
   app.delete("/api/branding", handleResetBranding);
+  app.get("/api/branding/assets/:assetId", handleGetBrandingAsset);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

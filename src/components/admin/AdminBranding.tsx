@@ -29,7 +29,7 @@ export const AdminBranding = () => {
   useEffect(() => {
     const loadBranding = async () => {
       try {
-        const config = await brandingRepository.getBranding();
+        const config = await brandingRepository.getBranding({ forceFresh: true });
         setAppName(config.appName || config.productName || config.osName || 'ORION-9');
         setDescription(config.description || config.tagline || 'AI Supply Chain Operating System');
         setLogoUrl(config.logoUrl || config.logo || null);
@@ -154,12 +154,20 @@ export const AdminBranding = () => {
         founderNote: founderNote.trim(),
       });
 
+      // Update state with confirmed durable references returned by backend
+      if (result.config.creatorPhotoUrl !== undefined) {
+        setCreatorPhotoUrl(result.config.creatorPhotoUrl);
+      }
+      if (result.config.logoUrl !== undefined) {
+        setLogoUrl(result.config.logoUrl);
+      }
+
       setPersistenceState(result.method === 'remote' ? 'remote' : 'local');
 
       if (result.method === 'remote') {
-        showToast('Branding & Creator Identity saved successfully.', 'success');
+        showToast('Branding & Creator Identity saved globally.', 'success');
       } else {
-        showToast('Branding & Creator Identity saved locally.', 'success');
+        showToast('Branding & Creator Identity saved locally (offline mode).', 'info');
       }
 
       setIsSaved(true);
@@ -177,18 +185,26 @@ export const AdminBranding = () => {
 
   const handleReset = async () => {
     if (window.confirm("Are you sure you want to reset branding & creator identity to defaults?")) {
-      const config = await brandingRepository.resetBranding();
-      setAppName(config.appName || 'ORION-9');
-      setDescription(config.description || 'AI Supply Chain Operating System');
-      setLogoUrl(config.logoUrl || null);
-      setLogoIncludesName(Boolean(config.logoIncludesName));
-      setCreatorName(config.creatorName || 'Ayush Prakash');
-      setCreatorTitle(config.creatorTitle || 'Creator & Supply Chain OS Architect');
-      setCreatorQuote(config.creatorQuote || 'What if the supply chain had an operating system?');
-      setCreatorPhotoUrl(config.creatorPhotoUrl || null);
-      setFounderNote(config.founderNote || '');
-      setPersistenceState('idle');
-      showToast('Branding reset to defaults.', 'info');
+      setIsSaving(true);
+      try {
+        const config = await brandingRepository.resetBranding();
+        setAppName(config.appName || 'ORION-9');
+        setDescription(config.description || 'AI Supply Chain Operating System');
+        setLogoUrl(config.logoUrl || null);
+        setLogoIncludesName(Boolean(config.logoIncludesName));
+        setCreatorName(config.creatorName || 'Ayush Prakash');
+        setCreatorTitle(config.creatorTitle || 'Creator & Supply Chain OS Architect');
+        setCreatorQuote(config.creatorQuote || 'What if the supply chain had an operating system?');
+        setCreatorPhotoUrl(config.creatorPhotoUrl || null);
+        setFounderNote(config.founderNote || '');
+        setPersistenceState('remote');
+        showToast('Branding reset to defaults globally.', 'info');
+      } catch (err: any) {
+        setPersistenceState('error');
+        showToast(err?.message || 'Failed to reset branding on remote server.', 'error');
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -475,10 +491,10 @@ export const AdminBranding = () => {
             </button>
             
             <div className="text-[10px] uppercase tracking-widest font-semibold flex items-center gap-1.5">
-              {persistenceState === 'remote' && <><span className="w-2 h-2 rounded-full bg-emerald-500"></span><span className="text-emerald-500">Platform saved</span></>}
-              {persistenceState === 'local' && <><span className="w-2 h-2 rounded-full bg-amber-500"></span><span className="text-amber-500">Saved locally</span></>}
-              {persistenceState === 'error' && <><span className="w-2 h-2 rounded-full bg-red-500"></span><span className="text-red-500">Storage unavailable</span></>}
-              {persistenceState === 'unsaved' && <><span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span><span className="text-os-text-muted">Unsaved changes</span></>}
+              {persistenceState === 'remote' && <><span className="w-2 h-2 rounded-full bg-emerald-500"></span><span className="text-emerald-500 font-medium">Saved Globally</span></>}
+              {persistenceState === 'local' && <><span className="w-2 h-2 rounded-full bg-amber-500"></span><span className="text-amber-500 font-medium">Saved Locally</span></>}
+              {persistenceState === 'error' && <><span className="w-2 h-2 rounded-full bg-red-500"></span><span className="text-red-500 font-medium">Save Failed</span></>}
+              {persistenceState === 'unsaved' && <><span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span><span className="text-os-text-muted">Unsaved Changes</span></>}
             </div>
           </div>
         </div>

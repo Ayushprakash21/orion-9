@@ -20,8 +20,12 @@ import {
   getCorsHeaders,
   EDGE_SECURITY_HEADERS,
 } from "./server/workerSecurity";
-
-let workerBrandingStore: any = null;
+import {
+  getDurableBranding,
+  saveDurableBranding,
+  resetDurableBranding,
+  getDurableBrandingAsset,
+} from "./server/brandingBackend";
 
 export interface ScheduledController {
   scheduledTime: number;
@@ -119,53 +123,118 @@ export default {
     // 0e. Branding Configuration Route (GET, PUT, POST, DELETE /api/branding)
     if (url.pathname === "/api/branding") {
       if (request.method === "GET") {
-        return applySecurityHeaders(
-          new Response(
-            JSON.stringify(workerBrandingStore || {
-              osName: "ORION-9",
-              productName: "ORION-9",
-              appName: "ORION-9",
-              applicationName: "ORION-9",
-              tagline: "AI Supply Chain Operating System",
-              version: "9.4.2",
-            }),
-            { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }
-          ),
-          request
-        );
+        try {
+          const branding = await getDurableBranding();
+          return applySecurityHeaders(
+            new Response(
+              JSON.stringify({ success: true, data: branding }),
+              { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=60" } }
+            ),
+            request
+          );
+        } catch (err: any) {
+          return applySecurityHeaders(
+            new Response(
+              JSON.stringify({ success: false, error: err?.message || "Failed to load branding" }),
+              { status: 500, headers: { "Content-Type": "application/json" } }
+            ),
+            request
+          );
+        }
       }
       if (request.method === "PUT" || request.method === "POST") {
         const token = extractBearerToken(request);
         const auth = verifyWorkerAuthToken(token, activeEnv);
-        if (!auth.authorized) {
-          return createSecurityErrorResponse(auth.error || 'Authentication required.', auth.statusCode);
+        if (!auth.authorized || !auth.user) {
+          return createSecurityErrorResponse(auth.error || 'Authentication required.', auth.statusCode || 401);
+        }
+        const isAdmin = auth.user.role === 'platform_admin' || auth.user.role === 'organization_admin';
+        if (!isAdmin) {
+          return createSecurityErrorResponse('Forbidden: Administrative privileges required.', 403);
         }
         let updated: any = {};
-        try { updated = await request.json(); } catch (e) {}
-        workerBrandingStore = { ...(workerBrandingStore || {}), ...updated };
-        return applySecurityHeaders(
-          new Response(JSON.stringify({ success: true, branding: workerBrandingStore }), {
-            status: 200,
-            headers: { "Content-Type": "application/json" }
-          }),
-          request
-        );
+        try {
+          updated = await request.json();
+        } catch (e) {
+          return createSecurityErrorResponse('Invalid JSON payload in request body.', 400);
+        }
+        try {
+          const savedBranding = await saveDurableBranding(updated);
+          return applySecurityHeaders(
+            new Response(JSON.stringify({ success: true, data: savedBranding }), {
+              status: 200,
+              headers: { "Content-Type": "application/json" }
+            }),
+            request
+          );
+        } catch (saveErr: any) {
+          return applySecurityHeaders(
+            new Response(JSON.stringify({ success: false, error: saveErr?.message || "authoritative database write failed" }), {
+              status: 500,
+              headers: { "Content-Type": "application/json" }
+            }),
+            request
+          );
+        }
       }
       if (request.method === "DELETE") {
         const token = extractBearerToken(request);
         const auth = verifyWorkerAuthToken(token, activeEnv);
-        if (!auth.authorized) {
-          return createSecurityErrorResponse(auth.error || 'Authentication required.', auth.statusCode);
+        if (!auth.authorized || !auth.user) {
+          return createSecurityErrorResponse(auth.error || 'Authentication required.', auth.statusCode || 401);
         }
-        workerBrandingStore = null;
-        return applySecurityHeaders(
-          new Response(JSON.stringify({ success: true, message: "Branding reset to defaults." }), {
-            status: 200,
-            headers: { "Content-Type": "application/json" }
-          }),
-          request
-        );
+        const isAdmin = auth.user.role === 'platform_admin' || auth.user.role === 'organization_admin';
+        if (!isAdmin) {
+          return createSecurityErrorResponse('Forbidden: Administrative privileges required.', 403);
+        }
+        try {
+          const resetConfig = await resetDurableBranding();
+          return applySecurityHeaders(
+            new Response(JSON.stringify({ success: true, data: resetConfig, message: "Branding reset to defaults." }), {
+              status: 200,
+              headers: { "Content-Type": "application/json" }
+            }),
+            request
+          );
+        } catch (resetErr: any) {
+          return applySecurityHeaders(
+            new Response(JSON.stringify({ success: false, error: resetErr?.message || "Failed to reset branding in authoritative database" }), {
+              status: 500,
+              headers: { "Content-Type": "application/json" }
+            }),
+            request
+          );
+        }
       }
+    }
+
+    // 0f. Branding Asset Serving Route (e.g. /api/branding/assets/creator_photo)
+    if (url.pathname.startsWith("/api/branding/assets/") && request.method === "GET") {
+      const assetId = url.pathname.replace("/api/branding/assets/", "").split("/")[0].split("?")[0];
+      if (assetId) {
+        try {
+          const asset = await getDurableBrandingAsset(assetId);
+          if (asset && asset.bytes) {
+            return applySecurityHeaders(
+              new Response(asset.bytes, {
+                status: 200,
+                headers: {
+                  "Content-Type": asset.mimeType,
+                  "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+                },
+              }),
+              request
+            );
+          }
+        } catch (e) {}
+      }
+      return applySecurityHeaders(
+        new Response(JSON.stringify({ error: "Asset not found" }), {
+          status: 404,
+          headers: { "Content-Type": "application/json" }
+        }),
+        request
+      );
     }
 
     // AI status route (Public, rate-limited)
