@@ -112,6 +112,7 @@ export function OrionSystemBar() {
         {/* ORION SYSTEM MENU TRIGGER */}
         <button 
           onClick={() => setMenuOpen(!menuOpen)}
+          data-testid="orion-brand-trigger-btn"
           className={cn(
             "flex items-center h-[28px] px-2 gap-2 hover:bg-white/[0.08] hover:text-[var(--orion-text-primary)] transition-all cursor-pointer rounded-lg shrink-0 group",
             menuOpen && "bg-white/[0.12] text-[var(--orion-text-primary)]"

@@ -724,6 +724,9 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
           dockPosition: (normalized.personalization.dockPosition as any) || activePrefs.dockPosition,
           dockAutoHide: normalized.personalization.dockAutoHide !== undefined ? normalized.personalization.dockAutoHide : activePrefs.dockAutoHide,
           dockMagnification: normalized.personalization.dockMagnification !== undefined ? normalized.personalization.dockMagnification : activePrefs.dockMagnification,
+          dockOpacity: normalized.personalization.dockTransparency !== undefined ? normalized.personalization.dockTransparency : activePrefs.dockOpacity,
+          dockBlur: normalized.personalization.dockBlur !== undefined ? normalized.personalization.dockBlur : activePrefs.dockBlur,
+          dockTint: normalized.personalization.dockTint || activePrefs.dockTint,
         });
       }
     } catch (e) {

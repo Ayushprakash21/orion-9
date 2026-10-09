@@ -177,6 +177,7 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
       <div className="h-px bg-white/[0.06] my-1 mx-1.5" />
 
       <button 
+        data-testid="system-menu-lock-btn"
         onClick={() => handleAction(() => triggerLock())}
         className="w-full text-left px-2.5 py-1 hover:bg-white/[0.08] active:bg-white/[0.12] text-[var(--orion-text-primary,#F2F2EF)] transition-colors flex items-center justify-between cursor-pointer rounded-[5px]"
       >

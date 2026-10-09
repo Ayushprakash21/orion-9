@@ -167,12 +167,16 @@ export const OSGeometryProvider: React.FC<OSGeometryProviderProps> = ({ children
   const persistentSettings = useMemo(() => {
     const scPers = supplyChain?.settings?.personalization;
     let authoritativeAutoHide = true;
+    let authoritativePosition: DockPosition = (scPers?.dockPosition || 'bottom') as DockPosition;
     try {
       const prefs = loadPreferences();
       if (prefs?.dockAutoHide !== undefined) {
         authoritativeAutoHide = Boolean(prefs.dockAutoHide);
       } else {
         authoritativeAutoHide = RuntimeSettingsAuthority.instance.settings.dock.dockAutoHide;
+      }
+      if (prefs?.dockPosition) {
+        authoritativePosition = prefs.dockPosition as DockPosition;
       }
     } catch {
       authoritativeAutoHide = true;
@@ -182,6 +186,7 @@ export const OSGeometryProvider: React.FC<OSGeometryProviderProps> = ({ children
       ...DEFAULT_PERSONALIZATION_SETTINGS,
       ...(scPers || {}),
       dockAutoHide: authoritativeAutoHide,
+      dockPosition: authoritativePosition,
     };
   }, [supplyChain?.settings?.personalization]);
 
@@ -232,7 +237,11 @@ export const OSGeometryProvider: React.FC<OSGeometryProviderProps> = ({ children
     };
 
     window.addEventListener('orion-appearance-preferences-changed', handlePrefChange as EventListener);
-    return () => window.removeEventListener('orion-appearance-preferences-changed', handlePrefChange as EventListener);
+    window.addEventListener('orion:personalization-updated', handlePrefChange as EventListener);
+    return () => {
+      window.removeEventListener('orion-appearance-preferences-changed', handlePrefChange as EventListener);
+      window.removeEventListener('orion:personalization-updated', handlePrefChange as EventListener);
+    };
   }, []);
 
   // Listen for authoritative RuntimeSettingsAuthority updates
