@@ -108,6 +108,9 @@ export interface OrionAppearancePreferences {
   dockShowRunningIndicators: boolean;
   dockShowBadges: boolean;
   dockTransparency: boolean;
+  dockOpacity?: number;
+  dockBlur?: number;
+  dockTint?: 'auto' | 'dark' | 'light' | 'accent';
   iconStyle: OrionIconStyle;
   widgetStyle: OrionWidgetStyle;
 }

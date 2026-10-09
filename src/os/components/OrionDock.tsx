@@ -712,7 +712,7 @@ export function OrionDock() {
             isVertical ? "flex flex-col items-center gap-2.5 overflow-y-auto max-h-[80vh]" : "flex items-center gap-2.5 overflow-x-auto max-w-[calc(100vw-24px)]"
           )}
           style={{ 
-            backgroundColor: `color-mix(in srgb, var(--orion-dock-surface, var(--orion-dock-bg, rgba(20,24,32,0.65))) calc(var(--orion-dock-opacity, 0.75) * 100%), transparent)`,
+            backgroundColor: `color-mix(in srgb, var(--orion-dock-tint-bg, var(--orion-dock-surface, var(--orion-dock-bg, rgba(20,24,32,0.65)))) calc(var(--orion-dock-opacity, 0.75) * 100%), transparent)`,
             backdropFilter: 'blur(var(--orion-dock-blur, 36px)) saturate(160%)',
             WebkitBackdropFilter: 'blur(var(--orion-dock-blur, 36px)) saturate(160%)',
             borderColor: 'var(--orion-dock-border, rgba(255, 255, 255, 0.18))',

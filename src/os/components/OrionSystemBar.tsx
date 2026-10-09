@@ -108,6 +108,7 @@ export function OrionSystemBar() {
           aria-expanded={menuOpen}
         >
           <BrandLogo sizePreset="sm" variant="mark" />
+          <span className="sr-only">Orion OS</span>
           <span 
             onClick={(e) => {
               if (isAdmin) {
@@ -127,36 +128,6 @@ export function OrionSystemBar() {
             {dbEnv}
           </span>
         </button>
-
-        {/* User Experience Mode Switcher (Simple vs Advanced) */}
-        <div className="hidden lg:flex items-center p-0.5 bg-black/25 backdrop-blur-md border border-white/[0.08] rounded-lg text-[10px] font-mono">
-          <button
-            type="button"
-            onClick={() => updateSettings({ userExperienceMode: 'SIMPLE' })}
-            className={cn(
-              "px-2.5 py-0.5 rounded-md transition-all cursor-pointer font-medium",
-              settings.userExperienceMode !== 'ADVANCED'
-                ? "bg-white/[0.16] text-white border border-white/10 shadow-xs font-semibold backdrop-blur-sm"
-                : "text-[var(--orion-text-muted)] hover:text-[var(--orion-text-primary)]"
-            )}
-            title="Simple Mode: Goal & action-oriented business experience"
-          >
-            Simple
-          </button>
-          <button
-            type="button"
-            onClick={() => updateSettings({ userExperienceMode: 'ADVANCED' })}
-            className={cn(
-              "px-2.5 py-0.5 rounded-md transition-all cursor-pointer font-medium",
-              settings.userExperienceMode === 'ADVANCED'
-                ? "bg-white/[0.16] text-white border border-white/10 shadow-xs font-semibold backdrop-blur-sm"
-                : "text-[var(--orion-text-muted)] hover:text-[var(--orion-text-primary)]"
-            )}
-            title="Advanced Mode: Full enterprise SCM operating model"
-          >
-            Advanced
-          </button>
-        </div>
 
         {/* Sync/Refresh Action */}
         <button 
@@ -194,20 +165,16 @@ export function OrionSystemBar() {
       </div>
 
       {/* CENTER: CONTEXTUAL ACTIVE APPLICATION INDICATOR (OS-Level System Bar) */}
-      <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-2 max-w-[40vw] min-w-0 pointer-events-none">
-        {activeApp ? (
+      {activeApp && (
+        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-2 max-w-[40vw] min-w-0 pointer-events-none">
           <div className="flex items-center gap-2 px-3 py-0.5 bg-white/[0.06] border border-white/10 rounded-full backdrop-blur-md shadow-xs">
             <span className="w-1.5 h-1.5 rounded-full shadow-xs shrink-0" style={{ backgroundColor: activeApp.color || 'var(--orion-accent, #D8DDE3)' }} />
             <span className="text-[11px] font-medium text-white/90 truncate max-w-[180px]">
               {activeApp.name}
             </span>
           </div>
-        ) : (
-          <div className="text-[10px] font-medium text-white/40 tracking-widest uppercase">
-            Orion OS Desktop
-          </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* RIGHT: SYSTEM TRAY */}
       <div className="flex items-center h-full gap-1 shrink-0 min-w-0">

@@ -22,7 +22,7 @@ interface NotificationContextType {
   openNotification: (notification: AppNotification) => void;
 }
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
+export const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { exceptions, shipments, purchaseOrders } = useSupplyChain();

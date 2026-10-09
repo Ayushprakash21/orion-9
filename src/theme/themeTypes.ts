@@ -62,6 +62,8 @@ export interface PersonalizationSettings {
   dockSize: DockSize;
   dockAutoHide: boolean;
   dockTransparency: number; // 0 - 100%
+  dockBlur?: number; // 0 - 100%
+  dockTint?: 'auto' | 'dark' | 'light' | 'accent';
   dockMagnification: boolean;
 
   // Accessibility & Display

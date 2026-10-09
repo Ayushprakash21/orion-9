@@ -560,11 +560,11 @@ export const Login: React.FC<LoginProps> = () => {
 
                     {/* Floating Glass Capsule (+10% prominence: brighter glass, clearer edge, subtle depth) */}
                     <div className={cn(
-                      "relative flex items-center h-[48px] sm:h-[52px] rounded-full",
-                      "bg-white/[0.14] hover:bg-white/[0.18] transition-all duration-300",
+                      "orion-login-capsule relative flex items-center h-[48px] sm:h-[52px] rounded-full",
+                      "bg-white/[0.12] hover:bg-white/[0.16] transition-all duration-300",
                       "backdrop-blur-2xl border shadow-[0_16px_44px_rgba(0,0,0,0.55),inset_0_1px_0_0_rgba(255,255,255,0.28)]",
                       isInputFocused 
-                        ? "border-[var(--orion-accent,#38BDF8)]/85 ring-4 ring-[var(--orion-accent,#38BDF8)]/25 bg-white/[0.18]" 
+                        ? "border-emerald-500/80 ring-4 ring-emerald-500/25 bg-white/[0.16]" 
                         : "border-white/30",
                       errorMsg && "border-red-400/80 ring-4 ring-red-400/25"
                     )}>
@@ -576,6 +576,7 @@ export const Login: React.FC<LoginProps> = () => {
                         id="username"
                         name="username"
                         type="text"
+                        data-orion-glass-input="true"
                         autoComplete="username"
                         required
                         value={username}
@@ -586,11 +587,11 @@ export const Login: React.FC<LoginProps> = () => {
                         }}
                         onFocus={() => setIsInputFocused(true)}
                         onBlur={() => setIsInputFocused(false)}
-                        className="flex-1 bg-transparent border-none text-white text-[14px] sm:text-[15px] placeholder:text-white/60 focus:outline-none focus:ring-0 px-2 font-normal"
+                        className="flex-1 bg-transparent border-none text-white text-[14px] sm:text-[15px] placeholder:text-white/60 focus:outline-none focus:ring-0 focus:bg-transparent px-2 font-normal selection:bg-emerald-500/35 selection:text-white"
                         placeholder={t.userIdPlaceholder || "Username or email"}
                       />
 
-                      {/* Circular Action Button [ → ] (+10% clarity, slightly brighter accent & stronger glow) */}
+                      {/* Circular Action Button [ → ] */}
                       <button
                         type="submit"
                         disabled={isIdentifying || !username.trim()}
@@ -599,7 +600,7 @@ export const Login: React.FC<LoginProps> = () => {
                         className={cn(
                           "w-[38px] h-[38px] mr-1.5 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer",
                           "text-white shadow-md disabled:opacity-35 disabled:cursor-not-allowed",
-                          "bg-[var(--orion-accent,#0284C7)] hover:bg-[var(--orion-accent,#38BDF8)] active:scale-[0.96] hover:scale-[1.04] shadow-[0_0_24px_rgba(37,99,235,0.4)]",
+                          "bg-emerald-600 hover:bg-emerald-500 active:scale-[0.96] hover:scale-[1.04] shadow-[0_0_24px_rgba(37,99,235,0.4)]",
                           "border border-white/30"
                         )}
                       >
@@ -648,11 +649,11 @@ export const Login: React.FC<LoginProps> = () => {
 
                     {/* Floating Glass Capsule with Password Input (+10% prominence) */}
                     <div className={cn(
-                      "relative flex items-center h-[48px] sm:h-[52px] rounded-full",
-                      "bg-white/[0.14] hover:bg-white/[0.18] transition-all duration-300",
+                      "orion-login-capsule relative flex items-center h-[48px] sm:h-[52px] rounded-full",
+                      "bg-[rgba(45,50,60,0.65)] hover:bg-[rgba(55,60,72,0.70)] transition-all duration-300",
                       "backdrop-blur-2xl border shadow-[0_16px_44px_rgba(0,0,0,0.55),inset_0_1px_0_0_rgba(255,255,255,0.28)]",
                       isInputFocused 
-                        ? "border-[var(--orion-accent,#38BDF8)]/85 ring-4 ring-[var(--orion-accent,#38BDF8)]/25 bg-white/[0.18]" 
+                        ? "border-emerald-500/80 ring-4 ring-emerald-500/25 bg-[rgba(50,56,68,0.75)]" 
                         : "border-white/30",
                       errorMsg && "border-red-400/80 ring-4 ring-red-400/25"
                     )}>
@@ -664,6 +665,7 @@ export const Login: React.FC<LoginProps> = () => {
                         id="password"
                         name="password"
                         type={showPassword ? "text" : "password"}
+                        data-orion-glass-input="true"
                         autoComplete="current-password"
                         required
                         value={password}
@@ -674,7 +676,7 @@ export const Login: React.FC<LoginProps> = () => {
                         }}
                         onFocus={() => setIsInputFocused(true)}
                         onBlur={() => setIsInputFocused(false)}
-                        className="flex-1 bg-transparent border-none text-white text-[14px] sm:text-[15px] placeholder:text-white/60 focus:outline-none focus:ring-0 px-2 font-normal"
+                        className="flex-1 bg-transparent border-none text-white text-[14px] sm:text-[15px] placeholder:text-white/60 focus:outline-none focus:ring-0 focus:bg-transparent px-2 font-normal selection:bg-emerald-500/35 selection:text-white"
                         placeholder={t.enterPassword || "Password"}
                       />
 
@@ -697,7 +699,7 @@ export const Login: React.FC<LoginProps> = () => {
                         className={cn(
                           "w-[38px] h-[38px] mr-1.5 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer",
                           "text-white shadow-md disabled:opacity-35 disabled:cursor-not-allowed",
-                          "bg-[var(--orion-accent,#0284C7)] hover:bg-[var(--orion-accent,#38BDF8)] active:scale-[0.96] hover:scale-[1.04] shadow-[0_0_24px_rgba(37,99,235,0.4)]",
+                          "bg-emerald-600 hover:bg-emerald-500 active:scale-[0.96] hover:scale-[1.04] shadow-[0_0_24px_rgba(37,99,235,0.4)]",
                           "border border-white/30"
                         )}
                       >

@@ -532,31 +532,57 @@ html, body {
   margin: 0 !important;
 }
 
-/* Prevent browser autofill from styling inputs with yellow/olive background */
-:root.dark input:-webkit-autofill,
-:root.dark input:-webkit-autofill:hover, 
-:root.dark input:-webkit-autofill:focus, 
-:root.dark input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0 30px #0A0C0E inset !important;
+/* Prevent browser autofill from styling inputs with ugly background, while preserving translucent glass inputs */
+.orion-glass-input:-webkit-autofill,
+.orion-glass-input:-webkit-autofill:hover,
+.orion-glass-input:-webkit-autofill:focus,
+.orion-glass-input:-webkit-autofill:active,
+[data-orion-glass-input]:-webkit-autofill,
+[data-orion-glass-input]:-webkit-autofill:hover,
+[data-orion-glass-input]:-webkit-autofill:focus,
+[data-orion-glass-input]:-webkit-autofill:active,
+.orion-login-capsule input:-webkit-autofill,
+.orion-login-capsule input:-webkit-autofill:hover,
+.orion-login-capsule input:-webkit-autofill:focus,
+.orion-login-capsule input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.08) inset !important;
+  -webkit-text-fill-color: #FFFFFF !important;
+  caret-color: #FFFFFF !important;
+  background-color: transparent !important;
+  transition: background-color 500000s ease-in-out 0s;
+}
+
+.orion-glass-input::selection,
+[data-orion-glass-input]::selection,
+.orion-login-capsule input::selection {
+  background-color: rgba(16, 185, 129, 0.35) !important;
+  color: #FFFFFF !important;
+}
+
+:root.dark input:not([data-orion-glass-input]):-webkit-autofill,
+:root.dark input:not([data-orion-glass-input]):-webkit-autofill:hover, 
+:root.dark input:not([data-orion-glass-input]):-webkit-autofill:focus, 
+:root.dark input:not([data-orion-glass-input]):-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px #14171C inset !important;
   -webkit-text-fill-color: #E8E8E5 !important;
   caret-color: #E8E8E5 !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 
-:root.light input:-webkit-autofill,
-:root.light input:-webkit-autofill:hover,
-:root.light input:-webkit-autofill:focus,
-:root.light input:-webkit-autofill:active {
+:root.light input:not([data-orion-glass-input]):-webkit-autofill,
+:root.light input:not([data-orion-glass-input]):-webkit-autofill:hover,
+:root.light input:not([data-orion-glass-input]):-webkit-autofill:focus,
+:root.light input:not([data-orion-glass-input]):-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 30px #FFFFFF inset !important;
   -webkit-text-fill-color: #1D1D1F !important;
   caret-color: #1D1D1F !important;
   transition: background-color 5000s ease-in-out 0s;
 }
 
-:root:not(.dark) input:-webkit-autofill,
-:root:not(.dark) input:-webkit-autofill:hover, 
-:root:not(.dark) input:-webkit-autofill:focus, 
-:root:not(.dark) input:-webkit-autofill:active {
+:root:not(.dark) input:not([data-orion-glass-input]):-webkit-autofill,
+:root:not(.dark) input:not([data-orion-glass-input]):-webkit-autofill:hover, 
+:root:not(.dark) input:not([data-orion-glass-input]):-webkit-autofill:focus, 
+:root:not(.dark) input:not([data-orion-glass-input]):-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 30px #FFFFFF inset !important;
   -webkit-text-fill-color: #202326 !important;
   caret-color: #202326 !important;

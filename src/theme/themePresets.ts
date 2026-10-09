@@ -136,6 +136,8 @@ export const DEFAULT_PERSONALIZATION_SETTINGS: PersonalizationSettings = {
   dockSize: 'medium',
   dockAutoHide: true,
   dockTransparency: 85,
+  dockBlur: 80,
+  dockTint: 'auto',
   dockMagnification: true,
 
   uiScale: 100,

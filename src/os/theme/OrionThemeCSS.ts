@@ -179,6 +179,22 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   root.style.setProperty('--orion-dock-text', theme.colors.textPrimary);
   root.style.setProperty('--orion-dock-text-muted', theme.colors.textMuted);
 
+  const dockOpacityVal = ((preferences.dockOpacity ?? 85) / 100);
+  const dockBlurVal = Math.round(((preferences.dockBlur ?? 80) / 100) * 40);
+  root.style.setProperty('--orion-dock-opacity', dockOpacityVal.toString());
+  root.style.setProperty('--orion-dock-blur', `${dockBlurVal}px`);
+
+  const dockTint = preferences.dockTint || 'auto';
+  let dockTintBg = dockSurface;
+  if (dockTint === 'light') {
+    dockTintBg = 'rgba(255, 255, 255, 0.70)';
+  } else if (dockTint === 'accent') {
+    dockTintBg = `color-mix(in srgb, ${accent} 25%, rgba(20, 24, 32, 0.70))`;
+  } else if (dockTint === 'dark') {
+    dockTintBg = 'rgba(10, 12, 16, 0.85)';
+  }
+  root.style.setProperty('--orion-dock-tint-bg', dockTintBg);
+
   // Effects and UI vars
   const glassOpacity = preferences.transparencyEnabled ? (preferences.transparencyIntensity / 100) * theme.effects.glassOpacity : 1;
   const blur = preferences.blurEnabled ? (preferences.blurIntensity / 100) * theme.effects.blur : 0;

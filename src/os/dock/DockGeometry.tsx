@@ -313,7 +313,21 @@ export const OSGeometryProvider: React.FC<OSGeometryProviderProps> = ({ children
 
     // Surface custom transparency & wallpaper styling
     const dockOpacity = (effectiveSettings.dockTransparency ?? 85) / 100;
+    const dockBlurPx = Math.round(((effectiveSettings.dockBlur ?? 80) / 100) * 40);
     root.style.setProperty('--orion-dock-opacity', `${dockOpacity}`);
+    root.style.setProperty('--orion-dock-blur', `${dockBlurPx}px`);
+
+    const dockTint = effectiveSettings.dockTint || 'auto';
+    let dockTintBg = 'rgba(20, 24, 32, 0.65)';
+    if (dockTint === 'light') {
+      dockTintBg = 'rgba(255, 255, 255, 0.65)';
+    } else if (dockTint === 'accent') {
+      dockTintBg = 'color-mix(in srgb, var(--orion-accent, #38BDF8) 25%, rgba(20, 24, 32, 0.70))';
+    } else if (dockTint === 'dark') {
+      dockTintBg = 'rgba(10, 12, 16, 0.85)';
+    }
+    root.style.setProperty('--orion-dock-tint-bg', dockTintBg);
+
     root.style.setProperty('--orion-wallpaper-blur', `${effectiveSettings.wallpaperBlur ?? 0}px`);
     root.style.setProperty('--orion-wallpaper-dim', `${(effectiveSettings.wallpaperDim ?? 0) / 100}`);
 
