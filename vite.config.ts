@@ -39,6 +39,21 @@ function generateBuildInfoPlugin() {
         path.resolve(publicDir, 'build-info.json'),
         JSON.stringify(buildInfo, null, 2)
       );
+    },
+    closeBundle() {
+      const distAssetsIgnore = path.resolve(__dirname, 'dist/client/.assetsignore');
+      try {
+        if (fs.existsSync(distAssetsIgnore)) {
+          const content = fs.readFileSync(distAssetsIgnore, 'utf-8');
+          if (!content.includes('Orion-9-Setup.exe')) {
+            fs.appendFileSync(distAssetsIgnore, '\ndownloads/Orion-9-Setup.exe\n*.exe\n');
+          }
+        } else {
+          fs.writeFileSync(distAssetsIgnore, 'wrangler.json\n.dev.vars\ndownloads/Orion-9-Setup.exe\n*.exe\n');
+        }
+      } catch (e) {
+        console.warn('Could not update .assetsignore in dist/client:', e);
+      }
     }
   };
 }
