@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { cn } from '../lib/utils';
 import { ORION_WINDOW_VARIANTS } from './motion';
 import { LiquidGlass } from './LiquidGlass';
+import { OrionWindowControls } from '../os/components/OrionWindowControls';
 
 export interface OrionWindowProps {
   title?: React.ReactNode;
@@ -56,39 +57,15 @@ export const OrionWindow: React.FC<OrionWindowProps> = ({
               : 'border-white/[0.04] bg-transparent text-[var(--orion-text-muted,#747875)]'
           )}
         >
-          {/* Traffic Lights */}
-          <div className="flex items-center gap-2 group">
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close"
-              className="w-3 h-3 rounded-full bg-[#FF5F56] hover:brightness-110 active:brightness-90 transition-all flex items-center justify-center border border-black/20"
-            >
-              <span className="opacity-0 group-hover:opacity-100 text-[8px] font-bold text-black/60 leading-none">
-                ×
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={onMinimize}
-              aria-label="Minimize"
-              className="w-3 h-3 rounded-full bg-[#FFBD2E] hover:brightness-110 active:brightness-90 transition-all flex items-center justify-center border border-black/20"
-            >
-              <span className="opacity-0 group-hover:opacity-100 text-[8px] font-bold text-black/60 leading-none">
-                −
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={onMaximize}
-              aria-label={isMaximized ? 'Restore' : 'Maximize'}
-              className="w-3 h-3 rounded-full bg-[#27C93F] hover:brightness-110 active:brightness-90 transition-all flex items-center justify-center border border-black/20"
-            >
-              <span className="opacity-0 group-hover:opacity-100 text-[6px] font-bold text-black/60 leading-none">
-                +
-              </span>
-            </button>
-          </div>
+          {/* Traffic Lights: Yellow (Minimize) -> Green (Maximize/Restore) -> Red (Close) */}
+          <OrionWindowControls
+            appName={typeof title === 'string' ? title : 'Window'}
+            isMaximized={isMaximized}
+            onClose={onClose}
+            onMinimize={onMinimize}
+            onMaximize={onMaximize}
+            position="left"
+          />
 
           {/* Centered or context title */}
           <div className="flex items-center gap-2 text-xs font-medium text-[var(--orion-text-primary,#F2F2EF)] tracking-tight">

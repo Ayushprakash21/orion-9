@@ -42,22 +42,22 @@ describe('ORION-9 macOS-Style Traffic-Light Window Controls Specification', () =
     openedAt: Date.now(),
   };
 
-  it('1. Close is first (Red #FF5F57)', () => {
-    const html = renderToString(React.createElement(OrionWindow, { window: mockWindow, isActive: true }));
-    expect(html).toContain('aria-label="Close Analytics"');
-    expect(html).toContain('background-color:#FF5F57');
-  });
-
-  it('2. Minimize is second (Yellow #FEBC2E)', () => {
+  it('1. Minimize is first (Yellow #FEBC2E)', () => {
     const html = renderToString(React.createElement(OrionWindow, { window: mockWindow, isActive: true }));
     expect(html).toContain('aria-label="Minimize Analytics"');
     expect(html).toContain('background-color:#FEBC2E');
   });
 
-  it('3. Maximize is third (Green #28C840)', () => {
+  it('2. Maximize is second (Green #28C840)', () => {
     const html = renderToString(React.createElement(OrionWindow, { window: mockWindow, isActive: true }));
     expect(html).toContain('aria-label="Maximize Analytics"');
     expect(html).toContain('background-color:#28C840');
+  });
+
+  it('3. Close is third (Red #FF5F57)', () => {
+    const html = renderToString(React.createElement(OrionWindow, { window: mockWindow, isActive: true }));
+    expect(html).toContain('aria-label="Close Analytics"');
+    expect(html).toContain('background-color:#FF5F57');
   });
 
   it('4. Controls are rendered top-left inside the window titlebar before app title', () => {
@@ -83,13 +83,13 @@ describe('ORION-9 macOS-Style Traffic-Light Window Controls Specification', () =
     expect(html).not.toContain('w-8 h-8 rounded-xl');
   });
 
-  it('6. Strict left-to-right order: Red (Close) -> Yellow (Minimize) -> Green (Maximize)', () => {
+  it('6. Strict left-to-right order: Yellow (Minimize) -> Green (Maximize) -> Red (Close)', () => {
     const html = renderToString(React.createElement(OrionWindow, { window: mockWindow, isActive: true }));
-    const closeIdx = html.indexOf('aria-label="Close Analytics"');
     const minIdx = html.indexOf('aria-label="Minimize Analytics"');
     const maxIdx = html.indexOf('aria-label="Maximize Analytics"');
+    const closeIdx = html.indexOf('aria-label="Close Analytics"');
 
-    expect(closeIdx).toBeLessThan(minIdx);
     expect(minIdx).toBeLessThan(maxIdx);
+    expect(maxIdx).toBeLessThan(closeIdx);
   });
 });

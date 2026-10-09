@@ -100,42 +100,42 @@ describe('ORION-9 Window Control Position Personalization Engine', () => {
   });
 
   describe('1. OrionWindowControls Component (Isolated Unit Specs)', () => {
-    it('defaults to position="left" with Mac order: Red (Close) -> Yellow (Minimize) -> Green (Maximize)', () => {
+    it('renders position="left" with control order: Yellow (Minimize) -> Green (Maximize) -> Red (Close)', () => {
       const html = renderToString(React.createElement(OrionWindowControls, { appName: 'Control Tower', position: 'left' }));
       
-      const closeIdx = html.indexOf('aria-label="Close Control Tower"');
       const minIdx = html.indexOf('aria-label="Minimize Control Tower"');
       const maxIdx = html.indexOf('aria-label="Maximize Control Tower"');
+      const closeIdx = html.indexOf('aria-label="Close Control Tower"');
 
-      expect(closeIdx).toBeGreaterThan(-1);
       expect(minIdx).toBeGreaterThan(-1);
       expect(maxIdx).toBeGreaterThan(-1);
+      expect(closeIdx).toBeGreaterThan(-1);
 
-      // Order check: Close (Red) < Minimize (Yellow) < Maximize (Green)
-      expect(closeIdx).toBeLessThan(minIdx);
+      // Order check: Minimize (Yellow) < Maximize (Green) < Close (Red)
       expect(minIdx).toBeLessThan(maxIdx);
+      expect(maxIdx).toBeLessThan(closeIdx);
 
       // Correct color tokens
-      expect(html).toContain('background-color:#FF5F57'); // Close
       expect(html).toContain('background-color:#FEBC2E'); // Minimize
       expect(html).toContain('background-color:#28C840'); // Maximize
+      expect(html).toContain('background-color:#FF5F57'); // Close
       expect(html).toContain('data-position="left"');
     });
 
-    it('renders position="right" with Windows order: Green (Maximize) -> Yellow (Minimize) -> Red (Close)', () => {
+    it('renders position="right" with control order: Yellow (Minimize) -> Green (Maximize) -> Red (Close)', () => {
       const html = renderToString(React.createElement(OrionWindowControls, { appName: 'Control Tower', position: 'right' }));
 
-      const maxIdx = html.indexOf('aria-label="Maximize Control Tower"');
       const minIdx = html.indexOf('aria-label="Minimize Control Tower"');
+      const maxIdx = html.indexOf('aria-label="Maximize Control Tower"');
       const closeIdx = html.indexOf('aria-label="Close Control Tower"');
 
-      expect(maxIdx).toBeGreaterThan(-1);
       expect(minIdx).toBeGreaterThan(-1);
+      expect(maxIdx).toBeGreaterThan(-1);
       expect(closeIdx).toBeGreaterThan(-1);
 
-      // Order check: Maximize (Green) < Minimize (Yellow) < Close (Red)
-      expect(maxIdx).toBeLessThan(minIdx);
-      expect(minIdx).toBeLessThan(closeIdx);
+      // Order check: Minimize (Yellow) < Maximize (Green) < Close (Red)
+      expect(minIdx).toBeLessThan(maxIdx);
+      expect(maxIdx).toBeLessThan(closeIdx);
 
       expect(html).toContain('data-position="right"');
     });

@@ -3,7 +3,7 @@
  *
  * Verifies that window controls:
  * 1. Are positioned on the TOP-LEFT of application windows (macOS convention)
- * 2. Maintain strict left-to-right order: CLOSE (Red #FF5F57), MINIMIZE (Yellow #FEBC2E), MAXIMIZE / RESTORE (Green #28C840)
+ * 2. Maintain strict left-to-right order: MINIMIZE (Yellow #FEBC2E), MAXIMIZE / RESTORE (Green #28C840), CLOSE (Red #FF5F57)
  * 3. Have circular shape (12x12px, rounded-full) and respective color themes
  * 4. Maintain proper accessible labels and titles
  * 5. Work consistently across multiple simultaneous windows
@@ -65,32 +65,32 @@ test.describe('Orion-9 Global Window Controls Placement E2E Suite', () => {
       expect(controlsBox.x - titlebarBox.x).toBeGreaterThanOrEqual(0);
     }
 
-    // 6. Verify internal button order: CLOSE (RED), MINIMIZE (YELLOW), MAXIMIZE (GREEN) (Left -> Right)
+    // 6. Verify internal button order: MINIMIZE (YELLOW), MAXIMIZE (GREEN), CLOSE (RED) (Left -> Right)
     const buttons = controls.locator('button');
     const buttonCount = await buttons.count();
     expect(buttonCount).toBeGreaterThanOrEqual(2);
 
     if (buttonCount >= 3) {
-      const closeBtn = buttons.nth(0);
-      const minimizeBtn = buttons.nth(1);
-      const maxBtn = buttons.nth(2);
+      const minimizeBtn = buttons.nth(0);
+      const maxBtn = buttons.nth(1);
+      const closeBtn = buttons.nth(2);
 
-      await expect(closeBtn).toHaveAttribute('aria-label', /Close/i);
       await expect(minimizeBtn).toHaveAttribute('aria-label', /Minimize/i);
       await expect(maxBtn).toHaveAttribute('aria-label', /Maximize|Restore/i);
+      await expect(closeBtn).toHaveAttribute('aria-label', /Close/i);
 
-      const closeBox = await closeBtn.boundingBox();
       const minBox = await minimizeBtn.boundingBox();
       const maxBox = await maxBtn.boundingBox();
+      const closeBox = await closeBtn.boundingBox();
 
-      expect(closeBox).not.toBeNull();
       expect(minBox).not.toBeNull();
       expect(maxBox).not.toBeNull();
+      expect(closeBox).not.toBeNull();
 
       if (closeBox && minBox && maxBox) {
-        // macOS traffic-light order: Close (Red) < Minimize (Yellow) < Maximize (Green)
-        expect(closeBox.x).toBeLessThan(minBox.x);
+        // Windows order with macOS circular traffic lights: Minimize (Yellow) < Maximize (Green) < Close (Red)
         expect(minBox.x).toBeLessThan(maxBox.x);
+        expect(maxBox.x).toBeLessThan(closeBox.x);
       }
     }
   });

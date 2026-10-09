@@ -87,16 +87,16 @@ describe('Orion-9 Title Bar / Window Chrome Visual Repair', () => {
     // No square container classes on controls
     expect(html).not.toContain('w-8 h-8 rounded-lg bg-[#171b21]');
 
-    // Order: Close before Minimize before Maximize
-    const closeIdx = html.indexOf('aria-label="Close User Profile"');
+    // Order: Minimize before Maximize before Close
     const minIdx = html.indexOf('aria-label="Minimize User Profile"');
     const maxIdx = html.indexOf('aria-label="Maximize User Profile"');
+    const closeIdx = html.indexOf('aria-label="Close User Profile"');
 
-    expect(closeIdx).toBeGreaterThan(-1);
     expect(minIdx).toBeGreaterThan(-1);
     expect(maxIdx).toBeGreaterThan(-1);
-    expect(closeIdx).toBeLessThan(minIdx);
+    expect(closeIdx).toBeGreaterThan(-1);
     expect(minIdx).toBeLessThan(maxIdx);
+    expect(maxIdx).toBeLessThan(closeIdx);
   });
 
   it('4. Settings Application Header in OrionSettingsSplitLayout is opaque (#0c0e11) with clean separation', () => {

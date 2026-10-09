@@ -436,7 +436,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
                 <div className="w-2 h-2 rounded-full bg-white/10" />
               </div>
               <div className="h-10 p-2 flex items-center justify-center bg-[var(--orion-surface)]/50">
-                <span className="text-[10px] text-[var(--orion-text-muted)] font-mono">Red • Yellow • Green</span>
+                <span className="text-[10px] text-[var(--orion-text-muted)] font-mono">Yellow • Green • Red</span>
               </div>
             </div>
 
@@ -451,7 +451,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
                   )}
                 </div>
                 <p className="text-[11px] text-[var(--orion-text-secondary)]">
-                  Close (Red), Minimize (Yellow), Maximize (Green) grouped on top-left.
+                  Minimize (Yellow), Maximize (Green), Close (Red) grouped on top-left.
                 </p>
               </div>
               <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
@@ -466,7 +466,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
             </div>
           </div>
 
-          {/* Card 2: RIGHT — Windows Style */}
+          {/* Card 2: RIGHT — Windows Position */}
           <div
             role="radio"
             aria-checked={settings.windowControlPosition === 'right'}
@@ -492,7 +492,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
                 </div>
               </div>
               <div className="h-10 p-2 flex items-center justify-center bg-[var(--orion-surface)]/50">
-                <span className="text-[10px] text-[var(--orion-text-muted)] font-mono">Green • Yellow • Red</span>
+                <span className="text-[10px] text-[var(--orion-text-muted)] font-mono">Yellow • Green • Red</span>
               </div>
             </div>
 
@@ -507,7 +507,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
                   )}
                 </div>
                 <p className="text-[11px] text-[var(--orion-text-secondary)]">
-                  Maximize (Green), Minimize (Yellow), Close (Red) grouped on top-right.
+                  Minimize (Yellow), Maximize (Green), Close (Red) grouped on top-right.
                 </p>
               </div>
               <div className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${

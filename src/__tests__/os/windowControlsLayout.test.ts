@@ -67,21 +67,21 @@ describe('OrionWindow Global Controls Layout', () => {
     expect(controlsIndex).toBeLessThan(appNameIndex);
   });
 
-  it('preserves the canonical macOS order of controls: Close (Red) -> Minimize (Yellow) -> Maximize (Green)', () => {
+  it('preserves the order of controls: Minimize (Yellow) -> Maximize (Green) -> Close (Red)', () => {
     const element = React.createElement(OrionWindow, { window: mockWindow, isActive: true });
     const html = renderToString(element);
 
-    const closeIdx = html.indexOf('aria-label="Close Inventory"');
     const minimizeIdx = html.indexOf('aria-label="Minimize Inventory"');
     const maximizeIdx = html.indexOf('aria-label="Maximize Inventory"');
+    const closeIdx = html.indexOf('aria-label="Close Inventory"');
 
-    expect(closeIdx).toBeGreaterThan(-1);
     expect(minimizeIdx).toBeGreaterThan(-1);
     expect(maximizeIdx).toBeGreaterThan(-1);
+    expect(closeIdx).toBeGreaterThan(-1);
 
-    // Canonical macOS order: Close (Red) < Minimize (Yellow) < Maximize (Green) (Left -> Right)
-    expect(closeIdx).toBeLessThan(minimizeIdx);
+    // Order: Minimize (Yellow) < Maximize (Green) < Close (Red) (Left -> Right)
     expect(minimizeIdx).toBeLessThan(maximizeIdx);
+    expect(maximizeIdx).toBeLessThan(closeIdx);
   });
 
   it('preserves circular shape and traffic-light colors without square wrappers', () => {

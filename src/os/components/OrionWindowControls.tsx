@@ -15,15 +15,19 @@ export interface OrionWindowControlsProps {
 /**
  * ORION-9 TRAFFIC-LIGHT WINDOW CONTROLS
  * 
- * Supports both Mac style (left: Close/Red -> Minimize/Yellow -> Maximize/Green)
- * and Windows style (right: Maximize/Green -> Minimize/Yellow -> Close/Red).
+ * macOS-style circular traffic-light buttons with Windows-style control order:
+ * 1. Minimize — Yellow (#FEBC2E), using existing minimize handler.
+ * 2. Maximize / Restore — Green (#28C840), using existing maximize and restore handlers.
+ * 3. Close — Red (#FF5F57), using existing close handler.
  * 
- * Absolute platform convention specification:
- * - Size: Pure 12px x 12px circles, border-radius 50%, no border, no padding
- * - Hit Target: Invisible, transparent button wrapper (w-3.5 h-3.5)
- * - Container: ZERO square, card, rounded-lg, or rounded-xl visual containers around controls
- * - Colors: #FF5F57 (Close), #FEBC2E (Minimize), #28C840 (Maximize)
- * - Micro-interactions: Subtle glyphs (×, −, +) only on group-hover
+ * Arranged horizontally from left to right in exactly this order:
+ * Yellow (Minimize) -> Green (Maximize / Restore) -> Red (Close).
+ * 
+ * Visual Specification:
+ * - Size: Compact 12px x 12px circular buttons, border-radius 50%
+ * - Hit Target: Transparent button wrapper (w-3.5 h-3.5) with focus ring
+ * - Micro-interactions: Subtle action glyphs on group-hover / button-hover / focus-visible
+ * - Maximize / Restore dynamic icon switching based on window state
  */
 export const OrionWindowControls: React.FC<OrionWindowControlsProps> = ({
   onClose,
@@ -35,42 +39,6 @@ export const OrionWindowControls: React.FC<OrionWindowControlsProps> = ({
   disabled = false,
   position = 'left',
 }) => {
-  const closeButton = (
-    <button
-      key="control-close"
-      type="button"
-      aria-label={`Close ${appName}`}
-      title={`Close ${appName} (⌘W)`}
-      disabled={disabled || !onClose}
-      onClick={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        onClose?.();
-      }}
-      className={cn(
-        'relative flex items-center justify-center p-0 m-0 bg-transparent border-0 outline-none shadow-none cursor-pointer',
-        'w-3.5 h-3.5 focus-visible:ring-1 focus-visible:ring-white/40 focus-visible:rounded-full',
-        disabled && 'opacity-40 cursor-not-allowed'
-      )}
-    >
-      <span
-        className="w-3 h-3 rounded-full flex items-center justify-center transition-transform active:scale-90"
-        style={{ backgroundColor: '#FF5F57' }}
-      >
-        <svg
-          className="w-2 h-2 opacity-0 group-hover/traffic-lights:opacity-85 transition-opacity"
-          viewBox="0 0 8 8"
-          fill="none"
-          stroke="#4A0002"
-          strokeWidth="1.2"
-          strokeLinecap="round"
-        >
-          <path d="M 2 2 L 6 6 M 6 2 L 2 6" />
-        </svg>
-      </span>
-    </button>
-  );
-
   const minimizeButton = (
     <button
       key="control-minimize"
@@ -90,11 +58,11 @@ export const OrionWindowControls: React.FC<OrionWindowControlsProps> = ({
       )}
     >
       <span
-        className="w-3 h-3 rounded-full flex items-center justify-center transition-transform active:scale-90"
+        className="w-3 h-3 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-90 border border-black/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]"
         style={{ backgroundColor: '#FEBC2E' }}
       >
         <svg
-          className="w-2 h-2 opacity-0 group-hover/traffic-lights:opacity-85 transition-opacity"
+          className="w-2 h-2 opacity-0 group-hover/traffic-lights:opacity-90 group-focus-within/traffic-lights:opacity-90 hover:opacity-100 focus-visible:opacity-100 transition-opacity"
           viewBox="0 0 8 8"
           fill="none"
           stroke="#533300"
@@ -126,12 +94,12 @@ export const OrionWindowControls: React.FC<OrionWindowControlsProps> = ({
       )}
     >
       <span
-        className="w-3 h-3 rounded-full flex items-center justify-center transition-transform active:scale-90"
+        className="w-3 h-3 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-90 border border-black/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]"
         style={{ backgroundColor: '#28C840' }}
       >
         {isMaximized ? (
           <svg
-            className="w-2 h-2 opacity-0 group-hover/traffic-lights:opacity-85 transition-opacity"
+            className="w-2 h-2 opacity-0 group-hover/traffic-lights:opacity-90 group-focus-within/traffic-lights:opacity-90 hover:opacity-100 focus-visible:opacity-100 transition-opacity"
             viewBox="0 0 8 8"
             fill="none"
             stroke="#00460A"
@@ -143,7 +111,7 @@ export const OrionWindowControls: React.FC<OrionWindowControlsProps> = ({
           </svg>
         ) : (
           <svg
-            className="w-2 h-2 opacity-0 group-hover/traffic-lights:opacity-85 transition-opacity"
+            className="w-2 h-2 opacity-0 group-hover/traffic-lights:opacity-90 group-focus-within/traffic-lights:opacity-90 hover:opacity-100 focus-visible:opacity-100 transition-opacity"
             viewBox="0 0 8 8"
             fill="none"
             stroke="#00460A"
@@ -154,6 +122,42 @@ export const OrionWindowControls: React.FC<OrionWindowControlsProps> = ({
             <path d="M 2 2 L 6 6 M 2 4.5 L 2 2 L 4.5 2 M 6 3.5 L 6 6 L 3.5 6" />
           </svg>
         )}
+      </span>
+    </button>
+  );
+
+  const closeButton = (
+    <button
+      key="control-close"
+      type="button"
+      aria-label={`Close ${appName}`}
+      title={`Close ${appName} (⌘W)`}
+      disabled={disabled || !onClose}
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        onClose?.();
+      }}
+      className={cn(
+        'relative flex items-center justify-center p-0 m-0 bg-transparent border-0 outline-none shadow-none cursor-pointer',
+        'w-3.5 h-3.5 focus-visible:ring-1 focus-visible:ring-white/40 focus-visible:rounded-full',
+        disabled && 'opacity-40 cursor-not-allowed'
+      )}
+    >
+      <span
+        className="w-3 h-3 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-90 border border-black/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.25)]"
+        style={{ backgroundColor: '#FF5F57' }}
+      >
+        <svg
+          className="w-2 h-2 opacity-0 group-hover/traffic-lights:opacity-90 group-focus-within/traffic-lights:opacity-90 hover:opacity-100 focus-visible:opacity-100 transition-opacity"
+          viewBox="0 0 8 8"
+          fill="none"
+          stroke="#4A0002"
+          strokeWidth="1.2"
+          strokeLinecap="round"
+        >
+          <path d="M 2 2 L 6 6 M 6 2 L 2 6" />
+        </svg>
       </span>
     </button>
   );
@@ -170,23 +174,15 @@ export const OrionWindowControls: React.FC<OrionWindowControlsProps> = ({
       onDoubleClick={(e) => e.stopPropagation()}
     >
       {/* 
-        Position order:
-        - LEFT (Mac style): RED (Close) -> YELLOW (Minimize) -> GREEN (Maximize)
-        - RIGHT (Windows style): GREEN (Maximize) -> YELLOW (Minimize) -> RED (Close)
+        Windows-style control order with macOS circular traffic-light buttons:
+        1. Minimize — Yellow (#FEBC2E)
+        2. Maximize / Restore — Green (#28C840)
+        3. Close — Red (#FF5F57)
+        Arranged horizontally from left to right in exactly this order: Yellow -> Green -> Red
       */}
-      {position === 'right' ? (
-        <>
-          {maximizeButton}
-          {minimizeButton}
-          {closeButton}
-        </>
-      ) : (
-        <>
-          {closeButton}
-          {minimizeButton}
-          {maximizeButton}
-        </>
-      )}
+      {minimizeButton}
+      {maximizeButton}
+      {closeButton}
     </div>
   );
 };
