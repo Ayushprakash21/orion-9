@@ -211,7 +211,18 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
             type="button"
             data-testid="browser-install-desktop-btn"
             title="Desktop app required"
-            onClick={() => onInstallDesktop ? onInstallDesktop() : openExternally('https://orion9.tech')}
+            onClick={() => {
+              if (onInstallDesktop) {
+                onInstallDesktop();
+              } else {
+                const link = document.createElement('a');
+                link.href = '/downloads/Orion-9-Setup.exe';
+                link.download = 'Orion-9-Setup.exe';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }
+            }}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-os-surface hover:bg-os-surface-hover border border-os-border text-os-text-primary text-xs font-medium transition-colors cursor-pointer"
           >
             <Download className="w-4 h-4 text-os-accent" />

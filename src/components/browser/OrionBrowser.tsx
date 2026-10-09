@@ -22,7 +22,7 @@ import { detectBrowserRuntimeCapability, resolveAuthoritativeCapability, getCach
 import { BrowserDiagnosticsOverlay } from './BrowserDiagnosticsOverlay';
 import { useWindowManager } from '../../os/WindowManagerContext';
 import { useToast } from '../../store/ToastContext';
-import { Search, X, ChevronUp, ChevronDown, Clock, Bookmark as BookmarkIcon, Trash2, Settings, ExternalLink, Activity } from 'lucide-react';
+import { Search, X, ChevronUp, ChevronDown, Clock, Bookmark as BookmarkIcon, Trash2, Settings, ExternalLink, Activity, Download } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export function OrionBrowser() {
@@ -78,6 +78,7 @@ export function OrionBrowser() {
   const [isFindInPageOpen, setIsFindInPageOpen] = useState(false);
   const [findQuery, setFindQuery] = useState('');
   const [findMatches, setFindMatches] = useState({ count: 0, activeIndex: 0 });
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState(false);
   const [capability, setCapability] = useState<BrowserRuntimeCapability>(() => {
     return getCachedAuthoritativeCapability() || detectBrowserRuntimeCapability();
   });
@@ -619,6 +620,26 @@ export function OrionBrowser() {
     }
   }, [activeTab, openApplication, showToast]);
 
+  const handleInstallDesktop = useCallback(async () => {
+    try {
+      const res = await fetch('/api/download/desktop/status');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.available) {
+          showToast?.('Downloading Orion-9 Desktop Installer (14.4 MB)...', 'success', 'Orion Desktop');
+          const link = document.createElement('a');
+          link.href = data.url || '/downloads/Orion-9-Setup.exe';
+          link.download = 'Orion-9-Setup.exe';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          return;
+        }
+      }
+    } catch {}
+    setIsInstallModalOpen(true);
+  }, [showToast]);
+
   // Zoom Controls
   const handleZoomIn = () => {
     const next = Math.min(1.5, Math.round((zoomLevel + 0.1) * 10) / 10);
@@ -904,9 +925,7 @@ export function OrionBrowser() {
             window.open(activeTab.url, '_blank', 'noopener,noreferrer');
           }
         }}
-        onInstallDesktop={() => {
-          showToast?.('ORION Desktop is required for full web browsing.', 'info', 'Orion Desktop');
-        }}
+        onInstallDesktop={handleInstallDesktop}
         onBoundsChange={(bounds) => {
           adapterRef.current?.setBounds(bounds);
         }}
@@ -1100,7 +1119,55 @@ export function OrionBrowser() {
         </div>
       )}
 
-      {/* 9. Runtime Diagnostics HUD (Alt+D) */}
+      {/* 9. Install Orion Desktop Modal */}
+      {isInstallModalOpen && (
+        <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-os-surface border border-os-border rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-4 border-b border-os-border mb-4">
+              <div className="flex items-center gap-2">
+                <Download className="w-5 h-5 text-os-accent" />
+                <h3 className="text-sm font-semibold text-os-text-primary">Install Orion Desktop</h3>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setIsInstallModalOpen(false)}
+                className="p-1 rounded-md text-os-text-muted hover:text-os-text-primary cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3 text-xs text-os-text-secondary leading-relaxed">
+              <p>
+                The native Orion-9 Desktop runtime provides full, unrestricted web browsing with OS-native WebView surfaces (enabling Google, GitHub, and all public websites without iframe restrictions).
+              </p>
+              
+              <div className="p-3 rounded-xl bg-os-bg/70 border border-os-border font-mono text-[11px] text-os-text-primary">
+                <div className="text-[10px] text-os-text-muted mb-1 uppercase tracking-wider">Developer Build Command:</div>
+                <code>npm run tauri:build</code>
+              </div>
+
+              <p className="text-[11px] text-os-text-muted">
+                Installer output location:<br />
+                <code className="text-os-accent">src-tauri/target/release/bundle/nsis/Orion-9_9.0.0_x64-setup.exe</code>
+              </p>
+
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-os-border">
+                <a
+                  href="/downloads/Orion-9-Setup.exe"
+                  download="Orion-9-Setup.exe"
+                  onClick={() => setIsInstallModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-os-accent text-os-bg font-medium hover:opacity-90 transition-opacity cursor-pointer text-center"
+                >
+                  Download Installer (.exe)
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 10. Runtime Diagnostics HUD (Alt+D) */}
       <BrowserDiagnosticsOverlay
         isOpen={isDiagnosticsOpen}
         onClose={() => setIsDiagnosticsOpen(false)}

@@ -87,7 +87,9 @@ export default defineConfig(() => {
       host: '0.0.0.0',
       port: 3000,
       strictPort: true,
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      watch: process.env.DISABLE_HMR === 'true' ? null : {
+        ignored: ['**/src-tauri/target/**', '**/scratch/**', '**/public/downloads/**', '**/*.exe', '**/*.msi'],
+      },
     },
   };
 });

@@ -207,6 +207,38 @@ async function startServer() {
     });
   });
 
+  // Desktop Installer Download & Status Endpoints
+  app.get("/api/download/desktop", (_req, res) => {
+    const publicInstaller = path.join(process.cwd(), "public", "downloads", "Orion-9-Setup.exe");
+    if (fs.existsSync(publicInstaller)) {
+      return res.download(publicInstaller, "Orion-9-Setup.exe");
+    }
+    const nsisInstaller = path.join(process.cwd(), "src-tauri", "target", "release", "bundle", "nsis", "Orion-9_9.0.0_x64-setup.exe");
+    if (fs.existsSync(nsisInstaller)) {
+      return res.download(nsisInstaller, "Orion-9-Setup.exe");
+    }
+    res.status(404).json({
+      available: false,
+      message: "Orion Desktop installer has not been compiled yet on this server.",
+      instruction: "Run 'npm run tauri:build' to generate the native Windows installer."
+    });
+  });
+
+  app.get("/api/download/desktop/status", (_req, res) => {
+    const publicInstaller = path.join(process.cwd(), "public", "downloads", "Orion-9-Setup.exe");
+    const nsisInstaller = path.join(process.cwd(), "src-tauri", "target", "release", "bundle", "nsis", "Orion-9_9.0.0_x64-setup.exe");
+    const exists = fs.existsSync(publicInstaller) || fs.existsSync(nsisInstaller);
+    const size = exists ? (fs.existsSync(publicInstaller) ? fs.statSync(publicInstaller).size : fs.statSync(nsisInstaller).size) : 0;
+    res.json({
+      available: exists,
+      url: exists ? "/downloads/Orion-9-Setup.exe" : null,
+      sizeBytes: size,
+      version: "9.0.0",
+      platform: "windows-x64",
+      instruction: "Run 'npm run tauri:build' to generate the native Windows installer."
+    });
+  });
+
   // ---------------------------------------------------------------------------
   // DEMO PERSISTENT CLOUD SCHEDULER & REALTIME GENERATION ENDPOINTS
   // ---------------------------------------------------------------------------

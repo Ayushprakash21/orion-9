@@ -49,8 +49,11 @@ pub struct FindResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RuntimeCapabilities {
+    #[serde(alias = "native_available")]
     pub native_available: bool,
+    #[serde(alias = "runtime_type")]
     pub runtime_type: String,
     pub platform: String,
     pub version: String,
@@ -129,8 +132,7 @@ pub fn create_child_webview(
     let tab_id_dl = tab_id.to_string();
     let app_dl = app.clone();
 
-    let mut builder = WebviewBuilder::new(&native_label, WebviewUrl::External(target_url.clone()))
-        .auto_resize();
+    let mut builder = WebviewBuilder::new(&native_label, WebviewUrl::External(target_url.clone()));
 
     // 1. Navigation permission & lifecycle
     builder = builder.on_navigation(move |nav_url| {
@@ -342,6 +344,8 @@ pub async fn browser_navigate(
     let native_label = sanitize_label(&tab_id);
 
     let webview = if let Some(existing) = app.get_webview(&native_label) {
+        let _ = existing.show();
+        let _ = existing.set_focus();
         existing
     } else {
         // Retrieve recorded bounds or default
@@ -371,6 +375,7 @@ pub async fn browser_navigate(
         let mut surfaces = state.surfaces.lock().map_err(|e| e.to_string())?;
         if let Some(entry) = surfaces.get_mut(&tab_id) {
             entry.url = parsed_url.to_string();
+            entry.visible = true;
             entry.lifecycle_state = SurfaceLifecycleState::Visible;
         }
     }

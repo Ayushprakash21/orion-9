@@ -10,7 +10,7 @@ console.log('============================================================\n');
 process.env.FIREBASE_EMULATOR_REQUIRED = 'true';
 
 const cmd = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-const vitestCmd = process.platform === 'win32' ? 'npx.cmd vitest run src/__tests__/security/' : 'npx vitest run src/__tests__/security/';
+const vitestCmd = process.platform === 'win32' ? '"npx vitest run src/__tests__/security/"' : 'npx vitest run src/__tests__/security/';
 const args = [
   'firebase-tools',
   'emulators:exec',
@@ -27,6 +27,7 @@ const child = spawn(cmd, args, {
     FIREBASE_EMULATOR_REQUIRED: 'true',
   },
   stdio: ['inherit', 'pipe', 'pipe'],
+  shell: true,
 });
 
 let stdoutBuffer = '';

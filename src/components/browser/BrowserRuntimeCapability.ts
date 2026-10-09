@@ -177,7 +177,7 @@ export async function verifyNativeRuntimeUsable(): Promise<boolean> {
     if (win.electronAPI?.invoke && typeof win.electronAPI.invoke === 'function') {
       try {
         const caps = await win.electronAPI.invoke('browser_runtime_capabilities');
-        return Boolean(caps?.native_available);
+        return Boolean(caps?.native_available || caps?.nativeAvailable);
       } catch {
         return false;
       }
@@ -187,7 +187,7 @@ export async function verifyNativeRuntimeUsable(): Promise<boolean> {
 
   try {
     const caps = await invoke('browser_runtime_capabilities');
-    return Boolean(caps?.native_available);
+    return Boolean(caps?.native_available || caps?.nativeAvailable);
   } catch (err: any) {
     return false;
   }
