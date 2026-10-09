@@ -1885,6 +1885,27 @@ service cloud.firestore {
       allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
       allow delete: if isAdmin();
     }
+
+    // N_WORKFLOW Domain - Projects
+    match /projects/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // N_WORKFLOW Domain - Project Tasks
+    match /project_tasks/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // K_CONTROL_TOWER Domain - Flow Tracking Records
+    match /flow_tracking_records/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
   }
 }
 

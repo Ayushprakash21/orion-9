@@ -1148,47 +1148,116 @@ export interface DeliveryPodRecord {
 
 // ── 7. CUSTOMER INVOICING & ACCOUNTS RECEIVABLE (AR) ─────────────────────────
 
+export interface CustomerInvoiceLineItem {
+  lineId?: string;
+  lineItemId?: string;
+  productId?: string;
+  productName?: string;
+  sku?: string;
+  description?: string;
+  quantity: number;
+  unitPrice: number;
+  discountRate?: number;
+  taxRate?: number;
+  lineTotal: number;
+}
+
 export interface CustomerInvoiceRecord {
   invoiceId: string;
   tenantId: string;
   invoiceNumber: string;
   orderId: string;
   customerId: string;
+  customerName?: string;
+  billingAddress?: string;
   currency: string;
   subtotal: number;
   taxAmount: number;
+  freightAmount?: number;
+  discountAmount?: number;
   totalAmount: number;
   paidAmount: number;
   outstandingBalance: number;
   issueDate: string;
   dueDate: string;
-  status: 'DRAFT' | 'ISSUED' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+  paymentTerms?: string;
+  status: 'DRAFT' | 'VALIDATED' | 'APPROVED' | 'ISSUED' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE' | 'CANCELLED' | 'DISPUTED' | 'CREDITED';
   arAgingBucket: 'CURRENT' | '1_30' | '31_60' | '61_90' | '90_PLUS';
   paymentReference?: string;
+  shipmentId?: string;
+  lineItems?: CustomerInvoiceLineItem[];
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomerPaymentAllocation {
+  invoiceId: string;
+  allocatedAmount: number;
+  invoiceNumber?: string;
+}
+
+export interface CustomerPaymentRecord {
+  paymentId: string;
+  tenantId: string;
+  paymentReference: string;
+  customerId: string;
+  customerName: string;
+  amount: number;
+  currency: string;
+  paymentDate: string;
+  paymentMethod: 'WIRE' | 'ACH' | 'CHECK' | 'CARD' | 'CREDIT_MEMO';
+  allocations: CustomerPaymentAllocation[];
+  unallocatedAmount: number;
+  status: 'CONFIRMED' | 'RECONCILED' | 'REVERSED';
+  notes?: string;
   createdAt: string;
   updatedAt: string;
 }
 
 // ── 8. SUPPLIER ACCOUNTS PAYABLE (AP) ────────────────────────────────────────
 
+export interface SupplierInvoiceLineItem {
+  lineId: string;
+  productId: string;
+  productName: string;
+  poQuantity: number;
+  grnQuantity: number;
+  invoicedQuantity: number;
+  poUnitPrice: number;
+  invoicedUnitPrice: number;
+  lineTotal: number;
+  hasQuantityVariance?: boolean;
+  hasPriceVariance?: boolean;
+}
+
 export interface SupplierApLedgerRecord {
   apId: string;
   tenantId: string;
   supplierInvoiceId: string;
+  supplierInvoiceNumber?: string;
   supplierId: string;
+  supplierName?: string;
   poId: string;
+  grnId?: string;
   totalPayableAmount: number;
   paidAmount: number;
   outstandingBalance: number;
   currency: string;
+  invoiceDate?: string;
   dueDate: string;
-  matchStatus: '3_WAY_MATCHED' | 'PRICE_VARIANCE' | 'QTY_VARIANCE' | 'PENDING_MATCH';
-  paymentStatus: 'UNPAID' | 'SCHEDULED' | 'PAID' | 'HELD_DISPUTED';
+  paymentTerms?: string;
+  matchStatus: '3_WAY_MATCHED' | 'PRICE_VARIANCE' | 'QTY_VARIANCE' | 'PENDING_MATCH' | 'MISMATCH' | 'DISCREPANCY_QUANTITY' | 'DISCREPANCY_PRICE' | 'DISCREPANCY_UNRESOLVED';
+  paymentStatus: 'UNPAID' | 'SCHEDULED' | 'PAID' | 'HELD_DISPUTED' | 'APPROVED';
   apAgingBucket: 'CURRENT' | '1_30' | '31_60' | '61_90' | '90_PLUS';
   paymentBatchReference?: string;
+  scheduledPaymentDate?: string;
+  discrepancyDetails?: string;
+  lineItems?: SupplierInvoiceLineItem[];
   createdAt: string;
   updatedAt: string;
 }
+
 
 // ── 9. WORKING CAPITAL INTELLIGENCE ──────────────────────────────────────────
 

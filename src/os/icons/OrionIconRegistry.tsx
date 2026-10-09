@@ -27,7 +27,9 @@ import {
   IconWarrantyService,
   IconSupplierCollaboration,
   IconBuyWorkflow,
-  IconExecutiveOverview
+  IconExecutiveOverview,
+  IconProjectManagement,
+  IconFlowTracker
 } from './icons/OperationsIcons';
 
 import {
@@ -500,6 +502,24 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     description: 'Collaborative Planning, Forecasting, and Replenishment.',
     palette: { from: '#06B6D4', to: '#164E63', accent: '#06B6D4', surface: '#06B6D415' },
     component: IconSupplierCollaboration
+  },
+  'project-management': {
+    appId: 'project-management',
+    iconId: 'icon-project-management',
+    name: 'Project Management',
+    category: 'Operations',
+    description: 'Cross-functional supply chain project portfolio, Kanban task board, Gantt milestones, and SCM entity linkages.',
+    palette: { from: '#2563EB', to: '#1D4ED8', accent: '#60A5FA', surface: '#60A5FA15' },
+    component: IconProjectManagement
+  },
+  'flow-tracker': {
+    appId: 'flow-tracker',
+    iconId: 'icon-flow-tracker',
+    name: 'Flow Tracker',
+    category: 'Operations',
+    description: 'End-to-end Order-to-Cash and Procure-to-Pay event tracking, stage SLA monitoring, and exception resolution.',
+    palette: { from: '#0891B2', to: '#0E7490', accent: '#22D3EE', surface: '#22D3EE15' },
+    component: IconFlowTracker
   },
 
   // === Intelligence ===

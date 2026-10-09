@@ -104,6 +104,8 @@ import { MultiPartyNetworkPortal } from '../network/MultiPartyNetworkPortal';
 import { GuidedBuyWorkflow } from '../components/guided/GuidedBuyWorkflow';
 import { ExecutiveOverview } from '../components/executive/ExecutiveOverview';
 import { OrionBrowser } from '../components/browser/OrionBrowser';
+import { ProjectManagementCenter } from '../components/projects/ProjectManagementCenter';
+import { FlowTracker } from '../components/flow/FlowTracker';
 
 function createLazyApp(
   loader: () => Promise<any>,
@@ -271,6 +273,8 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'orion-slides': OrionSlides,
   'orion-pdf': OrionPdf,
   'browser': OrionBrowser,
+  'project-management': ProjectManagementCenter,
+  'flow-tracker': FlowTracker,
 };
 
 export function getAppComponent(appId: string): React.ComponentType<any> | null {

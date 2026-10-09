@@ -1143,6 +1143,26 @@ export const ORION_REGISTRY: Record<string, OrionApp> = {
     description: 'First-class web workstation, multi-tab browsing, bookmarking, and native OS navigation.',
     dockDefault: true,
   },
+  'project-management': {
+    id: 'project-management',
+    name: 'Project Management',
+    route: '/operations/projects',
+    category: 'Operations',
+    icon: Target,
+    color: '#3B82F6',
+    description: 'Cross-functional supply chain project portfolio, Kanban task board, Gantt milestones, and SCM entity linkages.',
+    dockDefault: true,
+  },
+  'flow-tracker': {
+    id: 'flow-tracker',
+    name: 'Flow Tracker',
+    route: '/operations/flow-tracker',
+    category: 'Operations',
+    icon: GitCommit,
+    color: '#06B6D4',
+    description: 'End-to-end Order-to-Cash (O2C) and Procure-to-Pay (P2P) event tracking, stage SLA monitoring, and exception resolution.',
+    dockDefault: true,
+  },
 };
 
 // Wire every registered application to its authoritative macOS-style vector icon component

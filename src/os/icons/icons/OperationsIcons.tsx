@@ -412,3 +412,49 @@ export const IconExecutiveOverview: React.FC<{ size?: number; className?: string
     <line x1="34" y1="84" x2="94" y2="84" stroke="#39C77A" strokeWidth="2" strokeLinecap="round" />
   </OrionSquircleBase>
 );
+
+// 29. Project Management
+export const IconProjectManagement: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
+  <OrionSquircleBase gradientId="icon-project-management" from="#2563EB" to="#1D4ED8" {...props}>
+    {/* Project Portfolio & Kanban Gantt Milestone Artwork */}
+    <rect x="30" y="26" width="68" height="76" rx="8" fill="#1E40AF" stroke="#93C5FD" strokeWidth="1.5" />
+    {/* Clip top bar */}
+    <rect x="46" y="20" width="36" height="12" rx="4" fill="#3B82F6" stroke="#DBEAFE" strokeWidth="1.5" />
+    <circle cx="64" cy="26" r="3" fill="#FFFFFF" />
+    {/* Milestone / Task Rows */}
+    <rect x="38" y="42" width="12" height="12" rx="3" fill="#10B981" />
+    <path d="M41 48 L44 51 L48 45" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    <line x1="56" y1="48" x2="88" y2="48" stroke="#DBEAFE" strokeWidth="2.5" strokeLinecap="round" />
+
+    <rect x="38" y="60" width="12" height="12" rx="3" fill="#38BDF8" />
+    <circle cx="44" cy="66" r="2.5" fill="#FFFFFF" />
+    <line x1="56" y1="66" x2="82" y2="66" stroke="#DBEAFE" strokeWidth="2.5" strokeLinecap="round" />
+
+    {/* Gantt Bar Row */}
+    <rect x="38" y="78" width="12" height="12" rx="3" fill="#F59E0B" />
+    <line x1="56" y1="84" x2="74" y2="84" stroke="#FBBF24" strokeWidth="3" strokeLinecap="round" />
+    <line x1="78" y1="84" x2="88" y2="84" stroke="#60A5FA" strokeWidth="1.5" strokeLinecap="round" strokeDasharray="2 2" />
+  </OrionSquircleBase>
+);
+
+// 30. Supply Chain Flow Tracker
+export const IconFlowTracker: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
+  <OrionSquircleBase gradientId="icon-flow-tracker" from="#0891B2" to="#0E7490" {...props}>
+    {/* Multi-tier SCM Pipeline & Event Nodes Track */}
+    <path d="M 32 64 C 48 40, 56 88, 72 64 C 84 48, 92 64, 96 64" stroke="#67E8F9" strokeWidth="3.5" strokeLinecap="round" fill="none" />
+    {/* Milestone Node 1 (Order Ingestion) */}
+    <circle cx="32" cy="64" r="7" fill="#0E7490" stroke="#CFFAFE" strokeWidth="2.5" />
+    <circle cx="32" cy="64" r="3" fill="#22D3EE" />
+    {/* Milestone Node 2 (Fulfillment / Dispatch) */}
+    <circle cx="54" cy="66" r="6" fill="#0891B2" stroke="#FFFFFF" strokeWidth="2" />
+    <path d="M 52 66 L 56 66" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" />
+    {/* Milestone Node 3 (Delivery / Invoice) */}
+    <circle cx="76" cy="62" r="7" fill="#0E7490" stroke="#67E8F9" strokeWidth="2.5" />
+    <circle cx="76" cy="62" r="3" fill="#A5F3FC" />
+    {/* Milestone Node 4 (Settled / Cash Reconciled) */}
+    <circle cx="96" cy="64" r="8" fill="#10B981" stroke="#FFFFFF" strokeWidth="2" />
+    <path d="M 93 64 L 95 66 L 99 62" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    {/* Downward Pulse Echo */}
+    <path d="M 32 82 L 96 82" stroke="#164E63" strokeWidth="2" strokeDasharray="3 3" />
+  </OrionSquircleBase>
+);
