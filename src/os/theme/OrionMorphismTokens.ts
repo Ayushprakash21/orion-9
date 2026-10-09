@@ -57,7 +57,12 @@ export function computeMorphismTokens(
 ): OrionMorphismTokens {
   const mode: OrionMorphismMode = preferences.morphismMode || 'glass';
   const isDark = theme.appearance.mode === 'dark';
-  const reduceTransparency = !preferences.transparencyEnabled;
+  const transparencyEnabled = preferences.transparencyEnabled !== false;
+  const rawIntensity = typeof preferences.transparencyIntensity === 'number'
+    ? preferences.transparencyIntensity
+    : 70;
+  const transparencyIntensity = Math.min(100, Math.max(0, rawIntensity));
+  const reduceTransparency = !transparencyEnabled || transparencyIntensity === 0;
 
   if (mode === 'clay') {
     // -------------------------------------------------------------------------
@@ -138,17 +143,39 @@ export function computeMorphismTokens(
   }
 
   // ---------------------------------------------------------------------------
-  // GLASSMORPHISM (Default): Translucent, layered, backdrop blur, sophisiticated & readable
+  // GLASSMORPHISM (Default): Continuous transparency calculation from transparencyIntensity
   // ---------------------------------------------------------------------------
   const rawBase = isDark ? '18, 20, 23' : '255, 255, 255';
-  const alphaSurface = reduceTransparency ? 0.94 : 0.72;
-  const alphaElevated = reduceTransparency ? 0.96 : 0.82;
-  const alphaHover = reduceTransparency ? 0.98 : 0.86;
+
+  // Continuous curve:
+  // 0% => 0.95 dark / 0.96 light (near-opaque)
+  // 70% (default) => 0.72 dark / 0.74 light (canonical liquid glass)
+  // 100% => 0.48 dark / 0.52 light (maximum airy translucency while maintaining text contrast)
+  const minAlpha = isDark ? 0.48 : 0.52;
+  const maxAlpha = isDark ? 0.95 : 0.96;
+  const tNorm = transparencyIntensity / 100;
+  const tCurve = Math.pow(tNorm, 2.0);
+  const alphaSurface = reduceTransparency 
+    ? maxAlpha 
+    : Number((maxAlpha - tCurve * (maxAlpha - minAlpha)).toFixed(3));
+
+  const alphaElevated = reduceTransparency 
+    ? (isDark ? 0.98 : 0.98) 
+    : Number((Math.min(0.98, alphaSurface + 0.10)).toFixed(3));
+
+  const alphaHover = reduceTransparency 
+    ? 0.98 
+    : Number((Math.min(0.98, alphaSurface + 0.14)).toFixed(3));
+
+  const alphaSubtle = reduceTransparency 
+    ? (isDark ? 0.90 : 0.92) 
+    : Number((Math.max(0.25, alphaSurface * 0.85)).toFixed(3));
+
   const blurPx = !preferences.blurEnabled 
     ? 0 
     : reduceTransparency 
       ? 6 
-      : Math.max(8, Math.round(preferences.blurIntensity / 4));
+      : Math.max(0, Math.round(preferences.blurIntensity / 4));
 
   const shadowColor = isDark ? 'rgba(0, 0, 0, 0.45)' : 'rgba(0, 0, 0, 0.10)';
   const shadowDeepColor = isDark ? 'rgba(0, 0, 0, 0.65)' : 'rgba(0, 0, 0, 0.18)';
@@ -156,7 +183,7 @@ export function computeMorphismTokens(
   return {
     mode: 'glass',
     surface: `rgba(${rawBase}, ${alphaSurface})`,
-    surfaceSubtle: `rgba(${rawBase}, ${alphaSurface * 0.85})`,
+    surfaceSubtle: `rgba(${rawBase}, ${alphaSubtle})`,
     surfaceElevated: `rgba(${rawBase}, ${alphaElevated})`,
     surfaceHover: `rgba(${rawBase}, ${alphaHover})`,
     surfaceActive: `rgba(${rawBase}, 0.92)`,
@@ -167,7 +194,7 @@ export function computeMorphismTokens(
     borderStrong: isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.16)',
 
     blur: `${blurPx}px`,
-    backdrop: `blur(${blurPx}px) saturate(125%)`,
+    backdrop: blurPx > 0 ? `blur(${blurPx}px) saturate(125%)` : 'none',
     saturation: '125%',
 
     shadow: `0 8px 24px ${shadowColor}`,
@@ -192,15 +219,17 @@ export function calculateMorphismTokens(
   theme: OrionTheme,
   isDark: boolean = theme.appearance.mode === 'dark',
   blurIntensity: number = 60,
-  blurEnabled: boolean = true
+  blurEnabled: boolean = true,
+  transparencyIntensity: number = 70,
+  transparencyEnabled: boolean = true
 ): OrionMorphismTokens {
   const syntheticPreferences: OrionAppearancePreferences = {
     version: 1,
     themeId: theme.id,
     appearanceMode: isDark ? 'dark' : 'light',
     customAccentEnabled: false,
-    transparencyEnabled: true,
-    transparencyIntensity: 70,
+    transparencyEnabled,
+    transparencyIntensity,
     blurEnabled,
     blurIntensity,
     reduceMotion: false,

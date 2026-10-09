@@ -406,22 +406,34 @@ export const AppearanceSettingsPanel: React.FC = () => {
               />
             </label>
 
-            <label className="flex items-center justify-between text-xs text-[var(--orion-text-primary)] cursor-pointer">
+            {/* Dedicated Global UI Transparency Slider (0-100%) */}
+            <div className="pt-2 border-t border-[var(--orion-border)] space-y-1.5">
+              <div className="flex justify-between text-[11px] text-[var(--orion-text-secondary)]">
+                <span>Global UI Transparency:</span>
+                <span className="font-mono font-bold text-[var(--orion-text-primary)]">{preferences.transparencyIntensity}%</span>
+              </div>
+              <input 
+                type="range"
+                min="0"
+                max="100"
+                value={preferences.transparencyIntensity}
+                disabled={!preferences.transparencyEnabled}
+                onChange={(e) => setPreference('transparencyIntensity', Number(e.target.value))}
+                className="w-full accent-[var(--orion-accent)] disabled:opacity-40 cursor-pointer"
+                aria-label="Global UI Transparency"
+              />
+              <div className="flex justify-between text-[10px] text-[var(--orion-text-muted)] font-mono">
+                <span>0% (Near-Opaque)</span>
+                <span>100% (Maximum Glass)</span>
+              </div>
+            </div>
+
+            <label className="flex items-center justify-between text-xs text-[var(--orion-text-primary)] cursor-pointer pt-2 border-t border-[var(--orion-border)]">
               <span>Enable Backdrop Blur</span>
               <input 
                 type="checkbox"
                 checked={preferences.blurEnabled}
                 onChange={(e) => setPreference('blurEnabled', e.target.checked)}
-                className="w-4 h-4 rounded accent-[var(--orion-accent)]"
-              />
-            </label>
-
-            <label className="flex items-center justify-between text-xs text-[var(--orion-text-primary)] cursor-pointer">
-              <span>Reduce System Motion</span>
-              <input 
-                type="checkbox"
-                checked={preferences.reduceMotion}
-                onChange={(e) => setPreference('reduceMotion', e.target.checked)}
                 className="w-4 h-4 rounded accent-[var(--orion-accent)]"
               />
             </label>
@@ -436,10 +448,22 @@ export const AppearanceSettingsPanel: React.FC = () => {
                 min="0"
                 max="100"
                 value={preferences.blurIntensity}
+                disabled={!preferences.blurEnabled}
                 onChange={(e) => setPreference('blurIntensity', Number(e.target.value))}
-                className="w-full accent-[var(--orion-accent)]"
+                className="w-full accent-[var(--orion-accent)] disabled:opacity-40 cursor-pointer"
+                aria-label="Blur Intensity"
               />
             </div>
+
+            <label className="flex items-center justify-between text-xs text-[var(--orion-text-primary)] cursor-pointer pt-2 border-t border-[var(--orion-border)]">
+              <span>Reduce System Motion</span>
+              <input 
+                type="checkbox"
+                checked={preferences.reduceMotion}
+                onChange={(e) => setPreference('reduceMotion', e.target.checked)}
+                className="w-4 h-4 rounded accent-[var(--orion-accent)]"
+              />
+            </label>
           </div>
         </div>
       </div>

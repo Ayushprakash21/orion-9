@@ -420,8 +420,76 @@
   }
 }
 
+/* Wire Canonical Morphism and Transparency to Real OS Surfaces */
+.orion-window-surface:not([data-maximized="true"]) {
+  background-color: var(--orion-morph-surface) !important;
+  backdrop-filter: var(--orion-morph-backdrop) !important;
+  -webkit-backdrop-filter: var(--orion-morph-backdrop) !important;
+  border-color: var(--orion-morph-border-strong) !important;
+  box-shadow: var(--orion-morph-elevation-modal) !important;
+}
 
+.orion-dock-shelf {
+  background-color: var(--orion-morph-surface-elevated) !important;
+  backdrop-filter: var(--orion-morph-backdrop) !important;
+  -webkit-backdrop-filter: var(--orion-morph-backdrop) !important;
+  border-color: var(--orion-morph-border-strong) !important;
+  box-shadow: var(--orion-morph-elevation-modal) !important;
+}
 
+.orion-command-palette {
+  background-color: var(--orion-morph-surface-elevated) !important;
+  backdrop-filter: var(--orion-morph-backdrop) !important;
+  -webkit-backdrop-filter: var(--orion-morph-backdrop) !important;
+  border-color: var(--orion-morph-border-strong) !important;
+  box-shadow: var(--orion-morph-elevation-modal) !important;
+}
+
+.orion-launcher-surface {
+  background-color: var(--orion-morph-surface-elevated) !important;
+  backdrop-filter: var(--orion-morph-backdrop) !important;
+  -webkit-backdrop-filter: var(--orion-morph-backdrop) !important;
+  border-color: var(--orion-morph-border-strong) !important;
+  box-shadow: var(--orion-morph-elevation-modal) !important;
+}
+
+.aurora-card {
+  background-color: var(--orion-morph-surface) !important;
+  border-color: var(--orion-morph-border) !important;
+  box-shadow: var(--orion-morph-shadow-soft) !important;
+}
+
+.aurora-acrylic {
+  background-color: var(--orion-morph-surface) !important;
+  backdrop-filter: var(--orion-morph-backdrop) !important;
+  -webkit-backdrop-filter: var(--orion-morph-backdrop) !important;
+  border-color: var(--orion-morph-border) !important;
+}
+
+/* Specific Morphism Enhancements when Claymorphism or Neumorphism is selected */
+[data-orion-morphism="clay"] .orion-window-titlebar,
+[data-orion-morphism="clay"] .orion-global-topbar,
+[data-orion-morphism="clay"] [data-orion-settings-header="true"] {
+  box-shadow: var(--orion-morph-shadow) !important;
+}
+
+[data-orion-morphism="neumorphic"] .orion-window-titlebar,
+[data-orion-morphism="neumorphic"] .orion-global-topbar,
+[data-orion-morphism="neumorphic"] [data-orion-settings-header="true"] {
+  box-shadow: var(--orion-morph-shadow) !important;
+}
+
+[data-orion-morphism="clay"] button:not([data-testid="start-orion-button"]):not([data-window-controls="true"] button),
+[data-orion-morphism="clay"] input,
+[data-orion-morphism="clay"] select {
+  box-shadow: var(--orion-morph-shadow-soft) !important;
+}
+
+[data-orion-morphism="neumorphic"] button:not([data-testid="start-orion-button"]):not([data-window-controls="true"] button),
+[data-orion-morphism="neumorphic"] input,
+[data-orion-morphism="neumorphic"] select {
+  box-shadow: var(--orion-morph-shadow-soft) !important;
+}
 
 *, *::before, *::after {
   box-sizing: border-box;
@@ -740,13 +808,13 @@ html, body, #root {
    This permanently reserves its 48px lane so application animations cannot move
    behind, above, or through the system chrome. */
 .orion-global-topbar {
-  /* Canonical macOS Liquid Glass system chrome: translucent vibrating material */
-  background: color-mix(in srgb, var(--orion-surface-elevated, var(--os-surface-elevated, #12151a)) 72%, transparent) !important;
-  background-color: color-mix(in srgb, var(--orion-surface-elevated, var(--os-surface-elevated, #12151a)) 72%, transparent) !important;
-  backdrop-filter: blur(24px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
-  border-bottom: 1px solid var(--orion-border, rgba(255, 255, 255, 0.08)) !important;
-  box-shadow: 0 1px 12px rgba(0, 0, 0, 0.18), inset 0 -0.5px 0 0 rgba(255, 255, 255, 0.08) !important;
+  /* Canonical macOS Liquid Glass system chrome bound to dynamic morphism & transparency tokens */
+  background: var(--orion-morph-surface-elevated) !important;
+  background-color: var(--orion-morph-surface-elevated) !important;
+  backdrop-filter: var(--orion-morph-backdrop) !important;
+  -webkit-backdrop-filter: var(--orion-morph-backdrop) !important;
+  border-bottom: 1px solid var(--orion-morph-border) !important;
+  box-shadow: var(--orion-morph-shadow-soft) !important;
   position: relative !important;
   grid-row: 1 !important;
   grid-column: 1 !important;
@@ -1154,29 +1222,29 @@ html, body, #root {
 
 
 
-/* CANONICAL MACOS LIQUID GLASS APPLICATION CHROME */
+/* CANONICAL MACOS LIQUID GLASS APPLICATION CHROME BOUND TO DYNAMIC MORPHISM */
 [data-orion-app-topbar="true"],
 [data-orion-window-titlebar="true"],
 [data-window-titlebar="true"],
 .orion-window-titlebar {
-  background: color-mix(in srgb, var(--orion-surface-elevated, var(--os-surface-elevated, #161920)) 76%, transparent) !important;
-  background-color: color-mix(in srgb, var(--orion-surface-elevated, var(--os-surface-elevated, #161920)) 76%, transparent) !important;
-  backdrop-filter: blur(28px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(150%) !important;
+  background: var(--orion-morph-surface-elevated) !important;
+  background-color: var(--orion-morph-surface-elevated) !important;
+  backdrop-filter: var(--orion-morph-backdrop) !important;
+  -webkit-backdrop-filter: var(--orion-morph-backdrop) !important;
   isolation: isolate !important;
-  border-bottom: 1px solid var(--orion-border, rgba(255, 255, 255, 0.08)) !important;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.12) !important;
+  border-bottom: 1px solid var(--orion-morph-border) !important;
+  box-shadow: var(--orion-morph-shadow-inset) !important;
 }
 
 /* SETTINGS APPLICATION HEADER LIQUID GLASS CHROME CONTRACT */
 [data-orion-settings-header="true"] {
-  background: color-mix(in srgb, var(--orion-surface, var(--os-surface, #12151a)) 76%, transparent) !important;
-  background-color: color-mix(in srgb, var(--orion-surface, var(--os-surface, #12151a)) 76%, transparent) !important;
-  backdrop-filter: blur(28px) saturate(150%) !important;
-  -webkit-backdrop-filter: blur(28px) saturate(150%) !important;
+  background: var(--orion-morph-surface) !important;
+  background-color: var(--orion-morph-surface) !important;
+  backdrop-filter: var(--orion-morph-backdrop) !important;
+  -webkit-backdrop-filter: var(--orion-morph-backdrop) !important;
   isolation: isolate !important;
-  border-bottom: 1px solid var(--orion-border, rgba(255, 255, 255, 0.07)) !important;
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.10) !important;
+  border-bottom: 1px solid var(--orion-morph-border) !important;
+  box-shadow: var(--orion-morph-shadow-inset) !important;
 }
 
 /* CANONICAL MACOS WINDOW CONTROLS CONTRACT: Pure circular traffic lights with zero box wrappers */
@@ -1214,12 +1282,12 @@ html, body, #root {
 .orion-desktop-shell > .orion-global-topbar,
 .orion-admin-shell > .orion-global-topbar,
 header.orion-global-topbar {
-  background: color-mix(in srgb, var(--orion-surface-elevated, var(--os-surface-elevated, #12151a)) 72%, transparent) !important;
-  background-color: color-mix(in srgb, var(--orion-surface-elevated, var(--os-surface-elevated, #12151a)) 72%, transparent) !important;
-  backdrop-filter: blur(24px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
-  border-bottom: 1px solid var(--orion-border, rgba(255, 255, 255, 0.08)) !important;
-  box-shadow: 0 1px 12px rgba(0, 0, 0, 0.18), inset 0 -0.5px 0 0 rgba(255, 255, 255, 0.08) !important;
+  background: var(--orion-morph-surface-elevated) !important;
+  background-color: var(--orion-morph-surface-elevated) !important;
+  backdrop-filter: var(--orion-morph-backdrop) !important;
+  -webkit-backdrop-filter: var(--orion-morph-backdrop) !important;
+  border-bottom: 1px solid var(--orion-morph-border) !important;
+  box-shadow: var(--orion-morph-shadow-soft) !important;
   isolation: isolate !important;
 }
 

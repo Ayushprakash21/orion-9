@@ -186,6 +186,8 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   root.style.setProperty('--orion-glass-opacity', glassOpacity.toString());
   root.style.setProperty('--orion-blur', blur + 'px');
   root.style.setProperty('--orion-shadow-intensity', theme.effects.shadowIntensity.toString());
+  root.style.setProperty('--orion-transparency-intensity', (preferences.transparencyIntensity ?? 70).toString());
+  root.style.setProperty('--orion-transparency-alpha', ((preferences.transparencyIntensity ?? 70) / 100).toFixed(3));
   
   const radius = getCornerRadiusValue(preferences.cornerRadius);
   root.style.setProperty('--orion-radius', radius + 'px');

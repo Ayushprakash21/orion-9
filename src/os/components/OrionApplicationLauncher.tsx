@@ -293,7 +293,7 @@ export function OrionApplicationLauncher() {
           marginLeft: 'var(--orion-dock-workspace-left, 0px)',
           marginRight: 'var(--orion-dock-workspace-right, 0px)',
         }}
-        className="relative w-[calc(100%-16px)] sm:w-full max-w-3xl max-h-[82vh] flex flex-col bg-[rgba(18,22,28,0.88)] backdrop-blur-[36px] backdrop-saturate-[160%] rounded-2xl border border-white/[0.14] shadow-[0_32px_80px_rgba(0,0,0,0.70),inset_0_1px_1px_0_rgba(255,255,255,0.22)] animate-in fade-in slide-in-from-bottom-6 duration-200 pointer-events-auto transition-all"
+        className="orion-launcher-surface relative w-[calc(100%-16px)] sm:w-full max-w-3xl max-h-[82vh] flex flex-col bg-[rgba(18,22,28,0.88)] backdrop-blur-[36px] backdrop-saturate-[160%] rounded-2xl border border-white/[0.14] shadow-[0_32px_80px_rgba(0,0,0,0.70),inset_0_1px_1px_0_rgba(255,255,255,0.22)] animate-in fade-in slide-in-from-bottom-6 duration-200 pointer-events-auto transition-all"
         onClick={e => e.stopPropagation()}
         role="dialog"
         aria-label="Application Launcher"

@@ -708,7 +708,7 @@ export function OrionDock() {
       >
         <div 
           className={cn(
-            "p-2.5 border transition-all duration-300 rounded-[20px] shadow-[0_24px_60px_rgba(0,0,0,0.55),inset_0_1px_1px_rgba(255,255,255,0.30)]",
+            "orion-dock-shelf p-2.5 border transition-all duration-300 rounded-[20px] shadow-[0_24px_60px_rgba(0,0,0,0.55),inset_0_1px_1px_rgba(255,255,255,0.30)]",
             isVertical ? "flex flex-col items-center gap-2.5 overflow-y-auto max-h-[80vh]" : "flex items-center gap-2.5 overflow-x-auto max-w-[calc(100vw-24px)]"
           )}
           style={{ 

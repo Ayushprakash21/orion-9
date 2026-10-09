@@ -97,6 +97,7 @@ const normalizeAppId = (id: string): string => {
   if (id === 'buy' || id === 'buy-something') return 'buy-workflow';
   if (id === 'executive' || id === 'exec-overview') return 'executive-overview';
   if (id === 'orion-browser' || id === 'web-browser') return 'browser';
+  if (id === 'control-tower') return 'command-center';
   return id;
 };
 

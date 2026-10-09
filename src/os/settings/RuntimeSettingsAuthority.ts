@@ -286,7 +286,7 @@ export class RuntimeSettingsAuthority {
       windowStyle: legacy.windowStyle || 'standard',
       windowHeaderStyle: (legacy.windowStyle === 'glass' ? 'glass' : legacy.windowStyle === 'compact' ? 'compact' : 'standard') as any,
       windowControlPosition: legacy.windowControlPosition || 'left',
-      glassTransparency: legacy.glassTransparency ?? (legacy.transparencyIntensity ? legacy.transparencyIntensity / 100 : 0.12),
+      glassTransparency: legacy.glassTransparency ?? (legacy.transparencyIntensity !== undefined ? legacy.transparencyIntensity / 100 : 0.70),
       blurEnabled: legacy.blurEnabled !== false,
       blurIntensity: legacy.blurIntensity ?? 60,
     };
