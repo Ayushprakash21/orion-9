@@ -532,7 +532,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
             Lock Screen Widgets
           </label>
           <p className="text-xs text-[var(--orion-text-secondary)] mt-1">
-            Configure up to 3 lock-screen widgets (Time & Date, Weather, System Notifications), change their display sequence, and protect sensitive notifications on the locked desktop.
+            Configure up to 3 lock-screen widgets (Time & Date, Weather, System Notifications, Calendar), change their display sequence, select your weather location, and protect sensitive notifications on the locked desktop.
           </p>
         </div>
 
@@ -541,10 +541,12 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
             const label = w.id === 'time-date' 
               ? 'Time & Date (Digital clock & timezone)' 
               : w.id === 'weather' 
-              ? 'Weather (Local conditions & temperature)' 
+              ? `Weather (Open-Meteo live: ${lockPrefs.weatherLocationCity || 'New York'})` 
+              : w.id === 'calendar'
+              ? 'Calendar (Today & upcoming events)'
               : 'System Notifications (Alert badges & exception counts)';
 
-            const IconComp = w.id === 'time-date' ? Clock : w.id === 'weather' ? CloudSun : Bell;
+            const IconComp = w.id === 'time-date' ? Clock : w.id === 'weather' ? CloudSun : w.id === 'calendar' ? Clock : Bell;
 
             const handleToggle = () => {
               const currentEnabled = lockPrefs.widgets.filter(item => item.enabled).length;
@@ -612,6 +614,27 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
               </div>
             );
           })}
+        </div>
+
+        {/* Weather Location Setting */}
+        <div className="p-3.5 rounded-xl border border-[var(--orion-border)] bg-[var(--orion-surface-secondary)] space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[var(--orion-text)]">Live Weather Location</span>
+            <span className="text-[10px] font-mono text-[var(--orion-text-muted)]">Open-Meteo REST API</span>
+          </div>
+          <select
+            value={lockPrefs.weatherLocationCity || 'New York'}
+            onChange={(e) => {
+              const updated = { ...lockPrefs, weatherLocationCity: e.target.value };
+              setLockPrefs(updated);
+              saveLockScreenPreferences(updated);
+            }}
+            className="w-full text-xs bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-lg p-2 text-[var(--orion-text)] focus:outline-none focus:border-[var(--orion-accent)] cursor-pointer"
+          >
+            {['New York', 'London', 'Tokyo', 'Frankfurt', 'Singapore', 'Sydney'].map(c => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
         </div>
 
         {/* Privacy Toggle */}

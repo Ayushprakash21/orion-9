@@ -1688,7 +1688,7 @@ service cloud.firestore {
         resource.data.tenantId == 'ORION_PLATFORM' ||
         isOrgMember(resource.data.tenantId) ||
         isAdmin()
-      );
+      ));
       allow write: if isAdmin();
     }
 
@@ -1905,6 +1905,28 @@ service cloud.firestore {
       allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
       allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
       allow delete: if isAdmin();
+    }
+
+    match /customer_payments/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /project_sprints/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /project_versions/{id} {
+      allow read: if isAuthenticated() && (isOrgMember(resource.data.organizationId) || isOrgMember(resource.data.tenantId) || isAdmin());
+      allow create, update: if isAuthenticated() && (isOrgMember(request.resource.data.organizationId) || isOrgMember(request.resource.data.tenantId) || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /user_preferences/{userId} {
+      allow read, write: if isAuthenticated() && (isOwner(userId) || isAdmin());
     }
   }
 }

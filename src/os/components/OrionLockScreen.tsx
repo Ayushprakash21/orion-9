@@ -23,8 +23,9 @@ import { lockScreenVariants } from '../motion/OrionMotionVariants';
 import { useIsReducedMotion } from '../motion/OrionMotion';
 import { NotificationContext } from '../../store/NotificationContext';
 import { cn } from '../../lib/utils';
+import { weatherService, WeatherCondition, DEFAULT_WEATHER_LOCATIONS } from '../../services/weather/OpenMeteoWeatherService';
 
-export type LockScreenWidgetId = 'time-date' | 'weather' | 'notifications';
+export type LockScreenWidgetId = 'time-date' | 'weather' | 'notifications' | 'calendar';
 
 export interface LockScreenWidgetConfig {
   id: LockScreenWidgetId;
@@ -35,6 +36,7 @@ export interface LockScreenWidgetConfig {
 export interface LockScreenPreferences {
   widgets: LockScreenWidgetConfig[];
   privacyMode: boolean;
+  weatherLocationCity?: string;
 }
 
 export const DEFAULT_LOCK_PREFERENCES: LockScreenPreferences = {
@@ -42,8 +44,10 @@ export const DEFAULT_LOCK_PREFERENCES: LockScreenPreferences = {
     { id: 'time-date', enabled: true, order: 0 },
     { id: 'weather', enabled: true, order: 1 },
     { id: 'notifications', enabled: true, order: 2 },
+    { id: 'calendar', enabled: false, order: 3 },
   ],
   privacyMode: true,
+  weatherLocationCity: 'New York',
 };
 
 export function loadLockScreenPreferences(): LockScreenPreferences {
@@ -53,9 +57,19 @@ export function loadLockScreenPreferences(): LockScreenPreferences {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed.widgets)) {
+        // Ensure all supported widgets exist
+        const knownIds: LockScreenWidgetId[] = ['time-date', 'weather', 'notifications', 'calendar'];
+        const existingIds = new Set(parsed.widgets.map((w: any) => w.id));
+        const mergedWidgets = [...parsed.widgets];
+        knownIds.forEach(kid => {
+          if (!existingIds.has(kid)) {
+            mergedWidgets.push({ id: kid, enabled: false, order: mergedWidgets.length });
+          }
+        });
         return {
-          widgets: parsed.widgets,
+          widgets: mergedWidgets,
           privacyMode: parsed.privacyMode ?? true,
+          weatherLocationCity: parsed.weatherLocationCity || 'New York',
         };
       }
     }
@@ -90,12 +104,40 @@ export const OrionLockScreen: React.FC<OrionLockScreenProps> = ({ onUnlock, curr
   const [currentTime, setCurrentTime] = useState(new Date());
   const [prefs, setPrefs] = useState<LockScreenPreferences>(() => loadLockScreenPreferences());
   const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [weatherData, setWeatherData] = useState<WeatherCondition | null>(null);
+  const [weatherLoading, setWeatherLoading] = useState<boolean>(true);
 
   // Keep clock updated
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Fetch live weather data
+  useEffect(() => {
+    let isCancelled = false;
+    const fetchWeather = async () => {
+      setWeatherLoading(true);
+      try {
+        const selectedCity = prefs.weatherLocationCity || 'New York';
+        const loc = DEFAULT_WEATHER_LOCATIONS.find(l => l.city === selectedCity) || DEFAULT_WEATHER_LOCATIONS[0];
+        const data = await weatherService.fetchCurrentWeather(loc);
+        if (!isCancelled) {
+          setWeatherData(data);
+          setWeatherLoading(false);
+        }
+      } catch {
+        if (!isCancelled) setWeatherLoading(false);
+      }
+    };
+
+    fetchWeather();
+    const interval = setInterval(fetchWeather, 15 * 60 * 1000);
+    return () => {
+      isCancelled = true;
+      clearInterval(interval);
+    };
+  }, [prefs.weatherLocationCity]);
 
   // Sync external preference changes
   useEffect(() => {
@@ -261,20 +303,52 @@ export const OrionLockScreen: React.FC<OrionLockScreenProps> = ({ onUnlock, curr
             }
 
             if (w.id === 'weather') {
+              const city = weatherData?.city || prefs.weatherLocationCity || 'Local';
+              const tempText = weatherData 
+                ? `${weatherData.temperatureC}°C • ${weatherData.description}` 
+                : weatherLoading 
+                ? 'Updating…' 
+                : 'Weather unavailable';
+              const subText = weatherData && weatherData.highC !== undefined && weatherData.lowC !== undefined
+                ? `H: ${weatherData.highC}° L: ${weatherData.lowC}° • ${city}`
+                : city;
+
               return (
                 <div
                   key="weather"
                   data-testid="widget-weather"
                   className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/[0.08] hover:bg-white/[0.12] border border-white/15 backdrop-blur-2xl shadow-lg transition-all"
-                  title="Weather Widget"
+                  title={`Live Weather for ${city}`}
                 >
                   <CloudSun className="w-4 h-4 text-amber-300 shrink-0" />
                   <div className="text-left">
                     <div className="text-[11px] font-semibold text-white tabular-nums leading-tight">
-                      21°C • Sunny
+                      {tempText}
                     </div>
                     <div className="text-[10px] text-white/60 font-mono leading-tight">
-                      H: 24° L: 16°
+                      {subText}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            if (w.id === 'calendar') {
+              const dayStr = currentTime.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+              return (
+                <div
+                  key="calendar"
+                  data-testid="widget-calendar"
+                  className="flex items-center gap-2.5 px-3.5 py-2 rounded-2xl bg-white/[0.08] hover:bg-white/[0.12] border border-white/15 backdrop-blur-2xl shadow-lg transition-all"
+                  title="Calendar Schedule"
+                >
+                  <Calendar className="w-4 h-4 text-sky-400 shrink-0" />
+                  <div className="text-left">
+                    <div className="text-[11px] font-semibold text-white leading-tight">
+                      {dayStr}
+                    </div>
+                    <div className="text-[10px] text-white/60 font-mono leading-tight">
+                      No conflicting events
                     </div>
                   </div>
                 </div>
@@ -459,10 +533,12 @@ export const OrionLockScreen: React.FC<OrionLockScreenProps> = ({ onUnlock, curr
                   const label = w.id === 'time-date' 
                     ? 'Time & Date (Digital & Timezone)' 
                     : w.id === 'weather' 
-                    ? 'Weather (Conditions & Forecast)' 
+                    ? `Weather (${prefs.weatherLocationCity || 'Live'} Conditions)` 
+                    : w.id === 'calendar'
+                    ? 'Calendar (Upcoming & Today)'
                     : 'System Notifications (Alerts Summary)';
 
-                  const IconComp = w.id === 'time-date' ? Clock : w.id === 'weather' ? CloudSun : Bell;
+                  const IconComp = w.id === 'time-date' ? Clock : w.id === 'weather' ? CloudSun : w.id === 'calendar' ? Calendar : Bell;
 
                   return (
                     <div
@@ -511,6 +587,32 @@ export const OrionLockScreen: React.FC<OrionLockScreenProps> = ({ onUnlock, curr
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Weather Location Selector */}
+              <div className="p-3 rounded-xl border border-white/10 bg-white/[0.04] space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-white">Weather Location</span>
+                  <span className="text-[10px] text-white/50 font-mono">Open-Meteo Live</span>
+                </div>
+                <select
+                  value={prefs.weatherLocationCity || 'New York'}
+                  onChange={(e) => {
+                    const nextCity = e.target.value;
+                    const nextPrefs = { ...prefs, weatherLocationCity: nextCity };
+                    setPrefs(nextPrefs);
+                    saveLockScreenPreferences(nextPrefs);
+                    const matchedLoc = DEFAULT_WEATHER_LOCATIONS.find(l => l.city === nextCity);
+                    if (matchedLoc) weatherService.setLocation(matchedLoc);
+                  }}
+                  className="w-full text-xs bg-white/10 border border-white/20 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:ring-1 focus:ring-emerald-400 cursor-pointer"
+                >
+                  {DEFAULT_WEATHER_LOCATIONS.map(loc => (
+                    <option key={loc.city} value={loc.city} className="bg-slate-900 text-white">
+                      {loc.city} ({loc.timezone})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Privacy Toggle */}

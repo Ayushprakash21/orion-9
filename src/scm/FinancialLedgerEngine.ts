@@ -74,6 +74,7 @@ export class FinancialLedgerEngine {
   private supplierApRecords: Map<string, SupplierApLedgerRecord[]> = new Map();
   private customerPayments: Map<string, CustomerPaymentRecord[]> = new Map();
   private initializedTenants: Set<string> = new Set();
+  private hydrationPromises: Map<string, Promise<void>> = new Map();
 
   private constructor() {}
 
@@ -102,40 +103,60 @@ export class FinancialLedgerEngine {
 
   /**
    * Hydrates tenant financial records from authoritative durable storage.
+   * Concurrency-safe: concurrent calls for the same tenant await the same in-flight promise.
    */
   public async hydrateTenant(tenantId: string): Promise<void> {
     if (this.initializedTenants.has(tenantId)) return;
-    this.initializedTenants.add(tenantId);
+    const existing = this.hydrationPromises.get(tenantId);
+    if (existing) return existing;
 
-    try {
-      const persistence = ScmPersistenceService.getInstance();
-      const [invoices, apRecords, payments] = await Promise.all([
-        persistence.listRecords<CustomerInvoiceRecord>('customer_invoices', tenantId),
-        persistence.listRecords<SupplierApLedgerRecord>('supplier_ap_records', tenantId),
-        persistence.listRecords<CustomerPaymentRecord>('customer_payments', tenantId).catch(() => [])
-      ]);
+    const promise = (async () => {
+      try {
+        const persistence = ScmPersistenceService.getInstance();
+        const [invoices, apRecords, payments] = await Promise.all([
+          persistence.listRecords<CustomerInvoiceRecord>('customer_invoices', tenantId),
+          persistence.listRecords<SupplierApLedgerRecord>('supplier_ap_records', tenantId),
+          persistence.listRecords<CustomerPaymentRecord>('customer_payments', tenantId).catch(() => [])
+        ]);
 
-      if (invoices.length > 0) {
-        // Recalculate dynamic aging on hydration
-        const updated = invoices.map(i => ({
-          ...i,
-          arAgingBucket: i.outstandingBalance > 0 ? this.computeAgingBucket(i.dueDate) : 'CURRENT'
-        }));
-        this.customerInvoices.set(tenantId, updated);
+        if (invoices.length > 0) {
+          // Recalculate dynamic aging on hydration
+          const updated = invoices.map(i => ({
+            ...i,
+            arAgingBucket: i.outstandingBalance > 0 ? this.computeAgingBucket(i.dueDate) : 'CURRENT'
+          }));
+          this.customerInvoices.set(tenantId, updated);
+        } else {
+          this.customerInvoices.set(tenantId, []);
+        }
+
+        if (apRecords.length > 0) {
+          const updated = apRecords.map(a => ({
+            ...a,
+            apAgingBucket: a.outstandingBalance > 0 ? this.computeAgingBucket(a.dueDate) : 'CURRENT'
+          }));
+          this.supplierApRecords.set(tenantId, updated);
+        } else {
+          this.supplierApRecords.set(tenantId, []);
+        }
+
+        if (payments.length > 0) {
+          this.customerPayments.set(tenantId, payments);
+        } else {
+          this.customerPayments.set(tenantId, []);
+        }
+
+        this.initializedTenants.add(tenantId);
+      } catch (err) {
+        console.warn(`[FINANCIAL-LEDGER] Hydration warning for tenant ${tenantId}:`, err);
+        this.initializedTenants.add(tenantId);
+      } finally {
+        this.hydrationPromises.delete(tenantId);
       }
-      if (apRecords.length > 0) {
-        const updated = apRecords.map(a => ({
-          ...a,
-          apAgingBucket: a.outstandingBalance > 0 ? this.computeAgingBucket(a.dueDate) : 'CURRENT'
-        }));
-        this.supplierApRecords.set(tenantId, updated);
-      }
-      if (payments.length > 0) {
-        this.customerPayments.set(tenantId, payments);
-      }
-    } catch (err) {
-      console.warn(`[FINANCIAL-LEDGER] Hydration warning for tenant ${tenantId}:`, err);
-    }
+    })();
+
+    this.hydrationPromises.set(tenantId, promise);
+    return promise;
   }
 
   /**
@@ -229,9 +250,23 @@ export class FinancialLedgerEngine {
     paymentAmount: number,
     paymentRef: string
   ): CustomerInvoiceRecord {
+    if (!paymentAmount || paymentAmount <= 0) {
+      throw new Error(`[FINANCIAL-VALIDATION-ERROR] Payment amount must be strictly greater than 0 (received: ${paymentAmount})`);
+    }
+
     const list = this.customerInvoices.get(tenantId) || [];
     const inv = list.find(i => i.invoiceId === invoiceId);
     if (!inv) throw new Error(`Invoice ${invoiceId} not found`);
+
+    if (paymentAmount > inv.outstandingBalance) {
+      throw new Error(`[FINANCIAL-OVERPAYMENT-REJECTED] Payment of ${paymentAmount} exceeds outstanding balance of ${inv.outstandingBalance}`);
+    }
+
+    // Check duplicate payment reference
+    const pmtList = this.customerPayments.get(tenantId) || [];
+    if (paymentRef && pmtList.some(p => p.paymentReference === paymentRef)) {
+      throw new Error(`[FINANCIAL-DUPLICATE-PAYMENT] Payment reference ${paymentRef} has already been recorded`);
+    }
 
     inv.paidAmount += paymentAmount;
     inv.outstandingBalance = Math.max(0, inv.totalAmount - inv.paidAmount);
@@ -263,7 +298,6 @@ export class FinancialLedgerEngine {
       updatedAt: new Date().toISOString()
     };
 
-    const pmtList = this.customerPayments.get(tenantId) || [];
     pmtList.unshift(paymentRecord);
     this.customerPayments.set(tenantId, pmtList);
 
@@ -307,6 +341,16 @@ export class FinancialLedgerEngine {
     const allocationsList = params.allocations || [];
     const paymentRef = params.paymentReference || params.referenceNumber || `WIRE-TX-${Date.now()}`;
     const totalAmount = params.totalAmount !== undefined ? params.totalAmount : params.paymentAmount !== undefined ? params.paymentAmount : 0;
+    
+    if (totalAmount <= 0) {
+      throw new Error(`[FINANCIAL-VALIDATION-ERROR] Allocation payment amount must be strictly greater than 0 (received: ${totalAmount})`);
+    }
+
+    const pmtList = this.customerPayments.get(tenantId) || [];
+    if (paymentRef && pmtList.some(p => p.paymentReference === paymentRef)) {
+      throw new Error(`[FINANCIAL-DUPLICATE-PAYMENT] Payment reference ${paymentRef} has already been recorded`);
+    }
+
     const customerId = params.customerId || 'CUST-DEFAULT';
     const customerName = params.customerName || customerId;
     const paymentMethod = params.paymentMethod || 'WIRE';
@@ -352,7 +396,6 @@ export class FinancialLedgerEngine {
       updatedAt: new Date().toISOString()
     };
 
-    const pmtList = this.customerPayments.get(tenantId) || [];
     pmtList.unshift(paymentRecord);
     this.customerPayments.set(tenantId, pmtList);
 
@@ -826,6 +869,7 @@ export class FinancialLedgerEngine {
     this.supplierApRecords.clear();
     this.customerPayments.clear();
     this.initializedTenants.clear();
+    this.hydrationPromises.clear();
   }
 }
 

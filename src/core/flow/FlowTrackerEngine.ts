@@ -39,12 +39,15 @@ export const P2P_STAGES_TEMPLATE: Array<{ id: string; name: string; label: strin
   { id: 'PAID', name: 'Paid', label: 'Disbursement Executed to Supplier' },
 ];
 
+import { DatabaseConnectionManager } from '../database/DatabaseConnectionManager';
+
 export class FlowTrackerEngine {
   private static instance: FlowTrackerEngine;
   private persistence: ScmPersistenceService;
   private memoryCache: Map<string, FlowTrackingRecord> = new Map();
   private eventBus: KernelEventBus;
-  private isInitialized = false;
+  private initializedTenants: Set<string> = new Set();
+  private initializationPromises: Map<string, Promise<void>> = new Map();
 
   private constructor() {
     this.persistence = ScmPersistenceService.getInstance();
@@ -128,178 +131,196 @@ export class FlowTrackerEngine {
   }
 
   public async initializeSeedIfEmpty(tenantId: string): Promise<void> {
-    if (this.isInitialized) return;
-    const records = await this.persistence.listRecords<FlowTrackingRecord>('flow_tracking_records', tenantId);
-    if (records.length === 0) {
-      const demoFlows: FlowTrackingRecord[] = [
-        {
-          id: 'flow-o2c-101',
-          flowId: 'flow-o2c-101',
-          tenantId,
-          flowType: 'ORDER_TO_CASH',
-          entityId: 'SO-2026-001',
-          referenceNumber: 'SO-2026-001',
-          counterpartyName: 'Apex Health Systems',
-          currentStage: 'SHIPPED',
-          status: 'IN_PROGRESS',
-          totalAmount: 142500,
-          currency: 'USD',
-          createdAt: new Date(Date.now() - 4 * 86400000).toISOString(),
-          updatedAt: new Date(Date.now() - 3600000).toISOString(),
-          sla: {
-            targetCompletionDate: new Date(Date.now() + 2 * 86400000).toISOString(),
-            isBreached: false,
-            totalDurationHours: 96,
-          },
-          stages: [
-            { id: 'ORDER_CREATED', name: 'Order Created', label: 'Customer Order Received & Validated', status: 'COMPLETED', completedAt: new Date(Date.now() - 4 * 86400000).toISOString(), actor: 'Order Desk' },
-            { id: 'INVENTORY_ALLOCATED', name: 'Inventory Allocated', label: 'Stock Reserved at Fulfillment Center', status: 'COMPLETED', completedAt: new Date(Date.now() - 3 * 86400000).toISOString(), actor: 'WMS Service' },
-            { id: 'PICKED_PACKED', name: 'Picked & Packed', label: 'Warehouse Pick-Pack Completed', status: 'COMPLETED', completedAt: new Date(Date.now() - 2 * 86400000).toISOString(), actor: 'Whs Team A' },
-            { id: 'SHIPPED', name: 'Shipped', label: 'Carrier Dispatched with Waybill', status: 'ACTIVE', startedAt: new Date(Date.now() - 1 * 86400000).toISOString(), actor: 'FedEx Freight' },
-            { id: 'DELIVERED', name: 'Delivered', label: 'Proof of Delivery Confirmed', status: 'PENDING' },
-            { id: 'INVOICED', name: 'Invoiced', label: 'Customer Invoice Generated & Sent', status: 'PENDING' },
-            { id: 'PAYMENT_RECEIVED', name: 'Payment Received', label: 'Funds Reconciled in AR Ledger', status: 'PENDING' },
-          ],
-          exceptions: [],
-          linkedDocuments: [
-            { documentType: 'SALES_ORDER', documentId: 'SO-2026-001', reference: 'SO-2026-001', date: new Date(Date.now() - 4 * 86400000).toISOString(), status: 'CONFIRMED' },
-            { documentType: 'PICK_TICKET', documentId: 'PK-9912', reference: 'PK-9912', date: new Date(Date.now() - 2 * 86400000).toISOString(), status: 'COMPLETED' },
-            { documentType: 'WAYBILL', documentId: 'TRK-9812456', reference: 'TRK-9812456', date: new Date(Date.now() - 1 * 86400000).toISOString(), status: 'IN_TRANSIT' },
-          ],
-        },
-        {
-          id: 'flow-o2c-102',
-          flowId: 'flow-o2c-102',
-          tenantId,
-          flowType: 'ORDER_TO_CASH',
-          entityId: 'SO-2026-002',
-          referenceNumber: 'SO-2026-002',
-          counterpartyName: 'BioPharm Solutions Global',
-          currentStage: 'PICKED_PACKED',
-          status: 'EXCEPTION',
-          totalAmount: 88700,
-          currency: 'USD',
-          createdAt: new Date(Date.now() - 6 * 86400000).toISOString(),
-          updatedAt: new Date(Date.now() - 2 * 3600000).toISOString(),
-          sla: {
-            targetCompletionDate: new Date(Date.now() - 1 * 86400000).toISOString(),
-            isBreached: true,
-            totalDurationHours: 144,
-          },
-          stages: [
-            { id: 'ORDER_CREATED', name: 'Order Created', label: 'Customer Order Received & Validated', status: 'COMPLETED', completedAt: new Date(Date.now() - 6 * 86400000).toISOString(), actor: 'Web Portal' },
-            { id: 'INVENTORY_ALLOCATED', name: 'Inventory Allocated', label: 'Stock Reserved at Fulfillment Center', status: 'COMPLETED', completedAt: new Date(Date.now() - 5 * 86400000).toISOString(), actor: 'WMS' },
-            { id: 'PICKED_PACKED', name: 'Picked & Packed', label: 'Warehouse Pick-Pack Completed', status: 'ACTIVE', startedAt: new Date(Date.now() - 3 * 86400000).toISOString(), actor: 'Pack Lead', variance: { delayHours: 48, reason: 'Special cold chain thermal packaging delay' } },
-            { id: 'SHIPPED', name: 'Shipped', label: 'Carrier Dispatched with Waybill', status: 'PENDING' },
-            { id: 'DELIVERED', name: 'Delivered', label: 'Proof of Delivery Confirmed', status: 'PENDING' },
-            { id: 'INVOICED', name: 'Invoiced', label: 'Customer Invoice Generated & Sent', status: 'PENDING' },
-            { id: 'PAYMENT_RECEIVED', name: 'Payment Received', label: 'Funds Reconciled in AR Ledger', status: 'PENDING' },
-          ],
-          exceptions: [
-            {
-              id: 'exc-o2c-001',
-              stage: 'PICKED_PACKED',
-              severity: 'HIGH',
-              type: 'SLA_BREACH',
-              title: 'Cold Chain Packaging Delay SLA Breach',
-              description: 'Packaging hold exceeded 24hr threshold waiting for dry ice replenishment.',
-              detectedAt: new Date(Date.now() - 24 * 3600000).toISOString(),
-              resolved: false,
-            },
-          ],
-          linkedDocuments: [
-            { documentType: 'SALES_ORDER', documentId: 'SO-2026-002', reference: 'SO-2026-002', date: new Date(Date.now() - 6 * 86400000).toISOString(), status: 'CONFIRMED' },
-          ],
-        },
-        {
-          id: 'flow-p2p-201',
-          flowId: 'flow-p2p-201',
-          tenantId,
-          flowType: 'PROCURE_TO_PAY',
-          entityId: 'PO-2026-801',
-          referenceNumber: 'PO-2026-801',
-          counterpartyName: 'Precision Biosystems Corp',
-          currentStage: 'THREE_WAY_MATCHED',
-          status: 'IN_PROGRESS',
-          totalAmount: 230000,
-          currency: 'USD',
-          createdAt: new Date(Date.now() - 8 * 86400000).toISOString(),
-          updatedAt: new Date(Date.now() - 5 * 3600000).toISOString(),
-          sla: {
-            targetCompletionDate: new Date(Date.now() + 5 * 86400000).toISOString(),
-            isBreached: false,
-            totalDurationHours: 192,
-          },
-          stages: [
-            { id: 'PO_DRAFT', name: 'PO Draft', label: 'Purchase Requisition Created', status: 'COMPLETED', completedAt: new Date(Date.now() - 8 * 86400000).toISOString(), actor: 'Procurement Spec' },
-            { id: 'PO_APPROVED', name: 'PO Approved', label: 'Authorized by Procurement Committee', status: 'COMPLETED', completedAt: new Date(Date.now() - 7 * 86400000).toISOString(), actor: 'VP Supply Chain' },
-            { id: 'SUPPLIER_ACKNOWLEDGED', name: 'Supplier Acknowledged', label: 'Supplier Accepted Delivery Schedule', status: 'COMPLETED', completedAt: new Date(Date.now() - 6 * 86400000).toISOString(), actor: 'Supplier EDI' },
-            { id: 'IN_TRANSIT', name: 'In Transit', label: 'Inbound Freight Dispatched', status: 'COMPLETED', completedAt: new Date(Date.now() - 4 * 86400000).toISOString(), actor: 'DHL Global' },
-            { id: 'GRN_RECEIVED', name: 'GRN Received', label: 'Dock Receiving & Quality Inspection', status: 'COMPLETED', completedAt: new Date(Date.now() - 2 * 86400000).toISOString(), actor: 'QA Receiving Lead', documentId: 'GRN-2026-081', documentType: 'GOODS_RECEIPT_NOTE' },
-            { id: 'THREE_WAY_MATCHED', name: '3-Way Matched', label: 'PO, GRN & Invoice Reconciled', status: 'ACTIVE', startedAt: new Date(Date.now() - 1 * 86400000).toISOString(), actor: 'Matching Engine' },
-            { id: 'PAYMENT_SCHEDULED', name: 'Payment Scheduled', label: 'AP Payment Queued in Treasury', status: 'PENDING' },
-            { id: 'PAID', name: 'Paid', label: 'Disbursement Executed to Supplier', status: 'PENDING' },
-          ],
-          exceptions: [],
-          linkedDocuments: [
-            { documentType: 'PURCHASE_ORDER', documentId: 'PO-2026-801', reference: 'PO-2026-801', date: new Date(Date.now() - 8 * 86400000).toISOString(), status: 'APPROVED' },
-            { documentType: 'GOODS_RECEIPT_NOTE', documentId: 'GRN-2026-081', reference: 'GRN-2026-081', date: new Date(Date.now() - 2 * 86400000).toISOString(), status: 'ACCEPTED' },
-            { documentType: 'SUPPLIER_INVOICE', documentId: 'INV-SUP-9011', reference: 'INV-SUP-9011', date: new Date(Date.now() - 1 * 86400000).toISOString(), status: 'PENDING_MATCH' },
-          ],
-        },
-        {
-          id: 'flow-p2p-202',
-          flowId: 'flow-p2p-202',
-          tenantId,
-          flowType: 'PROCURE_TO_PAY',
-          entityId: 'PO-2026-802',
-          referenceNumber: 'PO-2026-802',
-          counterpartyName: 'Novartis Advanced Chem',
-          currentStage: 'GRN_RECEIVED',
-          status: 'EXCEPTION',
-          totalAmount: 115000,
-          currency: 'USD',
-          createdAt: new Date(Date.now() - 5 * 86400000).toISOString(),
-          updatedAt: new Date(Date.now() - 1 * 3600000).toISOString(),
-          sla: {
-            targetCompletionDate: new Date(Date.now() + 1 * 86400000).toISOString(),
-            isBreached: false,
-          },
-          stages: [
-            { id: 'PO_DRAFT', name: 'PO Draft', label: 'Purchase Requisition Created', status: 'COMPLETED', completedAt: new Date(Date.now() - 5 * 86400000).toISOString() },
-            { id: 'PO_APPROVED', name: 'PO Approved', label: 'Authorized by Procurement Committee', status: 'COMPLETED', completedAt: new Date(Date.now() - 4 * 86400000).toISOString() },
-            { id: 'SUPPLIER_ACKNOWLEDGED', name: 'Supplier Acknowledged', label: 'Supplier Accepted Delivery Schedule', status: 'COMPLETED', completedAt: new Date(Date.now() - 3 * 86400000).toISOString() },
-            { id: 'IN_TRANSIT', name: 'In Transit', label: 'Inbound Freight Dispatched', status: 'COMPLETED', completedAt: new Date(Date.now() - 2 * 86400000).toISOString() },
-            { id: 'GRN_RECEIVED', name: 'GRN Received', label: 'Dock Receiving & Quality Inspection', status: 'ACTIVE', startedAt: new Date(Date.now() - 1 * 86400000).toISOString(), variance: { quantity: -15, reason: 'Partial delivery: 85 of 100 received' } },
-            { id: 'THREE_WAY_MATCHED', name: '3-Way Matched', label: 'PO, GRN & Invoice Reconciled', status: 'PENDING' },
-            { id: 'PAYMENT_SCHEDULED', name: 'Payment Scheduled', label: 'AP Payment Queued in Treasury', status: 'PENDING' },
-            { id: 'PAID', name: 'Paid', label: 'Disbursement Executed to Supplier', status: 'PENDING' },
-          ],
-          exceptions: [
-            {
-              id: 'exc-p2p-002',
-              stage: 'GRN_RECEIVED',
-              severity: 'CRITICAL',
-              type: 'QUANTITY_VARIANCE',
-              title: 'Receiving Quantity Shortage',
-              description: 'Received 85 units out of 100 ordered on Line 1. Remaining 15 backordered.',
-              detectedAt: new Date(Date.now() - 12 * 3600000).toISOString(),
-              resolved: false,
-            },
-          ],
-          linkedDocuments: [
-            { documentType: 'PURCHASE_ORDER', documentId: 'PO-2026-802', reference: 'PO-2026-802', date: new Date(Date.now() - 5 * 86400000).toISOString() },
-            { documentType: 'GOODS_RECEIPT_NOTE', documentId: 'GRN-2026-082', reference: 'GRN-2026-082', date: new Date(Date.now() - 1 * 86400000).toISOString() },
-          ],
-        },
-      ];
+    if (this.initializedTenants.has(tenantId)) return;
+    const existing = this.initializationPromises.get(tenantId);
+    if (existing) return existing;
 
-      for (const flow of demoFlows) {
-        await this.persistence.saveRecord('flow_tracking_records', flow.id, flow);
-        this.memoryCache.set(`${tenantId}:${flow.id}`, flow);
+    const promise = (async () => {
+      try {
+        const records = await this.persistence.listRecords<FlowTrackingRecord>('flow_tracking_records', tenantId);
+        const env = DatabaseConnectionManager.getInstance().getEnvironment();
+        const isLive = env === 'LIVE';
+
+        if (records.length === 0 && !isLive) {
+          const demoFlows: FlowTrackingRecord[] = [
+            {
+              id: 'flow-o2c-101',
+              flowId: 'flow-o2c-101',
+              tenantId,
+              flowType: 'ORDER_TO_CASH',
+              entityId: 'SO-2026-001',
+              referenceNumber: 'SO-2026-001',
+              counterpartyName: 'Apex Health Systems',
+              currentStage: 'SHIPPED',
+              status: 'IN_PROGRESS',
+              totalAmount: 142500,
+              currency: 'USD',
+              createdAt: new Date(Date.now() - 4 * 86400000).toISOString(),
+              updatedAt: new Date(Date.now() - 3600000).toISOString(),
+              sla: {
+                targetCompletionDate: new Date(Date.now() + 2 * 86400000).toISOString(),
+                isBreached: false,
+                totalDurationHours: 96,
+              },
+              stages: [
+                { id: 'ORDER_CREATED', name: 'Order Created', label: 'Customer Order Received & Validated', status: 'COMPLETED', completedAt: new Date(Date.now() - 4 * 86400000).toISOString(), actor: 'Order Desk' },
+                { id: 'INVENTORY_ALLOCATED', name: 'Inventory Allocated', label: 'Stock Reserved at Fulfillment Center', status: 'COMPLETED', completedAt: new Date(Date.now() - 3 * 86400000).toISOString(), actor: 'WMS Service' },
+                { id: 'PICKED_PACKED', name: 'Picked & Packed', label: 'Warehouse Pick-Pack Completed', status: 'COMPLETED', completedAt: new Date(Date.now() - 2 * 86400000).toISOString(), actor: 'Whs Team A' },
+                { id: 'SHIPPED', name: 'Shipped', label: 'Carrier Dispatched with Waybill', status: 'ACTIVE', startedAt: new Date(Date.now() - 1 * 86400000).toISOString(), actor: 'FedEx Freight' },
+                { id: 'DELIVERED', name: 'Delivered', label: 'Proof of Delivery Confirmed', status: 'PENDING' },
+                { id: 'INVOICED', name: 'Invoiced', label: 'Customer Invoice Generated & Sent', status: 'PENDING' },
+                { id: 'PAYMENT_RECEIVED', name: 'Payment Received', label: 'Funds Reconciled in AR Ledger', status: 'PENDING' },
+              ],
+              exceptions: [],
+              linkedDocuments: [
+                { documentType: 'SALES_ORDER', documentId: 'SO-2026-001', reference: 'SO-2026-001', date: new Date(Date.now() - 4 * 86400000).toISOString(), status: 'CONFIRMED' },
+                { documentType: 'PICK_TICKET', documentId: 'PK-9912', reference: 'PK-9912', date: new Date(Date.now() - 2 * 86400000).toISOString(), status: 'COMPLETED' },
+                { documentType: 'WAYBILL', documentId: 'TRK-9812456', reference: 'TRK-9812456', date: new Date(Date.now() - 1 * 86400000).toISOString(), status: 'IN_TRANSIT' },
+              ],
+            },
+            {
+              id: 'flow-o2c-102',
+              flowId: 'flow-o2c-102',
+              tenantId,
+              flowType: 'ORDER_TO_CASH',
+              entityId: 'SO-2026-002',
+              referenceNumber: 'SO-2026-002',
+              counterpartyName: 'BioPharm Solutions Global',
+              currentStage: 'PICKED_PACKED',
+              status: 'EXCEPTION',
+              totalAmount: 88700,
+              currency: 'USD',
+              createdAt: new Date(Date.now() - 6 * 86400000).toISOString(),
+              updatedAt: new Date(Date.now() - 2 * 3600000).toISOString(),
+              sla: {
+                targetCompletionDate: new Date(Date.now() - 1 * 86400000).toISOString(),
+                isBreached: true,
+                totalDurationHours: 144,
+              },
+              stages: [
+                { id: 'ORDER_CREATED', name: 'Order Created', label: 'Customer Order Received & Validated', status: 'COMPLETED', completedAt: new Date(Date.now() - 6 * 86400000).toISOString(), actor: 'Web Portal' },
+                { id: 'INVENTORY_ALLOCATED', name: 'Inventory Allocated', label: 'Stock Reserved at Fulfillment Center', status: 'COMPLETED', completedAt: new Date(Date.now() - 5 * 86400000).toISOString(), actor: 'WMS' },
+                { id: 'PICKED_PACKED', name: 'Picked & Packed', label: 'Warehouse Pick-Pack Completed', status: 'ACTIVE', startedAt: new Date(Date.now() - 3 * 86400000).toISOString(), actor: 'Pack Lead', variance: { delayHours: 48, reason: 'Special cold chain thermal packaging delay' } },
+                { id: 'SHIPPED', name: 'Shipped', label: 'Carrier Dispatched with Waybill', status: 'PENDING' },
+                { id: 'DELIVERED', name: 'Delivered', label: 'Proof of Delivery Confirmed', status: 'PENDING' },
+                { id: 'INVOICED', name: 'Invoiced', label: 'Customer Invoice Generated & Sent', status: 'PENDING' },
+                { id: 'PAYMENT_RECEIVED', name: 'Payment Received', label: 'Funds Reconciled in AR Ledger', status: 'PENDING' },
+              ],
+              exceptions: [
+                {
+                  id: 'exc-o2c-001',
+                  stage: 'PICKED_PACKED',
+                  severity: 'HIGH',
+                  type: 'SLA_BREACH',
+                  title: 'Cold Chain Packaging Delay SLA Breach',
+                  description: 'Packaging hold exceeded 24hr threshold waiting for dry ice replenishment.',
+                  detectedAt: new Date(Date.now() - 24 * 3600000).toISOString(),
+                  resolved: false,
+                },
+              ],
+              linkedDocuments: [
+                { documentType: 'SALES_ORDER', documentId: 'SO-2026-002', reference: 'SO-2026-002', date: new Date(Date.now() - 6 * 86400000).toISOString(), status: 'CONFIRMED' },
+              ],
+            },
+            {
+              id: 'flow-p2p-201',
+              flowId: 'flow-p2p-201',
+              tenantId,
+              flowType: 'PROCURE_TO_PAY',
+              entityId: 'PO-2026-801',
+              referenceNumber: 'PO-2026-801',
+              counterpartyName: 'Precision Biosystems Corp',
+              currentStage: 'THREE_WAY_MATCHED',
+              status: 'IN_PROGRESS',
+              totalAmount: 230000,
+              currency: 'USD',
+              createdAt: new Date(Date.now() - 8 * 86400000).toISOString(),
+              updatedAt: new Date(Date.now() - 5 * 3600000).toISOString(),
+              sla: {
+                targetCompletionDate: new Date(Date.now() + 5 * 86400000).toISOString(),
+                isBreached: false,
+                totalDurationHours: 192,
+              },
+              stages: [
+                { id: 'PO_DRAFT', name: 'PO Draft', label: 'Purchase Requisition Created', status: 'COMPLETED', completedAt: new Date(Date.now() - 8 * 86400000).toISOString(), actor: 'Procurement Spec' },
+                { id: 'PO_APPROVED', name: 'PO Approved', label: 'Authorized by Procurement Committee', status: 'COMPLETED', completedAt: new Date(Date.now() - 7 * 86400000).toISOString(), actor: 'VP Supply Chain' },
+                { id: 'SUPPLIER_ACKNOWLEDGED', name: 'Supplier Acknowledged', label: 'Supplier Accepted Delivery Schedule', status: 'COMPLETED', completedAt: new Date(Date.now() - 6 * 86400000).toISOString(), actor: 'Supplier EDI' },
+                { id: 'IN_TRANSIT', name: 'In Transit', label: 'Inbound Freight Dispatched', status: 'COMPLETED', completedAt: new Date(Date.now() - 4 * 86400000).toISOString(), actor: 'DHL Global' },
+                { id: 'GRN_RECEIVED', name: 'GRN Received', label: 'Dock Receiving & Quality Inspection', status: 'COMPLETED', completedAt: new Date(Date.now() - 2 * 86400000).toISOString(), actor: 'QA Receiving Lead', documentId: 'GRN-2026-081', documentType: 'GOODS_RECEIPT_NOTE' },
+                { id: 'THREE_WAY_MATCHED', name: '3-Way Matched', label: 'PO, GRN & Invoice Reconciled', status: 'ACTIVE', startedAt: new Date(Date.now() - 1 * 86400000).toISOString(), actor: 'Matching Engine' },
+                { id: 'PAYMENT_SCHEDULED', name: 'Payment Scheduled', label: 'AP Payment Queued in Treasury', status: 'PENDING' },
+                { id: 'PAID', name: 'Paid', label: 'Disbursement Executed to Supplier', status: 'PENDING' },
+              ],
+              exceptions: [],
+              linkedDocuments: [
+                { documentType: 'PURCHASE_ORDER', documentId: 'PO-2026-801', reference: 'PO-2026-801', date: new Date(Date.now() - 8 * 86400000).toISOString(), status: 'APPROVED' },
+                { documentType: 'GOODS_RECEIPT_NOTE', documentId: 'GRN-2026-081', reference: 'GRN-2026-081', date: new Date(Date.now() - 2 * 86400000).toISOString(), status: 'ACCEPTED' },
+                { documentType: 'SUPPLIER_INVOICE', documentId: 'INV-SUP-9011', reference: 'INV-SUP-9011', date: new Date(Date.now() - 1 * 86400000).toISOString(), status: 'PENDING_MATCH' },
+              ],
+            },
+            {
+              id: 'flow-p2p-202',
+              flowId: 'flow-p2p-202',
+              tenantId,
+              flowType: 'PROCURE_TO_PAY',
+              entityId: 'PO-2026-802',
+              referenceNumber: 'PO-2026-802',
+              counterpartyName: 'Novartis Advanced Chem',
+              currentStage: 'GRN_RECEIVED',
+              status: 'EXCEPTION',
+              totalAmount: 115000,
+              currency: 'USD',
+              createdAt: new Date(Date.now() - 5 * 86400000).toISOString(),
+              updatedAt: new Date(Date.now() - 1 * 3600000).toISOString(),
+              sla: {
+                targetCompletionDate: new Date(Date.now() + 1 * 86400000).toISOString(),
+                isBreached: false,
+              },
+              stages: [
+                { id: 'PO_DRAFT', name: 'PO Draft', label: 'Purchase Requisition Created', status: 'COMPLETED', completedAt: new Date(Date.now() - 5 * 86400000).toISOString() },
+                { id: 'PO_APPROVED', name: 'PO Approved', label: 'Authorized by Procurement Committee', status: 'COMPLETED', completedAt: new Date(Date.now() - 4 * 86400000).toISOString() },
+                { id: 'SUPPLIER_ACKNOWLEDGED', name: 'Supplier Acknowledged', label: 'Supplier Accepted Delivery Schedule', status: 'COMPLETED', completedAt: new Date(Date.now() - 3 * 86400000).toISOString() },
+                { id: 'IN_TRANSIT', name: 'In Transit', label: 'Inbound Freight Dispatched', status: 'COMPLETED', completedAt: new Date(Date.now() - 2 * 86400000).toISOString() },
+                { id: 'GRN_RECEIVED', name: 'GRN Received', label: 'Dock Receiving & Quality Inspection', status: 'ACTIVE', startedAt: new Date(Date.now() - 1 * 86400000).toISOString(), variance: { quantity: -15, reason: 'Partial delivery: 85 of 100 received' } },
+                { id: 'THREE_WAY_MATCHED', name: '3-Way Matched', label: 'PO, GRN & Invoice Reconciled', status: 'PENDING' },
+                { id: 'PAYMENT_SCHEDULED', name: 'Payment Scheduled', label: 'AP Payment Queued in Treasury', status: 'PENDING' },
+                { id: 'PAID', name: 'Paid', label: 'Disbursement Executed to Supplier', status: 'PENDING' },
+              ],
+              exceptions: [
+                {
+                  id: 'exc-p2p-002',
+                  stage: 'GRN_RECEIVED',
+                  severity: 'CRITICAL',
+                  type: 'QUANTITY_VARIANCE',
+                  title: 'Receiving Quantity Shortage',
+                  description: 'Received 85 units out of 100 ordered on Line 1. Remaining 15 backordered.',
+                  detectedAt: new Date(Date.now() - 12 * 3600000).toISOString(),
+                  resolved: false,
+                },
+              ],
+              linkedDocuments: [
+                { documentType: 'PURCHASE_ORDER', documentId: 'PO-2026-802', reference: 'PO-2026-802', date: new Date(Date.now() - 5 * 86400000).toISOString() },
+                { documentType: 'GOODS_RECEIPT_NOTE', documentId: 'GRN-2026-082', reference: 'GRN-2026-082', date: new Date(Date.now() - 1 * 86400000).toISOString() },
+              ],
+            },
+          ];
+
+          for (const flow of demoFlows) {
+            await this.persistence.saveRecord('flow_tracking_records', flow.id, flow);
+            this.memoryCache.set(`${tenantId}:${flow.id}`, flow);
+          }
+        }
+        this.initializedTenants.add(tenantId);
+      } catch (err) {
+        console.warn(`[FLOW-TRACKER] Initialization notice for ${tenantId}:`, err);
+        this.initializedTenants.add(tenantId);
+      } finally {
+        this.initializationPromises.delete(tenantId);
       }
-    }
-    this.isInitialized = true;
+    })();
+
+    this.initializationPromises.set(tenantId, promise);
+    return promise;
   }
 
   public async listFlows(tenantId: string, filter?: FlowFilterCriteria): Promise<FlowTrackingRecord[]> {

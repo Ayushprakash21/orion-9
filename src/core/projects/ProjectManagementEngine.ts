@@ -34,6 +34,8 @@ import { KernelEventBus } from '../../kernel/EventBus';
 import { JqlEngine } from './JqlEngine';
 import { projectAutomationEngine } from './ProjectAutomationEngine';
 
+import { DatabaseConnectionManager } from '../../core/database/DatabaseConnectionManager';
+
 export class ProjectManagementEngine {
   private static instance: ProjectManagementEngine;
   private projects: Map<string, ProjectRecord[]> = new Map(); // tenantId -> projects
@@ -43,6 +45,7 @@ export class ProjectManagementEngine {
   private components: Map<string, ProjectComponent[]> = new Map(); // tenantId -> components
   private projectKeySequences: Map<string, number> = new Map(); // `${tenantId}:${projectKey}` -> sequenceNumber
   private initializedTenants: Set<string> = new Set();
+  private hydrationPromises: Map<string, Promise<void>> = new Map();
 
   private constructor() {}
 
@@ -55,51 +58,81 @@ export class ProjectManagementEngine {
 
   /**
    * Hydrates projects, tasks, sprints, and versions from durable persistence.
+   * Concurrent callers await the same promise to prevent race conditions.
    */
   public async hydrateTenant(tenantId: string): Promise<void> {
     if (this.initializedTenants.has(tenantId)) return;
-    this.initializedTenants.add(tenantId);
-
-    try {
-      const persistence = ScmPersistenceService.getInstance();
-      const [persistedProjects, persistedTasks, persistedSprints, persistedVersions] = await Promise.all([
-        persistence.listRecords<ProjectRecord>('projects', tenantId),
-        persistence.listRecords<ProjectTaskRecord>('project_tasks', tenantId),
-        persistence.listRecords<SprintRecord>('project_sprints', tenantId).catch(() => []),
-        persistence.listRecords<ProjectVersion>('project_versions', tenantId).catch(() => [])
-      ]);
-
-      if (persistedProjects && persistedProjects.length > 0) {
-        this.projects.set(tenantId, persistedProjects);
-      } else {
-        this.seedDemoProjects(tenantId);
-      }
-
-      if (persistedTasks && persistedTasks.length > 0) {
-        this.tasks.set(tenantId, persistedTasks);
-        this.syncKeySequences(tenantId, persistedTasks);
-      } else {
-        this.seedDemoTasks(tenantId);
-      }
-
-      if (persistedSprints && persistedSprints.length > 0) {
-        this.sprints.set(tenantId, persistedSprints);
-      } else {
-        this.seedDemoSprints(tenantId);
-      }
-
-      if (persistedVersions && persistedVersions.length > 0) {
-        this.versions.set(tenantId, persistedVersions);
-      } else {
-        this.seedDemoVersions(tenantId);
-      }
-    } catch (err) {
-      console.warn(`[PROJECT-ENGINE] Hydration notice for ${tenantId}:`, err);
-      this.seedDemoProjects(tenantId);
-      this.seedDemoTasks(tenantId);
-      this.seedDemoSprints(tenantId);
-      this.seedDemoVersions(tenantId);
+    
+    // Check if hydration is already in-flight for this tenant
+    const existing = this.hydrationPromises.get(tenantId);
+    if (existing) {
+      return existing;
     }
+
+    const promise = (async () => {
+      try {
+        const persistence = ScmPersistenceService.getInstance();
+        const env = DatabaseConnectionManager.getInstance().getEnvironment();
+        const isLive = env === 'LIVE';
+
+        const [persistedProjects, persistedTasks, persistedSprints, persistedVersions] = await Promise.all([
+          persistence.listRecords<ProjectRecord>('projects', tenantId),
+          persistence.listRecords<ProjectTaskRecord>('project_tasks', tenantId),
+          persistence.listRecords<SprintRecord>('project_sprints', tenantId).catch(() => []),
+          persistence.listRecords<ProjectVersion>('project_versions', tenantId).catch(() => [])
+        ]);
+
+        if (persistedProjects && persistedProjects.length > 0) {
+          this.projects.set(tenantId, persistedProjects);
+        } else if (!isLive) {
+          this.seedDemoProjects(tenantId);
+        } else {
+          this.projects.set(tenantId, []);
+        }
+
+        if (persistedTasks && persistedTasks.length > 0) {
+          this.tasks.set(tenantId, persistedTasks);
+          this.syncKeySequences(tenantId, persistedTasks);
+        } else if (!isLive) {
+          this.seedDemoTasks(tenantId);
+        } else {
+          this.tasks.set(tenantId, []);
+        }
+
+        if (persistedSprints && persistedSprints.length > 0) {
+          this.sprints.set(tenantId, persistedSprints);
+        } else if (!isLive) {
+          this.seedDemoSprints(tenantId);
+        } else {
+          this.sprints.set(tenantId, []);
+        }
+
+        if (persistedVersions && persistedVersions.length > 0) {
+          this.versions.set(tenantId, persistedVersions);
+        } else if (!isLive) {
+          this.seedDemoVersions(tenantId);
+        } else {
+          this.versions.set(tenantId, []);
+        }
+
+        this.initializedTenants.add(tenantId);
+      } catch (err) {
+        console.warn(`[PROJECT-ENGINE] Hydration notice for ${tenantId}:`, err);
+        const env = DatabaseConnectionManager.getInstance().getEnvironment();
+        if (env !== 'LIVE') {
+          this.seedDemoProjects(tenantId);
+          this.seedDemoTasks(tenantId);
+          this.seedDemoSprints(tenantId);
+          this.seedDemoVersions(tenantId);
+        }
+        this.initializedTenants.add(tenantId);
+      } finally {
+        this.hydrationPromises.delete(tenantId);
+      }
+    })();
+
+    this.hydrationPromises.set(tenantId, promise);
+    return promise;
   }
 
   private syncKeySequences(tenantId: string, tasks: ProjectTaskRecord[]): void {
