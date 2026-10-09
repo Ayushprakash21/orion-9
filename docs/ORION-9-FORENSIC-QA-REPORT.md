@@ -17,7 +17,7 @@ While the Orion-9 codebase demonstrates architectural ambition, extensive unit t
 
 1. **Unauthenticated Public AI & Automation Gateways:** The production Cloudflare Worker (`src/worker.ts`) exposes `/api/ai/insight`, `/api/ai/choose-tools`, `/api/ai/platform-intelligence`, `/api/wallpaper/generate`, and `/api/admin/demo/scheduler/trigger` completely unauthenticated with zero bearer token validation, zero session verification, and zero IP rate limiting. Any unauthenticated attacker can drain upstream Google Gemini and Cloudflare AI quotas or trigger synthetic batch generation.
 2. **Client-Authoritative Token Generation:** Authentication tokens are randomly generated on the client browser (`crypto.randomUUID()`) and persisted in `localStorage.setItem('orion_auth_session', ...)`. There is no asymmetric server-side cryptographic signature (JWT/Ed25519) validating session integrity.
-3. **Hardcoded Secrets in Source Code:** `src/lib/firebaseClient.ts` contains a real fallback Firebase API key (`AIzaSyC5qgG4DkMfCEdhNYHIb8hsIQ00pIkYRGo`) checked into source control.
+3. **Hardcoded Secrets in Source Code:** `src/lib/firebaseClient.ts` contains a real fallback Firebase API key (`AIzaSy[REDACTED_FIREBASE_KEY]`) checked into source control.
 4. **False-Confidence Testing Blindspot:** 104 security and Firestore rules tests silently skip in standard test runs (`vitest run`) because they depend on an active local Firebase emulator that does not run in standard environments.
 5. **Widespread Silent Exception Suppression:** Over 87 instances of empty `catch {}` and `catch (e) {}` blocks across core database connections, event buses, audit engines, and the worker request pipeline swallow fatal errors, hiding data corruption and transaction failures.
 6. **Monolithic 8.48 MB Client Bundle:** The initial client chunk is 8,479 kB (2,149 kB gzipped), resulting in severe Time-To-Interactive (TTI) degradation on real mobile and cellular networks.
@@ -33,7 +33,7 @@ Until P0 and P1 security and architectural remediations are applied, Orion-9 mus
 - **Category:** Security / Secrets Exposure
 - **Root Cause:** A hardcoded production-formatted Firebase API key is used as default fallback when `VITE_FIREBASE_API_KEY` is undefined:
   ```typescript
-  apiKey: getEnvVar('VITE_FIREBASE_API_KEY', "AIzaSyC5qgG4DkMfCEdhNYHIb8hsIQ00pIkYRGo"),
+  apiKey: getEnvVar('VITE_FIREBASE_API_KEY', "AIzaSy[REDACTED_FIREBASE_KEY]"),
   ```
 - **Reproduction:** Load the built client bundle without environment variables; network inspector reveals requests sent to Google APIs using the embedded key.
 - **Impact:** Attackers can extract this key from public minified bundles and abuse Google Cloud / Firebase quotas and services.

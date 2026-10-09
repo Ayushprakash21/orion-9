@@ -1,0 +1,18 @@
+# ORION-9 CLOUDFLARE WORKERS LOCAL ENVIRONMENT VARIABLES TEMPLATE
+# Copy this file to .dev.vars for local wrangler development:
+#   cp .dev.vars.example .dev.vars
+# NEVER commit .dev.vars with real secret credentials into git.
+
+# Google Gemini API Key (for worker AI cognitive engine)
+GEMINI_API_KEY="YOUR_GEMINI_API_KEY_HERE"
+
+# Cloudflare Workers AI & Account Credentials (optional for local edge AI)
+CLOUDFLARE_API_TOKEN="YOUR_CLOUDFLARE_API_TOKEN_HERE"
+CLOUDFLARE_ACCOUNT_ID="YOUR_CLOUDFLARE_ACCOUNT_ID_HERE"
+
+# Cloud Firestore Server-side Bindings (Authoritative Platform Branding)
+FIREBASE_API_KEY="YOUR_FIREBASE_API_KEY_HERE"
+FIREBASE_PROJECT_ID="orion9-dev-db-2026"
+
+# Runtime Environment Mode: 'DEMO' or 'LIVE'
+ORION_RUNTIME_ENVIRONMENT="DEMO"

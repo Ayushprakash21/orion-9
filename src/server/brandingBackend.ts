@@ -12,11 +12,21 @@ import { BrandingConfig } from '../types/auth';
 import { defaultBranding, normalizeBranding } from '../repositories/BrandingRepository';
 
 export const FIREBASE_PROJECT_ID = 'orion9-dev-db-2026';
-export const DEFAULT_FIREBASE_API_KEY = 'AIzaSyC5qgG4DkMfCEdhNYHIb8hsIQ00pIkYRGo';
 
 export const BRANDING_COLLECTION = 'system_configs';
 export const BRANDING_DOC_ID = 'branding';
 export const BRANDING_ASSET_COLLECTION = 'system_branding_assets';
+
+/**
+ * Sanitizes strings, URLs, and error messages to ensure API keys and credentials
+ * are never leaked in logs, error payloads, or traces.
+ */
+export function sanitizeErrorMessage(message: unknown): string {
+  const str = typeof message === 'string' ? message : (message as any)?.message || String(message || '');
+  return str
+    .replace(/[?&]key=[^&\s"']+/gi, '?key=[REDACTED]')
+    .replace(/AIzaSy[0-9A-Za-z_-]{20,60}/g, 'AIzaSy[REDACTED]');
+}
 
 /**
  * Resolves the active Firebase project ID across Cloudflare Worker env and Node process.env.
@@ -25,23 +35,34 @@ export function resolveProjectId(explicitProjectId?: string): string {
   if (explicitProjectId && explicitProjectId.trim()) {
     return explicitProjectId.trim();
   }
-  if (typeof process !== 'undefined' && process.env?.VITE_FIREBASE_PROJECT_ID) {
-    return process.env.VITE_FIREBASE_PROJECT_ID;
+  if (typeof process !== 'undefined') {
+    if (process.env?.FIREBASE_PROJECT_ID && process.env.FIREBASE_PROJECT_ID.trim()) {
+      return process.env.FIREBASE_PROJECT_ID.trim();
+    }
+    if (process.env?.VITE_FIREBASE_PROJECT_ID && process.env.VITE_FIREBASE_PROJECT_ID.trim()) {
+      return process.env.VITE_FIREBASE_PROJECT_ID.trim();
+    }
   }
   return FIREBASE_PROJECT_ID;
 }
 
 /**
  * Resolves the active Firebase API key across Cloudflare Worker env and Node process.env.
+ * Strict fail-closed policy: throws if no key is configured.
  */
 export function resolveApiKey(explicitApiKey?: string): string {
   if (explicitApiKey && explicitApiKey.trim()) {
     return explicitApiKey.trim();
   }
-  if (typeof process !== 'undefined' && process.env?.VITE_FIREBASE_API_KEY) {
-    return process.env.VITE_FIREBASE_API_KEY;
+  if (typeof process !== 'undefined') {
+    if (process.env?.FIREBASE_API_KEY && process.env.FIREBASE_API_KEY.trim()) {
+      return process.env.FIREBASE_API_KEY.trim();
+    }
+    if (process.env?.VITE_FIREBASE_API_KEY && process.env.VITE_FIREBASE_API_KEY.trim()) {
+      return process.env.VITE_FIREBASE_API_KEY.trim();
+    }
   }
-  return DEFAULT_FIREBASE_API_KEY;
+  throw new Error('Firebase API key is not configured. Server-side FIREBASE_API_KEY binding required.');
 }
 
 /**
@@ -156,15 +177,16 @@ export async function getDurableBranding(
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`Cloud Firestore read failed (${res.status}): ${errText}`);
+      throw new Error(`Cloud Firestore read failed (${res.status}): ${sanitizeErrorMessage(errText)}`);
     }
 
     const doc = await res.json();
     const rawData = fromFirestoreFields(doc.fields);
     return normalizeBranding({ ...defaultBranding, ...rawData });
   } catch (error: any) {
-    console.error('[BrandingBackend] Failed to fetch branding from Cloud Firestore:', error);
-    throw error;
+    const safeMsg = sanitizeErrorMessage(error?.message || error);
+    console.error('[BrandingBackend] Failed to fetch branding from Cloud Firestore:', safeMsg);
+    throw new Error(safeMsg);
   }
 }
 
@@ -218,7 +240,7 @@ export async function saveDurableBrandingAsset(
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Failed to save image asset to Cloud Firestore (${res.status}): ${errText}`);
+    throw new Error(`Failed to save image asset to Cloud Firestore (${res.status}): ${sanitizeErrorMessage(errText)}`);
   }
 
   // Return a stable versioned URL for the asset
@@ -239,8 +261,8 @@ export async function deleteDurableBrandingAsset(
 
   try {
     await fetch(url, { method: 'DELETE' });
-  } catch (err) {
-    console.warn(`[BrandingBackend] Notice: error removing asset ${assetId}:`, err);
+  } catch (err: any) {
+    console.warn(`[BrandingBackend] Notice: error removing asset ${assetId}:`, sanitizeErrorMessage(err?.message || err));
   }
 }
 
@@ -373,7 +395,7 @@ export async function saveDurableBranding(
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`authoritative database write failed (${res.status}): ${errText}`);
+    throw new Error(`authoritative database write failed (${res.status}): ${sanitizeErrorMessage(errText)}`);
   }
 
   return updated;
@@ -413,7 +435,7 @@ export async function resetDurableBranding(
 
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Failed to reset branding in Cloud Firestore (${res.status}): ${errText}`);
+    throw new Error(`Failed to reset branding in Cloud Firestore (${res.status}): ${sanitizeErrorMessage(errText)}`);
   }
 
   return { ...defaultBranding };

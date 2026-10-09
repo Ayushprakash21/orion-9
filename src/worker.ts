@@ -44,6 +44,8 @@ export interface Env {
   CLOUDFLARE_ACCOUNT_ID?: string;
   GEMINI_API_KEY?: string;
   ORION_RUNTIME_ENVIRONMENT?: string;
+  FIREBASE_API_KEY?: string;
+  FIREBASE_PROJECT_ID?: string;
 }
 
 const getWorkerGeminiClient = (apiKey?: string) => {
@@ -124,7 +126,7 @@ export default {
     if (url.pathname === "/api/branding") {
       if (request.method === "GET") {
         try {
-          const branding = await getDurableBranding();
+          const branding = await getDurableBranding(env.FIREBASE_API_KEY, env.FIREBASE_PROJECT_ID);
           return applySecurityHeaders(
             new Response(
               JSON.stringify({ success: true, data: branding }),
@@ -159,7 +161,7 @@ export default {
           return createSecurityErrorResponse('Invalid JSON payload in request body.', 400);
         }
         try {
-          const savedBranding = await saveDurableBranding(updated);
+          const savedBranding = await saveDurableBranding(updated, env.FIREBASE_API_KEY, env.FIREBASE_PROJECT_ID);
           return applySecurityHeaders(
             new Response(JSON.stringify({ success: true, data: savedBranding }), {
               status: 200,
@@ -188,7 +190,7 @@ export default {
           return createSecurityErrorResponse('Forbidden: Administrative privileges required.', 403);
         }
         try {
-          const resetConfig = await resetDurableBranding();
+          const resetConfig = await resetDurableBranding(env.FIREBASE_API_KEY, env.FIREBASE_PROJECT_ID);
           return applySecurityHeaders(
             new Response(JSON.stringify({ success: true, data: resetConfig, message: "Branding reset to defaults." }), {
               status: 200,
@@ -213,7 +215,7 @@ export default {
       const assetId = url.pathname.replace("/api/branding/assets/", "").split("/")[0].split("?")[0];
       if (assetId) {
         try {
-          const asset = await getDurableBrandingAsset(assetId);
+          const asset = await getDurableBrandingAsset(assetId, env.FIREBASE_API_KEY, env.FIREBASE_PROJECT_ID);
           if (asset && asset.bytes) {
             return applySecurityHeaders(
               new Response(asset.bytes, {

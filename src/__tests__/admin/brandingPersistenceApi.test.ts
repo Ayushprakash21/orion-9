@@ -70,6 +70,8 @@ describe('ORION-9 Global Creator Identity & Platform Branding Persistence', () =
   const dummyEnv = {
     ASSETS: { fetch: async () => new Response('Asset not found', { status: 404 }) },
     ORION_RUNTIME_ENVIRONMENT: 'DEMO',
+    FIREBASE_API_KEY: process.env.FIREBASE_API_KEY || process.env.VITE_FIREBASE_API_KEY,
+    FIREBASE_PROJECT_ID: 'orion9-dev-db-2026',
   };
 
   const dummyCtx = {

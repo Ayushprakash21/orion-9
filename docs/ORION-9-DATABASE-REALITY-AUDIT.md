@@ -30,7 +30,7 @@ A comprehensive, evidence-based backend audit of the **Orion-9 Supply Chain Oper
 | **Firebase RC** | `.firebaserc` (`projects.default = "orion9-dev-db-2026"`) |
 | **Firebase Config** | `firebase.json` (Firestore rules: `firestore.rules`, indexes: `firestore.indexes.json`) |
 | **Rules File Size** | `firestore.rules` (65,662 bytes, 1,395 lines, 193 match blocks) |
-| **Client Config** | `src/lib/firebaseClient.ts` (API Key: `AIzaSyC5qgG4...`, App ID: `1:1031466156269:web:44dd23cd...`) |
+| **Client Config** | `src/lib/firebaseClient.ts` (API Key: `AIzaSy[REDACTED]`, App ID: `1:1031466156269:web:44dd23cd...`) |
 | **Database Package** | `database/orion9_full_database.json` (297,251 bytes, 19 collections, 611 records) |
 
 ---

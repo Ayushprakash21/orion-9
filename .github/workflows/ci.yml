@@ -29,6 +29,9 @@ jobs:
       - name: Clean Dependency Installation
         run: npm ci
 
+      - name: Gate 0: Automated Secret & Credential Exposure Scan
+        run: npm run audit:secrets
+
       - name: Gate 1A: TypeScript Strict Typecheck
         run: npm run lint
 

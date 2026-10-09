@@ -992,9 +992,12 @@ Analyze the supplied document and return a strict JSON object with:
   });
 
   // Platform Branding API (Cloud Firestore Single Source of Truth)
+  const getFirebaseKey = () => process.env.FIREBASE_API_KEY || process.env.VITE_FIREBASE_API_KEY;
+  const getFirebaseProject = () => process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
+
   const handleGetBranding = async (req: express.Request, res: express.Response) => {
     try {
-      const data = await getDurableBranding();
+      const data = await getDurableBranding(getFirebaseKey(), getFirebaseProject());
       res.json({ success: true, data });
     } catch (e: any) {
       console.warn("Error reading branding on server:", e);
@@ -1039,7 +1042,7 @@ Analyze the supplied document and return a strict JSON object with:
       if (!data || typeof data !== 'object') {
         return res.status(400).json({ success: false, error: "Invalid branding configuration payload." });
       }
-      const savedConfig = await saveDurableBranding(data);
+      const savedConfig = await saveDurableBranding(data, getFirebaseKey(), getFirebaseProject());
       res.json({ success: true, data: savedConfig });
     } catch (e: any) {
       console.error("Branding save error:", e);
@@ -1054,7 +1057,7 @@ Analyze the supplied document and return a strict JSON object with:
     }
 
     try {
-      const resetConfig = await resetDurableBranding();
+      const resetConfig = await resetDurableBranding(getFirebaseKey(), getFirebaseProject());
       res.json({ success: true, data: resetConfig, message: "Branding reset to defaults." });
     } catch (e: any) {
       console.warn("Branding reset error on server:", e);
@@ -1068,7 +1071,7 @@ Analyze the supplied document and return a strict JSON object with:
       return res.status(404).json({ error: "Asset not found" });
     }
     try {
-      const asset = await getDurableBrandingAsset(assetId);
+      const asset = await getDurableBrandingAsset(assetId, getFirebaseKey(), getFirebaseProject());
       if (asset && asset.bytes) {
         res.setHeader("Content-Type", asset.mimeType);
         res.setHeader("Cache-Control", "public, max-age=86400, stale-while-revalidate=604800");
