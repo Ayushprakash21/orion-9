@@ -604,6 +604,19 @@ export const authService = {
     const roleCode = user.role;
     const permissions = permissionService.getDefaultPermissionsForRole(roleCode);
 
+    let token = `orion_sess:${activeEnv}:${userId}:${roleCode}:${Date.now() + 8 * 3600 * 1000}:sig_${roleCode}`;
+    if (activeEnv === 'LIVE') {
+      try {
+        const auth = getFirebaseAuth('LIVE');
+        if (auth?.currentUser) {
+          const idToken = await auth.currentUser.getIdToken();
+          if (idToken) {
+            token = idToken;
+          }
+        }
+      } catch {}
+    }
+
     return {
       user: {
         id: userId,
@@ -613,10 +626,11 @@ export const authService = {
       organization,
       role: roleCode,
       permissions,
-      token: `orion_sess:${activeEnv}:${userId}:${roleCode}:${Date.now() + 8 * 3600 * 1000}:sig_${roleCode}`,
+      token,
       expiresAt: new Date(Date.now() + 8 * 3600 * 1000).toISOString(),
       environment: activeEnv,
     };
+
   },
 
   /**

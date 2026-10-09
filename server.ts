@@ -111,15 +111,20 @@ const requireAdmin = async (req: express.Request, res: express.Response) => {
     }
 
     if (!profile) {
-      profile = {
-        id: uid,
-        email: email || "admin@orion.local",
-        username: "admin",
-        full_name: "Platform Admin",
-        status: "active",
-        role: "platform_admin",
-        organization_id: "org-global"
-      };
+      if (process.env.NODE_ENV !== "production" && (token === "admin-dev-token" || token.startsWith("dev-"))) {
+        profile = {
+          id: uid,
+          email: email || "admin@orion.local",
+          username: "admin",
+          full_name: "Platform Admin",
+          status: "active",
+          role: "platform_admin",
+          organization_id: "org-global"
+        };
+      } else {
+        res.status(403).json({ error: "Access denied: User does not hold administrative privileges." });
+        return null;
+      }
     }
 
     if (profile.status !== "active") {

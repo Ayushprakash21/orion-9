@@ -50,5 +50,18 @@ vi.mock('../lib/firebaseClient', () => ({
   })),
   getFirebaseFirestore: vi.fn().mockReturnValue(null),
   getFirebaseStorage: vi.fn().mockReturnValue(null),
+  resetFirebaseInstances: vi.fn(),
+  resolveCurrentEnvironment: vi.fn((env?: 'LIVE' | 'DEMO') => {
+    if (env === 'LIVE' || env === 'DEMO') return env;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('orion9_database_environment');
+        if (saved === 'LIVE' || saved === 'DEMO') return saved;
+      } catch {}
+    }
+    return 'DEMO';
+  }),
 }));
+
+
 

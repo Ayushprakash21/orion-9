@@ -14,7 +14,7 @@ import {
   EnvironmentSwitchRequest,
   EnvironmentSwitchResult,
 } from './DatabaseEnvironment';
-import { getFirebaseFirestore, getFirebaseAuth } from '../../lib/firebaseClient';
+import { getFirebaseFirestore, getFirebaseAuth, resetFirebaseInstances } from '../../lib/firebaseClient';
 import { Firestore, doc, getDoc, setDoc } from 'firebase/firestore';
 
 const STORAGE_ENV_KEY = 'orion9_database_environment';
@@ -144,6 +144,7 @@ export class DatabaseConnectionManager {
         this.inMemoryCache.delete(key);
       }
     }
+    resetFirebaseInstances();
   }
 
   /**

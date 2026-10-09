@@ -171,10 +171,51 @@ export class KernelEventBus {
     });
 
     // Notify browser runtime if available
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('orion:event', { detail: envelope }));
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+      try {
+        window.dispatchEvent(new CustomEvent('orion:event', { detail: envelope }));
+      } catch {}
     }
 
+    return envelope;
+  }
+
+  /**
+   * Publishes an event and awaits authoritative persistence to Cloud Firestore.
+   * Throws if LIVE environment write fails, guaranteeing transactional consistency.
+   */
+  public async publishDurable<T = any>(
+    eventType: string,
+    payload: T,
+    options?: {
+      actor?: EventEnvelope['actor'];
+      tenant?: EventEnvelope['tenant'];
+      source?: string;
+      correlationId?: string;
+      causationId?: string;
+      entityId?: string;
+      entityType?: string;
+      classification?: DataClassification;
+      isReplay?: boolean;
+    }
+  ): Promise<EventEnvelope<T>> {
+    const envelope = this.publish(eventType, payload, options);
+    const db = DatabaseConnectionManager.getInstance().getFirestore();
+    if (db) {
+      try {
+        await setDoc(doc(db, 'events', envelope.eventId), {
+          ...envelope,
+          organizationId: envelope.tenant?.organizationId || 'ORION_PLATFORM',
+        });
+      } catch (err: any) {
+        if (DatabaseConnectionManager.getInstance().getEnvironment() === 'LIVE') {
+          console.error('[EventBus] Authoritative Firestore event persistence failed in LIVE mode:', err);
+          throw new Error(`[EventBus] Authoritative event persistence failed for ${envelope.eventId}: ${err?.message || err}`);
+        } else {
+          console.warn('[EventBus] Firestore event persistence notice:', err);
+        }
+      }
+    }
     return envelope;
   }
 

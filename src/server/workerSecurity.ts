@@ -162,6 +162,24 @@ export function verifyWorkerAuthToken(
         };
       }
 
+      if (activeEnv === 'LIVE') {
+        const expectedProjectId = 'orion9-dev-db-2026';
+        if (payload.aud && payload.aud !== expectedProjectId) {
+          return {
+            authorized: false,
+            error: `Invalid token audience: expected project ${expectedProjectId}.`,
+            statusCode: 401,
+          };
+        }
+        if (payload.iss && payload.iss !== `https://securetoken.google.com/${expectedProjectId}`) {
+          return {
+            authorized: false,
+            error: `Invalid token issuer: expected https://securetoken.google.com/${expectedProjectId}.`,
+            statusCode: 401,
+          };
+        }
+      }
+
       const role = payload.role || (payload.admin ? 'platform_admin' : 'user');
       return {
         authorized: true,

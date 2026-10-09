@@ -103,6 +103,7 @@ import { AutonomousCommandCenter } from '../components/autonomy/AutonomousComman
 import { MultiPartyNetworkPortal } from '../network/MultiPartyNetworkPortal';
 import { GuidedBuyWorkflow } from '../components/guided/GuidedBuyWorkflow';
 import { ExecutiveOverview } from '../components/executive/ExecutiveOverview';
+import { OrionBrowser } from '../components/browser/OrionBrowser';
 
 function createLazyApp(
   loader: () => Promise<any>,
@@ -148,7 +149,7 @@ const Reports = createLazyApp(() => import('../components/Reports'), 'Reports');
 const DocumentWorkspace = createLazyApp(() => import('../components/DocumentWorkspace'), 'DocumentWorkspace');
 const PlatformIntelligence = createLazyApp(() => import('../components/admin/PlatformIntelligence'), 'PlatformIntelligence');
 const FileManager = createLazyApp(() => import('../components/FileManager'), 'FileManager');
-const OrionBrowser = createLazyApp(() => import('../components/browser/OrionBrowser'), 'OrionBrowser');
+
 
 const ProfileUserView: React.FC = () => <Profile initialTab="profile" />;
 const ProfileOrgView: React.FC = () => <Profile initialTab="organization" />;

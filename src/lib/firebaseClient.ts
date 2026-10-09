@@ -1,7 +1,7 @@
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { getAuth, Auth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, Firestore, connectFirestoreEmulator } from 'firebase/firestore';
+import { getStorage, FirebaseStorage, connectStorageEmulator } from 'firebase/storage';
 
 const getEnvVar = (key: string, fallback: string): string => {
   try {
@@ -42,13 +42,83 @@ const appInstances: Map<string, FirebaseApp> = new Map();
 const authInstances: Map<string, Auth> = new Map();
 const firestoreInstances: Map<string, Firestore> = new Map();
 const storageInstances: Map<string, FirebaseStorage> = new Map();
+const connectedEmulators: Set<string> = new Set();
+
+/**
+ * Resolves the authoritative environment dynamically.
+ * If omitted or unspecified, defaults safely to DEMO to prevent accidental LIVE writes.
+ */
+export const resolveCurrentEnvironment = (environment?: 'LIVE' | 'DEMO'): 'LIVE' | 'DEMO' => {
+  if (environment === 'LIVE' || environment === 'DEMO') {
+    return environment;
+  }
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      const saved = localStorage.getItem('orion9_database_environment');
+      if (saved === 'LIVE' || saved === 'DEMO') {
+        return saved;
+      }
+    } catch {}
+  }
+  if (typeof process !== 'undefined' && process.env) {
+    const nodeEnv = process.env.VITE_ORION_ENV || process.env.ORION_ENV;
+    if (nodeEnv === 'LIVE' || nodeEnv === 'DEMO') {
+      return nodeEnv as 'LIVE' | 'DEMO';
+    }
+  }
+  return 'DEMO';
+};
+
+/**
+ * Connects Firebase instances to local emulators when configured.
+ */
+function setupEmulators(envKey: string, app: FirebaseApp): void {
+  if (connectedEmulators.has(envKey)) return;
+  connectedEmulators.add(envKey);
+
+  const authHost = getEnvVar('FIREBASE_AUTH_EMULATOR_HOST', '');
+  const firestoreHost = getEnvVar('FIRESTORE_EMULATOR_HOST', '');
+  const storageHost = getEnvVar('FIREBASE_STORAGE_EMULATOR_HOST', '');
+
+  if (authHost) {
+    try {
+      const auth = getAuth(app);
+      connectAuthEmulator(auth, authHost.startsWith('http') ? authHost : `http://${authHost}`, { disableWarnings: true });
+    } catch {}
+  }
+  if (firestoreHost) {
+    try {
+      const [host, port] = firestoreHost.split(':');
+      const firestore = getFirestore(app);
+      connectFirestoreEmulator(firestore, host || 'localhost', port ? parseInt(port, 10) : 8080);
+    } catch {}
+  }
+  if (storageHost) {
+    try {
+      const [host, port] = storageHost.split(':');
+      const storage = getStorage(app);
+      connectStorageEmulator(storage, host || 'localhost', port ? parseInt(port, 10) : 9199);
+    } catch {}
+  }
+}
+
+/**
+ * Invalidates and clears all cached instances across environments.
+ */
+export const resetFirebaseInstances = (): void => {
+  appInstances.clear();
+  authInstances.clear();
+  firestoreInstances.clear();
+  storageInstances.clear();
+  connectedEmulators.clear();
+};
 
 /**
  * Returns the isolated Firebase App instance for the given environment.
  * LIVE uses the default instance ('orion9-dev-db-2026'), DEMO uses named instance ('demo-orion9-db-2026').
  */
-export const getFirebaseApp = (environment: 'LIVE' | 'DEMO' = 'LIVE'): FirebaseApp => {
-  const envKey = (environment || 'LIVE').toUpperCase();
+export const getFirebaseApp = (environment?: 'LIVE' | 'DEMO'): FirebaseApp => {
+  const envKey = resolveCurrentEnvironment(environment);
   if (appInstances.has(envKey)) {
     return appInstances.get(envKey)!;
   }
@@ -72,6 +142,7 @@ export const getFirebaseApp = (environment: 'LIVE' | 'DEMO' = 'LIVE'): FirebaseA
     }
   }
 
+  setupEmulators(envKey, targetApp);
   appInstances.set(envKey, targetApp);
   return targetApp;
 };
@@ -79,10 +150,10 @@ export const getFirebaseApp = (environment: 'LIVE' | 'DEMO' = 'LIVE'): FirebaseA
 /**
  * Returns Auth instance isolated per environment.
  */
-export const getFirebaseAuth = (environment: 'LIVE' | 'DEMO' = 'LIVE'): Auth => {
-  const envKey = (environment || 'LIVE').toUpperCase();
+export const getFirebaseAuth = (environment?: 'LIVE' | 'DEMO'): Auth => {
+  const envKey = resolveCurrentEnvironment(environment);
   if (!authInstances.has(envKey)) {
-    const app = getFirebaseApp(environment);
+    const app = getFirebaseApp(envKey);
     authInstances.set(envKey, getAuth(app));
   }
   return authInstances.get(envKey)!;
@@ -91,10 +162,10 @@ export const getFirebaseAuth = (environment: 'LIVE' | 'DEMO' = 'LIVE'): Auth => 
 /**
  * Returns Cloud Firestore instance strictly connected to the corresponding environment project.
  */
-export const getFirebaseFirestore = (environment: 'LIVE' | 'DEMO' = 'LIVE'): Firestore => {
-  const envKey = (environment || 'LIVE').toUpperCase();
+export const getFirebaseFirestore = (environment?: 'LIVE' | 'DEMO'): Firestore => {
+  const envKey = resolveCurrentEnvironment(environment);
   if (!firestoreInstances.has(envKey)) {
-    const app = getFirebaseApp(environment);
+    const app = getFirebaseApp(envKey);
     firestoreInstances.set(envKey, getFirestore(app));
   }
   return firestoreInstances.get(envKey)!;
@@ -103,11 +174,12 @@ export const getFirebaseFirestore = (environment: 'LIVE' | 'DEMO' = 'LIVE'): Fir
 /**
  * Returns Firebase Storage instance strictly connected to the corresponding environment project.
  */
-export const getFirebaseStorage = (environment: 'LIVE' | 'DEMO' = 'LIVE'): FirebaseStorage => {
-  const envKey = (environment || 'LIVE').toUpperCase();
+export const getFirebaseStorage = (environment?: 'LIVE' | 'DEMO'): FirebaseStorage => {
+  const envKey = resolveCurrentEnvironment(environment);
   if (!storageInstances.has(envKey)) {
-    const app = getFirebaseApp(environment);
+    const app = getFirebaseApp(envKey);
     storageInstances.set(envKey, getStorage(app));
   }
   return storageInstances.get(envKey)!;
 };
+
