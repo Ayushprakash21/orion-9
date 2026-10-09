@@ -200,6 +200,15 @@ export function verifyWorkerAuthToken(
         };
       }
 
+      // In LIVE environment, strictly reject unverified client-minted session tokens
+      if (activeEnv === 'LIVE') {
+        return {
+          authorized: false,
+          error: 'Client-minted session tokens are strictly forbidden in LIVE environment. Genuine Firebase ID token verification required.',
+          statusCode: 401,
+        };
+      }
+
       if (isNaN(expiry) || Date.now() > expiry) {
         return {
           authorized: false,

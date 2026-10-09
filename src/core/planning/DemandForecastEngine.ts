@@ -1,5 +1,13 @@
 import { Inventory, Product } from '../../types';
 
+export type DemandProvenance =
+  | 'ACTUAL'
+  | 'IMPORTED'
+  | 'SYNTHETIC_DEMO'
+  | 'SIMULATED'
+  | 'FORECAST'
+  | 'ESTIMATED';
+
 export interface ForecastResult {
   productId: string;
   locationId: string;
@@ -14,6 +22,7 @@ export interface ForecastResult {
   anomalyFlag: boolean;
   generatedAt: string;
   isHistorical: boolean;
+  provenance: DemandProvenance;
 }
 
 export class DemandForecastEngine {
@@ -57,7 +66,7 @@ export class DemandForecastEngine {
       
       const seasonalityFactor = 1.0 + (this.seededRandom(productHash) * 0.2 - 0.1); // +/- 10%
 
-      // 1. Generate Historical Data
+      // 1. Generate Historical Baseline Data (Clearly flagged with synthetic provenance)
       let currentDemand = baseDemand / Math.pow(trendFactor, includeHistoryDays / 7);
       
       for (let i = includeHistoryDays; i > 0; i--) {
@@ -83,12 +92,13 @@ export class DemandForecastEngine {
           lowerBound: Math.round(actualDemand),
           upperBound: Math.round(actualDemand),
           confidence: 'HIGH',
-          method: 'Actual History',
+          method: 'Synthetic Historical Baseline',
           trend: trendFactor,
           seasonality: seasonalityFactor,
           anomalyFlag,
           generatedAt: new Date().toISOString(),
-          isHistorical: true
+          isHistorical: true,
+          provenance: 'SYNTHETIC_DEMO'
         });
       }
 
@@ -123,10 +133,74 @@ export class DemandForecastEngine {
           seasonality: seasonalityFactor,
           anomalyFlag,
           generatedAt: new Date().toISOString(),
-          isHistorical: false
+          isHistorical: false,
+          provenance: 'FORECAST'
         });
       }
     }
     return forecasts;
+  }
+
+  /**
+   * Generates probabilistic forecast directly from verified empirical sales/demand history
+   */
+  static generateFromEmpiricalHistory(
+    empiricalHistory: { date: string; quantity: number; productId: string; locationId: string }[],
+    horizonDays: number = 30
+  ): ForecastResult[] {
+    if (empiricalHistory.length === 0) return [];
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const sorted = [...empiricalHistory].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const quantities = sorted.map(h => h.quantity);
+    const avg = quantities.reduce((a, b) => a + b, 0) / quantities.length;
+    const { productId, locationId } = sorted[0];
+
+    const results: ForecastResult[] = [];
+    
+    // Add empirical history points
+    sorted.forEach(h => {
+      results.push({
+        productId,
+        locationId,
+        forecastDate: h.date,
+        predictedDemand: h.quantity,
+        lowerBound: h.quantity,
+        upperBound: h.quantity,
+        confidence: 'HIGH',
+        method: 'Empirical Historical Orders',
+        trend: 1.0,
+        seasonality: 1.0,
+        anomalyFlag: false,
+        generatedAt: new Date().toISOString(),
+        isHistorical: true,
+        provenance: 'ACTUAL'
+      });
+    });
+
+    // Forecast projection
+    for (let i = 1; i <= horizonDays; i++) {
+      const forecastDate = new Date(today);
+      forecastDate.setDate(today.getDate() + i);
+      results.push({
+        productId,
+        locationId,
+        forecastDate: forecastDate.toISOString(),
+        predictedDemand: Math.round(avg),
+        lowerBound: Math.max(0, Math.round(avg * 0.85)),
+        upperBound: Math.round(avg * 1.15),
+        confidence: quantities.length >= 14 ? 'HIGH' : 'MEDIUM',
+        method: 'Empirical Moving Average',
+        trend: 1.0,
+        seasonality: 1.0,
+        anomalyFlag: false,
+        generatedAt: new Date().toISOString(),
+        isHistorical: false,
+        provenance: 'FORECAST'
+      });
+    }
+
+    return results;
   }
 }

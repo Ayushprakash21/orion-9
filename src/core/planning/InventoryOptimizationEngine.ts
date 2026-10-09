@@ -54,11 +54,31 @@ export class InventoryOptimizationEngine {
       
       const inboundCoverage = avgForecastDemand > 0 ? totalInbound / avgForecastDemand : 0;
       
-      // Calculate Lead Time (avg from suppliers or default 14)
-      const leadTime = 14; 
+      // Calculate Lead Time from inventory record or associated supplier, fallback to 14
+      let leadTime = (inv.leadTime && inv.leadTime > 0) ? inv.leadTime : 0;
+      if (leadTime <= 0) {
+        const matchingSupplier = suppliers.find(s => s.id === (inv as any).supplierId);
+        if (matchingSupplier && matchingSupplier.leadTime > 0) {
+          leadTime = matchingSupplier.leadTime;
+        } else {
+          leadTime = 14;
+        }
+      }
 
-      // Reorder Point = Demand during lead time + safety stock
-      const recommendedSafetyStock = Math.round(avgForecastDemand * leadTime * 0.5); // 50% buffer
+      // Principled statistical Safety Stock calculation:
+      let demandSigma = 0;
+      if (productForecasts.length > 1) {
+        const varianceSum = productForecasts.reduce((sum, f) => sum + Math.pow(f.predictedDemand - avgForecastDemand, 2), 0);
+        demandSigma = Math.sqrt(varianceSum / productForecasts.length);
+      }
+      
+      // Z-factor = 1.65 (95% service level standard in SCM)
+      // Safety Stock = Z * sqrt(LeadTime) * Sigma_Demand
+      const statisticalSafetyStock = demandSigma > 0
+        ? Math.round(1.65 * Math.sqrt(leadTime) * demandSigma)
+        : Math.round(avgForecastDemand * leadTime * 0.35);
+
+      const recommendedSafetyStock = Math.max(1, statisticalSafetyStock);
       const recommendedReorderPoint = Math.round((avgForecastDemand * leadTime) + recommendedSafetyStock);
 
       let stockoutRisk: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' = 'LOW';

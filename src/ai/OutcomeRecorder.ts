@@ -6,7 +6,7 @@
  */
 
 import { AIOutcomeRecord } from './types';
-import { getFirebaseFirestore } from '../lib/firebaseClient';
+import { DatabaseConnectionManager } from '../core/database/DatabaseConnectionManager';
 import { doc, setDoc } from 'firebase/firestore';
 
 export class OutcomeRecorder {
@@ -37,12 +37,28 @@ export class OutcomeRecorder {
 
     this.outcomes.set(`${outcome.tenantId}:${outcomeId}`, fullOutcome);
 
-    try {
-      const db = getFirebaseFirestore();
-      if (db) {
-        await setDoc(doc(db, 'ai_outcomes', `${outcome.tenantId}_${outcomeId}`), fullOutcome);
+    const env = DatabaseConnectionManager.getInstance().getEnvironment();
+    if (env === 'LIVE') {
+      const db = DatabaseConnectionManager.getInstance().getFirestore('LIVE');
+      if (!db) {
+        throw new Error(`[OUTCOME-PERSISTENCE] LIVE environment active but Firestore instance unavailable for outcome ${outcomeId}`);
       }
-    } catch (e) {}
+      try {
+        await setDoc(doc(db, 'ai_outcomes', `${outcome.tenantId}_${outcomeId}`), fullOutcome);
+      } catch (err: any) {
+        console.error(`[OUTCOME-PERSISTENCE] Firestore write failed for outcome ${outcomeId}:`, err);
+        throw new Error(`[OUTCOME-PERSISTENCE] Authoritative write failed for outcome ${outcomeId}: ${err?.message || err}`);
+      }
+    } else {
+      const db = DatabaseConnectionManager.getInstance().getFirestore('DEMO');
+      if (db) {
+        try {
+          await setDoc(doc(db, 'ai_outcomes', `${outcome.tenantId}_${outcomeId}`), fullOutcome);
+        } catch (e) {
+          // Graceful fallback for non-Firebase local demo/test environments
+        }
+      }
+    }
 
     return fullOutcome;
   }

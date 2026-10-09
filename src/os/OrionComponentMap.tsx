@@ -17,8 +17,6 @@ import { DataCenter } from '../components/DataCenter';
 import { Integrations } from '../components/Integrations';
 import { Settings } from '../components/Settings';
 import { Notepad } from '../components/Notepad';
-import { FileManager } from '../components/FileManager';
-import { OrionBrowser } from '../components/browser/OrionBrowser';
 import { OrionComputer } from '../components/OrionComputer';
 import { Inbound } from '../components/Inbound';
 import { Outbound } from '../components/Outbound';
@@ -149,6 +147,8 @@ const OrionPdf = createLazyApp(() => import('../components/office'), 'OrionPdf')
 const Reports = createLazyApp(() => import('../components/Reports'), 'Reports');
 const DocumentWorkspace = createLazyApp(() => import('../components/DocumentWorkspace'), 'DocumentWorkspace');
 const PlatformIntelligence = createLazyApp(() => import('../components/admin/PlatformIntelligence'), 'PlatformIntelligence');
+const FileManager = createLazyApp(() => import('../components/FileManager'), 'FileManager');
+const OrionBrowser = createLazyApp(() => import('../components/browser/OrionBrowser'), 'OrionBrowser');
 
 const ProfileUserView: React.FC = () => <Profile initialTab="profile" />;
 const ProfileOrgView: React.FC = () => <Profile initialTab="organization" />;

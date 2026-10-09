@@ -18,6 +18,10 @@ export interface ForecastOutputResult {
   forecastAccuracyPct: number;
   forecastBias: number; // e.g. -0.02 (under-forecasting) or +0.03 (over-forecasting)
   forecastDriftDetected: boolean;
+  mae?: number;
+  rmse?: number;
+  wape?: number;
+  insufficientData?: boolean;
 }
 
 export class ForecastIntelligenceEngine {
@@ -59,14 +63,60 @@ export class ForecastIntelligenceEngine {
       return Math.round(combined);
     });
 
-    // 5. Confidence Intervals & Drift
+    // 5. Confidence Intervals
     const lower = ensembleForecast.map(val => Math.round(val * 0.90));
     const upper = ensembleForecast.map(val => Math.round(val * 1.10));
 
+    // 6. Empirical Backtesting (MAE, RMSE, WAPE & Backtested Accuracy)
+    let forecastAccuracyPct = 90.0;
+    let mae = 0;
+    let rmse = 0;
+    let wape = 0;
+    let insufficientData = false;
+
+    if (series.length >= 3) {
+      let sumAbsErr = 0;
+      let sumSqErr = 0;
+      let sumActual = 0;
+      let sumSignedErr = 0;
+      let points = 0;
+
+      // Holt's linear trend backtesting on historical points
+      let lt = series[0];
+      let tt = series.length > 1 ? series[1] - series[0] : 0;
+      const beta = 0.2;
+
+      for (let i = 1; i < series.length; i++) {
+        const pred = Math.max(0, lt + tt);
+        const actual = series[i];
+        const err = actual - pred;
+
+        sumAbsErr += Math.abs(err);
+        sumSqErr += err * err;
+        sumActual += actual;
+        sumSignedErr += (pred - actual);
+        points++;
+
+        // Update state
+        const prevLt = lt;
+        lt = alpha * actual + (1 - alpha) * (prevLt + tt);
+        tt = beta * (lt - prevLt) + (1 - beta) * tt;
+      }
+
+      if (sumActual > 0 && points > 0) {
+        wape = Number((sumAbsErr / sumActual).toFixed(4));
+        mae = Number((sumAbsErr / points).toFixed(2));
+        rmse = Number(Math.sqrt(sumSqErr / points).toFixed(2));
+        forecastAccuracyPct = Number(Math.max(0, Math.min(99.9, (1 - wape) * 100)).toFixed(1));
+      }
+    } else {
+      insufficientData = true;
+    }
+
     // Bias & Drift calculation
     const errorSum = series.slice(-3).reduce((acc, val) => acc + (val - ma), 0);
-    const forecastBias = Number((errorSum / (3 * ma)).toFixed(3));
-    const forecastDriftDetected = Math.abs(forecastBias) > 0.15;
+    const forecastBias = Number((errorSum / (Math.max(1, 3 * ma))).toFixed(3));
+    const forecastDriftDetected = Math.abs(forecastBias) > 0.15 || wape > 0.35;
 
     return {
       skuId: input.skuId,
@@ -76,9 +126,13 @@ export class ForecastIntelligenceEngine {
       holtWintersForecast,
       ensembleForecast,
       confidenceInterval: { lower, upper },
-      forecastAccuracyPct: 94.8,
+      forecastAccuracyPct,
       forecastBias,
-      forecastDriftDetected
+      forecastDriftDetected,
+      mae,
+      rmse,
+      wape,
+      insufficientData
     };
   }
 }

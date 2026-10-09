@@ -75,17 +75,18 @@ export class ScmPersistenceService {
     // Sanitize payload: strip any undefined fields and reject non-serializable objects
     const sanitizedData = sanitizeFirestorePayload(data, `${collectionName}/${id}`);
 
-    const env = (data as any).environment || DatabaseConnectionManager.getInstance().getEnvironment();
+    const env = DatabaseConnectionManager.getInstance().getEnvironment();
     if (env === 'LIVE') {
       const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore('LIVE') || this.firestore;
-      if (firestoreInstance) {
-        try {
-          const ref = doc(firestoreInstance, collectionName, id);
-          await setDoc(ref, sanitizedData, { merge: true });
-        } catch (err: any) {
-          console.error(`[SCM-PERSISTENCE] Authoritative Firestore write failed for ${collectionName}/${id}:`, err);
-          throw new Error(`[SCM-AUTHORITATIVE-ERROR] Firestore persistence failed for ${collectionName}/${id}: ${err?.message || err}`);
-        }
+      if (!firestoreInstance) {
+        throw new Error(`[SCM-AUTHORITATIVE-ERROR] LIVE environment requested but Firestore instance is unavailable for ${collectionName}/${id}. Unpersisted writes are rejected.`);
+      }
+      try {
+        const ref = doc(firestoreInstance, collectionName, id);
+        await setDoc(ref, sanitizedData, { merge: true });
+      } catch (err: any) {
+        console.error(`[SCM-PERSISTENCE] Authoritative Firestore write failed for ${collectionName}/${id}:`, err);
+        throw new Error(`[SCM-AUTHORITATIVE-ERROR] Firestore persistence failed for ${collectionName}/${id}: ${err?.message || err}`);
       }
     }
 
@@ -224,12 +225,17 @@ export class ScmPersistenceService {
     id: string
   ): Promise<boolean> {
     const currentEnv = DatabaseConnectionManager.getInstance().getEnvironment();
-    if (currentEnv === 'LIVE' && this.firestore) {
+    if (currentEnv === 'LIVE') {
+      const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore('LIVE') || this.firestore;
+      if (!firestoreInstance) {
+        throw new Error(`[SCM-AUTHORITATIVE-ERROR] LIVE environment requested but Firestore instance is unavailable for delete ${collectionName}/${id}.`);
+      }
       try {
-        const ref = doc(this.firestore, collectionName, id);
+        const ref = doc(firestoreInstance, collectionName, id);
         await deleteDoc(ref);
-      } catch (err) {
-        console.warn(`[SCM-PERSISTENCE] Firestore delete failed for ${collectionName}/${id}`, err);
+      } catch (err: any) {
+        console.error(`[SCM-PERSISTENCE] Firestore delete failed for ${collectionName}/${id}:`, err);
+        throw new Error(`[SCM-AUTHORITATIVE-ERROR] Firestore delete failed for ${collectionName}/${id}: ${err?.message || err}`);
       }
     }
 

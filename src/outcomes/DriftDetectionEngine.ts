@@ -7,7 +7,7 @@
  */
 
 import { DriftSignal, DriftState } from './types';
-import { getFirebaseFirestore } from '../lib/firebaseClient';
+import { DatabaseConnectionManager } from '../core/database/DatabaseConnectionManager';
 import { doc, setDoc } from 'firebase/firestore';
 
 export class DriftDetectionEngine {
@@ -64,15 +64,48 @@ export class DriftDetectionEngine {
 
     this.driftSignals.set(`${params.tenantId}:${driftId}`, signal);
 
-    try {
-      const db = getFirebaseFirestore();
+    const env = DatabaseConnectionManager.getInstance().getEnvironment();
+    if (env === 'LIVE') {
+      const db = DatabaseConnectionManager.getInstance().getFirestore('LIVE');
       if (db) {
-        setDoc(doc(db, 'drift_signals', `${params.tenantId}_${driftId}`), signal);
+        setDoc(doc(db, 'drift_signals', `${params.tenantId}_${driftId}`), signal).catch(err => {
+          console.error(`[DRIFT-PERSISTENCE] Authoritative write failed for drift signal ${driftId}:`, err);
+        });
       }
-    } catch {
-      // Best-effort Firestore write
+    } else {
+      const db = DatabaseConnectionManager.getInstance().getFirestore('DEMO');
+      if (db) {
+        setDoc(doc(db, 'drift_signals', `${params.tenantId}_${driftId}`), signal).catch(() => {});
+      }
     }
 
+    return signal;
+  }
+
+  /**
+   * Authoritatively evaluates drift and awaits durable persistence in the target environment
+   */
+  public async evaluateAndPersistDrift(params: {
+    tenantId: string;
+    featureName: string;
+    baselineMean: number;
+    currentMean: number;
+    threshold?: number;
+  }): Promise<DriftSignal> {
+    const signal = this.evaluateDrift(params);
+    const env = DatabaseConnectionManager.getInstance().getEnvironment();
+    if (env === 'LIVE') {
+      const db = DatabaseConnectionManager.getInstance().getFirestore('LIVE');
+      if (!db) {
+        throw new Error(`[DRIFT-PERSISTENCE] LIVE environment active but Firestore instance unavailable for signal ${signal.driftId}`);
+      }
+      try {
+        await setDoc(doc(db, 'drift_signals', `${params.tenantId}_${signal.driftId}`), signal);
+      } catch (err: any) {
+        console.error(`[DRIFT-PERSISTENCE] Authoritative Firestore write failed for signal ${signal.driftId}:`, err);
+        throw new Error(`[DRIFT-PERSISTENCE] Authoritative write failed for signal ${signal.driftId}: ${err?.message || err}`);
+      }
+    }
     return signal;
   }
 

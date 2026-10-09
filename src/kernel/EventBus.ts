@@ -7,7 +7,7 @@
 import { EventEnvelope, DataClassification } from './types';
 import { generateCorrelationId } from './security/crypto';
 import { db, loadData, saveData } from '../data/db';
-import { getFirebaseFirestore } from '../lib/firebaseClient';
+import { DatabaseConnectionManager } from '../core/database/DatabaseConnectionManager';
 import { doc, setDoc } from 'firebase/firestore';
 
 export type EventHandler<T = any> = (event: EventEnvelope<T>) => void | Promise<void>;
@@ -132,12 +132,18 @@ export class KernelEventBus {
 
     // Persist to Cloud Firestore events collection asynchronously
     try {
-      const db = getFirebaseFirestore();
+      const db = DatabaseConnectionManager.getInstance().getFirestore();
       if (db) {
         setDoc(doc(db, 'events', eventId), {
           ...envelope,
           organizationId: envelope.tenant?.organizationId || 'ORION_PLATFORM',
-        }).catch(err => console.warn('[EventBus] Firestore event persistence warning:', err));
+        }).catch(err => {
+          if (DatabaseConnectionManager.getInstance().getEnvironment() === 'LIVE') {
+            console.error('[EventBus] Authoritative Firestore event persistence failed in LIVE mode:', err);
+          } else {
+            console.warn('[EventBus] Firestore event persistence notice:', err);
+          }
+        });
       }
     } catch (e) {
       console.warn('[EventBus] Error accessing database during event logging:', e);
