@@ -72,7 +72,7 @@ export function OrionTaskSwitcher({ isOpen, onClose }: OrionTaskSwitcherProps) {
       aria-label="Orion Task Switcher"
     >
       <div 
-        className="relative w-full max-w-2xl bg-[#12151a]/95 backdrop-blur-2xl border border-white/[0.12] rounded-2xl shadow-[0_35px_60px_-15px_rgba(0,0,0,0.9)] p-6 overflow-hidden flex flex-col gap-5 animate-in zoom-in-95 duration-150"
+        className="relative w-full max-w-2xl bg-[rgba(18,22,28,0.88)] backdrop-blur-[36px] backdrop-saturate-[160%] border border-white/[0.14] rounded-2xl shadow-[0_32px_80px_rgba(0,0,0,0.70),inset_0_1px_1px_rgba(255,255,255,0.22)] p-6 overflow-hidden flex flex-col gap-5 animate-in zoom-in-95 duration-150"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5">

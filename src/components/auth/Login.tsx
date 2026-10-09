@@ -599,7 +599,7 @@ export const Login: React.FC<LoginProps> = () => {
                         className={cn(
                           "w-[38px] h-[38px] mr-1.5 rounded-full flex items-center justify-center transition-all duration-200 cursor-pointer",
                           "text-white shadow-md disabled:opacity-35 disabled:cursor-not-allowed",
-                          "bg-sky-500 hover:bg-sky-400 active:scale-[0.96] hover:scale-[1.04] shadow-[0_0_24px_rgba(37,99,235,0.4)]",
+                          "bg-[var(--orion-accent,#0284C7)] hover:bg-[var(--orion-accent,#38BDF8)] active:scale-[0.96] hover:scale-[1.04] shadow-[0_0_24px_rgba(37,99,235,0.4)]",
                           "border border-white/30"
                         )}
                       >

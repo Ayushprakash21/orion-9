@@ -122,9 +122,9 @@ export const OrionLockScreen: React.FC<OrionLockScreenProps> = ({ onUnlock, curr
               setError(false);
             }}
             placeholder="Enter password..."
-            className={`w-full bg-os-surface border ${
-              error ? 'border-red-500' : 'border-os-border focus:border-white/40'
-            } rounded-lg py-2.5 px-4 text-sm text-center text-os-text-primary placeholder:text-os-text-muted transition-colors outline-none`}
+            className={`w-full bg-white/[0.08] backdrop-blur-xl border ${
+              error ? 'border-red-500 ring-2 ring-red-500/20' : 'border-white/20 focus:border-white/50 focus:ring-2 focus:ring-white/15'
+            } rounded-full py-2.5 px-4 text-sm text-center text-os-text-primary placeholder:text-os-text-muted/60 transition-all outline-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.12)]`}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleUnlockAttempt();
             }}
@@ -138,7 +138,7 @@ export const OrionLockScreen: React.FC<OrionLockScreenProps> = ({ onUnlock, curr
           type="button"
           onClick={handleUnlockAttempt}
           disabled={isVerifying}
-          className="group relative px-8 py-3 bg-white/[0.04] hover:bg-white/[0.08] border border-white/15 hover:border-white/30 text-os-text-primary rounded-xl transition-all duration-300 shadow-[0_12px_24px_rgba(0,0,0,0.4)] flex items-center gap-2 cursor-pointer"
+          className="group relative px-8 py-2.5 bg-white/[0.10] hover:bg-white/[0.16] border border-white/20 hover:border-white/35 text-os-text-primary rounded-full transition-all duration-300 shadow-[0_8px_24px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.20)] backdrop-blur-xl flex items-center gap-2 cursor-pointer"
         >
           <Unlock className="w-4 h-4 text-os-text-primary transition-transform duration-300 group-hover:scale-110" />
           <span className="text-xs tracking-[0.15em] font-medium uppercase text-os-text-primary">

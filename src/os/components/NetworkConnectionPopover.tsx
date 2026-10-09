@@ -226,8 +226,8 @@ export const NetworkConnectionPopover: React.FC<NetworkConnectionPopoverProps> =
       }}
       className={cn(
         "w-[min(380px,calc(100vw-24px))] max-h-[calc(100vh-64px)]",
-        "bg-os-surface/95 dark:bg-[#0c0d10]/95 backdrop-blur-2xl",
-        "border border-os-border rounded-xl shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7),0_0_0_1px_rgba(255,255,255,0.04)]",
+        "bg-[rgba(20,24,30,0.85)] dark:bg-[rgba(14,17,23,0.88)] backdrop-blur-[32px] backdrop-saturate-[150%]",
+        "border border-white/[0.12] rounded-2xl shadow-[0_24px_64px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.18)]",
         "flex flex-col text-[12px] font-sans overflow-hidden select-none",
         "animate-in fade-in zoom-in-95 duration-150 origin-top-right"
       )}

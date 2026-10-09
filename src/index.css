@@ -740,12 +740,13 @@ html, body, #root {
    This permanently reserves its 48px lane so application animations cannot move
    behind, above, or through the system chrome. */
 .orion-global-topbar {
-  /* System chrome is always opaque. App/profile transparency must never leak into the global task bar. */
-  background: var(--orion-surface-elevated, var(--os-surface-elevated, #080a0d)) !important;
-  background-color: var(--orion-surface-elevated, var(--os-surface-elevated, #080a0d)) !important;
-  opacity: 1 !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  /* Canonical macOS Liquid Glass system chrome: translucent vibrating material */
+  background: color-mix(in srgb, var(--orion-surface-elevated, var(--os-surface-elevated, #12151a)) 72%, transparent) !important;
+  background-color: color-mix(in srgb, var(--orion-surface-elevated, var(--os-surface-elevated, #12151a)) 72%, transparent) !important;
+  backdrop-filter: blur(24px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+  border-bottom: 1px solid var(--orion-border, rgba(255, 255, 255, 0.08)) !important;
+  box-shadow: 0 1px 12px rgba(0, 0, 0, 0.18), inset 0 -0.5px 0 0 rgba(255, 255, 255, 0.08) !important;
   position: relative !important;
   grid-row: 1 !important;
   grid-column: 1 !important;
@@ -1058,7 +1059,7 @@ html, body, #root {
   margin-top:11px !important;
   height:2px !important;
   width:46px !important;
-  background:linear-gradient(90deg,#00e7ff,#2585ff) !important;
+  background:linear-gradient(90deg, var(--orion-accent, #38BDF8), var(--orion-accent-hover, #2585ff)) !important;
   opacity:.9;
 }
 /* The viewport, not the browser window, is the wallpaper's coordinate system. */
@@ -1153,36 +1154,29 @@ html, body, #root {
 
 
 
-/* HARD OPAQUE APPLICATION CHROME: no wallpaper, blur, alpha, or blend mode may
-   leak through a window title bar or its control strip. */
+/* CANONICAL MACOS LIQUID GLASS APPLICATION CHROME */
 [data-orion-app-topbar="true"],
-[data-orion-app-topbar="true"]::before,
-[data-orion-app-topbar="true"]::after,
 [data-orion-window-titlebar="true"],
 [data-window-titlebar="true"],
 .orion-window-titlebar {
-  background: var(--orion-surface-elevated, var(--os-surface-elevated, #080a0d)) !important;
-  background-color: var(--orion-surface-elevated, var(--os-surface-elevated, #080a0d)) !important;
-  background-image: none !important;
-  opacity: 1 !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  mix-blend-mode: normal !important;
+  background: color-mix(in srgb, var(--orion-surface-elevated, var(--os-surface-elevated, #161920)) 76%, transparent) !important;
+  background-color: color-mix(in srgb, var(--orion-surface-elevated, var(--os-surface-elevated, #161920)) 76%, transparent) !important;
+  backdrop-filter: blur(28px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(150%) !important;
   isolation: isolate !important;
   border-bottom: 1px solid var(--orion-border, rgba(255, 255, 255, 0.08)) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.12) !important;
 }
 
-/* SETTINGS APPLICATION HEADER OPAQUE CHROME CONTRACT */
+/* SETTINGS APPLICATION HEADER LIQUID GLASS CHROME CONTRACT */
 [data-orion-settings-header="true"] {
-  background: var(--orion-surface, var(--os-surface, #0c0e11)) !important;
-  background-color: var(--orion-surface, var(--os-surface, #0c0e11)) !important;
-  background-image: none !important;
-  opacity: 1 !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  mix-blend-mode: normal !important;
+  background: color-mix(in srgb, var(--orion-surface, var(--os-surface, #12151a)) 76%, transparent) !important;
+  background-color: color-mix(in srgb, var(--orion-surface, var(--os-surface, #12151a)) 76%, transparent) !important;
+  backdrop-filter: blur(28px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(150%) !important;
   isolation: isolate !important;
   border-bottom: 1px solid var(--orion-border, rgba(255, 255, 255, 0.07)) !important;
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.10) !important;
 }
 
 /* CANONICAL MACOS WINDOW CONTROLS CONTRACT: Pure circular traffic lights with zero box wrappers */
@@ -1216,15 +1210,16 @@ html, body, #root {
   background-color: transparent !important;
 }
 
-/* FINAL GLOBAL TASK-BAR CONTRACT: opaque in User and Admin shells. */
+/* CANONICAL MACOS LIQUID GLASS SYSTEM BAR: Translucent material with optical refraction */
 .orion-desktop-shell > .orion-global-topbar,
 .orion-admin-shell > .orion-global-topbar,
 header.orion-global-topbar {
-  background: var(--orion-surface-elevated, var(--os-surface-elevated, #080a0d)) !important;
-  background-color: var(--orion-surface-elevated, var(--os-surface-elevated, #080a0d)) !important;
-  opacity: 1 !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  background: color-mix(in srgb, var(--orion-surface-elevated, var(--os-surface-elevated, #12151a)) 72%, transparent) !important;
+  background-color: color-mix(in srgb, var(--orion-surface-elevated, var(--os-surface-elevated, #12151a)) 72%, transparent) !important;
+  backdrop-filter: blur(24px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+  border-bottom: 1px solid var(--orion-border, rgba(255, 255, 255, 0.08)) !important;
+  box-shadow: 0 1px 12px rgba(0, 0, 0, 0.18), inset 0 -0.5px 0 0 rgba(255, 255, 255, 0.08) !important;
   isolation: isolate !important;
 }
 

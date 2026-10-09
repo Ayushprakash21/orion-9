@@ -144,7 +144,7 @@ export const AdminLayout = () => {
             type="button"
             onClick={() => navigate('/')}
             title="Return to Orion Home Screen"
-            className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-[10px] font-mono font-bold tracking-widest uppercase text-os-text-secondary hover:text-white bg-white/5 hover:bg-white/10 rounded border border-os-border hover:border-[#00F2FE]/50 transition-all cursor-pointer"
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-[10px] font-mono font-bold tracking-widest uppercase text-os-text-secondary hover:text-white bg-white/5 hover:bg-white/10 rounded border border-os-border hover:border-[var(--orion-accent)]/50 transition-all cursor-pointer"
           >
             HOME SCREEN
           </button>

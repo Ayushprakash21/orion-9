@@ -342,7 +342,7 @@ export function OrionCommandPalette() {
       onClick={() => setCommandPaletteOpen(false)}
     >
       <div 
-        className="w-full max-w-2xl bg-os-surface/95 backdrop-blur-2xl border border-os-border rounded-2xl shadow-[0_35px_60px_-15px_rgba(0,0,0,0.85),inset_0_1px_1px_rgba(255,255,255,0.06)] overflow-hidden flex flex-col max-h-[82vh] sm:max-h-[75vh]"
+        className="w-full max-w-2xl bg-[rgba(18,22,28,0.85)] backdrop-blur-[36px] backdrop-saturate-[160%] border border-white/[0.14] rounded-2xl shadow-[0_32px_80px_rgba(0,0,0,0.70),inset_0_1px_1px_rgba(255,255,255,0.22)] overflow-hidden flex flex-col max-h-[82vh] sm:max-h-[75vh]"
         onClick={e => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
