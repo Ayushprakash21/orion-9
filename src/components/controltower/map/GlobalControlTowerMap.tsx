@@ -114,13 +114,21 @@ export const GlobalControlTowerMap: React.FC<GlobalControlTowerMapProps> = ({
     return () => clearInterval(interval);
   }, []);
 
+  // Transform SCM data into ShipmentRoutes
+  const shipmentRoutes = useMemo(() => {
+    return MapDataAdapter.buildShipmentRoutes(shipments);
+  }, [shipments]);
+
   // Sync selectedMission from parent Control Tower workspace
   useEffect(() => {
     if (selectedMission) {
-      // Find corresponding shipment or create temporary selection
-      const matchedRoute = shipmentRoutes.find((r) => r.shipmentId === selectedMission.id);
+      // Find corresponding shipment or fallback to first active shipment route
+      const matchedRoute =
+        shipmentRoutes.find((r) => r.shipmentId === selectedMission.id) ||
+        (shipmentRoutes.length > 0 ? shipmentRoutes[0] : null);
       if (matchedRoute) {
         setSelectedEntity({ type: 'shipment', entity: matchedRoute });
+        setIsInspectorOpen(true);
         mapEngineRef.current?.flyToLocation(
           matchedRoute.currentPosition[0],
           matchedRoute.currentPosition[1],
@@ -131,12 +139,7 @@ export const GlobalControlTowerMap: React.FC<GlobalControlTowerMapProps> = ({
         mapEngineRef.current?.flyToLocation(125.0, 22.0, 3.5);
       }
     }
-  }, [selectedMission]);
-
-  // Transform SCM data into ShipmentRoutes
-  const shipmentRoutes = useMemo(() => {
-    return MapDataAdapter.buildShipmentRoutes(shipments);
-  }, [shipments]);
+  }, [selectedMission, shipmentRoutes]);
 
   // GeoJSON Layer computations
   const routesGeoJSON = useMemo(() => {
@@ -196,6 +199,7 @@ export const GlobalControlTowerMap: React.FC<GlobalControlTowerMapProps> = ({
     );
     if (port) {
       setSelectedEntity({ type: 'port', entity: port });
+      setIsInspectorOpen(true);
       mapEngineRef.current?.flyToLocation(port.longitude, port.latitude, 6);
       return;
     }
@@ -206,6 +210,7 @@ export const GlobalControlTowerMap: React.FC<GlobalControlTowerMapProps> = ({
     );
     if (route) {
       setSelectedEntity({ type: 'shipment', entity: route });
+      setIsInspectorOpen(true);
       mapEngineRef.current?.flyToLocation(route.currentPosition[0], route.currentPosition[1], 4.5);
       return;
     }
@@ -216,6 +221,7 @@ export const GlobalControlTowerMap: React.FC<GlobalControlTowerMapProps> = ({
     );
     if (vsl) {
       setSelectedEntity({ type: 'vessel', entity: vsl });
+      setIsInspectorOpen(true);
       mapEngineRef.current?.flyToLocation(vsl.longitude, vsl.latitude, 5);
       return;
     }
@@ -226,6 +232,7 @@ export const GlobalControlTowerMap: React.FC<GlobalControlTowerMapProps> = ({
     );
     if (air) {
       setSelectedEntity({ type: 'airport', entity: air });
+      setIsInspectorOpen(true);
       mapEngineRef.current?.flyToLocation(air.longitude, air.latitude, 6);
       return;
     }
@@ -265,7 +272,7 @@ export const GlobalControlTowerMap: React.FC<GlobalControlTowerMapProps> = ({
       className={`relative w-full ${
         isFullscreen
           ? 'fixed inset-0 z-50 h-screen w-screen rounded-none'
-          : 'h-[460px] sm:h-[500px] lg:h-[540px] xl:h-[580px] rounded-xl'
+          : 'h-[520px] sm:h-[560px] lg:h-[600px] xl:h-[640px] rounded-xl'
       } bg-[#080A0D] border border-os-border overflow-hidden select-none flex flex-col ${className}`}
     >
       {/* 1. TOP COMMAND BAR */}
@@ -310,8 +317,8 @@ export const GlobalControlTowerMap: React.FC<GlobalControlTowerMapProps> = ({
       />
 
       {/* 4. MAIN MAP CANVAS AREA */}
-      <div className="relative flex-1 w-full h-full flex">
-        <div className="relative flex-1 w-full h-full">
+      <div className="relative flex-1 w-full min-h-0 flex overflow-hidden">
+        <div className="relative flex-1 w-full h-full min-w-0">
           <MapLibreEngine
             ref={mapEngineRef}
             projectionMode={projectionMode}

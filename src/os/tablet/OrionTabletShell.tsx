@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { TabletNavigationProvider } from './OrionTabletNavigation';
+import { TabletNavigationProvider, useTabletNavigation } from './OrionTabletNavigation';
 import { OrionTabletHeader } from './OrionTabletHeader';
 import { OrionTabletNavRail } from './OrionTabletNavRail';
 import { OrionTabletContentRouter } from './OrionTabletContentRouter';
@@ -14,6 +14,16 @@ import { useAuth } from '../../store/AuthContext';
 
 function TabletShellLayout() {
   const { isLandscape } = useResponsiveLayout();
+  const { openApp } = useTabletNavigation();
+
+  React.useEffect(() => {
+    (window as any).__orion_open_app = (appId: string) => {
+      openApp(appId);
+    };
+    return () => {
+      delete (window as any).__orion_open_app;
+    };
+  }, [openApp]);
 
   return (
     <div 

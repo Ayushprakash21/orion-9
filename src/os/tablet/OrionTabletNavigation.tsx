@@ -86,6 +86,20 @@ export const TabletNavigationProvider: React.FC<{ children: React.ReactNode }> =
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedEntity, activeAppId, activeTab, closeEntityDetail, closeApp, navigateToTab]);
 
+  // Support global orion:open-app events for cross-shell application launching
+  useEffect(() => {
+    const handleOpenAppEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ appId: string }>;
+      if (customEvent.detail?.appId) {
+        openApp(customEvent.detail.appId);
+      }
+    };
+    window.addEventListener('orion:open-app', handleOpenAppEvent);
+    return () => {
+      window.removeEventListener('orion:open-app', handleOpenAppEvent);
+    };
+  }, [openApp]);
+
   return (
     <TabletNavigationContext.Provider
       value={{

@@ -57,7 +57,10 @@ export const MapEntityDetailPanel: React.FC<MapEntityDetailPanelProps> = ({
   // 1. DEFAULT VIEW: Nothing selected -> Global Operations Summary
   if (!selectedEntity) {
     return (
-      <div className="w-full lg:w-72 xl:w-80 h-full p-3.5 rounded-xl bg-os-surface/95 backdrop-blur-md border border-os-border shadow-lg flex flex-col justify-between font-mono text-xs select-none overflow-hidden">
+      <div 
+        data-testid="map-entity-detail-panel"
+        className="w-full lg:w-72 xl:w-80 h-full p-3.5 rounded-xl bg-os-surface/95 backdrop-blur-md border border-os-border shadow-lg flex flex-col justify-between font-mono text-xs select-none overflow-hidden"
+      >
         <div className="space-y-3 flex-1 overflow-y-auto min-h-0 custom-scrollbar pr-1">
           <div className="flex items-center justify-between pb-2 border-b border-os-border shrink-0">
             <span className="text-[11px] font-bold text-os-text-primary tracking-wider uppercase">
@@ -70,6 +73,7 @@ export const MapEntityDetailPanel: React.FC<MapEntityDetailPanelProps> = ({
               <button
                 onClick={onClose}
                 title="Close Inspector"
+                data-testid="close-map-inspector-btn"
                 className="text-os-text-muted hover:text-os-text-primary transition-colors cursor-pointer p-0.5 rounded hover:bg-white/[0.08]"
               >
                 <X size={13} />
@@ -137,8 +141,9 @@ export const MapEntityDetailPanel: React.FC<MapEntityDetailPanelProps> = ({
 
         {/* Copilot Prompt Trigger */}
         <button
+          data-testid="inspector-ask-copilot-btn"
           onClick={() => onAskCopilot('Perform global supply chain multi-modal disruption and risk assessment across all active lanes.')}
-          className="w-full mt-4 flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/30 transition-all font-semibold cursor-pointer shadow-sm"
+          className="w-full mt-3 shrink-0 flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/30 transition-all font-semibold cursor-pointer shadow-sm"
         >
           <Sparkles size={14} />
           <span>Ask Orion Copilot</span>
@@ -283,7 +288,10 @@ export const MapEntityDetailPanel: React.FC<MapEntityDetailPanelProps> = ({
   };
 
   return (
-    <div className="w-full lg:w-72 xl:w-80 h-full p-3.5 rounded-xl bg-os-surface/95 backdrop-blur-md border border-os-border shadow-lg flex flex-col justify-between font-mono text-xs select-none animate-fade-in overflow-hidden">
+    <div 
+      data-testid="map-entity-detail-panel"
+      className="w-full lg:w-72 xl:w-80 h-full p-3.5 rounded-xl bg-os-surface/95 backdrop-blur-md border border-os-border shadow-lg flex flex-col justify-between font-mono text-xs select-none animate-fade-in overflow-hidden"
+    >
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
         <div className="flex items-center justify-between pb-2 border-b border-os-border mb-2.5 shrink-0">
           <span className="text-[10px] text-os-text-muted font-bold tracking-wider uppercase">
@@ -292,6 +300,7 @@ export const MapEntityDetailPanel: React.FC<MapEntityDetailPanelProps> = ({
           <button
             onClick={onClose}
             title="Close Inspector"
+            data-testid="close-map-inspector-btn"
             className="text-os-text-muted hover:text-os-text-primary transition-colors cursor-pointer p-0.5 rounded hover:bg-white/[0.08]"
           >
             <X size={14} />
@@ -303,12 +312,13 @@ export const MapEntityDetailPanel: React.FC<MapEntityDetailPanelProps> = ({
         </div>
       </div>
 
-      <div className="space-y-2 mt-3 pt-2.5 border-t border-os-border shrink-0">
+      <div className="space-y-2 mt-2 pt-2 border-t border-os-border shrink-0">
         {/* Follow Mode Toggle */}
         {(type === 'vessel' || type === 'aircraft' || type === 'truck' || type === 'shipment') && (
           <button
+            data-testid="inspector-follow-btn"
             onClick={onToggleFollow}
-            className={`w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg border transition-all font-semibold cursor-pointer ${
+            className={`w-full shrink-0 flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg border transition-all font-semibold cursor-pointer ${
               isFollowing
                 ? 'bg-amber-500/20 border-amber-500/40 text-amber-400'
                 : 'bg-os-hover border-os-border text-os-text-primary hover:border-os-border-strong'
@@ -321,8 +331,9 @@ export const MapEntityDetailPanel: React.FC<MapEntityDetailPanelProps> = ({
 
         {/* Copilot Deep Link */}
         <button
+          data-testid="inspector-ask-copilot-btn"
           onClick={() => onAskCopilot(`Provide operational root-cause analysis and mitigation strategies for ${type} ${('name' in entity && entity.name) || ('id' in entity && entity.id)}.`)}
-          className="w-full flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/30 transition-all font-semibold cursor-pointer shadow-sm"
+          className="w-full shrink-0 flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/30 transition-all font-semibold cursor-pointer shadow-sm"
         >
           <Sparkles size={13} />
           <span>Ask Orion Copilot</span>

@@ -31,8 +31,11 @@ export const MapBottomKpiStrip: React.FC<MapBottomKpiStripProps> = ({
   onFilterByMode,
 }) => {
   return (
-    <div className="absolute bottom-3 left-3 right-3 z-20 pointer-events-none select-none flex justify-center">
-      <div className="flex flex-wrap items-center justify-between gap-3 px-3.5 py-1.5 rounded-xl bg-os-surface/90 backdrop-blur-md border border-os-border shadow-lg pointer-events-auto font-mono text-[11px] text-os-text-secondary max-w-4xl w-full">
+    <div
+      data-testid="map-bottom-kpi-strip"
+      className="w-full shrink-0 px-3 py-1.5 sm:py-2 z-20 select-none flex justify-center bg-[#080A0D]/95 border-t border-os-border/70 backdrop-blur-md"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2.5 sm:gap-3 px-3.5 py-1.5 rounded-xl bg-os-surface/90 backdrop-blur-md border border-os-border shadow-lg pointer-events-auto font-mono text-[10px] sm:text-[11px] text-os-text-secondary max-w-4xl w-full">
         <div className="flex items-center gap-1.5">
           <span className="text-os-text-muted uppercase text-[9px] font-bold">Active Shipments:</span>
           <span className="font-bold text-os-text-primary">{formatNumber(activeShipments)}</span>

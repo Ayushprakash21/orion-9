@@ -212,6 +212,28 @@ export function DesktopWorkspace() {
     loadWidgets();
   }, [loadShortcuts, loadWidgets]);
 
+  // Support global orion:open-app events and window.__orion_open_app for cross-shell application launching
+  useEffect(() => {
+    (window as any).__orion_open_app = (appId: string) => {
+      openApplication(appId);
+    };
+
+    const handleOpenAppEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ appId: string }>;
+      if (customEvent.detail?.appId) {
+        openApplication(customEvent.detail.appId);
+      }
+    };
+    window.addEventListener('orion:open-app', handleOpenAppEvent);
+
+    return () => {
+      window.removeEventListener('orion:open-app', handleOpenAppEvent);
+      if ((window as any).__orion_open_app) {
+        delete (window as any).__orion_open_app;
+      }
+    };
+  }, [openApplication]);
+
   // Dedicated Widget Drag Session reference (isolated from desktop shortcuts)
   const widgetDragRef = useRef<{
     pointerId: number;

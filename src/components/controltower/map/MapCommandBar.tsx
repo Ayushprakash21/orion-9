@@ -56,9 +56,12 @@ export const MapCommandBar: React.FC<MapCommandBarProps> = ({
   onToggleInspector,
 }) => {
   return (
-    <div className="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none select-none">
+    <div
+      data-testid="map-command-bar"
+      className="w-full shrink-0 px-3 py-2 z-20 flex flex-wrap items-center justify-between gap-2 select-none bg-[#080A0D]/95 border-b border-os-border/70 backdrop-blur-md"
+    >
       {/* LEFT: Branding & Global Search */}
-      <div className="flex items-center gap-2 pointer-events-auto">
+      <div className="flex items-center gap-2">
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-os-surface/90 backdrop-blur-md border border-os-border shadow-md">
           <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
           <span className="text-xs font-mono font-bold tracking-wider text-os-text-primary">
@@ -71,6 +74,7 @@ export const MapCommandBar: React.FC<MapCommandBarProps> = ({
           <Search size={14} className="absolute left-2.5 text-os-text-muted pointer-events-none" />
           <input
             type="text"
+            data-testid="map-search-input"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search shipments, vessels, flights, ports..."
@@ -88,7 +92,7 @@ export const MapCommandBar: React.FC<MapCommandBarProps> = ({
       </div>
 
       {/* RIGHT: Status Badge & Map Controls */}
-      <div className="flex items-center gap-1.5 pointer-events-auto">
+      <div className="flex items-center gap-1.5">
         {/* TRUTHFUL DATA SOURCE BADGE */}
         <button
           onClick={onOpenDataSourceModal}
