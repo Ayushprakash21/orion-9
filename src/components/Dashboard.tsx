@@ -160,6 +160,9 @@ export const Dashboard = () => {
         }
       />
 
+      {/* ENTERPRISE SUPPLY CHAIN CONTROL TOWER */}
+      <ControlTowerWorkspace />
+
       {/* EXECUTIVE SUPPLY CHAIN HEALTH */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
         {Object.entries(healthScores).map(([key, data]) => (
@@ -221,9 +224,6 @@ export const Dashboard = () => {
           <span className="text-[10px] font-mono text-os-text-muted">In Copilot queue</span>
         </div>
       </div>
-
-      {/* ENTERPRISE SUPPLY CHAIN CONTROL TOWER */}
-      <ControlTowerWorkspace />
 
       {/* COMMAND CENTER TIME-SERIES & RISK ANALYTICS */}
       <CommandCenterAnalytics />

@@ -156,9 +156,10 @@ export const MapLibreEngine = forwardRef<MapEngineRef, MapLibreEngineProps>(({
       mapRef.current?.resetNorthPitch({ duration: 500 });
     },
     fitOperations: () => {
+      const isGlobe = (mapRef.current as any)?.getProjection?.()?.type === 'globe' || projectionMode === 'globe';
       mapRef.current?.flyTo({
-        center: [60, 20],
-        zoom: 1.8,
+        center: isGlobe ? [30, 15] : [30, 20],
+        zoom: isGlobe ? 2.35 : 1.8,
         pitch: 0,
         bearing: 0,
         duration: 800,
@@ -176,6 +177,12 @@ export const MapLibreEngine = forwardRef<MapEngineRef, MapLibreEngineProps>(({
       try {
         if (mapRef.current.isStyleLoaded()) {
           (mapRef.current as any).setProjection({ type: mode });
+          // Smoothly adjust camera zoom and center to provide best view for projection
+          mapRef.current.easeTo({
+            center: mode === 'globe' ? [30, 15] : [30, 20],
+            zoom: mode === 'globe' ? 2.35 : 1.8,
+            duration: 600,
+          });
           const readBack = (mapRef.current as any).getProjection?.()?.type;
           return readBack === mode || mode === 'mercator';
         }
@@ -263,8 +270,8 @@ export const MapLibreEngine = forwardRef<MapEngineRef, MapLibreEngineProps>(({
               ...ORION_GRAPHITE_MAP_STYLE,
               ...(projectionMode === 'globe' ? { projection: { type: 'globe' } as any } : {})
             },
-            center: [60, 20],
-            zoom: 1.8,
+            center: projectionMode === 'globe' ? [30, 15] : [30, 20],
+            zoom: projectionMode === 'globe' ? 2.35 : 1.8,
             attributionControl: false,
           });
 

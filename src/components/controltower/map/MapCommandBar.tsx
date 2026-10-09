@@ -15,7 +15,8 @@ import {
   Radio, 
   ShieldCheck, 
   X,
-  Navigation
+  Navigation,
+  PanelRight
 } from 'lucide-react';
 import { MapProjectionMode, DataSourceType } from './types';
 
@@ -33,6 +34,8 @@ interface MapCommandBarProps {
   isFiltersOpen: boolean;
   dataSourceType: DataSourceType;
   freshnessSeconds: number;
+  isInspectorOpen?: boolean;
+  onToggleInspector?: () => void;
 }
 
 export const MapCommandBar: React.FC<MapCommandBarProps> = ({
@@ -49,6 +52,8 @@ export const MapCommandBar: React.FC<MapCommandBarProps> = ({
   isFiltersOpen,
   dataSourceType,
   freshnessSeconds,
+  isInspectorOpen,
+  onToggleInspector,
 }) => {
   return (
     <div className="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none select-none">
@@ -155,7 +160,7 @@ export const MapCommandBar: React.FC<MapCommandBarProps> = ({
         {/* Filters Panel Toggle */}
         <button
           onClick={onToggleFilters}
-          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg backdrop-blur-md border text-xs font-mono shadow-md transition-all ${
+          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg backdrop-blur-md border text-xs font-mono shadow-md transition-all cursor-pointer ${
             isFiltersOpen
               ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40'
               : 'bg-os-surface/90 text-os-text-secondary border-os-border hover:text-os-text-primary'
@@ -164,6 +169,23 @@ export const MapCommandBar: React.FC<MapCommandBarProps> = ({
           <Filter size={13} />
           <span className="hidden sm:inline">Filters</span>
         </button>
+
+        {/* Details / Inspector Panel Toggle */}
+        {onToggleInspector && (
+          <button
+            onClick={onToggleInspector}
+            data-testid="toggle-inspector-btn"
+            title={isInspectorOpen ? "Close Inspector Panel" : "Open Inspector Panel"}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg backdrop-blur-md border text-xs font-mono shadow-md transition-all cursor-pointer ${
+              isInspectorOpen
+                ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40'
+                : 'bg-os-surface/90 text-os-text-secondary border-os-border hover:text-os-text-primary'
+            }`}
+          >
+            <PanelRight size={13} />
+            <span className="hidden sm:inline">Inspector</span>
+          </button>
+        )}
       </div>
     </div>
   );

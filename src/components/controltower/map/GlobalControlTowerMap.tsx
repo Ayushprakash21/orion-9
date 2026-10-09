@@ -70,6 +70,15 @@ export const GlobalControlTowerMap: React.FC<GlobalControlTowerMapProps> = ({
   const [isFiltersOpen, setIsFiltersOpen] = useState<boolean>(false);
   const [isDataSourceModalOpen, setIsDataSourceModalOpen] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(true);
+
+  // Trigger map resize when inspector toggles
+  useEffect(() => {
+    const rafId = requestAnimationFrame(() => {
+      mapEngineRef.current?.resize();
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [isInspectorOpen]);
 
   // Simulation entities
   const [vessels, setVessels] = useState(() => demoSimulationEngine.getVessels());
@@ -256,7 +265,7 @@ export const GlobalControlTowerMap: React.FC<GlobalControlTowerMapProps> = ({
       className={`relative w-full ${
         isFullscreen
           ? 'fixed inset-0 z-50 h-screen w-screen rounded-none'
-          : 'h-[520px] sm:h-[580px] lg:h-[640px] rounded-xl'
+          : 'h-[460px] sm:h-[500px] lg:h-[540px] xl:h-[580px] rounded-xl'
       } bg-[#080A0D] border border-os-border overflow-hidden select-none flex flex-col ${className}`}
     >
       {/* 1. TOP COMMAND BAR */}
@@ -278,6 +287,8 @@ export const GlobalControlTowerMap: React.FC<GlobalControlTowerMapProps> = ({
         isFiltersOpen={isFiltersOpen}
         dataSourceType="SIMULATION"
         freshnessSeconds={12}
+        isInspectorOpen={isInspectorOpen}
+        onToggleInspector={() => setIsInspectorOpen((prev) => !prev)}
       />
 
       {/* 2. LAYER CONTROL FLOATING PANEL */}
@@ -322,6 +333,9 @@ export const GlobalControlTowerMap: React.FC<GlobalControlTowerMapProps> = ({
             selectedEntity={selectedEntity}
             onSelectEntity={(e) => {
               setSelectedEntity(e);
+              if (e) {
+                setIsInspectorOpen(true);
+              }
               if (e && 'id' in e.entity && onSelectNode) {
                 onSelectNode(e.entity.id);
               }
@@ -331,20 +345,26 @@ export const GlobalControlTowerMap: React.FC<GlobalControlTowerMapProps> = ({
         </div>
 
         {/* 5. CONTEXTUAL RIGHT DRAWER PANEL */}
-        <div className="hidden md:flex p-3 pr-3 shrink-0 z-10 pointer-events-auto">
-          <MapEntityDetailPanel
-            selectedEntity={selectedEntity}
-            onClose={() => {
-              setSelectedEntity(null);
-              setIsFollowing(false);
-            }}
-            onAskCopilot={handleAskCopilot}
-            isFollowing={isFollowing}
-            onToggleFollow={() => setIsFollowing((prev) => !prev)}
-            currency={currency}
-            totalStats={totalStats}
-          />
-        </div>
+        {isInspectorOpen && (
+          <div 
+            data-testid="map-inspector-container"
+            className="hidden md:flex p-2.5 pr-2.5 shrink-0 z-10 pointer-events-auto h-full overflow-hidden"
+          >
+            <MapEntityDetailPanel
+              selectedEntity={selectedEntity}
+              onClose={() => {
+                setSelectedEntity(null);
+                setIsInspectorOpen(false);
+                setIsFollowing(false);
+              }}
+              onAskCopilot={handleAskCopilot}
+              isFollowing={isFollowing}
+              onToggleFollow={() => setIsFollowing((prev) => !prev)}
+              currency={currency}
+              totalStats={totalStats}
+            />
+          </div>
+        )}
       </div>
 
       {/* 6. BOTTOM EXECUTIVE KPI STRIP */}

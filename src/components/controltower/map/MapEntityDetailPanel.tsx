@@ -57,15 +57,24 @@ export const MapEntityDetailPanel: React.FC<MapEntityDetailPanelProps> = ({
   // 1. DEFAULT VIEW: Nothing selected -> Global Operations Summary
   if (!selectedEntity) {
     return (
-      <div className="w-full lg:w-72 xl:w-80 h-full p-3.5 rounded-xl bg-os-surface/95 backdrop-blur-md border border-os-border shadow-lg flex flex-col justify-between font-mono text-xs select-none">
-        <div className="space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-os-border">
+      <div className="w-full lg:w-72 xl:w-80 h-full p-3.5 rounded-xl bg-os-surface/95 backdrop-blur-md border border-os-border shadow-lg flex flex-col justify-between font-mono text-xs select-none overflow-hidden">
+        <div className="space-y-3 flex-1 overflow-y-auto min-h-0 custom-scrollbar pr-1">
+          <div className="flex items-center justify-between pb-2 border-b border-os-border shrink-0">
             <span className="text-[11px] font-bold text-os-text-primary tracking-wider uppercase">
               NETWORK TELEMETRY
             </span>
-            <span className="px-1.5 py-0.5 rounded text-[9px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-              GLOBAL VIEW
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="px-1.5 py-0.5 rounded text-[9px] bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                GLOBAL VIEW
+              </span>
+              <button
+                onClick={onClose}
+                title="Close Inspector"
+                className="text-os-text-muted hover:text-os-text-primary transition-colors cursor-pointer p-0.5 rounded hover:bg-white/[0.08]"
+              >
+                <X size={13} />
+              </button>
+            </div>
           </div>
 
           {/* SCM Fleet Counts */}
@@ -274,24 +283,27 @@ export const MapEntityDetailPanel: React.FC<MapEntityDetailPanelProps> = ({
   };
 
   return (
-    <div className="w-full lg:w-72 xl:w-80 h-full p-3.5 rounded-xl bg-os-surface/95 backdrop-blur-md border border-os-border shadow-lg flex flex-col justify-between font-mono text-xs select-none animate-fade-in">
-      <div>
-        <div className="flex items-center justify-between pb-2 border-b border-os-border mb-3">
+    <div className="w-full lg:w-72 xl:w-80 h-full p-3.5 rounded-xl bg-os-surface/95 backdrop-blur-md border border-os-border shadow-lg flex flex-col justify-between font-mono text-xs select-none animate-fade-in overflow-hidden">
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        <div className="flex items-center justify-between pb-2 border-b border-os-border mb-2.5 shrink-0">
           <span className="text-[10px] text-os-text-muted font-bold tracking-wider uppercase">
             ENTITY TELEMETRY
           </span>
           <button
             onClick={onClose}
-            className="text-os-text-muted hover:text-os-text-primary transition-colors cursor-pointer"
+            title="Close Inspector"
+            className="text-os-text-muted hover:text-os-text-primary transition-colors cursor-pointer p-0.5 rounded hover:bg-white/[0.08]"
           >
             <X size={14} />
           </button>
         </div>
 
-        {renderContent()}
+        <div className="flex-1 overflow-y-auto min-h-0 custom-scrollbar pr-1 space-y-2">
+          {renderContent()}
+        </div>
       </div>
 
-      <div className="space-y-2 mt-4 pt-3 border-t border-os-border">
+      <div className="space-y-2 mt-3 pt-2.5 border-t border-os-border shrink-0">
         {/* Follow Mode Toggle */}
         {(type === 'vessel' || type === 'aircraft' || type === 'truck' || type === 'shipment') && (
           <button

@@ -21,17 +21,15 @@ export const ORION_GRAPHITE_MAP_STYLE: StyleSpecification = {
       type: 'geojson',
       data: WORLD_GRATICULES_GEOJSON,
     },
-    // Online dark matter cartography tiles for rich coastlines & ocean shading
+    // Rich global dark canvas cartography tiles for coastlines, bathymetry & geographic context
     'carto-dark': {
       type: 'raster',
       tiles: [
-        'https://a.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
-        'https://b.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
-        'https://c.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}.png',
+        'https://services.arcgisonline.com/arcgis/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',
       ],
       tileSize: 256,
-      attribution: '© OpenStreetMap contributors © CARTO',
-      maxzoom: 19,
+      attribution: '© Esri, HERE, Garmin, © OpenStreetMap contributors',
+      maxzoom: 16,
     },
     // Dynamic GeoJSON sources populated by MapDataAdapter
     'transport-vessels': {
@@ -94,22 +92,33 @@ export const ORION_GRAPHITE_MAP_STYLE: StyleSpecification = {
     },
   },
   layers: [
-    // 1. Ocean base background
+    // 1. Deep oceanic space background
     {
       id: 'background',
       type: 'background',
       paint: {
-        'background-color': '#080A0D',
+        'background-color': '#070B12',
       },
     },
-    // 2. Base Landmass Polygons (Guaranteed offline rendering)
+    // 2. Online Dark Matter Cartography Raster Layer (ESRI World Dark Gray - bathymetry & geographic context)
+    {
+      id: 'carto-dark-layer',
+      type: 'raster',
+      source: 'carto-dark',
+      paint: {
+        'raster-opacity': 0.85,
+        'raster-fade-duration': 250,
+      },
+      minzoom: 0,
+    },
+    // 3. Base Landmass Polygons (Guaranteed offline rendering with high contrast)
     {
       id: 'world-land-fill',
       type: 'fill',
       source: 'world-landmass',
       paint: {
-        'fill-color': '#13161C',
-        'fill-opacity': 0.95,
+        'fill-color': '#162232',
+        'fill-opacity': 0.35,
       },
     },
     {
@@ -117,18 +126,18 @@ export const ORION_GRAPHITE_MAP_STYLE: StyleSpecification = {
       type: 'line',
       source: 'world-landmass',
       paint: {
-        'line-color': 'rgba(255, 255, 255, 0.08)',
-        'line-width': 1.0,
+        'line-color': 'rgba(96, 165, 250, 0.45)',
+        'line-width': 1.2,
       },
     },
-    // 3. Precision Graticules Reference Grid
+    // 4. Precision Graticules Reference Grid
     {
       id: 'world-graticules-lines',
       type: 'line',
       source: 'world-graticules',
       paint: {
-        'line-color': 'rgba(255, 255, 255, 0.04)',
-        'line-width': 0.8,
+        'line-color': 'rgba(255, 255, 255, 0.09)',
+        'line-width': 0.75,
       },
     },
     {
@@ -137,21 +146,10 @@ export const ORION_GRAPHITE_MAP_STYLE: StyleSpecification = {
       source: 'world-graticules',
       filter: ['==', ['get', 'type'], 'equator'],
       paint: {
-        'line-color': 'rgba(56, 189, 248, 0.16)',
-        'line-width': 1.2,
+        'line-color': 'rgba(56, 189, 248, 0.38)',
+        'line-width': 1.5,
         'line-dasharray': [4, 4],
       },
-    },
-    // 4. Online CARTO Dark Matter Cartography Raster Layer
-    {
-      id: 'carto-dark-layer',
-      type: 'raster',
-      source: 'carto-dark',
-      paint: {
-        'raster-opacity': 0.65,
-        'raster-fade-duration': 300,
-      },
-      minzoom: 0,
     },
 
     // 5. Shipment Routes (Great circle / corridors)
@@ -389,10 +387,19 @@ export const ORION_GRAPHITE_MAP_STYLE: StyleSpecification = {
     },
   ],
   sky: {
-    'sky-color': '#020407',
-    'sky-horizon-blend': 0.4,
-    'horizon-color': '#09101A',
-    'horizon-fog-blend': 0.7,
-    'fog-color': '#05070B',
+    'sky-color': '#03060A',
+    'sky-horizon-blend': 0.65,
+    'horizon-color': '#0E1A29',
+    'horizon-fog-blend': 0.8,
+    'fog-color': '#08121E',
+    'fog-ground-blend': 0.75,
+    'atmosphere-blend': [
+      'interpolate',
+      ['linear'],
+      ['zoom'],
+      0, 0.95,
+      3, 0.75,
+      7, 0.0
+    ],
   } as any,
 };

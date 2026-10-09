@@ -69,7 +69,7 @@ describe('Command Center 3D Globe & Map Engine Integrity', () => {
     const cartoSource = ORION_GRAPHITE_MAP_STYLE.sources['carto-dark'] as any;
     expect(cartoSource.type).toBe('raster');
     expect(cartoSource.tiles.length).toBeGreaterThan(0);
-    expect(cartoSource.tiles[0]).toContain('basemaps.cartocdn.com');
+    expect(cartoSource.tiles[0]).toMatch(/services\.arcgisonline\.com|basemaps\.cartocdn\.com/);
 
     // Layers check
     const layerIds = ORION_GRAPHITE_MAP_STYLE.layers.map(l => l.id);

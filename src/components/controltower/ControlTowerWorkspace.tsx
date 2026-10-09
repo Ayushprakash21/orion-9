@@ -496,7 +496,70 @@ export const ControlTowerWorkspace: React.FC = () => {
       ) : (
         /* DEFAULT NETWORK MISSION CONTROL 3-PANE COMPOSITION (REFERENCE A) */
         <div className="space-y-4">
-          {/* TOP EXECUTIVE KPI STRIP (CLICKABLE WITH DEEP LINKING) */}
+          {/* AI OPPORTUNITY BANNER (CLICKABLE TO INVENTORY INTELLIGENCE) */}
+          <div 
+            onClick={() => setActiveView('inventory')}
+            className="p-3.5 rounded-2xl border border-[var(--orion-accent)]/20 bg-gradient-to-r from-[var(--orion-accent)]/10 via-white/[0.03] to-emerald-500/10 cursor-pointer hover:border-[var(--orion-accent)]/40 hover:bg-white/[0.05] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_8px_20px_rgba(0,0,0,0.25)] backdrop-blur-xl"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
+                <Sparkles size={16} />
+              </div>
+              <div className="text-xs sm:text-sm font-mono text-os-text-secondary">
+                <strong className="text-os-text-primary">AI Opportunity Detected: </strong>
+                <span>2,847 SKUs with excess inventory across 14 locations. Potential working-capital recovery: </span>
+                <strong className="text-emerald-400">$63.8M</strong>
+                <span> (38 recommended actions).</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-xs font-mono font-bold text-cyan-400 shrink-0">
+              <span>Open Decision Center</span>
+              <span className="text-sm">&rarr;</span>
+            </div>
+          </div>
+
+          {/* PRIMARY GLOBAL MULTI-MODAL OPERATIONS MAP (DOMINATES 70-80% OF WORKSPACE) */}
+          <div className="w-full shadow-lg">
+            <ControlTowerNetworkMap
+              selectedMission={selectedMission}
+              onSelectNode={(nodeId) => showToast(`Focused node: ${nodeId.toUpperCase()}`)}
+            />
+          </div>
+
+          {/* LOWER OPERATIONS WORKBENCH: MISSIONS, GANTT TIMELINE & DECISION DETAILS */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+            {/* LEFT PANE: OPERATIONS MISSIONS */}
+            <div className="lg:col-span-4 h-full">
+              <UnifiedOperationsPanel
+                missions={missionCards}
+                selectedMissionId={selectedMission?.id || null}
+                onSelectMission={(id) => setSelectedMissionId(id)}
+                activeCategory={activeOpsCategory}
+                onCategoryChange={setActiveOpsCategory}
+                currency={currency}
+              />
+            </div>
+
+            {/* CENTER PANE: PORT TRANSIT GANTT TIMELINE */}
+            <div className="lg:col-span-4 space-y-4">
+              <ControlTowerTimeline
+                selectedMission={selectedMission}
+              />
+            </div>
+
+            {/* RIGHT PANE: CONTEXTUAL DETAILS & GOVERNED ACTIONS */}
+            <div className="lg:col-span-4 h-full">
+              <ControlTowerDetailsPanel
+                selectedMission={selectedMission}
+                onAskCopilot={handleAskCopilot}
+                onViewEvidencePackage={() => setEvidenceModalOpen(true)}
+                onExecuteGovernedAction={() => handleAskCopilot()}
+                currency={currency}
+              />
+            </div>
+          </div>
+
+          {/* EXECUTIVE KPI STRIP (CLICKABLE WITH DEEP LINKING) */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3 bg-[#12151b]/80 border border-white/[0.08] rounded-2xl p-3.5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_8px_24px_rgba(0,0,0,0.3)] backdrop-blur-xl">
             <div 
               onClick={() => setActiveView('network')}
@@ -567,69 +630,6 @@ export const ControlTowerWorkspace: React.FC = () => {
               <span className="text-[10px] font-mono text-os-text-muted mt-0.5">
                 Across 14 Supply Nodes
               </span>
-            </div>
-          </div>
-
-          {/* AI OPPORTUNITY BANNER (CLICKABLE TO INVENTORY INTELLIGENCE) */}
-          <div 
-            onClick={() => setActiveView('inventory')}
-            className="p-3.5 rounded-2xl border border-[var(--orion-accent)]/20 bg-gradient-to-r from-[var(--orion-accent)]/10 via-white/[0.03] to-emerald-500/10 cursor-pointer hover:border-[var(--orion-accent)]/40 hover:bg-white/[0.05] transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.1),0_8px_20px_rgba(0,0,0,0.25)] backdrop-blur-xl"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
-                <Sparkles size={16} />
-              </div>
-              <div className="text-xs sm:text-sm font-mono text-os-text-secondary">
-                <strong className="text-os-text-primary">AI Opportunity Detected: </strong>
-                <span>2,847 SKUs with excess inventory across 14 locations. Potential working-capital recovery: </span>
-                <strong className="text-emerald-400">$63.8M</strong>
-                <span> (38 recommended actions).</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-1 text-xs font-mono font-bold text-cyan-400 shrink-0">
-              <span>Open Decision Center</span>
-              <span className="text-sm">&rarr;</span>
-            </div>
-          </div>
-
-          {/* PRIMARY GLOBAL MULTI-MODAL OPERATIONS MAP (DOMINATES 70-80% OF WORKSPACE) */}
-          <div className="w-full shadow-lg">
-            <ControlTowerNetworkMap
-              selectedMission={selectedMission}
-              onSelectNode={(nodeId) => showToast(`Focused node: ${nodeId.toUpperCase()}`)}
-            />
-          </div>
-
-          {/* LOWER OPERATIONS WORKBENCH: MISSIONS, GANTT TIMELINE & DECISION DETAILS */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-            {/* LEFT PANE: OPERATIONS MISSIONS */}
-            <div className="lg:col-span-4 h-full">
-              <UnifiedOperationsPanel
-                missions={missionCards}
-                selectedMissionId={selectedMission?.id || null}
-                onSelectMission={(id) => setSelectedMissionId(id)}
-                activeCategory={activeOpsCategory}
-                onCategoryChange={setActiveOpsCategory}
-                currency={currency}
-              />
-            </div>
-
-            {/* CENTER PANE: PORT TRANSIT GANTT TIMELINE */}
-            <div className="lg:col-span-4 space-y-4">
-              <ControlTowerTimeline
-                selectedMission={selectedMission}
-              />
-            </div>
-
-            {/* RIGHT PANE: CONTEXTUAL DETAILS & GOVERNED ACTIONS */}
-            <div className="lg:col-span-4 h-full">
-              <ControlTowerDetailsPanel
-                selectedMission={selectedMission}
-                onAskCopilot={handleAskCopilot}
-                onViewEvidencePackage={() => setEvidenceModalOpen(true)}
-                onExecuteGovernedAction={() => handleAskCopilot()}
-                currency={currency}
-              />
             </div>
           </div>
         </div>
