@@ -1,10 +1,11 @@
 /**
  * ORION-9 DESKTOP WIDGET SYSTEM
- * Authoritative spatial desktop widgets with real data binding (DEMO/LIVE),
- * edit mode, dragging, resizing, configuration, and Cloud Firestore persistence.
+ * Native macOS-inspired spatial desktop widgets with real data binding (DEMO/LIVE),
+ * integrated size selectors, in-widget close controls, natural surface dragging,
+ * and Cloud Firestore / SCM persistence.
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { DesktopWidgetRecord, DesktopWidgetType, WidgetSize } from '../../core/filesystem/types';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
@@ -12,34 +13,86 @@ import { HealthService } from '../../operations/HealthService';
 import { orionFileSystemService } from '../../core/filesystem/OrionFileSystemService';
 import { useWindowManager } from '../WindowManagerContext';
 import { useToast } from '../../store/ToastContext';
+import { cn } from '../../lib/utils';
 import {
   Clock,
   Calendar as CalendarIcon,
-  CloudSun,
   ShieldAlert,
   Activity,
   Package,
-  ShoppingCart,
-  Truck,
-  Building2,
   Sparkles,
-  AlertTriangle,
   Cpu,
-  Wifi,
-  FileText,
   StickyNote,
   Zap,
   X,
-  Maximize2,
-  Minimize2,
+  FileText,
   Settings,
-  GripHorizontal,
-  Plus,
   MoreHorizontal,
-  Trash2,
   ExternalLink,
-  Sliders,
 } from 'lucide-react';
+
+/**
+ * Canonical size-to-dimensions resolver for Small, Medium, and Large widgets.
+ */
+export function resolveWidgetDimensions(
+  widgetType: DesktopWidgetType,
+  size: WidgetSize
+): { width: number; height: number } {
+  switch (size) {
+    case 'SMALL':
+      return { width: 240, height: 150 };
+    case 'LARGE':
+      return { width: 440, height: 250 };
+    case 'MEDIUM':
+    default:
+      if (widgetType === 'supply_chain_pulse') {
+        return { width: 440, height: 180 };
+      }
+      return { width: 340, height: 180 };
+  }
+}
+
+/**
+ * Centralized interactive-target exclusion check.
+ * Prevents widget dragging when pointer initiates on buttons, links, inputs,
+ * textareas, size selectors, close controls, or explicit interactive areas.
+ */
+export function isWidgetInteractiveElement(element: Element | null): boolean {
+  if (!element) return false;
+  return Boolean(
+    element.closest(
+      'button, a, input, textarea, select, option, ' +
+      '[role="button"], [role="slider"], [role="textbox"], [role="menuitem"], ' +
+      '[data-widget-interactive="true"], [data-action], ' +
+      '.interactive, [contenteditable="true"]'
+    )
+  );
+}
+
+export function getWidgetIcon(type: DesktopWidgetType) {
+  switch (type) {
+    case 'clock':
+      return <Clock className="w-3.5 h-3.5 text-sky-400" />;
+    case 'calendar':
+      return <CalendarIcon className="w-3.5 h-3.5 text-sky-400" />;
+    case 'control_tower':
+      return <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />;
+    case 'supply_chain_pulse':
+      return <Activity className="w-3.5 h-3.5 text-emerald-400" />;
+    case 'inventory_health':
+      return <Package className="w-3.5 h-3.5 text-purple-400" />;
+    case 'ai_copilot':
+      return <Sparkles className="w-3.5 h-3.5 text-purple-400" />;
+    case 'system_health':
+      return <Cpu className="w-3.5 h-3.5 text-sky-400" />;
+    case 'notes':
+      return <StickyNote className="w-3.5 h-3.5 text-amber-400" />;
+    case 'quick_actions':
+      return <Zap className="w-3.5 h-3.5 text-sky-400" />;
+    default:
+      return <Activity className="w-3.5 h-3.5 text-sky-400" />;
+  }
+}
 
 export interface WidgetComponentProps {
   widget: DesktopWidgetRecord;
@@ -68,7 +121,6 @@ export function DesktopWidgetSystem({
   });
   const [noteText, setNoteText] = useState<string>(() => widget.config?.noteText || 'Strategic Objective: Q3 Global Supply Chain Optimization');
   const [copilotInput, setCopilotInput] = useState<string>('');
-  const [recentFileCount, setRecentFileCount] = useState<number>(0);
   const [menuPos, setMenuPos] = useState<{ x: number; y: number } | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -114,14 +166,14 @@ export function DesktopWidgetSystem({
     }
   };
 
-  const handleSafeRemove = (e?: React.MouseEvent) => {
+  const handleSafeRemove = useCallback((e?: React.MouseEvent | React.PointerEvent) => {
     if (e) {
       e.stopPropagation();
       e.preventDefault();
     }
     setMenuPos(null);
     onRemove(widget.id);
-  };
+  }, [onRemove, widget.id]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -153,46 +205,99 @@ export function DesktopWidgetSystem({
     };
   }, []);
 
-  useEffect(() => {
-    let mounted = true;
-    orionFileSystemService.calculateStorageInfo().then((info) => {
-      if (mounted) setRecentFileCount(info.fileCount);
-    });
-    return () => {
-      mounted = false;
-    };
-  }, []);
+  const handleContainerPointerDown = (e: React.PointerEvent) => {
+    // Only primary left-button click initiates drag
+    if (e.button !== 0) return;
+    // Check if pointer began on an interactive target
+    if (isWidgetInteractiveElement(e.target as Element)) {
+      return;
+    }
+    onMoveStart(e, widget);
+  };
+
+  const dims = resolveWidgetDimensions(widget.widgetType, widget.size);
+  const effectiveWidth = widget.width || dims.width;
+  const effectiveHeight = widget.height || dims.height;
+
+  const renderHeaderBadge = () => {
+    switch (widget.widgetType) {
+      case 'control_tower':
+        return (
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-medium">
+            {dbEnv}
+          </span>
+        );
+      case 'supply_chain_pulse':
+        return (
+          <span className="text-[10px] font-mono text-emerald-400 font-bold">
+            98.4% SLA
+          </span>
+        );
+      case 'inventory_health':
+        return (
+          <span className="text-[10px] font-mono text-white/50">
+            24 Hubs
+          </span>
+        );
+      case 'ai_copilot':
+        return (
+          <span className="text-[9px] font-mono text-purple-300 bg-purple-500/15 px-1.5 py-0.5 rounded border border-purple-500/25">
+            ACTIVE
+          </span>
+        );
+      case 'system_health':
+        return (
+          <span className="text-[9px] font-mono text-emerald-400 font-semibold">
+            ONLINE
+          </span>
+        );
+      case 'notes':
+        return (
+          <span className="text-[9px] font-mono text-white/40">
+            Auto-saved
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
 
   const renderWidgetContent = () => {
     switch (widget.widgetType) {
       case 'clock':
         return (
-          <div className="flex flex-col justify-center items-center h-full text-center select-none">
-            <div className="flex items-center gap-2 text-os-text-secondary font-mono text-xs uppercase tracking-widest mb-1">
-              <Clock className="w-3.5 h-3.5" />
-              <span>SYSTEM TIME</span>
+          <div className="flex flex-col justify-center items-center h-full text-center select-none py-1">
+            <div className={cn(
+              "font-semibold font-mono tracking-tight text-white drop-shadow-sm",
+              widget.size === 'SMALL' ? "text-xl sm:text-2xl" : "text-3xl sm:text-4xl"
+            )}>
+              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: widget.size === 'SMALL' ? undefined : '2-digit' })}
             </div>
-            <div className="text-2xl sm:text-3xl font-semibold font-mono tracking-tight text-white drop-shadow-sm">
-              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-            </div>
-            <div className="text-xs text-os-text-muted font-medium mt-1">
+            <div className="text-[11px] text-os-text-muted font-medium mt-1">
               {currentTime.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
             </div>
           </div>
         );
 
       case 'calendar':
-        return (
-          <div className="flex flex-col h-full justify-between p-1">
-            <div className="flex items-center justify-between border-b border-white/10 pb-1.5 text-xs">
-              <span className="font-semibold text-white flex items-center gap-1.5">
-                <CalendarIcon className="w-3.5 h-3.5 text-sky-400" />
-                {currentTime.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-              </span>
-              <span className="text-[10px] font-mono text-os-text-secondary bg-white/[0.06] px-1.5 py-0.5 rounded border border-white/[0.08]">
-                Today: {currentTime.getDate()}
-              </span>
+        if (widget.size === 'SMALL') {
+          return (
+            <div className="flex items-center justify-between h-full px-2 select-none">
+              <div>
+                <span className="text-3xl font-bold font-mono text-white">{currentTime.getDate()}</span>
+                <span className="block text-xs text-sky-400 font-medium">
+                  {currentTime.toLocaleDateString(undefined, { weekday: 'long' })}
+                </span>
+              </div>
+              <div className="text-right text-[11px] text-white/60">
+                <div>{currentTime.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</div>
+                <div className="text-[10px] text-white/40 mt-1">Calendar</div>
+              </div>
             </div>
+          );
+        }
+        return (
+          <div className="flex flex-col h-full justify-between select-none">
             <div className="grid grid-cols-7 gap-1 text-center text-[10px] my-auto">
               {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
                 <span key={i} className="text-white/40 font-bold">{d}</span>
@@ -203,9 +308,9 @@ export function DesktopWidgetSystem({
                 return (
                   <span
                     key={i}
-                    className={`py-1 rounded text-[10px] font-mono transition-colors ${
+                    className={`py-0.5 rounded text-[10px] font-mono transition-colors ${
                       isToday
-                        ? 'bg-blue-600 text-white font-bold shadow-sm'
+                        ? 'bg-blue-600 text-white font-bold shadow-xs'
                         : 'text-white/80 hover:bg-white/10'
                     }`}
                   >
@@ -220,59 +325,50 @@ export function DesktopWidgetSystem({
       case 'control_tower':
         return (
           <div className="flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2">
-              <span className="font-semibold text-xs text-white flex items-center gap-1.5">
-                <ShieldAlert className="w-4 h-4 text-amber-400" />
-                Control Tower Exceptions
-              </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-medium">
-                {dbEnv}
-              </span>
-            </div>
             <div className="grid grid-cols-3 gap-2 my-auto text-center">
-              <div className="bg-white/[0.05] border border-white/[0.12] rounded-xl p-2 backdrop-blur-md shadow-xs">
-                <span className="block text-[10px] text-white/50 uppercase font-medium">Critical</span>
-                <span className="text-lg font-bold text-rose-400 font-mono">3</span>
+              <div className="bg-white/[0.05] border border-white/[0.10] rounded-xl p-1.5 backdrop-blur-md">
+                <span className="block text-[9px] text-white/50 uppercase font-medium">Critical</span>
+                <span className="text-base sm:text-lg font-bold text-rose-400 font-mono">3</span>
               </div>
-              <div className="bg-white/[0.05] border border-white/[0.12] rounded-xl p-2 backdrop-blur-md shadow-xs">
-                <span className="block text-[10px] text-white/50 uppercase font-medium">High</span>
-                <span className="text-lg font-bold text-amber-400 font-mono">8</span>
+              <div className="bg-white/[0.05] border border-white/[0.10] rounded-xl p-1.5 backdrop-blur-md">
+                <span className="block text-[9px] text-white/50 uppercase font-medium">High</span>
+                <span className="text-base sm:text-lg font-bold text-amber-400 font-mono">8</span>
               </div>
-              <div className="bg-white/[0.05] border border-white/[0.12] rounded-xl p-2 backdrop-blur-md shadow-xs">
-                <span className="block text-[10px] text-white/50 uppercase font-medium">Pending</span>
-                <span className="text-lg font-bold text-sky-400 font-mono">14</span>
+              <div className="bg-white/[0.05] border border-white/[0.10] rounded-xl p-1.5 backdrop-blur-md">
+                <span className="block text-[9px] text-white/50 uppercase font-medium">Pending</span>
+                <span className="text-base sm:text-lg font-bold text-sky-400 font-mono">14</span>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={() => openApplication('control-tower')}
-              className="w-full py-1.5 text-center text-xs text-white font-medium bg-white/[0.08] hover:bg-white/[0.16] rounded-xl border border-white/[0.14] transition-all shadow-xs backdrop-blur-md cursor-pointer"
-            >
-              Open Control Tower Workspace →
-            </button>
+            {widget.size !== 'SMALL' && (
+              <button
+                type="button"
+                data-widget-interactive="true"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openApplication('control-tower');
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+                className="w-full py-1 text-center text-xs text-white font-medium bg-white/[0.08] hover:bg-white/[0.16] rounded-xl border border-white/[0.12] transition-colors cursor-pointer"
+              >
+                Open Control Tower Workspace →
+              </button>
+            )}
           </div>
         );
 
       case 'supply_chain_pulse':
         return (
-          <div className="flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2 text-xs">
-              <span className="font-semibold text-white flex items-center gap-1.5">
-                <Activity className="w-4 h-4 text-emerald-400" />
-                Supply Chain Health Pulse
-              </span>
-              <span className="text-emerald-400 font-mono font-bold text-xs">98.4% SLA</span>
-            </div>
-            <div className="space-y-2.5 my-auto">
-              <div>
-                <div className="flex justify-between text-[11px] text-white/70 mb-1">
-                  <span>Global Fulfillment Rate</span>
-                  <span className="font-mono text-emerald-400 font-semibold">96.8%</span>
-                </div>
-                <div className="w-full bg-white/[0.08] h-1.5 rounded-full overflow-hidden border border-white/[0.06]">
-                  <div className="bg-emerald-500 h-full rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" style={{ width: '96.8%' }} />
-                </div>
+          <div className="flex flex-col h-full justify-between space-y-2 my-auto">
+            <div>
+              <div className="flex justify-between text-[11px] text-white/70 mb-1">
+                <span>Global Fulfillment Rate</span>
+                <span className="font-mono text-emerald-400 font-semibold">96.8%</span>
               </div>
+              <div className="w-full bg-white/[0.08] h-1.5 rounded-full overflow-hidden border border-white/[0.06]">
+                <div className="bg-emerald-500 h-full rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" style={{ width: '96.8%' }} />
+              </div>
+            </div>
+            {widget.size !== 'SMALL' && (
               <div>
                 <div className="flex justify-between text-[11px] text-white/70 mb-1">
                   <span>Inventory Velocity Index</span>
@@ -282,30 +378,21 @@ export function DesktopWidgetSystem({
                   <div className="bg-sky-500 h-full rounded-full shadow-[0_0_8px_rgba(14,165,233,0.5)]" style={{ width: '94.2%' }} />
                 </div>
               </div>
-            </div>
+            )}
           </div>
         );
 
       case 'inventory_health':
         return (
-          <div className="flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between border-b border-white/10 pb-1.5 text-xs">
-              <span className="font-semibold text-white flex items-center gap-1.5">
-                <Package className="w-4 h-4 text-blue-400" />
-                Inventory Stock Ratio
-              </span>
-              <span className="text-[10px] font-mono text-white/60">Active Hubs: 24</span>
+          <div className="flex items-center justify-around my-auto h-full">
+            <div className="text-center">
+              <span className="text-xs text-white/50 block">In-Stock</span>
+              <span className="text-base font-bold text-emerald-400 font-mono">142,500</span>
             </div>
-            <div className="flex items-center justify-around my-auto">
-              <div className="text-center">
-                <span className="text-xs text-white/50 block">In-Stock</span>
-                <span className="text-base font-bold text-emerald-400 font-mono">142,500</span>
-              </div>
-              <div className="h-8 w-px bg-white/10" />
-              <div className="text-center">
-                <span className="text-xs text-white/50 block">Low Stock</span>
-                <span className="text-base font-bold text-amber-400 font-mono">12 SKU</span>
-              </div>
+            <div className="h-8 w-px bg-white/10" />
+            <div className="text-center">
+              <span className="text-xs text-white/50 block">Low Stock</span>
+              <span className="text-base font-bold text-amber-400 font-mono">12 SKU</span>
             </div>
           </div>
         );
@@ -313,82 +400,59 @@ export function DesktopWidgetSystem({
       case 'ai_copilot':
         return (
           <div className="flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2 text-xs">
-              <span className="font-semibold text-white flex items-center gap-1.5">
-                <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
-                Orion Copilot Assistant
-              </span>
-              <span className="text-[10px] font-mono text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded border border-purple-500/20">
-                ACTIVE
-              </span>
-            </div>
             <div className="text-xs text-white/80 bg-white/5 border border-white/10 rounded-lg p-2 my-auto">
               "Optimal route for Asia-Pacific shipments re-routed to avoid port congestion."
             </div>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={copilotInput}
-                onChange={(e) => setCopilotInput(e.target.value)}
-                placeholder="Ask Orion Copilot..."
-                className="flex-1 px-3 py-1.5 bg-white/10 border border-white/15 rounded-lg text-xs text-white placeholder:text-white/40 focus:outline-none focus:border-purple-400"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && copilotInput.trim()) {
-                    showToast(`Copilot processing: "${copilotInput.trim()}"`, 'info');
-                    setCopilotInput('');
-                  }
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => openApplication('orion-copilot')}
-                className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-medium transition-colors"
-              >
-                Ask
-              </button>
-            </div>
+            {widget.size !== 'SMALL' && (
+              <div className="flex gap-2" data-widget-interactive="true" onPointerDown={(e) => e.stopPropagation()}>
+                <input
+                  type="text"
+                  value={copilotInput}
+                  onChange={(e) => setCopilotInput(e.target.value)}
+                  placeholder="Ask Orion Copilot..."
+                  className="flex-1 px-3 py-1 bg-white/10 border border-white/15 rounded-lg text-xs text-white placeholder:text-white/40 focus:outline-none focus:border-purple-400"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && copilotInput.trim()) {
+                      showToast(`Copilot processing: "${copilotInput.trim()}"`, 'info');
+                      setCopilotInput('');
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => openApplication('orion-copilot')}
+                  className="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                >
+                  Ask
+                </button>
+              </div>
+            )}
           </div>
         );
 
       case 'system_health':
         return (
-          <div className="flex flex-col h-full justify-between text-xs">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2">
-              <span className="font-semibold text-white flex items-center gap-1.5">
-                <Cpu className="w-4 h-4 text-sky-400" />
-                OS Runtime Telemetry
-              </span>
-              <span className="text-emerald-400 font-mono text-[10px] font-semibold">ONLINE</span>
+          <div className="grid grid-cols-2 gap-2 my-auto text-center h-full items-center">
+            <div className="bg-white/5 border border-white/10 rounded-lg p-2">
+              <span className="text-[10px] text-white/50 block">DB Latency</span>
+              <span className="text-sm font-bold font-mono text-sky-400">{healthData.latency}ms</span>
             </div>
-            <div className="grid grid-cols-2 gap-2 my-auto text-center">
-              <div className="bg-white/5 border border-white/10 rounded-lg p-2">
-                <span className="text-[10px] text-white/50 block">DB Latency</span>
-                <span className="text-sm font-bold font-mono text-sky-400">{healthData.latency}ms</span>
-              </div>
-              <div className="bg-white/5 border border-white/10 rounded-lg p-2">
-                <span className="text-[10px] text-white/50 block">Environment</span>
-                <span className={`text-sm font-bold font-mono ${dbEnv === 'LIVE' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                  {dbEnv}
-                </span>
-              </div>
+            <div className="bg-white/5 border border-white/10 rounded-lg p-2">
+              <span className="text-[10px] text-white/50 block">Environment</span>
+              <span className={`text-sm font-bold font-mono ${dbEnv === 'LIVE' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                {dbEnv}
+              </span>
             </div>
           </div>
         );
 
       case 'notes':
         return (
-          <div className="flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between border-b border-white/10 pb-1.5 text-xs">
-              <span className="font-semibold text-white flex items-center gap-1.5">
-                <StickyNote className="w-4 h-4 text-amber-400" />
-                Desktop Note
-              </span>
-              <span className="text-[10px] text-white/40 font-mono">Auto-saved</span>
-            </div>
+          <div className="flex flex-col h-full my-auto" data-widget-interactive="true" onPointerDown={(e) => e.stopPropagation()}>
             <textarea
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
-              className="w-full flex-1 my-1 p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-100 placeholder:text-amber-200/40 focus:outline-none resize-none font-sans leading-relaxed"
+              className="w-full flex-1 p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-100 placeholder:text-amber-200/40 focus:outline-none resize-none font-sans leading-relaxed"
               placeholder="Type persistent note here..."
             />
           </div>
@@ -396,47 +460,43 @@ export function DesktopWidgetSystem({
 
       case 'quick_actions':
         return (
-          <div className="flex flex-col h-full justify-between">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2 text-xs">
-              <span className="font-semibold text-white flex items-center gap-1.5">
-                <Zap className="w-4 h-4 text-sky-400" />
-                Quick Office Actions
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-2 my-auto">
-              <button
-                type="button"
-                onClick={() => openApplication('orion-documents')}
-                className="p-2 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 text-blue-200 text-xs font-medium flex items-center gap-2 transition-colors"
-              >
-                <FileText className="w-4 h-4 text-blue-400" />
-                <span>New Doc</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => openApplication('orion-sheets')}
-                className="p-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/30 text-emerald-200 text-xs font-medium flex items-center gap-2 transition-colors"
-              >
-                <Activity className="w-4 h-4 text-emerald-400" />
-                <span>New Sheet</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => openApplication('orion-slides')}
-                className="p-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/30 text-amber-200 text-xs font-medium flex items-center gap-2 transition-colors"
-              >
-                <Zap className="w-4 h-4 text-amber-400" />
-                <span>New Slide</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => openApplication('settings')}
-                className="p-2 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/30 text-purple-200 text-xs font-medium flex items-center gap-2 transition-colors"
-              >
-                <Settings className="w-4 h-4 text-purple-400" />
-                <span>Settings</span>
-              </button>
-            </div>
+          <div className="grid grid-cols-2 gap-2 my-auto" data-widget-interactive="true" onPointerDown={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              onClick={() => openApplication('orion-documents')}
+              className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 text-blue-200 text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <FileText className="w-4 h-4 text-blue-400" />
+              <span>New Doc</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => openApplication('orion-sheets')}
+              className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/30 text-emerald-200 text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
+            >
+              <Activity className="w-4 h-4 text-emerald-400" />
+              <span>New Sheet</span>
+            </button>
+            {widget.size !== 'SMALL' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => openApplication('orion-slides')}
+                  className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/30 text-amber-200 text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Zap className="w-4 h-4 text-amber-400" />
+                  <span>New Slide</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openApplication('settings')}
+                  className="p-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/30 text-purple-200 text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <Settings className="w-4 h-4 text-purple-400" />
+                  <span>Settings</span>
+                </button>
+              </>
+            )}
           </div>
         );
 
@@ -458,14 +518,16 @@ export function DesktopWidgetSystem({
         data-testid="desktop-widget"
         data-widget-id={widget.id}
         data-widget-type={widget.widgetType}
+        data-widget-size={widget.size}
         style={{
           position: 'absolute',
           left: `${widget.x}px`,
           top: `${widget.y}px`,
-          width: `${widget.width}px`,
-          height: `${widget.height}px`,
+          width: `${effectiveWidth}px`,
+          height: `${effectiveHeight}px`,
           zIndex: widget.zIndex || 10,
         }}
+        onPointerDown={handleContainerPointerDown}
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -474,50 +536,78 @@ export function DesktopWidgetSystem({
             y: Math.min(e.clientY, typeof window !== 'undefined' ? window.innerHeight - 200 : e.clientY),
           });
         }}
-        className={`rounded-[24px] backdrop-blur-[32px] backdrop-saturate-[180%] bg-[rgba(16,20,28,0.72)] border transition-all duration-200 p-4 flex flex-col justify-between shadow-[0_20px_50px_rgba(0,0,0,0.45),inset_0_1px_1px_rgba(255,255,255,0.20)] select-none group ${
-          isEditMode
-            ? 'border-white/40 ring-1 ring-white/20 shadow-2xl'
-            : 'border-white/[0.14] hover:border-white/[0.24]'
-        }`}
-      >
-        {/* Authoritative Dedicated Widget Drag Handle - Always available across normal and edit modes */}
-        <div
-          data-testid="widget-drag-handle"
-          onPointerDown={(e) => onMoveStart(e, widget)}
-          className={`absolute -top-3 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full text-[10px] font-medium tracking-wide flex items-center gap-1.5 cursor-grab active:cursor-grabbing z-30 shadow-md touch-none select-none transition-all duration-150 backdrop-blur-xl ${
-            isEditMode
-              ? 'bg-white/[0.18] text-white border border-white/40 opacity-100 shadow-lg'
-              : 'bg-white/[0.10] hover:bg-white/[0.18] text-white/80 hover:text-white border border-white/20 opacity-80 group-hover:opacity-100 focus-within:opacity-100 hover:scale-105'
-          }`}
-          title="Drag to reposition widget"
-          aria-label="Drag Widget"
-        >
-          <GripHorizontal className="w-3 h-3 text-white/70" />
-          <span className="text-[9px] uppercase font-mono tracking-wider">{isEditMode ? 'DRAG' : 'MOVE'}</span>
-        </div>
-
-        {/* Edit Mode Remove Control */}
-        {isEditMode && (
-          <div className="absolute -top-2 -right-2 z-30 flex items-center gap-1">
-            <button
-              type="button"
-              onClick={handleSafeRemove}
-              className="w-6 h-6 rounded-full bg-rose-500 hover:bg-rose-600 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-110 cursor-pointer"
-              title="Remove Widget"
-              aria-label="Remove Widget"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
+        className={cn(
+          "rounded-[22px] border transition-[box-shadow,border-color] duration-200 p-3.5 flex flex-col justify-between select-none group overflow-hidden",
+          "backdrop-blur-[var(--orion-blur,24px)]",
+          "bg-[var(--orion-surface,#121417)]/75",
+          "border-[var(--orion-border,rgba(255,255,255,0.09))]",
+          "shadow-[0_16px_42px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.14)]",
+          "cursor-grab active:cursor-grabbing hover:border-white/20",
+          isEditMode && "ring-2 ring-[var(--orion-accent,#0071E3)]/50 border-white/40"
         )}
-
-        {/* Normal Mode Hover / Focus Controls */}
-        {!isEditMode && (
+      >
+        {/* Integrated macOS-style Widget Header */}
+        <div
+          data-testid="widget-header"
+          className="flex items-center justify-between pb-1.5 border-b border-white/[0.08] select-none shrink-0"
+        >
+          {/* Header Draggable Anchor */}
           <div
-            className="absolute top-2 right-2 z-30 flex items-center gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-150 pointer-events-auto"
-            onClick={(e) => e.stopPropagation()}
+            data-testid="widget-drag-handle"
+            aria-label="Drag Widget"
+            title="Drag to reposition widget"
+            className="flex items-center gap-1.5 min-w-0 flex-1 cursor-grab active:cursor-grabbing"
+          >
+            {getWidgetIcon(widget.widgetType)}
+            <span className="font-semibold text-xs text-white truncate tracking-tight">
+              {widget.title}
+            </span>
+            {renderHeaderBadge()}
+            {isEditMode && (
+              <span className="text-[9px] font-mono uppercase px-1 py-0.5 rounded bg-white/10 text-white/70">
+                DRAG
+              </span>
+            )}
+          </div>
+
+          {/* Integrated Size Selector & Action Buttons */}
+          <div
+            className="flex items-center gap-1.5 shrink-0 ml-2 opacity-80 group-hover:opacity-100 focus-within:opacity-100 transition-opacity"
+            data-widget-interactive="true"
             onPointerDown={(e) => e.stopPropagation()}
           >
+            {/* Small / Medium / Large Size Selector */}
+            <div
+              className="flex items-center bg-white/[0.06] hover:bg-white/[0.10] p-0.5 rounded-lg border border-white/[0.08]"
+              role="group"
+              aria-label="Widget Size Selector"
+            >
+              {(['SMALL', 'MEDIUM', 'LARGE'] as WidgetSize[]).map((sz) => (
+                <button
+                  key={sz}
+                  type="button"
+                  data-action="resize-widget"
+                  data-size={sz}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onResize(widget.id, sz);
+                  }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  aria-label={`Resize to ${sz.toLowerCase()}`}
+                  title={`Resize to ${sz.toLowerCase()}`}
+                  className={cn(
+                    "px-1.5 py-0.5 text-[10px] font-mono rounded transition-colors cursor-pointer",
+                    widget.size === sz
+                      ? "bg-white/20 text-white font-bold shadow-xs"
+                      : "text-white/40 hover:text-white/80"
+                  )}
+                >
+                  {sz === 'SMALL' ? 'S' : sz === 'MEDIUM' ? 'M' : 'L'}
+                </button>
+              ))}
+            </div>
+
+            {/* Options Button */}
             <button
               type="button"
               data-action="widget-options"
@@ -526,32 +616,36 @@ export function DesktopWidgetSystem({
                 const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
                 setMenuPos({ x: Math.max(16, rect.left - 160), y: rect.bottom + 4 });
               }}
-              className="w-6 h-6 rounded-lg bg-white/[0.08] hover:bg-white/[0.16] text-white/70 hover:text-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
+              onPointerDown={(e) => e.stopPropagation()}
+              className="w-5 h-5 rounded-full bg-white/[0.06] hover:bg-white/[0.14] text-white/60 hover:text-white flex items-center justify-center transition-colors shadow-xs cursor-pointer"
               title="Widget Options"
               aria-label="Widget Options"
             >
-              <MoreHorizontal className="w-3.5 h-3.5" />
+              <MoreHorizontal className="w-3 h-3" />
             </button>
+
+            {/* In-Widget Close / Remove Button */}
             <button
               type="button"
               data-action="remove-widget"
               onClick={handleSafeRemove}
-              className="w-6 h-6 rounded-lg bg-white/[0.08] hover:bg-rose-500/80 text-white/70 hover:text-white flex items-center justify-center transition-colors shadow-sm cursor-pointer"
+              onPointerDown={(e) => e.stopPropagation()}
+              className="w-5 h-5 rounded-full bg-white/[0.06] hover:bg-rose-500/80 text-white/60 hover:text-white flex items-center justify-center transition-colors shadow-xs cursor-pointer focus-visible:ring-1 focus-visible:ring-rose-400"
               title="Remove Widget"
               aria-label="Remove Widget"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3 h-3" />
             </button>
           </div>
-        )}
+        </div>
 
-        {/* Main Widget Card Content */}
-        <div className="w-full h-full relative z-10 overflow-hidden">
+        {/* Main Widget Body Content */}
+        <div className="w-full h-full relative z-10 overflow-hidden pt-2 flex flex-col justify-between">
           {renderWidgetContent()}
         </div>
       </div>
 
-      {/* Widget Context Menu */}
+      {/* Widget Context Menu for Secondary Actions */}
       {menuPos && typeof document !== 'undefined' && createPortal(
         <div
           ref={menuRef}
@@ -584,38 +678,13 @@ export function DesktopWidgetSystem({
             </button>
           )}
 
-          <div className="px-2.5 py-1 text-[10px] text-white/40 font-semibold uppercase tracking-wider">
-            Resize
-          </div>
-          <div className="grid grid-cols-3 gap-1 px-1 mb-1">
-            {(['SMALL', 'MEDIUM', 'LARGE'] as WidgetSize[]).map((sz) => (
-              <button
-                key={sz}
-                type="button"
-                onClick={() => {
-                  setMenuPos(null);
-                  onResize(widget.id, sz);
-                }}
-                className={`py-1 text-center rounded text-[10px] font-medium transition-colors ${
-                  widget.size === sz
-                    ? 'bg-sky-600 text-white font-bold'
-                    : 'bg-white/5 hover:bg-white/10 text-white/70'
-                }`}
-              >
-                {sz[0]}
-              </button>
-            ))}
-          </div>
-
-          <div className="h-px bg-white/10 my-1 mx-1" />
-
           <button
             type="button"
             data-action="menu-remove-widget"
             onClick={handleSafeRemove}
             className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400 text-left transition-colors cursor-pointer"
           >
-            <Trash2 className="w-3.5 h-3.5" />
+            <X className="w-3.5 h-3.5" />
             <span>Remove Widget</span>
           </button>
         </div>,
@@ -624,3 +693,5 @@ export function DesktopWidgetSystem({
     </>
   );
 }
+
+export default DesktopWidgetSystem;

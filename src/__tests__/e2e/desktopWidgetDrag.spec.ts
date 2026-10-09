@@ -179,4 +179,52 @@ test.describe('Orion-9 Desktop Widget Dragging & Spatial Workspace E2E', () => {
       expect(movedBox.x).toBeLessThan(noteInitialBox.x - 40);
     }
   });
+
+  test('3. Integrated size selector changes widget dimensions dynamically', async ({ page }) => {
+    const widget = page.locator('[data-testid="desktop-widget"]').first();
+    await expect(widget).toBeVisible({ timeout: 10000 });
+
+    const initialBox = await widget.boundingBox();
+    expect(initialBox).not.toBeNull();
+
+    // Click Small size button
+    const smallBtn = widget.locator('button[data-action="resize-widget"][data-size="SMALL"]');
+    await expect(smallBtn).toBeVisible();
+    await smallBtn.click();
+    await page.waitForTimeout(400);
+
+    const smallBox = await widget.boundingBox();
+    expect(smallBox).not.toBeNull();
+    if (smallBox) {
+      expect(smallBox.width).toBeLessThanOrEqual(260);
+    }
+
+    // Click Large size button
+    const largeBtn = widget.locator('button[data-action="resize-widget"][data-size="LARGE"]');
+    await expect(largeBtn).toBeVisible();
+    await largeBtn.click();
+    await page.waitForTimeout(400);
+
+    const largeBox = await widget.boundingBox();
+    expect(largeBox).not.toBeNull();
+    if (largeBox) {
+      expect(largeBox.width).toBeGreaterThanOrEqual(400);
+    }
+  });
+
+  test('4. In-widget close button removes widget from desktop', async ({ page }) => {
+    const widgets = page.locator('[data-testid="desktop-widget"]');
+    const countBefore = await widgets.count();
+    expect(countBefore).toBeGreaterThan(0);
+
+    const firstWidget = widgets.first();
+    const removeBtn = firstWidget.locator('button[data-action="remove-widget"]');
+    await expect(removeBtn).toBeVisible();
+    await removeBtn.click();
+
+    await page.waitForTimeout(500);
+    const countAfter = await widgets.count();
+    expect(countAfter).toBe(countBefore - 1);
+  });
 });
+

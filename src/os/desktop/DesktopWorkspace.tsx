@@ -12,7 +12,7 @@ import { useWindowManager, WorkspaceId } from '../WindowManagerContext';
 import { desktopWorkspaceService, DEFAULT_GRID_CONFIG } from '../../core/filesystem/DesktopWorkspaceService';
 import { orionFileSystemService } from '../../core/filesystem/OrionFileSystemService';
 import { DesktopShortcut, OrionFile, OrionFolder, DesktopWidgetRecord, WidgetSize } from '../../core/filesystem/types';
-import { DesktopWidgetSystem } from './DesktopWidgetSystem';
+import { DesktopWidgetSystem, resolveWidgetDimensions } from './DesktopWidgetSystem';
 import { DesktopWidgetGalleryModal, WidgetGalleryItem } from './DesktopWidgetGalleryModal';
 import { ORION_REGISTRY } from '../OrionApplicationRegistry';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
@@ -234,8 +234,14 @@ export function DesktopWorkspace() {
     e.stopPropagation();
     e.preventDefault();
 
-    const targetElement = e.currentTarget as HTMLElement;
+    const targetElement = ((e.target as HTMLElement)?.closest('[data-testid="desktop-widget"]') || e.currentTarget) as HTMLElement;
     const pointerId = e.pointerId;
+
+    // Bring widget to front
+    setWidgets((prev) => {
+      const maxZ = Math.max(10, ...prev.map((w) => w.zIndex || 10));
+      return prev.map((w) => (w.id === widget.id ? { ...w, zIndex: maxZ + 1 } : w));
+    });
 
     // Acquire pointer capture if supported
     try {
@@ -376,11 +382,17 @@ export function DesktopWorkspace() {
   const handleResizeWidget = async (widgetId: string, newSize: WidgetSize) => {
     const target = widgets.find(w => w.id === widgetId);
     if (!target) return;
-    const width = newSize === 'SMALL' ? 240 : newSize === 'MEDIUM' ? 340 : 440;
-    const height = newSize === 'SMALL' ? 150 : newSize === 'MEDIUM' ? 180 : 250;
-    const updated = { ...target, size: newSize, width, height };
+    const dims = resolveWidgetDimensions(target.widgetType, newSize);
+    const updated: DesktopWidgetRecord = {
+      ...target,
+      size: newSize,
+      width: dims.width,
+      height: dims.height,
+      updatedAt: new Date().toISOString(),
+    };
     await desktopWorkspaceService.saveWidget(updated);
     setWidgets(prev => prev.map(w => w.id === widgetId ? updated : w));
+    showToast(`Widget resized to ${newSize.toLowerCase()}`, 'info');
   };
 
   const handleAddWidgetFromGallery = async (item: WidgetGalleryItem, customPos?: { x: number; y: number }) => {
