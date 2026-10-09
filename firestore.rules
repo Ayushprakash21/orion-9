@@ -1682,7 +1682,7 @@ service cloud.firestore {
     }
 
     match /system_status/{id} {
-      allow read: if isAuthenticated() && (
+      allow read: if id == 'ping' || (isAuthenticated() && (
         !('tenantId' in resource.data) ||
         resource.data.tenantId == 'GLOBAL' ||
         resource.data.tenantId == 'ORION_PLATFORM' ||
