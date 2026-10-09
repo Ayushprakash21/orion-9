@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { AppWindow, useWindowManager } from '../WindowManagerContext';
 import { ORION_REGISTRY } from '../OrionApplicationRegistry';
 import { getAppComponent } from '../OrionComponentMap';
@@ -104,8 +105,11 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
     maximizeApplication,
     restoreApplication,
     moveApplication,
-    resizeApplication
+    resizeApplication,
+    snapApplication
   } = useWindowManager();
+
+  const [snapCandidate, setSnapCandidate] = useState<'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'maximize' | null>(null);
 
   const { openContextMenu } = useOrionContextMenu();
   const { showToast } = useToast();
@@ -367,6 +371,31 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
       x: dragStartRef.current.posX + dx,
       y: dragStartRef.current.posY + dy
     });
+
+    const screenW = typeof window !== 'undefined' ? window.innerWidth : 1440;
+    const screenH = typeof window !== 'undefined' ? window.innerHeight : 900;
+
+    if (e.clientY <= 14) {
+      setSnapCandidate('maximize');
+    } else if (e.clientX <= 20) {
+      if (e.clientY < screenH * 0.3) {
+        setSnapCandidate('top-left');
+      } else if (e.clientY > screenH * 0.7) {
+        setSnapCandidate('bottom-left');
+      } else {
+        setSnapCandidate('left');
+      }
+    } else if (e.clientX >= screenW - 20) {
+      if (e.clientY < screenH * 0.3) {
+        setSnapCandidate('top-right');
+      } else if (e.clientY > screenH * 0.7) {
+        setSnapCandidate('bottom-right');
+      } else {
+        setSnapCandidate('right');
+      }
+    } else {
+      setSnapCandidate(null);
+    }
   };
 
   const handleTitlePointerUp = (e: React.PointerEvent) => {
@@ -375,6 +404,15 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
       try {
         (e.target as HTMLElement).releasePointerCapture(e.pointerId);
       } catch (err) {}
+
+      if (snapCandidate) {
+        if (snapCandidate === 'maximize') {
+          maximizeApplication(win.id);
+        } else {
+          snapApplication(win.id, snapCandidate);
+        }
+        setSnapCandidate(null);
+      }
     }
   };
 
@@ -649,6 +687,23 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
             <div className="w-2 h-2 border-r-2 border-b-2 border-os-border group-hover:border-os-accent transition-colors" />
           </div>
         </>
+      )}
+
+      {/* Window Snap Ghost Preview Overlay */}
+      {isDragging && snapCandidate && typeof document !== 'undefined' && createPortal(
+        <div
+          data-testid="window-snap-ghost"
+          className="fixed pointer-events-none z-[55] transition-all duration-150 ease-out border-2 border-white/40 bg-white/10 dark:bg-white/5 backdrop-blur-md rounded-2xl shadow-2xl"
+          style={{
+            top: snapCandidate === 'bottom-left' || snapCandidate === 'bottom-right' ? 'calc(50vh + 24px)' : 48,
+            left: snapCandidate === 'right' || snapCandidate === 'top-right' || snapCandidate === 'bottom-right' ? '50vw' : 0,
+            width: snapCandidate === 'maximize' ? '100vw' : '50vw',
+            height: snapCandidate === 'maximize' || snapCandidate === 'left' || snapCandidate === 'right'
+              ? 'calc(100vh - 48px)'
+              : 'calc(50vh - 24px)'
+          }}
+        />,
+        document.body
       )}
     </motion.div>
   );

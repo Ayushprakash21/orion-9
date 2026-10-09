@@ -317,6 +317,24 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
     };
   }, [refreshCurrentFolder]);
 
+  // Handle external navigation (e.g. desktop Recycle Bin shortcut, deep links)
+  useEffect(() => {
+    const handleExternalNavigate = async (e: CustomEvent<{ systemKey?: SystemFolderKey; folderId?: string }>) => {
+      if (e.detail?.folderId) {
+        navigateToFolderById(e.detail.folderId);
+      } else if (e.detail?.systemKey) {
+        const sysFolder = await orionFileSystemService.getSystemFolder(e.detail.systemKey);
+        if (sysFolder) {
+          navigateToFolder(sysFolder);
+        }
+      }
+    };
+    window.addEventListener('orion:file-manager-navigate', handleExternalNavigate as EventListener);
+    return () => {
+      window.removeEventListener('orion:file-manager-navigate', handleExternalNavigate as EventListener);
+    };
+  }, [navigateToFolder, navigateToFolderById]);
+
   // Nav Buttons
   const handleGoBack = () => {
     if (historyIndex > 0) {
@@ -931,6 +949,25 @@ export function FileManager({ initialFolderKey = 'documents', initialFolderId }:
               >
                 <Edit2 size={13} />
                 <span>Rename</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  const targetFile = contextMenu.item.data as OrionFile;
+                  try {
+                    await orionFileSystemService.duplicateFile(targetFile.id);
+                    showToast(`Duplicated ${targetFile.name}`, 'success', 'File Explorer');
+                    refreshCurrentFolder('duplicate-file');
+                  } catch (e: any) {
+                    showToast(`Duplicate failed: ${e?.message || 'Error'}`, 'error', 'File Explorer');
+                  }
+                  setContextMenu(null);
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 hover:bg-os-surface-hover text-os-text-primary text-left"
+              >
+                <Copy size={13} />
+                <span>Duplicate</span>
               </button>
 
               <button

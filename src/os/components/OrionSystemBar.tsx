@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWindowManager, WORKSPACES, WorkspaceId } from '../WindowManagerContext';
 import { ORION_REGISTRY } from '../OrionApplicationRegistry';
-import { Search, Brain, Bell, Wifi, WifiOff, RefreshCw, Maximize2 } from 'lucide-react';
+import { Search, Brain, Bell, Wifi, WifiOff, RefreshCw, Maximize2, Sliders } from 'lucide-react';
 import { AccountMenu } from '../../components/layout/AccountMenu';
 import { useNotifications } from '../../store/NotificationContext';
 import { useConnectivity } from '../../store/ConnectivityContext';
@@ -12,6 +12,7 @@ import { OrionSystemMenu } from './OrionSystemMenu';
 import { NotificationCenter } from '../../components/modals/NotificationCenter';
 import { SystemStatusModal } from '../../components/modals/SystemStatusModal';
 import { NetworkConnectionPopover } from './NetworkConnectionPopover';
+import { OrionControlCenterPopover } from './OrionControlCenterPopover';
 import { BrandLogo } from '../../components/brand/BrandLogo';
 import { useBranding } from '../../store/BrandingContext';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
@@ -22,7 +23,7 @@ export function OrionSystemBar() {
   const navigate = useNavigate();
   const { branding } = useBranding();
   const { isAdmin } = useAuth();
-  const { activeAppId, setCommandPaletteOpen, activeWorkspaceId, setWorkspace, openApplication } = useWindowManager();
+  const { activeAppId, setCommandPaletteOpen, activeWorkspaceId, setWorkspace, openApplication, missionControlOpen } = useWindowManager();
   const { unreadCount } = useNotifications();
   const { isOnline, statusLabel, isLocalMode } = useConnectivity();
   const { exceptions, settings, updateSettings } = useSupplyChain();
@@ -31,12 +32,24 @@ export function OrionSystemBar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [networkOpen, setNetworkOpen] = useState(false);
+  const [controlCenterOpen, setControlCenterOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
   const [dbEnv, setDbEnv] = useState<DatabaseEnvironmentMode>(() => dbManager.getEnvironment());
   
   const menuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
   const networkRef = useRef<HTMLDivElement>(null);
+  const controlCenterRef = useRef<HTMLDivElement>(null);
+
+  // Automatically dismiss top-bar popovers when Mission Control opens
+  useEffect(() => {
+    if (missionControlOpen) {
+      setControlCenterOpen(false);
+      setNotificationsOpen(false);
+      setNetworkOpen(false);
+      setMenuOpen(false);
+    }
+  }, [missionControlOpen]);
 
   // Check for critical exceptions to inform notification badge status
   const hasCriticalExceptions = exceptions?.some(e => e.severity === 'Critical') ?? false;
@@ -108,7 +121,6 @@ export function OrionSystemBar() {
           aria-expanded={menuOpen}
         >
           <BrandLogo sizePreset="sm" variant="mark" />
-          <span className="sr-only">Orion OS</span>
           <span 
             onClick={(e) => {
               if (isAdmin) {
@@ -128,6 +140,7 @@ export function OrionSystemBar() {
             {dbEnv}
           </span>
         </button>
+        <span className="sr-only">Orion OS</span>
 
         {/* Sync/Refresh Action */}
         <button 
@@ -247,6 +260,28 @@ export function OrionSystemBar() {
           >
             {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
           </button>
+        </div>
+
+        {/* Control Center */}
+        <div className="relative flex items-center" ref={controlCenterRef}>
+          <button
+            type="button"
+            data-testid="control-center-toggle-btn"
+            onClick={() => setControlCenterOpen(v => !v)}
+            className={cn(
+              "relative flex items-center justify-center w-7 h-7 hover:bg-white/[0.08] hover:text-[var(--orion-text-primary)] rounded-lg transition-colors cursor-pointer outline-none text-[var(--orion-text-muted)]",
+              controlCenterOpen && "bg-white/[0.12] text-[var(--orion-text-primary)]"
+            )}
+            title="Control Center"
+            aria-label="Control Center"
+            aria-expanded={controlCenterOpen}
+          >
+            <Sliders className="w-3.5 h-3.5" />
+          </button>
+          <OrionControlCenterPopover
+            isOpen={controlCenterOpen}
+            onClose={() => setControlCenterOpen(false)}
+          />
         </div>
 
         {/* Clock */}

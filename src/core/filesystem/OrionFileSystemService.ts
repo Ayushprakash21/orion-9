@@ -475,6 +475,27 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   }
 
   /**
+   * Duplicate file in place (same folder).
+   */
+  public async duplicateFile(fileId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<OrionFile> {
+    const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
+    const original = await this.getFile(fileId, activeTenant, activeEnv);
+    if (!original) throw new Error(`Source file ${fileId} not found`);
+
+    return this.createFile({
+      name: `${original.name} Copy`,
+      extension: original.extension,
+      mimeType: original.mimeType,
+      content: original.content,
+      folderId: original.folderId,
+      tenantId: activeTenant,
+      environment: activeEnv,
+      tags: original.tags ? [...original.tags] : [],
+      metadata: original.metadata ? { ...original.metadata } : {},
+    });
+  }
+
+  /**
    * Move file to target folder.
    */
   public async moveFile(fileId: string, targetFolderId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<OrionFile> {

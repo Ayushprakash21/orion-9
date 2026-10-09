@@ -7,16 +7,18 @@ import { useEntityDrawer, EntityType } from '../../store/EntityDrawerContext';
 import { 
   Search, ChevronRight, Lock, Moon, RotateCcw, 
   Layers, Package, Truck, Users, AlertTriangle, ArrowRight,
-  Sparkles, ExternalLink
+  Sparkles, ExternalLink, FileText, Sliders
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
+import { orionFileSystemService } from '../../core/filesystem/OrionFileSystemService';
+import { OrionFile } from '../../core/filesystem/types';
 
 interface SearchResultItem {
   id: string;
   title: string;
   subtitle: string;
-  category: 'Applications' | 'System Commands' | 'Operational Intent' | 'Entities';
+  category: 'Applications' | 'System Commands' | 'Operational Intent' | 'Entities' | 'Files & Documents' | 'Settings';
   icon: any;
   color: string;
   action: () => void;
@@ -40,7 +42,17 @@ export function OrionCommandPalette() {
 
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [cachedFiles, setCachedFiles] = useState<OrionFile[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Load files when palette opens
+  useEffect(() => {
+    if (commandPaletteOpen) {
+      orionFileSystemService.listFiles(null).then(files => {
+        setCachedFiles(files);
+      }).catch(() => {});
+    }
+  }, [commandPaletteOpen]);
 
   // Global hotkey: Cmd/Ctrl + Space or Cmd/Ctrl + K and Escape
   useEffect(() => {
@@ -312,8 +324,57 @@ export function OrionCommandPalette() {
       });
     }
 
+    // 6. Search Files & Documents
+    if (cachedFiles && cachedFiles.length > 0) {
+      cachedFiles.forEach(f => {
+        if (
+          f.name.toLowerCase().includes(q) ||
+          f.extension.toLowerCase().includes(q) ||
+          (f.tags && f.tags.some(t => t.toLowerCase().includes(q)))
+        ) {
+          items.push({
+            id: `file-${f.id}`,
+            title: `${f.name}.${f.extension}`,
+            subtitle: `File • ${f.size > 1024 ? Math.round(f.size / 1024) + ' KB' : f.size + ' B'} • Last modified ${new Date(f.updatedAt).toLocaleDateString()}`,
+            category: 'Files & Documents',
+            icon: FileText,
+            color: '#38BDF8',
+            badge: f.extension.toUpperCase(),
+            action: exec(() => {
+              openApplication('file-manager');
+            }),
+          });
+        }
+      });
+    }
+
+    // 7. Search Settings Sections
+    const settingsSections = [
+      { id: 'appearance', name: 'Appearance & Themes', desc: 'Liquid Glass, wallpapers, accent colors and themes' },
+      { id: 'dock', name: 'Dock & Taskbar Settings', desc: 'Position, autohide, magnification, transparency' },
+      { id: 'lockscreen', name: 'Lock Screen & Widgets', desc: 'Clock styles, widgets, wallpaper tint' },
+      { id: 'notifications', name: 'Notifications & Alerts', desc: 'Sounds, priority badges, Do Not Disturb' },
+      { id: 'accessibility', name: 'Accessibility & Display', desc: 'Reduce motion, high contrast, text sizing' },
+      { id: 'security', name: 'Security & Enterprise Tenant', desc: 'Authentication, sessions, isolation policies' },
+    ];
+
+    settingsSections.forEach(sec => {
+      if (sec.name.toLowerCase().includes(q) || sec.desc.toLowerCase().includes(q) || 'settings'.includes(q)) {
+        items.push({
+          id: `setting-${sec.id}`,
+          title: sec.name,
+          subtitle: `Settings • ${sec.desc}`,
+          category: 'Settings',
+          icon: Sliders,
+          color: '#818CF8',
+          badge: 'Setting',
+          action: exec(() => openApplication('settings')),
+        });
+      }
+    });
+
     return items.slice(0, 16);
-  }, [search, windows, triggerLock, triggerSleep, triggerRestart, logout, setWorkspace, openApplication, focusApplication, openEntity, suppliers, shipments, products, exceptions, setCommandPaletteOpen]);
+  }, [search, windows, cachedFiles, triggerLock, triggerSleep, triggerRestart, logout, setWorkspace, openApplication, focusApplication, openEntity, suppliers, shipments, products, exceptions, setCommandPaletteOpen]);
 
   // Keyboard navigation inside list
   const handleKeyDown = (e: React.KeyboardEvent) => {

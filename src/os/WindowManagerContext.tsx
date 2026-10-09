@@ -4,11 +4,13 @@ import { ORION_REGISTRY, OrionApp } from './OrionApplicationRegistry';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 export type WindowState = 'open' | 'active' | 'inactive' | 'minimized' | 'maximized' | 'closed';
-export type WorkspaceId = 'operations' | 'intelligence' | 'control';
+export type WindowSnapState = 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | null;
+export type WorkspaceId = string;
 
 export interface AppWindow {
   id: string; // registry id
   state: WindowState;
+  snapState?: WindowSnapState;
   zIndex: number;
   position: { x: number; y: number };
   size: { width: number; height: number };
@@ -25,6 +27,7 @@ export interface WorkspaceConfig {
   id: WorkspaceId;
   name: string;
   pinnedApps: string[]; // default dock apps for this workspace
+  isCustom?: boolean;
 }
 
 export const WORKSPACES: WorkspaceConfig[] = [
@@ -49,6 +52,7 @@ interface WindowManagerContextProps {
   windows: Record<string, AppWindow>;
   activeAppId: string | null;
   activeWorkspaceId: WorkspaceId;
+  workspaces: WorkspaceConfig[];
   dockPinnedApps: string[];
   reorderDock: (newOrder: string[]) => void;
   
@@ -62,17 +66,26 @@ interface WindowManagerContextProps {
   focusApplication: (id: string) => void;
   moveApplication: (id: string, position: { x: number; y: number }) => void;
   resizeApplication: (id: string, size: { width: number; height: number }, position?: { x: number; y: number }) => void;
+  snapApplication: (id: string, snapType: 'left' | 'right' | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right') => void;
   
   pinToDock: (id: string) => void;
   unpinFromDock: (id: string) => void;
   
   setWorkspace: (id: WorkspaceId) => void;
+  createWorkspace: (name: string) => WorkspaceId;
+  renameWorkspace: (id: WorkspaceId, name: string) => void;
+  deleteWorkspace: (id: WorkspaceId) => void;
+  moveWindowToWorkspace: (windowId: string, targetWorkspaceId: WorkspaceId) => void;
   
   launcherOpen: boolean;
   setLauncherOpen: (open: boolean) => void;
   
   commandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
+
+  missionControlOpen: boolean;
+  setMissionControlOpen: (open: boolean) => void;
+  toggleMissionControl: () => void;
 }
 
 const WindowManagerContext = createContext<WindowManagerContextProps | undefined>(undefined);
@@ -146,6 +159,26 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
   // Initialize dock from localStorage with validation against ORION_REGISTRY
   
   const [activeWorkspaceId, setActiveWorkspaceId] = useState<WorkspaceId>('operations');
+
+  // Custom User Spaces / Multiple Desktops
+  const [customWorkspaces, setCustomWorkspaces] = useState<WorkspaceConfig[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('orion_custom_workspaces');
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+    }
+    return [];
+  });
+
+  const workspaces = useMemo<WorkspaceConfig[]>(() => {
+    return [...WORKSPACES, ...customWorkspaces];
+  }, [customWorkspaces]);
+
+  const [missionControlOpen, setMissionControlOpen] = useState(false);
+  const toggleMissionControl = useCallback(() => {
+    setMissionControlOpen(prev => !prev);
+  }, []);
 
   const [dockPinnedAppsRecord, setDockPinnedAppsRecord] = useState<Record<WorkspaceId, string[]>>(() => {
     let saved: Record<WorkspaceId, string[]> | null = null;
@@ -647,6 +680,144 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
     }
   }, [location.pathname, safeNavigate, setActiveAppId]);
 
+  // Dynamic Workspace / Spaces Operations
+  const createWorkspace = useCallback((name: string): WorkspaceId => {
+    const cleanName = (name || '').trim() || 'New Space';
+    const id = `space-${Date.now()}`;
+    const newConfig: WorkspaceConfig = {
+      id,
+      name: cleanName.toUpperCase(),
+      pinnedApps: ['command-center', 'inventory', 'browser', 'file-manager', 'settings'],
+      isCustom: true,
+    };
+    setCustomWorkspaces(prev => {
+      const updated = [...prev, newConfig];
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('orion_custom_workspaces', JSON.stringify(updated));
+      }
+      return updated;
+    });
+    return id;
+  }, []);
+
+  const renameWorkspace = useCallback((id: WorkspaceId, name: string) => {
+    const cleanName = (name || '').trim();
+    if (!cleanName) return;
+    setCustomWorkspaces(prev => {
+      const updated = prev.map(w => w.id === id ? { ...w, name: cleanName.toUpperCase() } : w);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('orion_custom_workspaces', JSON.stringify(updated));
+      }
+      return updated;
+    });
+  }, []);
+
+  const deleteWorkspace = useCallback((id: WorkspaceId) => {
+    // Cannot delete canonical default workspaces
+    if (id === 'operations' || id === 'intelligence' || id === 'control') return;
+
+    // Relocate any open windows in deleted workspace to 'operations'
+    setWindows(prev => {
+      const updated = { ...prev };
+      let changed = false;
+      Object.keys(updated).forEach(k => {
+        if (updated[k].workspace === id) {
+          updated[k] = { ...updated[k], workspace: 'operations' };
+          changed = true;
+        }
+      });
+      return changed ? updated : prev;
+    });
+
+    if (activeWorkspaceId === id) {
+      setWorkspace('operations');
+    }
+
+    setCustomWorkspaces(prev => {
+      const updated = prev.filter(w => w.id !== id);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('orion_custom_workspaces', JSON.stringify(updated));
+      }
+      return updated;
+    });
+  }, [activeWorkspaceId, setWorkspace]);
+
+  const moveWindowToWorkspace = useCallback((windowId: string, targetWorkspaceId: WorkspaceId) => {
+    const normId = normalizeAppId(windowId);
+    setWindows(prev => {
+      const targetWin = prev[normId];
+      if (!targetWin) return prev;
+      return {
+        ...prev,
+        [normId]: {
+          ...targetWin,
+          workspace: targetWorkspaceId
+        }
+      };
+    });
+  }, []);
+
+  // 11. WINDOW SNAPPING (Left, Right, Quadrants)
+  const snapApplication = useCallback((id: string, snapType: WindowSnapState) => {
+    if (!snapType) return;
+    const normId = normalizeAppId(id);
+    const screenW = typeof window !== 'undefined' ? window.innerWidth : 1440;
+    const topBarH = 48;
+    const screenH = typeof window !== 'undefined' ? Math.max(300, window.innerHeight - topBarH) : 852;
+    const halfW = Math.round(screenW / 2);
+    const halfH = Math.round(screenH / 2);
+
+    let position = { x: 0, y: 0 };
+    let size = { width: screenW, height: screenH };
+
+    switch (snapType) {
+      case 'left':
+        position = { x: 0, y: 0 };
+        size = { width: halfW, height: screenH };
+        break;
+      case 'right':
+        position = { x: halfW, y: 0 };
+        size = { width: screenW - halfW, height: screenH };
+        break;
+      case 'top-left':
+        position = { x: 0, y: 0 };
+        size = { width: halfW, height: halfH };
+        break;
+      case 'top-right':
+        position = { x: halfW, y: 0 };
+        size = { width: screenW - halfW, height: halfH };
+        break;
+      case 'bottom-left':
+        position = { x: 0, y: halfH };
+        size = { width: halfW, height: screenH - halfH };
+        break;
+      case 'bottom-right':
+        position = { x: halfW, y: halfH };
+        size = { width: screenW - halfW, height: screenH - halfH };
+        break;
+    }
+
+    setWindows(prev => {
+      const cur = prev[normId];
+      if (!cur) return prev;
+      const updated = {
+        ...prev,
+        [normId]: {
+          ...cur,
+          prevGeometry: cur.state === 'maximized' || cur.snapState ? cur.prevGeometry : { position: cur.position, size: cur.size },
+          state: 'active' as const,
+          snapState: snapType,
+          position,
+          size,
+          isFocused: true,
+          zIndex: 45
+        }
+      };
+      return normalizeWindowZIndexes(updated, normId);
+    });
+    setActiveAppId(normId);
+  }, [setActiveAppId]);
+
   // 12. INITIAL DESKTOP LAUNCH
   // Runs exactly once when the authenticated desktop window manager mounts:
   // If destination is '/', opens Command Center once.
@@ -737,6 +908,7 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
     windows,
     activeAppId,
     activeWorkspaceId,
+    workspaces,
     dockPinnedApps,
     openApplication,
     closeApplication,
@@ -748,21 +920,31 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
     focusApplication,
     moveApplication,
     resizeApplication,
+    snapApplication,
     pinToDock,
     unpinFromDock,
     reorderDock,
     setWorkspace,
+    createWorkspace,
+    renameWorkspace,
+    deleteWorkspace,
+    moveWindowToWorkspace,
     launcherOpen,
     setLauncherOpen,
     commandPaletteOpen,
-    setCommandPaletteOpen
+    setCommandPaletteOpen,
+    missionControlOpen,
+    setMissionControlOpen,
+    toggleMissionControl
   }), [
-    windows, activeAppId, activeWorkspaceId, dockPinnedApps,
+    windows, activeAppId, activeWorkspaceId, workspaces, dockPinnedApps,
     openApplication, closeApplication, closeWindow, closeAllWindows,
     minimizeApplication, maximizeApplication, restoreApplication,
-    focusApplication, moveApplication, resizeApplication,
+    focusApplication, moveApplication, resizeApplication, snapApplication,
     pinToDock, unpinFromDock, reorderDock, setWorkspace,
-    launcherOpen, commandPaletteOpen
+    createWorkspace, renameWorkspace, deleteWorkspace, moveWindowToWorkspace,
+    launcherOpen, commandPaletteOpen,
+    missionControlOpen, toggleMissionControl
   ]);
 
   return (

@@ -8,6 +8,7 @@ import { OrionCommandPalette } from './OrionCommandPalette';
 import { OrionLiveWallpaper } from './OrionLiveWallpaper';
 import { OrionWindow } from './OrionWindow';
 import { OrionTaskSwitcher } from './OrionTaskSwitcher';
+import { OrionMissionControl } from './OrionMissionControl';
 import { motion, AnimatePresence } from 'motion/react';
 import { desktopEntranceVariants } from '../motion/OrionMotionVariants';
 import { OrionContextMenu } from '../contextMenu/OrionContextMenu';
@@ -309,6 +310,7 @@ export function OrionDesktop() {
       <OrionApplicationLauncher />
       <OrionCommandPalette />
       <OrionTaskSwitcher isOpen={taskSwitcherOpen} onClose={() => setTaskSwitcherOpen(false)} />
+      <OrionMissionControl />
       <EntityDrawer />
       <ConfirmModal />
       <OrionContextMenu />
