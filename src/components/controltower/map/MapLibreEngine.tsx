@@ -134,11 +134,20 @@ export const MapLibreEngine = forwardRef<MapEngineRef, MapLibreEngineProps>(({
       }
       const canvas = document.createElement('canvas');
       const gl = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      // Clean up test canvas immediately
+      canvas.remove();
       if (!gl) {
-        console.warn('[MapLibreEngine] WebGL not available – map may fallback to SVG rendering.');
+        console.warn('[MapLibreEngine] WebGL not available – falling back to SVG rendering.');
+        setIsSupported(false);
+        setInitError('WebGL not available in this environment.');
+      } else {
+        // WebGL appears supported – continue with normal init flow
+        setIsSupported(true);
       }
     } catch (e) {
       console.warn('[MapLibreEngine] WebGL check failed:', e);
+      setIsSupported(false);
+      setInitError('WebGL capability detection failed.');
     }
   }, []);
 

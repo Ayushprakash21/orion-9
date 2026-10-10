@@ -712,6 +712,8 @@ export function OrionDock() {
             isVertical ? "flex flex-col items-center gap-2.5 overflow-y-auto max-h-[80vh]" : "flex items-center gap-2.5 overflow-x-auto max-w-[calc(100vw-24px)]"
           )}
           style={{ 
+            '--orion-dock-surface': 'var(--orion-dock-surface)',
+            opacity: 'var(--orion-dock-opacity)',
             backgroundColor: 'var(--orion-dock-tint-bg)',
             backdropFilter: 'blur(var(--orion-dock-blur, 36px)) saturate(160%)',
             WebkitBackdropFilter: 'blur(var(--orion-dock-blur, 36px)) saturate(160%)',
