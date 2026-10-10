@@ -129,18 +129,16 @@ export const MapLibreEngine = forwardRef<MapEngineRef, MapLibreEngineProps>(({
   useEffect(() => {
     try {
       if (typeof window === 'undefined' || typeof document === 'undefined') {
-        setIsSupported(false);
+        console.warn('[MapLibreEngine] Non-browser environment detected; proceeding with map init later.');
         return;
       }
       const canvas = document.createElement('canvas');
       const gl = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
       if (!gl) {
-        setIsSupported(false);
-        setInitError('WebGL context is not supported in this browser environment.');
+        console.warn('[MapLibreEngine] WebGL not available – map may fallback to SVG rendering.');
       }
     } catch (e) {
-      setIsSupported(false);
-      setInitError('WebGL initialization failed.');
+      console.warn('[MapLibreEngine] WebGL check failed:', e);
     }
   }, []);
 
@@ -283,7 +281,7 @@ export const MapLibreEngine = forwardRef<MapEngineRef, MapLibreEngineProps>(({
             }
             if (err?.message?.includes('Context Lost') || err?.message?.includes('WebGL')) {
               cleanupMap();
-              setIsSupported(false);
+              // Preserve isSupported to allow retry or fallback UI
               setInitError('WebGL rendering context was lost or unavailable.');
             }
           });
