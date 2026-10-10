@@ -18,7 +18,11 @@ const OrionMobileContentRouter: React.FC = () => {
 
   return (
     <main
-      className={`flex-1 min-h-0 w-full max-w-full flex flex-col ${isAppView || isAI ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden'} pb-[calc(var(--orion-mobile-nav-height,56px)+env(safe-area-inset-bottom,8px))] overscroll-contain ${isAppView ? '' : 'px-3.5 pt-3'}`}
+      className={`flex-1 min-h-0 w-full max-w-full flex flex-col ${
+        isAppView || isAI ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden'
+      } pb-[calc(var(--orion-mobile-nav-height,56px)+max(8px,env(safe-area-inset-bottom,8px)))] overscroll-contain ${
+        isAppView ? '' : isAI ? 'px-3 pt-2' : 'px-3.5 pt-3'
+      }`}
     >
       {activeTab === 'home' && <OrionMobileHome />}
       {activeTab === 'control' && <OrionMobileControlTower />}

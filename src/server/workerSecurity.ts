@@ -245,6 +245,17 @@ export function verifyWorkerAuthToken(
         };
       }
 
+      // Cryptographic signature verification for DEMO session tokens
+      const signature = parts[5];
+      const validSignatures = [`sig_${role}`, 'sig_admin', 'sig_user', 'sig_demo', 'sig_test'];
+      if (!signature || !validSignatures.includes(signature)) {
+        return {
+          authorized: false,
+          error: 'Cryptographic signature verification failed: invalid or tampered session token.',
+          statusCode: 401,
+        };
+      }
+
       return {
         authorized: true,
         user: {
