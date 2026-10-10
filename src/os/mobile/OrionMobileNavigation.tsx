@@ -146,6 +146,36 @@ export const MobileNavigationProvider: React.FC<{ children: ReactNode }> = ({ ch
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isDetailSheetOpen, activeTab, closeEntityDetail, closeApp, navigateToTab]);
 
+  // Support global orion:open-app events and window.__orion_open_app for cross-shell application launching
+  useEffect(() => {
+    (window as any).__orion_open_app = (appId: string) => {
+      if (appId === 'orion-ai' || appId === 'ai') {
+        openOrionAI();
+      } else {
+        openApp(appId);
+      }
+    };
+
+    const handleOpenAppEvent = (e: Event) => {
+      const customEvent = e as CustomEvent<{ appId: string }>;
+      if (customEvent.detail?.appId) {
+        if (customEvent.detail.appId === 'orion-ai' || customEvent.detail.appId === 'ai') {
+          openOrionAI();
+        } else {
+          openApp(customEvent.detail.appId);
+        }
+      }
+    };
+    window.addEventListener('orion:open-app', handleOpenAppEvent);
+
+    return () => {
+      window.removeEventListener('orion:open-app', handleOpenAppEvent);
+      if ((window as any).__orion_open_app) {
+        delete (window as any).__orion_open_app;
+      }
+    };
+  }, [openApp, openOrionAI]);
+
   const activeApp = openedAppId ? ORION_REGISTRY[openedAppId] || null : null;
 
   return (

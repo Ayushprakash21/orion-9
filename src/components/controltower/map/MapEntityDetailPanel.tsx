@@ -332,7 +332,28 @@ export const MapEntityDetailPanel: React.FC<MapEntityDetailPanelProps> = ({
         {/* Copilot Deep Link */}
         <button
           data-testid="inspector-ask-copilot-btn"
-          onClick={() => onAskCopilot(`Provide operational root-cause analysis and mitigation strategies for ${type} ${('name' in entity && entity.name) || ('id' in entity && entity.id)}.`)}
+          onClick={() => {
+            let entityPrompt = '';
+            if (type === 'shipment') {
+              const ship = entity as any;
+              const delayTxt = ship.delayDays > 0 ? `experiencing a delay of ${ship.delayDays} days` : 'currently on schedule';
+              const riskTxt = ship.capitalAtRisk ? ` with ${formatCurrency(ship.capitalAtRisk, currency)} capital at risk` : '';
+              entityPrompt = `Investigate shipment ${ship.title || ship.id || ship.shipmentId} operated by carrier ${ship.carrier || 'Unknown'} from ${ship.origin?.name || ship.origin?.code || 'origin'} to ${ship.destination?.name || ship.destination?.code || 'destination'}, which is ${delayTxt}${riskTxt}. Provide operational root-cause analysis, ETA forecast, and governed rerouting recommendations.`;
+            } else if (type === 'vessel') {
+              const vsl = entity as any;
+              entityPrompt = `Analyze vessel ${vsl.name} (IMO: ${vsl.imo}, Carrier: ${vsl.carrier}) navigating ${vsl.origin} to ${vsl.destination} at ${vsl.speed} kn. Assess ETA impact and port congestion at ${vsl.destination}.`;
+            } else if (type === 'aircraft') {
+              const air = entity as any;
+              entityPrompt = `Analyze air freight flight ${air.callsign} (${air.airline}, ${air.aircraft_type}) on corridor ${air.origin} to ${air.destination} at altitude ${air.altitude} ft. Evaluate expedited cargo status and arrival schedule.`;
+            } else if (type === 'port') {
+              const p = entity as any;
+              entityPrompt = `Evaluate port congestion and throughput for ${p.name} (${p.unlocode}). Current status shows ${p.congestion} congestion, ${p.vesselsInPort} vessels in port, and average berth delay of ${p.delayAverageHours} hours. Recommend diversion and logistics mitigation strategies.`;
+            } else {
+              const identifier = ('name' in entity && entity.name) || ('title' in entity && (entity as any).title) || ('id' in entity && entity.id) || type;
+              entityPrompt = `Provide operational root-cause analysis, risk exposure assessment, and governed mitigation strategies for ${type} ${identifier}.`;
+            }
+            onAskCopilot(entityPrompt);
+          }}
           className="w-full shrink-0 flex items-center justify-center gap-2 py-1.5 px-3 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/30 transition-all font-semibold cursor-pointer shadow-sm"
         >
           <Sparkles size={13} />

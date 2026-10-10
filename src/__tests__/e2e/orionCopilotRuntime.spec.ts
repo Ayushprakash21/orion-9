@@ -18,34 +18,48 @@
 
 import { test, expect, Page } from '@playwright/test';
 
-const BASE_URL = process.env.BASE_URL || 'http://localhost:5173';
+const BASE_URL = process.env.BASE_URL || 'http://localhost:3000';
 
 /**
  * Helper: login as demo user
  */
 async function loginAsDemo(page: Page) {
-  await page.goto(BASE_URL, { waitUntil: 'networkidle', timeout: 30000 });
+  await page.addInitScript(() => {
+    try {
+      sessionStorage.setItem('orion_os_power_state', 'ON');
+      localStorage.setItem('orion9_database_environment', 'DEMO');
+      localStorage.setItem('orion_settings', JSON.stringify({ userExperienceMode: 'ADVANCED' }));
+      localStorage.setItem('orion_system_settings', JSON.stringify({ userExperienceMode: 'ADVANCED' }));
+      localStorage.setItem(
+        'orion_auth_session',
+        JSON.stringify({
+          user: {
+            id: 'local-admin',
+            username: 'admin',
+            fullName: 'Orion-9 Administrator',
+            displayName: 'Admin',
+            email: 'admin@orion.network',
+            role: 'platform_admin',
+            organizationId: 'ORION_PLATFORM',
+            organizationName: 'ORION_PLATFORM',
+            department: 'IT Administration',
+          },
+          organization: {
+            id: 'ORION_PLATFORM',
+            name: 'ORION_PLATFORM',
+            status: 'active',
+          },
+          permissions: ['all'],
+          environment: 'DEMO',
+          expiresAt: new Date(Date.now() + 86400000).toISOString(),
+        })
+      );
+    } catch (_) {}
+  });
+
+  await page.goto(BASE_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
   
-  // Check if already logged in (desktop visible)
-  const desktopVisible = await page.locator('.orion-desktop-shell, [data-desktop-surface]').isVisible().catch(() => false);
-  if (desktopVisible) return;
-
-  // Find login form
-  const loginForm = page.locator('form, [data-testid="login-form"]').first();
-  if (await loginForm.isVisible({ timeout: 5000 }).catch(() => false)) {
-    // Fill demo credentials
-    const emailInput = page.locator('input[type="email"], input[name="email"], input[placeholder*="email" i]').first();
-    const passwordInput = page.locator('input[type="password"]').first();
-    
-    if (await emailInput.isVisible({ timeout: 3000 }).catch(() => false)) {
-      await emailInput.fill('demo@orion9.com');
-      await passwordInput.fill('demo123');
-      await page.keyboard.press('Enter');
-      await page.waitForTimeout(2000);
-    }
-  }
-
-  // Wait for desktop to appear
+  // Wait for desktop or topbar to appear
   await page.waitForSelector('.orion-desktop-shell, [data-desktop-surface], .orion-global-topbar', { 
     timeout: 20000,
     state: 'visible' 
@@ -100,7 +114,7 @@ test('COPILOT-03: ORION AI window renders AICopilot UI', async ({ page }) => {
   await expect(aiWindow).toBeVisible({ timeout: 8000 });
   
   // Copilot header visible
-  await expect(aiWindow.locator('h1, [class*="font-semibold"]').filter({ hasText: /Orion Copilot|ORION AI/i })).toBeVisible({ timeout: 5000 });
+  await expect(aiWindow.locator('h1, [class*="font-semibold"]').filter({ hasText: /Orion Copilot|ORION AI/i }).first()).toBeVisible({ timeout: 5000 });
   
   // Input field present
   const inputField = aiWindow.locator('input[type="text"], textarea').first();
@@ -124,7 +138,7 @@ test('COPILOT-04: ORION AI shows initial greeting message', async ({ page }) => 
   await expect(aiWindow).toBeVisible({ timeout: 8000 });
   
   // Initial message from assistant
-  await expect(aiWindow.locator('text=/ORION AI|Orion Copilot|I am ORION/i')).toBeVisible({ timeout: 5000 });
+  await expect(aiWindow.locator('text=/ORION AI|Orion Copilot|I am ORION/i').first()).toBeVisible({ timeout: 5000 });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -157,8 +171,8 @@ test('COPILOT-06: Quick action chips are shown for initial state', async ({ page
   const aiWindow = page.locator('[data-window-id="orion-ai"]');
   await expect(aiWindow).toBeVisible({ timeout: 8000 });
   
-  // Quick action buttons visible (shown when messages.length < 3)
-  const quickActionBtn = aiWindow.locator('button').filter({ hasText: /Analyze Inventory|Explain Exceptions|Supplier Risk|Procurement/i }).first();
+  // Quick action buttons visible
+  const quickActionBtn = aiWindow.locator('button[aria-label*="Select prompt suggestion"]').first();
   await expect(quickActionBtn).toBeVisible({ timeout: 5000 });
 });
 

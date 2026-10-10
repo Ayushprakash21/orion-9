@@ -315,6 +315,24 @@ export const OrionMobileAICopilot: React.FC = () => {
     }
   };
 
+  // Listen for orion:open-copilot-context deep link events from inspectors and control tower
+  useEffect(() => {
+    const handleCopilotContext = (event: CustomEvent<{ query: string; autoSubmit?: boolean }>) => {
+      if (event.detail?.query) {
+        if (event.detail.autoSubmit) {
+          handleSend(event.detail.query);
+        } else {
+          setInputMessage(event.detail.query);
+        }
+      }
+    };
+
+    window.addEventListener('orion:open-copilot-context' as any, handleCopilotContext);
+    return () => {
+      window.removeEventListener('orion:open-copilot-context' as any, handleCopilotContext);
+    };
+  }, []);
+
   const isGeminiLive = providerStatus.configured && providerStatus.provider === 'gemini';
 
   return (

@@ -37,8 +37,11 @@ import { WorldLanguagePanel } from '../../components/i18n/WorldLanguagePanel';
 import { OrionLiveWallpaper } from './OrionLiveWallpaper';
 import { cn } from '../../lib/utils';
 import { weatherService, WeatherCondition, DEFAULT_WEATHER_LOCATIONS } from '../../services/weather/OpenMeteoWeatherService';
+import { databaseHealthService, DatabaseHealthReport } from '../../services/databaseHealthService';
+import { ProcurementEngine } from '../../services/ProcurementEngine';
+import { Server, Package } from 'lucide-react';
 
-export type LockScreenWidgetId = 'time-date' | 'weather' | 'notifications' | 'calendar';
+export type LockScreenWidgetId = 'time-date' | 'weather' | 'notifications' | 'calendar' | 'system-status' | 'operations-summary';
 
 export interface LockScreenWidgetConfig {
   id: LockScreenWidgetId;

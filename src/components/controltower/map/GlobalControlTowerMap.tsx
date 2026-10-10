@@ -6,6 +6,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useOptionalSupplyChain } from '../../../store/SupplyChainContext';
+import { useOptionalWindowManager } from '../../../os/WindowManagerContext';
 import { 
   MapLayersState, 
   DEFAULT_MAP_LAYERS, 
@@ -238,9 +239,29 @@ export const GlobalControlTowerMap: React.FC<GlobalControlTowerMapProps> = ({
     }
   };
 
-  // Ask Copilot Handler
+  const windowManager = useOptionalWindowManager();
+
+  // Ask Copilot Handler — Unified across Desktop Window Manager, Tablet and Mobile OS
   const handleAskCopilot = (query: string) => {
+    // 1. Open the AI Application across OS shells
+    if (windowManager?.openApplication) {
+      windowManager.openApplication('orion-ai');
+    }
+
     if (typeof window !== 'undefined') {
+      if (typeof (window as any).__orion_open_app === 'function') {
+        try {
+          (window as any).__orion_open_app('orion-ai');
+        } catch (_) {}
+      }
+
+      window.dispatchEvent(
+        new CustomEvent('orion:open-app', {
+          detail: { appId: 'orion-ai' },
+        })
+      );
+
+      // 2. Dispatch operational query context with autoSubmit
       window.dispatchEvent(
         new CustomEvent('orion:open-copilot-context', {
           detail: {
