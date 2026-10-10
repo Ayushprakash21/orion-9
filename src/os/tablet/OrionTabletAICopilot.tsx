@@ -283,7 +283,7 @@ export const OrionTabletAICopilot: React.FC = () => {
   const isGeminiLive = providerStatus.configured && providerStatus.provider === 'gemini';
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-130px)] max-w-5xl mx-auto select-none space-y-3 pb-2">
+    <div className="flex flex-col flex-1 min-h-0 w-full max-w-5xl mx-auto select-none space-y-3 pb-2">
       {/* 1. STATUS & GROUNDING HEADER */}
       <div className="bg-os-surface border border-os-border rounded-2xl p-4 shrink-0 flex items-center justify-between shadow-xs">
         <div className="flex items-center gap-3">

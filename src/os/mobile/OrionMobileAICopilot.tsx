@@ -367,7 +367,7 @@ export const OrionMobileAICopilot: React.FC = () => {
       </div>
 
       {/* 2. SCM TELEMETRY INDICATOR BAR */}
-      <div className="bg-os-surface-secondary/80 border border-os-border/70 rounded-xl p-1.5 mb-1.5 shrink-0 grid grid-cols-2 min-[480px]:grid-cols-4 gap-1 text-[10px] font-mono text-os-text-secondary w-full max-w-full">
+      <div className="bg-os-surface-secondary/80 border border-os-border/70 rounded-xl p-1.5 mb-1.5 shrink-0 grid grid-cols-2 min-[480px]:grid-cols-4 gap-1.5 text-[10px] font-mono text-os-text-secondary w-full max-w-full">
         <div className="flex items-center justify-between gap-1 px-2 py-1 rounded-lg bg-os-surface/60 border border-os-border/50 min-w-0">
           <div className="flex items-center gap-1 min-w-0">
             <Activity size={11} className="text-os-accent shrink-0" />
@@ -471,7 +471,7 @@ export const OrionMobileAICopilot: React.FC = () => {
       </div>
 
       {/* 4. PROMPT QUICK ACTIONS CHIPS & GALLERY BUTTON */}
-      <div className="flex flex-wrap items-center gap-1 py-1 shrink-0 w-full max-w-full">
+      <div className="flex flex-wrap items-center gap-1.5 py-1.5 shrink-0 w-full max-w-full">
         <button
           type="button"
           onClick={() => setIsGalleryOpen(true)}
@@ -516,14 +516,14 @@ export const OrionMobileAICopilot: React.FC = () => {
             onKeyDown={handleKeyDown}
             disabled={isProcessing}
             placeholder={isProcessing ? 'AI is processing query...' : 'Ask Orion AI...'}
-            className="w-full bg-os-surface border border-os-border focus:border-os-accent rounded-xl px-3 py-2 text-xs text-os-text-primary placeholder:text-os-text-muted focus:outline-none min-h-[40px] max-h-[90px] resize-none leading-relaxed min-w-0"
+            className="w-full bg-os-surface border border-os-border focus:border-os-accent rounded-xl px-3 py-2 text-xs text-os-text-primary placeholder:text-os-text-muted focus:outline-none min-h-[44px] max-h-[90px] resize-none leading-relaxed min-w-0"
           />
         </div>
         <button
           type="submit"
           role="button"
           disabled={!inputMessage.trim() || isProcessing}
-          className="p-2.5 rounded-xl bg-os-accent text-os-text-primary-inverse font-bold disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-transform min-h-[40px] min-w-[40px] h-[40px] w-[40px] flex items-center justify-center cursor-pointer shadow-xs shrink-0"
+          className="p-2.5 rounded-xl bg-os-accent text-os-text-primary-inverse font-bold disabled:opacity-30 disabled:cursor-not-allowed active:scale-95 transition-transform min-h-[44px] min-w-[44px] h-[44px] w-[44px] flex items-center justify-center cursor-pointer shadow-xs shrink-0"
           aria-label="Send Message to Orion AI"
           title="Send Message (Enter)"
         >

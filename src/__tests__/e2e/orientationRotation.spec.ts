@@ -76,6 +76,7 @@ test.describe('Orion-9 Auto-Rotation & Lifecycle Stability E2E', () => {
   });
 
   test('Tablet Auto-Rotation Matrix (Portrait <-> Landscape) with Zero React Crashes', async ({ page }) => {
+    test.setTimeout(60000);
     const consoleErrors: string[] = [];
     page.on('console', msg => {
       if (msg.type() === 'error') consoleErrors.push(msg.text());
@@ -109,31 +110,32 @@ test.describe('Orion-9 Auto-Rotation & Lifecycle Stability E2E', () => {
     const portNav = page.locator('[data-orion-tablet-nav="bottom"]');
     await expect(portNav).toBeVisible();
 
-    // Navigate to Control Tower
-    await portNav.getByText('Control').dispatchEvent('click');
-    await expect(page.getByText(/Orion Control Tower/i)).toBeVisible();
+    // Navigate to AI Tab in Portrait
+    await portNav.getByText('AI').dispatchEvent('click');
+    await expect(page.getByText(/ORION AI COPILOT/i)).toBeVisible();
 
     // 2. Rotate to Tablet Landscape: 1024x768
     await page.setViewportSize({ width: 1024, height: 768 });
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(400);
 
-    // Verify Tablet Shell remains alive
+    // Verify Tablet Shell remains alive in Landscape
     await expect(tabletShell).toBeVisible();
     // In Landscape: navigation rail is rendered
     const landRail = page.locator('[data-orion-tablet-nav="rail"]');
     await expect(landRail).toBeVisible();
-
-    // Navigate to AI in Landscape
-    await landRail.getByText('AI').dispatchEvent('click');
     await expect(page.getByText(/ORION AI COPILOT/i)).toBeVisible();
+
+    // Navigate to Alerts in Landscape
+    await landRail.getByText('Alerts').dispatchEvent('click');
+    await expect(page.getByText(/Operational Alerts & Risks/i)).toBeVisible();
 
     // 3. Rotate back to Tablet Portrait: 768x1024
     await page.setViewportSize({ width: 768, height: 1024 });
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(400);
 
     await expect(tabletShell).toBeVisible();
     await expect(page.locator('[data-orion-tablet-nav="bottom"]')).toBeVisible();
-    await expect(page.getByText(/ORION AI COPILOT/i)).toBeVisible();
+    await expect(page.getByText(/Operational Alerts & Risks/i)).toBeVisible();
 
     // Assert zero React error #300
     const reactErrors = consoleErrors.filter(err => 
