@@ -525,7 +525,8 @@ export const MapLibreEngine = forwardRef<MapEngineRef, MapLibreEngineProps>(({
   if (!isSupported) {
     return (
       <div 
-        data-testid="maplibre-fallback-canvas"
+        ref={containerRef}
+        data-testid="maplibre-engine-container" data-renderer="fallback"
         className="relative w-full h-full min-h-[460px] bg-[#080A0D] flex flex-col items-center justify-center p-6 border border-os-border/50 rounded-xl overflow-hidden"
       >
         <svg viewBox="-180 -90 360 180" className="w-full h-full max-h-[500px] text-os-border/30 opacity-70">
@@ -590,7 +591,7 @@ export const MapLibreEngine = forwardRef<MapEngineRef, MapLibreEngineProps>(({
   return (
     <div 
       ref={containerRef} 
-      data-testid="maplibre-engine-container"
+      data-testid="maplibre-engine-container" data-renderer="maplibre" data-map-loaded={mapLoaded}
       className="relative w-full h-full min-h-[460px] bg-[#080A0D] rounded-xl overflow-hidden [&_.maplibregl-canvas]:!absolute [&_.maplibregl-canvas]:!inset-0 [&_.maplibregl-map]:!w-full [&_.maplibregl-map]:!h-full" 
     />
   );

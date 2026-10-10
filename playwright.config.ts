@@ -16,7 +16,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
-    headless: true,
+    headless: false,
   },
   projects: [
     {
@@ -28,8 +28,7 @@ export default defineConfig({
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
-            '--use-gl=swiftshader',
-            '--disable-gpu',
+            '--enable-webgl',
           ],
         },
       },

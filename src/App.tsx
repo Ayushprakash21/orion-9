@@ -5,6 +5,7 @@ import { OrionThemeProvider } from './os/theme/OrionThemeProvider';
 import { OSGeometryProvider } from './os/dock/DockGeometry';
 import { OrionPowerOnScreen } from './os/components/OrionPowerOnScreen';
 import { SupplyChainProvider } from './store/SupplyChainContext';
+import { GlobalControlTowerMap } from './components/controltower/map/GlobalControlTowerMap';
 import { ToastProvider } from './store/ToastContext';
 import { ConnectivityProvider } from './store/ConnectivityContext';
 import { LanguageProvider } from './store/LanguageContext';
