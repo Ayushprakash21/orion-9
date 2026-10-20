@@ -720,7 +720,7 @@ export function OrionDock() {
             borderColor: 'var(--orion-dock-border, rgba(255, 255, 255, 0.18))',
             boxShadow: 'inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.28), inset 0 0 0 0.5px rgba(255, 255, 255, 0.12), var(--orion-dock-shadow, 0 24px 60px rgba(0, 0, 0, 0.55))',
             scrollbarWidth: 'none' 
-          }}
+          } as React.CSSProperties}
           onMouseLeave={() => { setHoveredApp(null); scheduleDockHide(); }}
         >
 

@@ -16,7 +16,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
-    headless: false,
+    headless: process.env.CI ? true : (process.env.HEADED === 'true' ? false : true),
   },
   projects: [
     {

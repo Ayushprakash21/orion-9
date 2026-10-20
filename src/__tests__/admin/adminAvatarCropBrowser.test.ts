@@ -28,6 +28,19 @@ describe('ORION-9 Avatar Crop UI — Real Browser-Level Layout, Mask & Interacti
   const testImgPath = path.resolve(__dirname, 'temp_test_avatar.png');
 
   beforeAll(async () => {
+    let hasBrowser = false;
+    try {
+      const execPath = await puppeteer.executablePath();
+      hasBrowser = Boolean(execPath && fs.existsSync(execPath) && fs.existsSync(path.join(distDir, 'index.html')));
+    } catch {
+      hasBrowser = false;
+    }
+
+    if (!hasBrowser) {
+      console.warn('[SKIP] Puppeteer browser binary or dist/client build artifacts unavailable. Skipping real browser avatar crop integration test.');
+      return;
+    }
+
     // 1. Start ephemeral HTTP server serving dist/client
     server = http.createServer((req, res) => {
       let reqPath = (req.url || '/').split('?')[0];
@@ -82,7 +95,11 @@ describe('ORION-9 Avatar Crop UI — Real Browser-Level Layout, Mask & Interacti
     }
   });
 
-  it('opens crop dialog, validates computed cropper layout, circular mask, zoom and mouse drag interactions', async () => {
+  it('opens crop dialog, validates computed cropper layout, circular mask, zoom and mouse drag interactions', async (ctx) => {
+    if (!browser) {
+      ctx.skip();
+      return;
+    }
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900 });
 
