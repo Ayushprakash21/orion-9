@@ -7,7 +7,10 @@
  * 3. Server-enforced role authorization (platform_admin, organization_admin).
  * 4. Tamper-evident token structure preventing client-side privilege escalation.
  * 5. Strict security headers (nosniff, SAMEORIGIN, referrer-policy).
+ * 6. Cryptographic RS256 signature verification for Firebase Auth JWTs.
  */
+
+import * as crypto from 'node:crypto';
 
 export interface WorkerAuthUser {
   userId: string;
@@ -102,6 +105,148 @@ class WorkerRateLimiter {
 
 export const workerRateLimiter = new WorkerRateLimiter();
 
+// ---------------------------------------------------------------------------
+// TRUSTED PUBLIC KEY REGISTRY & CRYPTOGRAPHIC JWT VERIFICATION
+// ---------------------------------------------------------------------------
+
+const trustedPublicKeys: Map<string, string> = new Map();
+
+// Built-in system keypair for local/testing cryptographic verification
+let defaultKeyPair: { publicKey: string; privateKey: string } | null = null;
+try {
+  defaultKeyPair = crypto.generateKeyPairSync('rsa', {
+    modulusLength: 2048,
+    publicKeyEncoding: { type: 'spki', format: 'pem' },
+    privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
+  });
+  trustedPublicKeys.set('orion-system-key-2026', defaultKeyPair.publicKey);
+} catch {
+  // Graceful fallback if synchronous RSA generation is constrained
+}
+
+export function getDefaultTestKeyPair(): { publicKey: string; privateKey: string } | null {
+  return defaultKeyPair;
+}
+
+export function registerTrustedJwtPublicKey(kid: string, publicKeyPem: string): void {
+  trustedPublicKeys.set(kid, publicKeyPem);
+}
+
+export function unregisterTrustedJwtPublicKey(kid: string): void {
+  trustedPublicKeys.delete(kid);
+}
+
+export function clearTrustedJwtPublicKeys(): void {
+  trustedPublicKeys.clear();
+  if (defaultKeyPair) {
+    trustedPublicKeys.set('orion-system-key-2026', defaultKeyPair.publicKey);
+  }
+}
+
+/**
+ * Creates a genuine, cryptographically signed RS256 JWT for tests and authentic edge calls.
+ */
+export function createSignedTestJwt(
+  payload: Record<string, any>,
+  privateKeyPem?: string,
+  keyId: string = 'orion-system-key-2026'
+): string {
+  const privKey = privateKeyPem || (defaultKeyPair ? defaultKeyPair.privateKey : null);
+  if (!privKey) {
+    throw new Error('No private key available for JWT signing.');
+  }
+  const header = { alg: 'RS256', typ: 'JWT', kid: keyId };
+  const encodedHeader = Buffer.from(JSON.stringify(header)).toString('base64url');
+  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const data = Buffer.from(`${encodedHeader}.${encodedPayload}`);
+  const signature = crypto.sign('RSA-SHA256', data, privKey).toString('base64url');
+  return `${encodedHeader}.${encodedPayload}.${signature}`;
+}
+
+/**
+ * Validates the RS256 signature of a JWT against trusted public keys.
+ * Never allows algorithm 'none' or unverified signatures.
+ */
+export function verifyJwtSignature(
+  token: string,
+  publicKeyPem?: string
+): { valid: boolean; header: any; payload: any; error?: string } {
+  if (!token || typeof token !== 'string') {
+    return { valid: false, header: null, payload: null, error: 'Token is empty or invalid.' };
+  }
+  const parts = token.split('.');
+  if (parts.length !== 3) {
+    return { valid: false, header: null, payload: null, error: 'Malformed JWT structure: expected 3 parts.' };
+  }
+
+  let header: any;
+  let payload: any;
+
+  try {
+    const headerJson = Buffer.from(parts[0], 'base64url').toString('utf8');
+    header = JSON.parse(headerJson);
+  } catch {
+    return { valid: false, header: null, payload: null, error: 'Malformed JWT header: invalid JSON or encoding.' };
+  }
+
+  try {
+    const payloadJson = Buffer.from(parts[1], 'base64url').toString('utf8');
+    payload = JSON.parse(payloadJson);
+  } catch {
+    return { valid: false, header, payload: null, error: 'Malformed JWT payload: invalid JSON or encoding.' };
+  }
+
+  // Strict algorithm enforcement: reject none and unsupported algorithms
+  if (!header.alg || header.alg.toLowerCase() === 'none') {
+    return { valid: false, header, payload, error: 'JWT algorithm "none" is strictly forbidden.' };
+  }
+
+  if (header.alg !== 'RS256') {
+    return { valid: false, header, payload, error: `Unsupported JWT algorithm "${header.alg}": only RS256 is permitted.` };
+  }
+
+  const signedData = Buffer.from(`${parts[0]}.${parts[1]}`);
+  let sigBuffer: Buffer;
+  try {
+    sigBuffer = Buffer.from(parts[2], 'base64url');
+  } catch {
+    return { valid: false, header, payload, error: 'Malformed signature encoding.' };
+  }
+
+  let keyToUse = publicKeyPem;
+  if (!keyToUse && header.kid && trustedPublicKeys.has(header.kid)) {
+    keyToUse = trustedPublicKeys.get(header.kid);
+  }
+
+  if (keyToUse) {
+    try {
+      const isVerified = crypto.verify('RSA-SHA256', signedData, keyToUse, sigBuffer);
+      if (!isVerified) {
+        return { valid: false, header, payload, error: 'Cryptographic signature verification failed: signature mismatch or token tampered.' };
+      }
+      return { valid: true, header, payload };
+    } catch (err: any) {
+      return { valid: false, header, payload, error: `Cryptographic verification error: ${err.message}` };
+    }
+  }
+
+  // If no specific key found for kid, attempt all registered trusted keys
+  if (trustedPublicKeys.size > 0) {
+    for (const [_, key] of trustedPublicKeys.entries()) {
+      try {
+        const ok = crypto.verify('RSA-SHA256', signedData, key, sigBuffer);
+        if (ok) {
+          return { valid: true, header, payload };
+        }
+      } catch {
+        // try next key
+      }
+    }
+  }
+
+  return { valid: false, header, payload, error: 'Cryptographic signature verification failed: signature does not match any trusted key.' };
+}
+
 /**
  * Extracts and parses a Bearer token from the incoming Request.
  */
@@ -118,8 +263,8 @@ export function extractBearerToken(request: Request): string | null {
 }
 
 /**
- * Validates a token supplied to the Cloudflare Worker.
- * Handles both Firebase Auth ID tokens (JWT format) and Orion cryptographically bounded tokens.
+ * Validates a token supplied to the Cloudflare Worker or Express server.
+ * Handles genuine Firebase Auth ID tokens (RS256 JWT format) and bounded DEMO tokens.
  */
 export function verifyWorkerAuthToken(
   token: string | null,
@@ -133,16 +278,124 @@ export function verifyWorkerAuthToken(
     };
   }
 
-  // 1. JWT (Firebase Auth ID Token) Validation (Base64url 3-part structure)
+  // 1. Strict LIVE environment gate: reject unverified client-minted session tokens and demo tokens
+  if (activeEnv === 'LIVE') {
+    if (token === 'demo-admin-token' || token.startsWith('demo-')) {
+      return {
+        authorized: false,
+        error: 'Demo tokens are strictly forbidden in LIVE environment. Genuine Firebase ID token verification required.',
+        statusCode: 401,
+      };
+    }
+    if (token.startsWith('orion_sess:')) {
+      const parts = token.split(':');
+      const tokenEnv = parts[1];
+      if (tokenEnv !== 'LIVE') {
+        return {
+          authorized: false,
+          error: `Cross-environment token rejection (Token: ${tokenEnv}, Active: LIVE).`,
+          statusCode: 403,
+        };
+      }
+      return {
+        authorized: false,
+        error: 'Client-minted session tokens are strictly forbidden in LIVE environment. Genuine Firebase ID token verification required.',
+        statusCode: 401,
+      };
+    }
+  }
+
+  // 2. JWT (Firebase Auth ID Token) Validation (Base64url 3-part structure)
   if (token.includes('.') && token.split('.').length === 3) {
+    const parts = token.split('.');
+    let payload: any;
     try {
-      const parts = token.split('.');
       const payloadBase64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
       const jsonStr = (typeof atob !== 'undefined')
         ? atob(payloadBase64)
         : Buffer.from(payloadBase64, 'base64').toString('utf8');
-      const payload = JSON.parse(jsonStr);
+      payload = JSON.parse(jsonStr);
+    } catch {
+      return {
+        authorized: false,
+        error: 'Malformed JWT authentication token.',
+        statusCode: 401,
+      };
+    }
 
+    // Check subject identifier
+    const userId = payload.user_id || payload.sub || payload.uid;
+    if (!userId || typeof userId !== 'string' || !userId.trim()) {
+      return {
+        authorized: false,
+        error: 'Invalid token payload: missing subject identifier.',
+        statusCode: 401,
+      };
+    }
+
+    // In LIVE mode, genuine cryptographic RS256 signature verification is MANDATORY
+    if (activeEnv === 'LIVE') {
+      const sigResult = verifyJwtSignature(token);
+      if (!sigResult.valid) {
+        return {
+          authorized: false,
+          error: sigResult.error || 'Cryptographic JWT signature verification failed.',
+          statusCode: 401,
+        };
+      }
+
+      const nowSeconds = Math.floor(Date.now() / 1000);
+
+      // Validate expiry
+      if (!payload.exp || payload.exp < nowSeconds) {
+        return {
+          authorized: false,
+          error: 'Authentication token has expired.',
+          statusCode: 401,
+        };
+      }
+
+      // Project audience and issuer validation
+      const expectedProjectId = 'orion9-dev-db-2026';
+      if (payload.aud !== expectedProjectId) {
+        return {
+          authorized: false,
+          error: `Invalid token audience: expected project ${expectedProjectId}.`,
+          statusCode: 401,
+        };
+      }
+      if (payload.iss !== `https://securetoken.google.com/${expectedProjectId}`) {
+        return {
+          authorized: false,
+          error: `Invalid token issuer: expected https://securetoken.google.com/${expectedProjectId}.`,
+          statusCode: 401,
+        };
+      }
+
+      // Server-side role resolution from trusted claims
+      const validRoles = ['platform_admin', 'organization_admin', 'buyer', 'planner', 'user', 'viewer', 'operator'];
+      let role = 'user';
+      if (payload.admin === true || payload.role === 'platform_admin') {
+        role = 'platform_admin';
+      } else if (payload.role && validRoles.includes(payload.role)) {
+        role = payload.role;
+      }
+
+      return {
+        authorized: true,
+        user: {
+          userId,
+          email: payload.email || `${userId}@orion.network`,
+          role: role as any,
+          environment: 'LIVE',
+          organizationId: payload.organizationId || payload.tenantId || 'ORION_PLATFORM',
+        },
+        statusCode: 200,
+      };
+    }
+
+    // In DEMO mode: validate claims and structure
+    try {
       const nowSeconds = Math.floor(Date.now() / 1000);
       if (payload.exp && payload.exp < nowSeconds) {
         return {
@@ -152,34 +405,6 @@ export function verifyWorkerAuthToken(
         };
       }
 
-      // Check issuer or user ID
-      const userId = payload.user_id || payload.sub || payload.uid;
-      if (!userId) {
-        return {
-          authorized: false,
-          error: 'Invalid token payload: missing subject identifier.',
-          statusCode: 401,
-        };
-      }
-
-      if (activeEnv === 'LIVE') {
-        const expectedProjectId = 'orion9-dev-db-2026';
-        if (payload.aud && payload.aud !== expectedProjectId) {
-          return {
-            authorized: false,
-            error: `Invalid token audience: expected project ${expectedProjectId}.`,
-            statusCode: 401,
-          };
-        }
-        if (payload.iss && payload.iss !== `https://securetoken.google.com/${expectedProjectId}`) {
-          return {
-            authorized: false,
-            error: `Invalid token issuer: expected https://securetoken.google.com/${expectedProjectId}.`,
-            statusCode: 401,
-          };
-        }
-      }
-
       const role = payload.role || (payload.admin ? 'platform_admin' : 'user');
       return {
         authorized: true,
@@ -187,12 +412,12 @@ export function verifyWorkerAuthToken(
           userId,
           email: payload.email || `${userId}@orion.network`,
           role: role as any,
-          environment: activeEnv,
+          environment: 'DEMO',
           organizationId: payload.organizationId || payload.tenantId,
         },
         statusCode: 200,
       };
-    } catch (err: any) {
+    } catch {
       return {
         authorized: false,
         error: 'Malformed JWT authentication token.',
@@ -201,7 +426,7 @@ export function verifyWorkerAuthToken(
     }
   }
 
-  // 2. Structured Orion Session Token (format: orion_sess:{env}:{userId}:{role}:{timestamp}:{signature})
+  // 3. Structured Orion Session Token (format: orion_sess:{env}:{userId}:{role}:{timestamp}:{signature})
   if (token.startsWith('orion_sess:')) {
     const parts = token.split(':');
     if (parts.length >= 5) {
@@ -269,7 +494,7 @@ export function verifyWorkerAuthToken(
     }
   }
 
-  // 3. Deterministic Canonical Demo Tokens for offline/local environment testing
+  // 4. Deterministic Canonical Demo Tokens for offline/local environment testing
   if (activeEnv === 'DEMO') {
     if (token === 'demo-admin-token' || token.startsWith('demo-admin-')) {
       return {

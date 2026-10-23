@@ -2,6 +2,7 @@
  * ORION-9 PART 4 TRACK 8: INTEGRATION & REAL-WORLD CONNECTIVITY TEST SUITE
  */
 
+import * as crypto from 'node:crypto';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { connectorRegistry } from '../../integration/ConnectorRegistry';
 import { connectorOnboardingService } from '../../integration/ConnectorOnboardingService';
@@ -57,31 +58,94 @@ describe('ORION-9 Part 4 Track 8: Integration & Real-World Connectivity Gate', (
   });
 
   describe('2. Integration Gateway HMAC Signature & Webhook Verification', () => {
+    const secret = 'webhook-secret-real-key-2026';
+    const rawPayload = JSON.stringify({ event: 'shipment.updated', trackingNumber: 'TRK-981023' });
+    const validSignature = crypto.createHmac('sha256', secret).update(rawPayload).digest('hex');
+
+    beforeEach(() => {
+      integrationGateway.reset();
+    });
+
     it('verifies valid HMAC webhook signature and fresh timestamp', () => {
       const nowIso = new Date().toISOString();
       const res = integrationGateway.validateWebhookSignature({
-        rawPayload: '{"event":"shipment.updated"}',
-        signatureHeader: 'sha256=abcdef1234567890',
+        rawPayload,
+        signatureHeader: `sha256=${validSignature}`,
         timestampHeader: nowIso,
-        secret: 'webhook-secret',
+        secret,
         maxAgeSeconds: 300,
+        nonce: 'nonce-conn-01',
       });
 
       expect(res.valid).toBe(true);
+      expect(res.reason).toContain('verified successfully');
     });
 
-    it('rejects webhook payload with invalid signature or expired timestamp', () => {
+    it('rejects tampered or modified payload', () => {
+      const nowIso = new Date().toISOString();
+      const tamperedPayload = JSON.stringify({ event: 'shipment.updated', trackingNumber: 'TRK-ATTACKER' });
+      const res = integrationGateway.validateWebhookSignature({
+        rawPayload: tamperedPayload,
+        signatureHeader: `sha256=${validSignature}`,
+        timestampHeader: nowIso,
+        secret,
+        maxAgeSeconds: 300,
+      });
+
+      expect(res.valid).toBe(false);
+      expect(res.reason).toContain('signature mismatch');
+    });
+
+    it('rejects stale timestamp outside freshness window', () => {
       const oldIso = new Date(Date.now() - 600000).toISOString(); // 10 minutes ago
       const res = integrationGateway.validateWebhookSignature({
-        rawPayload: '{"event":"shipment.updated"}',
-        signatureHeader: 'sha256=abcdef1234567890',
+        rawPayload,
+        signatureHeader: `sha256=${validSignature}`,
         timestampHeader: oldIso,
-        secret: 'webhook-secret',
+        secret,
         maxAgeSeconds: 300,
       });
 
       expect(res.valid).toBe(false);
       expect(res.reason).toContain('freshness window');
+    });
+
+    it('rejects future timestamp clock skew', () => {
+      const futureIso = new Date(Date.now() + 120000).toISOString(); // 2 minutes in future
+      const res = integrationGateway.validateWebhookSignature({
+        rawPayload,
+        signatureHeader: `sha256=${validSignature}`,
+        timestampHeader: futureIso,
+        secret,
+        maxAgeSeconds: 300,
+      });
+
+      expect(res.valid).toBe(false);
+      expect(res.reason).toContain('future');
+    });
+
+    it('rejects replayed webhook message with same nonce or signature', () => {
+      const nowIso = new Date().toISOString();
+      const first = integrationGateway.validateWebhookSignature({
+        rawPayload,
+        signatureHeader: `sha256=${validSignature}`,
+        timestampHeader: nowIso,
+        secret,
+        maxAgeSeconds: 300,
+        nonce: 'replay-test-nonce-1',
+      });
+      expect(first.valid).toBe(true);
+
+      const replay = integrationGateway.validateWebhookSignature({
+        rawPayload,
+        signatureHeader: `sha256=${validSignature}`,
+        timestampHeader: nowIso,
+        secret,
+        maxAgeSeconds: 300,
+        nonce: 'replay-test-nonce-1',
+      });
+      expect(replay.valid).toBe(false);
+      expect(replay.reason).toContain('Replay attack detected');
     });
   });
 

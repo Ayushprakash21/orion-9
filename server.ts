@@ -2,6 +2,7 @@ import express from "express";
 import http from "http";
 import path from "path";
 import fs from "fs";
+import { defaultBranding } from "./src/repositories/BrandingRepository";
 import { GoogleGenAI } from "@google/genai";
 import * as firebaseAdmin from "firebase-admin";
 import dotenv from "dotenv";
@@ -81,7 +82,8 @@ const requireAdmin = async (req: express.Request, res: express.Response) => {
         uid = decoded.uid;
         email = decoded.email || "";
       } catch (e) {
-        if (token === "admin-dev-token" || token.startsWith("dev-")) {
+        const isLive = process.env.ORION_RUNTIME_ENVIRONMENT === "LIVE" || process.env.NODE_ENV === "production";
+        if (!isLive && (token === "admin-dev-token" || token.startsWith("dev-"))) {
           uid = "admin-v2";
           email = "admin@orion.local";
         } else {
@@ -90,7 +92,8 @@ const requireAdmin = async (req: express.Request, res: express.Response) => {
         }
       }
     } else {
-      if (token === "admin-dev-token" || token.startsWith("dev-")) {
+      const isLive = process.env.ORION_RUNTIME_ENVIRONMENT === "LIVE" || process.env.NODE_ENV === "production";
+      if (!isLive && (token === "admin-dev-token" || token.startsWith("dev-"))) {
         uid = "admin-v2";
         email = "admin@orion.local";
       } else {
@@ -1000,8 +1003,8 @@ Analyze the supplied document and return a strict JSON object with:
       const data = await getDurableBranding(getFirebaseKey(), getFirebaseProject());
       res.json({ success: true, data });
     } catch (e: any) {
-      console.warn("Error reading branding on server:", e);
-      res.status(500).json({ success: false, error: e?.message || "Failed to load branding settings." });
+      console.warn("Notice: Using default branding fallback on server:", e?.message);
+      res.json({ success: true, data: defaultBranding });
     }
   };
 
@@ -1011,16 +1014,19 @@ Analyze the supplied document and return a strict JSON object with:
       return { authorized: false, error: "Authentication required. Missing Bearer token.", statusCode: 401 };
     }
     const token = authHeader.substring(7).trim();
-    const auth = verifyWorkerAuthToken(token, "LIVE");
+    const isLive = process.env.ORION_RUNTIME_ENVIRONMENT === "LIVE" || process.env.NODE_ENV === "production";
+    const auth = verifyWorkerAuthToken(token, isLive ? "LIVE" : "DEMO");
     if (!auth.authorized || !auth.user) {
-      // Also check DEMO environment token verification
-      const demoAuth = verifyWorkerAuthToken(token, "DEMO");
-      if (demoAuth.authorized && demoAuth.user) {
-        const isAdmin = demoAuth.user.role === "platform_admin" || demoAuth.user.role === "organization_admin";
-        if (!isAdmin) {
-          return { authorized: false, error: "Forbidden: Administrative privileges required.", statusCode: 403 };
+      // In DEMO environment ONLY, allow demo admin tokens; strictly forbidden in LIVE
+      if (!isLive) {
+        const demoAuth = verifyWorkerAuthToken(token, "DEMO");
+        if (demoAuth.authorized && demoAuth.user) {
+          const isAdmin = demoAuth.user.role === "platform_admin" || demoAuth.user.role === "organization_admin";
+          if (!isAdmin) {
+            return { authorized: false, error: "Forbidden: Administrative privileges required.", statusCode: 403 };
+          }
+          return { authorized: true };
         }
-        return { authorized: true };
       }
       return { authorized: false, error: auth.error || "Authentication required.", statusCode: auth.statusCode || 401 };
     }

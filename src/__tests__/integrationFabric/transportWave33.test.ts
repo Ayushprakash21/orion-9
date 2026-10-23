@@ -2,6 +2,7 @@
  * ORION-9 WAVE 3.3 — PRODUCTION INTEGRATION TRANSPORT & TRADING PARTNER FABRIC TESTS
  */
 
+import * as crypto from 'node:crypto';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { TransportRegistry } from '../../integration/transport/TransportRegistry';
 import { HTTPSTransport } from '../../integration/transport/HTTPSTransport';
@@ -115,10 +116,11 @@ describe('Orion-9 Wave 3.3 — Transport & Trading Partner Fabric', () => {
   // 3. Webhook Ingress
   describe('WebhookIngress Security Validation', () => {
     it('validates HMAC SHA-256 signature and rejects timestamp replay attacks', async () => {
+      const secretKey = 'my-webhook-secret-key';
       const secretRef = 'secret://tenant/org-tenant-a/webhook-secret';
       credentialVaultService.storeCredentials(secretRef, tenantA, {
         authType: 'API_KEY',
-        apiKey: 'my-webhook-secret-key',
+        apiKey: secretKey,
       });
 
       const webhook = new WebhookIngress({
@@ -130,23 +132,41 @@ describe('Orion-9 Wave 3.3 — Transport & Trading Partner Fabric', () => {
       });
 
       const rawBody = JSON.stringify({ event: 'ASN_CREATED', asnId: 'ASN-1029' });
+      const validSig = crypto.createHmac('sha256', secretKey).update(rawBody).digest('hex');
 
-      // Valid webhook test
+      // 1. Valid webhook test with authentic HMAC signature
       const validRes = await webhook.validateWebhookRequest(
         {
           'x-orion-timestamp': new Date().toISOString(),
           'x-orion-nonce': 'nonce-12345',
+          'x-orion-signature': `sha256=${validSig}`,
         },
         rawBody,
         tenantA
       );
       expect(validRes.valid).toBe(true);
+      expect(validRes.signatureVerified).toBe(true);
 
-      // Replay attack test (same nonce)
+      // 2. Modified payload (tampered body attack) test
+      const tamperedBody = JSON.stringify({ event: 'ASN_CREATED', asnId: 'ASN-1029-ATTACKER' });
+      const tamperedRes = await webhook.validateWebhookRequest(
+        {
+          'x-orion-timestamp': new Date().toISOString(),
+          'x-orion-nonce': 'nonce-99999',
+          'x-orion-signature': `sha256=${validSig}`,
+        },
+        tamperedBody,
+        tenantA
+      );
+      expect(tamperedRes.valid).toBe(false);
+      expect(tamperedRes.error).toContain('Invalid HMAC SHA-256 signature');
+
+      // 3. Replay attack test (same nonce)
       const replayRes = await webhook.validateWebhookRequest(
         {
           'x-orion-timestamp': new Date().toISOString(),
           'x-orion-nonce': 'nonce-12345',
+          'x-orion-signature': `sha256=${validSig}`,
         },
         rawBody,
         tenantA
@@ -154,9 +174,24 @@ describe('Orion-9 Wave 3.3 — Transport & Trading Partner Fabric', () => {
       expect(replayRes.valid).toBe(false);
       expect(replayRes.error).toContain('Replay attack detected');
 
-      // Tenant mismatch test
+      // 4. Missing signature when secret is configured test
+      const missingSigRes = await webhook.validateWebhookRequest(
+        {
+          'x-orion-timestamp': new Date().toISOString(),
+          'x-orion-nonce': 'nonce-fresh-1',
+        },
+        rawBody,
+        tenantA
+      );
+      expect(missingSigRes.valid).toBe(false);
+      expect(missingSigRes.error).toContain('Missing required HMAC signature');
+
+      // 5. Tenant mismatch test
       const tenantMismatchRes = await webhook.validateWebhookRequest(
-        { 'x-orion-timestamp': new Date().toISOString() },
+        {
+          'x-orion-timestamp': new Date().toISOString(),
+          'x-orion-signature': `sha256=${validSig}`,
+        },
         rawBody,
         tenantB
       );

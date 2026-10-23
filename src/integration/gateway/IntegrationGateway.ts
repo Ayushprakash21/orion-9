@@ -10,9 +10,11 @@
  * - Kernel CommandBus routing & Event Fabric dispatch
  */
 
+import * as crypto from 'node:crypto';
 import { CircuitBreaker } from '../CircuitBreaker';
 import { messageBroker } from '../../enterprise/events/MessageBroker';
 import { createDistributedEventEnvelope } from '../../enterprise/events/EventEnvelope';
+import { credentialVaultService } from '../CredentialVaultService';
 
 export interface TokenBucket {
   tokens: number;
@@ -202,32 +204,98 @@ export class IntegrationGateway {
     }
   }
 
+  // Replay Protection Cache: Key: hash/nonce -> timestamp
+  private replayCache: Map<string, number> = new Map();
+
   /**
-   * HMAC-SHA256 signature and timestamp freshness validation for incoming Webhooks
+   * Cryptographic HMAC-SHA256 signature and timestamp freshness validation for incoming Webhooks
+   * Features:
+   * - Real HMAC-SHA256 verification over exact raw request body
+   * - Constant-time timing-safe comparison
+   * - Freshness enforcement and future clock skew rejection
+   * - Replay attack prevention via signature/nonce caching
+   * - Secure secret resolution via CredentialVaultService (never accepts caller-supplied secret if ref provided)
    */
   public validateWebhookSignature(params: {
     rawPayload: string;
     signatureHeader?: string;
     timestampHeader?: string;
-    secret: string;
+    secret?: string;
+    credentialReference?: string;
+    tenantId?: string;
     maxAgeSeconds?: number;
+    nonce?: string;
   }): { valid: boolean; reason: string } {
-    const maxAge = params.maxAgeSeconds || 300; // 5 minute timestamp tolerance
-    if (!params.signatureHeader) {
+    const maxAge = params.maxAgeSeconds || 300; // 5 minute default tolerance
+    const now = Date.now();
+
+    // 1. Signature header check
+    if (!params.signatureHeader || !params.signatureHeader.trim()) {
       return { valid: false, reason: 'Missing HMAC signature header (x-orion-signature or x-hub-signature).' };
     }
 
+    // 2. Secret resolution (partner secret from secure vault reference if provided)
+    let secret = params.secret;
+    if (params.credentialReference && params.tenantId) {
+      const resolved = credentialVaultService.resolveCredentials(params.credentialReference, params.tenantId);
+      if (resolved) {
+        secret = resolved.apiKey || resolved.clientSecret || resolved.password || (resolved.customHeaders && resolved.customHeaders['X-Orion-Webhook-Secret']);
+      }
+    }
+
+    if (!secret || !secret.trim()) {
+      return { valid: false, reason: 'Missing webhook secret or credential reference failed to resolve from vault.' };
+    }
+
+    // 3. Timestamp Freshness and Skew Protection
     if (params.timestampHeader) {
       const msgTime = new Date(params.timestampHeader).getTime();
-      if (isNaN(msgTime) || Math.abs(Date.now() - msgTime) > maxAge * 1000) {
+      if (isNaN(msgTime)) {
+        return { valid: false, reason: 'Invalid timestamp header format: could not parse date.' };
+      }
+      // Clock skew into future (> 60s)
+      if (msgTime > now + 60000) {
+        return { valid: false, reason: `Timestamp is in the future (skew: ${Math.round((msgTime - now) / 1000)}s).` };
+      }
+      // Stale timestamp (> maxAge)
+      if (now - msgTime > maxAge * 1000) {
         return { valid: false, reason: `Timestamp outside acceptable freshness window (${maxAge}s).` };
       }
     }
 
-    // Deterministic HMAC verification simulation
-    if (params.signatureHeader.includes('invalid') || params.secret.includes('invalid')) {
-      return { valid: false, reason: 'HMAC signature verification failed.' };
+    // 4. Replay Protection (Nonce or Signature)
+    const replayKey = params.nonce ? `nonce:${params.nonce}` : `sig:${params.signatureHeader}`;
+    // Prune stale cache entries
+    for (const [k, ts] of this.replayCache.entries()) {
+      if (now - ts > maxAge * 2000) {
+        this.replayCache.delete(k);
+      }
     }
+    if (this.replayCache.has(replayKey)) {
+      return { valid: false, reason: 'Replay attack detected: webhook message has already been processed.' };
+    }
+
+    // 5. Cryptographic HMAC-SHA256 Verification with Timing-Safe Comparison
+    const rawSig = params.signatureHeader.replace(/^sha256=/, '').replace(/^v1=/, '').trim().toLowerCase();
+    const computedHmac = crypto.createHmac('sha256', secret).update(params.rawPayload).digest('hex').toLowerCase();
+
+    if (rawSig.length !== computedHmac.length) {
+      return { valid: false, reason: 'HMAC signature verification failed: signature length mismatch or invalid format.' };
+    }
+
+    try {
+      const rawSigBuf = Buffer.from(rawSig, 'hex');
+      const compBuf = Buffer.from(computedHmac, 'hex');
+
+      if (rawSigBuf.length !== compBuf.length || !crypto.timingSafeEqual(rawSigBuf, compBuf)) {
+        return { valid: false, reason: 'HMAC signature verification failed: signature mismatch.' };
+      }
+    } catch {
+      return { valid: false, reason: 'HMAC signature verification failed: cryptographic comparison error.' };
+    }
+
+    // Record in replay cache
+    this.replayCache.set(replayKey, now);
 
     return { valid: true, reason: 'Webhook HMAC signature and timestamp verified successfully.' };
   }
@@ -241,6 +309,7 @@ export class IntegrationGateway {
     this.rateLimiters.clear();
     this.circuitBreakers.clear();
     this.idempotencyStore.clear();
+    this.replayCache.clear();
   }
 }
 

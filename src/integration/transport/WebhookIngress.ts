@@ -2,6 +2,7 @@
  * ORION-9 WAVE 3.3 — WEBHOOK INGRESS TRANSPORT & SECURITY VALIDATOR
  */
 
+import * as crypto from 'node:crypto';
 import { BaseTransport } from './BaseTransport';
 import {
   TransportConnectionResult,
@@ -141,11 +142,36 @@ export class WebhookIngress extends BaseTransport {
 
     // 4. HMAC Signature Verification
     const signature = lowerHeaders['x-orion-signature'] || lowerHeaders['x-hub-signature-256'] || lowerHeaders['signature'];
-    const secret = await this.resolveCredential();
+    const creds = await this.resolveCredential();
+    let secret = '';
+    if (typeof creds === 'string') {
+      secret = creds;
+    } else if (creds && typeof creds === 'object') {
+      secret = creds.apiKey || creds.clientSecret || creds.password || (creds.customHeaders && creds.customHeaders['X-Orion-Webhook-Secret']) || '';
+    }
 
-    if (secret && signature) {
-      const computedSignature = this.computeHMAC(rawBody, secret);
-      const isMatch = signature.replace(/^sha256=/, '') === computedSignature || signature === computedSignature;
+    if (secret) {
+      if (!signature) {
+        return {
+          valid: false,
+          signatureVerified: false,
+          error: 'Missing required HMAC signature header (x-orion-signature or x-hub-signature-256)',
+          timestamp,
+          nonce,
+        };
+      }
+
+      const computedSignature = this.computeHMAC(rawBody, secret).toLowerCase();
+      const cleanSig = signature.replace(/^sha256=/, '').replace(/^v1=/, '').trim().toLowerCase();
+
+      let isMatch = false;
+      if (cleanSig.length === computedSignature.length) {
+        try {
+          isMatch = crypto.timingSafeEqual(Buffer.from(cleanSig, 'hex'), Buffer.from(computedSignature, 'hex'));
+        } catch {
+          isMatch = false;
+        }
+      }
 
       if (!isMatch) {
         this.updateTelemetryOnReceive(false, 0, Date.now() - startTime);
@@ -177,14 +203,6 @@ export class WebhookIngress extends BaseTransport {
   }
 
   private computeHMAC(body: string, secret: string): string {
-    // In browser/node execution context, lightweight deterministic hashing
-    let hash = 0;
-    const str = secret + ':' + body;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash |= 0;
-    }
-    return `sha256_${Math.abs(hash).toString(16)}`;
+    return crypto.createHmac('sha256', secret).update(body).digest('hex');
   }
 }

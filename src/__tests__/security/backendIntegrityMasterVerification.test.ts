@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { resolveCurrentEnvironment, getFirebaseApp, resetFirebaseInstances, LIVE_FIREBASE_CONFIG, DEMO_FIREBASE_CONFIG } from '../../lib/firebaseClient';
-import { verifyWorkerAuthToken } from '../../server/workerSecurity';
+import { verifyWorkerAuthToken, createSignedTestJwt } from '../../server/workerSecurity';
 import { KernelEventBus } from '../../kernel/EventBus';
 import { outcomeRecorder } from '../../ai/OutcomeRecorder';
 import { DriftDetectionEngine } from '../../outcomes/DriftDetectionEngine';
@@ -68,17 +68,14 @@ describe('ORION-9 Master Backend Integrity Verification Suite', () => {
     });
 
     it('validates JWT token audience against authoritative project ID in LIVE mode', () => {
-      // Craft a mock JWT with wrong audience
-      const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
-      const payloadBadAud = Buffer.from(JSON.stringify({
+      // Craft a genuinely signed JWT with wrong audience
+      const badJwt = createSignedTestJwt({
         sub: 'usr-123',
         aud: 'malicious-project-id',
         iss: 'https://securetoken.google.com/malicious-project-id',
         exp: Math.floor(Date.now() / 1000) + 3600,
         role: 'platform_admin'
-      })).toString('base64url');
-      const fakeSig = 'fake-sig';
-      const badJwt = `${header}.${payloadBadAud}.${fakeSig}`;
+      });
 
       const result = verifyWorkerAuthToken(badJwt, 'LIVE');
       expect(result.authorized).toBe(false);
@@ -87,16 +84,14 @@ describe('ORION-9 Master Backend Integrity Verification Suite', () => {
     });
 
     it('validates JWT token issuer against authoritative Google Identity Toolkit in LIVE mode', () => {
-      const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
-      const payloadBadIss = Buffer.from(JSON.stringify({
+      // Craft a genuinely signed JWT with wrong issuer
+      const badJwt = createSignedTestJwt({
         sub: 'usr-123',
         aud: 'orion9-dev-db-2026',
         iss: 'https://bad-issuer.example.com',
         exp: Math.floor(Date.now() / 1000) + 3600,
         role: 'platform_admin'
-      })).toString('base64url');
-      const fakeSig = 'fake-sig';
-      const badJwt = `${header}.${payloadBadIss}.${fakeSig}`;
+      });
 
       const result = verifyWorkerAuthToken(badJwt, 'LIVE');
       expect(result.authorized).toBe(false);
@@ -104,7 +99,7 @@ describe('ORION-9 Master Backend Integrity Verification Suite', () => {
       expect(result.error).toContain('Invalid token issuer: expected https://securetoken.google.com/orion9-dev-db-2026');
     });
 
-    it('accepts valid JWT structure with authentic claims in LIVE mode', () => {
+    it('rejects forged JWT with fake signature in LIVE mode', () => {
       const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
       const validPayload = Buffer.from(JSON.stringify({
         sub: 'usr-admin-1',
@@ -115,8 +110,42 @@ describe('ORION-9 Master Backend Integrity Verification Suite', () => {
         email: 'admin@orion.network',
         tenantId: 'ORION_PLATFORM'
       })).toString('base64url');
-      const fakeSig = 'valid-sig';
-      const validJwt = `${header}.${validPayload}.${fakeSig}`;
+      const fakeSig = 'fake-forged-signature';
+      const forgedJwt = `${header}.${validPayload}.${fakeSig}`;
+
+      const result = verifyWorkerAuthToken(forgedJwt, 'LIVE');
+      expect(result.authorized).toBe(false);
+      expect(result.statusCode).toBe(401);
+      expect(result.error).toContain('Cryptographic');
+    });
+
+    it('rejects JWT algorithm none in LIVE mode', () => {
+      const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url');
+      const validPayload = Buffer.from(JSON.stringify({
+        sub: 'usr-admin-1',
+        aud: 'orion9-dev-db-2026',
+        iss: 'https://securetoken.google.com/orion9-dev-db-2026',
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        role: 'platform_admin',
+      })).toString('base64url');
+      const noneJwt = `${header}.${validPayload}.`;
+
+      const result = verifyWorkerAuthToken(noneJwt, 'LIVE');
+      expect(result.authorized).toBe(false);
+      expect(result.statusCode).toBe(401);
+      expect(result.error).toContain('none');
+    });
+
+    it('accepts valid JWT structure with authentic cryptographic signature in LIVE mode', () => {
+      const validJwt = createSignedTestJwt({
+        sub: 'usr-admin-1',
+        aud: 'orion9-dev-db-2026',
+        iss: 'https://securetoken.google.com/orion9-dev-db-2026',
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        role: 'platform_admin',
+        email: 'admin@orion.network',
+        tenantId: 'ORION_PLATFORM'
+      });
 
       const result = verifyWorkerAuthToken(validJwt, 'LIVE');
       expect(result.authorized).toBe(true);
@@ -127,16 +156,13 @@ describe('ORION-9 Master Backend Integrity Verification Suite', () => {
     });
 
     it('rejects expired tokens in both LIVE and DEMO modes', () => {
-      const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url');
-      const expiredPayload = Buffer.from(JSON.stringify({
+      const expiredJwt = createSignedTestJwt({
         sub: 'usr-123',
         aud: 'orion9-dev-db-2026',
         iss: 'https://securetoken.google.com/orion9-dev-db-2026',
         exp: Math.floor(Date.now() / 1000) - 3600,
         role: 'platform_admin'
-      })).toString('base64url');
-      const fakeSig = 'sig';
-      const expiredJwt = `${header}.${expiredPayload}.${fakeSig}`;
+      });
 
       const result = verifyWorkerAuthToken(expiredJwt, 'LIVE');
       expect(result.authorized).toBe(false);

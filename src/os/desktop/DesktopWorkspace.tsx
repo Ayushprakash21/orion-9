@@ -1305,11 +1305,11 @@ export function DesktopWorkspace() {
                   : "hover:bg-white/[0.08] hover:border-white/[0.12] hover:backdrop-blur-sm hover:scale-[1.03] active:scale-[0.97] border border-transparent"
               )}
             >
-              <div className="group-hover:scale-105 transition-transform pointer-events-none shrink-0">
+              <div className="group-hover:scale-105 transition-transform shrink-0">
                 {renderShortcutIcon(shortcut, isSelected)}
               </div>
               <div
-                className="mt-1 w-full max-w-[140px] px-1.5 py-0.5 text-center text-[12px] font-medium leading-[1.3] whitespace-normal break-words line-clamp-3 overflow-visible transition-colors pointer-events-none rounded select-none"
+                className="mt-1 w-full max-w-[140px] px-1.5 py-0.5 text-center text-[12px] font-medium leading-[1.3] whitespace-normal break-words line-clamp-3 overflow-visible transition-colors rounded select-none"
                 style={{
                   color: 'var(--orion-desktop-icon-label, #F3EBDD)',
                   textShadow: 'var(--orion-desktop-icon-shadow, 0 1px 3px rgba(0, 0, 0, 0.75))'
