@@ -27,7 +27,7 @@ export const LIVE_FIREBASE_CONFIG = {
 };
 
 export const STAGING_FIREBASE_CONFIG = {
-  apiKey: getEnvVar('VITE_STAGING_FIREBASE_API_KEY', getEnvVar('VITE_FIREBASE_API_KEY', '')),
+  apiKey: getEnvVar('VITE_STAGING_FIREBASE_API_KEY', ''),
   authDomain: getEnvVar('VITE_STAGING_FIREBASE_AUTH_DOMAIN', 'orion-9-staging.firebaseapp.com'),
   projectId: getEnvVar('VITE_STAGING_FIREBASE_PROJECT_ID', 'orion-9-staging'),
   storageBucket: getEnvVar('VITE_STAGING_FIREBASE_STORAGE_BUCKET', 'orion-9-staging.firebasestorage.app'),

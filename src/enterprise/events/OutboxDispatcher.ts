@@ -17,6 +17,7 @@ export interface DispatchOptions {
   queue?: CloudflareQueueBinding;
   dlq?: CloudflareQueueBinding;
   isLive?: boolean;
+  environment?: 'LIVE' | 'DEMO' | 'STAGING';
   limit?: number;
   workerId?: string;
   leaseDurationMs?: number;
@@ -104,7 +105,8 @@ export class OutboxDispatcher {
 
         // 3. Network publication performed OUTSIDE any database transaction
         const pubResult = await queueProducer.publish(options.queue, claimed.envelope, {
-          isLive: options.isLive
+          isLive: options.isLive,
+          environment: options.environment
         });
 
         if (!pubResult.success) {
@@ -137,7 +139,8 @@ export class OutboxDispatcher {
             if (options.dlq) {
               try {
                 await queueProducer.publish(options.dlq, claimed.envelope, {
-                  isLive: options.isLive
+                  isLive: options.isLive,
+          environment: options.environment
                 });
               } catch (dlqPubErr) {
                 console.error(`[OUTBOX-DISPATCHER] Failed to publish event ${claimed.id} to Cloudflare SCM_EVENTS_DLQ:`, dlqPubErr);

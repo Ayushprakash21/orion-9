@@ -52,7 +52,8 @@ describe('ORION-9 Scheduled Event Handler & Endpoint Security', () => {
       expect(dispatchSpy).toHaveBeenCalledWith({
         queue: mockEnv.SCM_EVENTS,
         dlq: mockEnv.SCM_EVENTS_DLQ,
-        isLive: false
+        isLive: false,
+        environment: 'DEMO'
       });
     });
 

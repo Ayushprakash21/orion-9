@@ -871,6 +871,10 @@ Analyze the supplied document and return a strict JSON object with:
    * Generates EXACTLY 30 enterprise synthetic packages into DEMO Firestore.
    */
   async scheduled(controller: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    const rawEnv = (env.ORION_RUNTIME_ENVIRONMENT || "DEMO").toUpperCase();
+    const activeEnv = (rawEnv === "LIVE" ? "LIVE" : rawEnv === "STAGING" ? "STAGING" : "DEMO") as 'DEMO' | 'LIVE' | 'STAGING';
+    dbManager.setEnvironment(activeEnv);
+
     const scheduledTime = controller.scheduledTime ? new Date(controller.scheduledTime) : new Date();
     const currentHourUtc = new Date(Date.UTC(scheduledTime.getUTCFullYear(), scheduledTime.getUTCMonth(), scheduledTime.getUTCDate(), scheduledTime.getUTCHours(), 0, 0, 0));
     const scheduledHourIso = currentHourUtc.toISOString();
@@ -880,12 +884,12 @@ Analyze the supplied document and return a strict JSON object with:
     // 1. Run outbox dispatcher cycle
     const dispatchTask = async () => {
       try {
-        const serverEnv = (env.ORION_RUNTIME_ENVIRONMENT || dbManager.getEnvironment() || "DEMO").toUpperCase();
-        const isLive = serverEnv === "LIVE" || serverEnv === "STAGING";
+        const isLive = activeEnv === "LIVE" || activeEnv === "STAGING";
         const summary = await outboxDispatcher.dispatch({
           queue: env.SCM_EVENTS,
           dlq: env.SCM_EVENTS_DLQ,
-          isLive
+          isLive,
+          environment: activeEnv
         });
         console.log(`[ORION-SCHEDULER] Outbox dispatch completed: scanned=${summary.scanned} claimed=${summary.claimed} published=${summary.published} failed=${summary.failed} quarantined=${summary.quarantined}`);
       } catch (dispatchErr) {
@@ -894,10 +898,9 @@ Analyze the supplied document and return a strict JSON object with:
     };
 
     // 2. Demo Synthetic Data Engine (DEMO mode only - generates on the hour at minute 0)
-    const serverEnv = (env.ORION_RUNTIME_ENVIRONMENT || dbManager.getEnvironment() || "DEMO").toUpperCase();
     const demoTask = async () => {
-      if (serverEnv !== "DEMO") {
-        console.log(`[ORION-SCHEDULER] [DEMO-ENGINE-GUARD] Demo generation skipped in ${serverEnv} mode.`);
+      if (activeEnv !== "DEMO") {
+        console.log(`[ORION-SCHEDULER] [DEMO-ENGINE-GUARD] Demo generation skipped in ${activeEnv} mode.`);
         return;
       }
       if (scheduledTime.getUTCMinutes() !== 0) {
@@ -924,6 +927,10 @@ Analyze the supplied document and return a strict JSON object with:
    * CLOUDFLARE WORKER QUEUE CONSUMER HANDLER
    */
   async queue(batch: any, env: Env, ctx: ExecutionContext): Promise<void> {
+    const rawEnv = (env.ORION_RUNTIME_ENVIRONMENT || "DEMO").toUpperCase();
+    const activeEnv = (rawEnv === "LIVE" ? "LIVE" : rawEnv === "STAGING" ? "STAGING" : "DEMO") as 'DEMO' | 'LIVE' | 'STAGING';
+    dbManager.setEnvironment(activeEnv);
+
     const queueTask = async () => {
       try {
         console.log(`[ORION-QUEUE] Received batch of ${batch?.messages?.length || 0} messages from queue=${batch?.queue}`);

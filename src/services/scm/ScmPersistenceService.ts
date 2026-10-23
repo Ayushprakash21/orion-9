@@ -210,9 +210,15 @@ export class ScmPersistenceService {
     const candidates: OutboxEventRecord[] = [];
     const now = Date.now();
 
-    if ((currentEnv === 'LIVE' || currentEnv === 'STAGING') && this.firestore) {
+    const isDurable = currentEnv === 'LIVE' || currentEnv === 'STAGING';
+    const firestoreInstance = isDurable ? (DatabaseConnectionManager.getInstance().getFirestore(currentEnv) || this.firestore) : null;
+
+    if (isDurable) {
+      if (!firestoreInstance) {
+        throw new Error(`[SCM-PERSISTENCE] Firestore instance unavailable in ${currentEnv} mode for getPendingOutboxEvents. In-memory fallback rejected.`);
+      }
       try {
-        const colRef = collection(this.firestore, 'outbox_events');
+        const colRef = collection(firestoreInstance, 'outbox_events');
         const q = tenantId
           ? query(colRef, where('tenantId', '==', tenantId))
           : query(colRef);
@@ -224,11 +230,10 @@ export class ScmPersistenceService {
             candidates.push(item);
           }
         });
-        if (candidates.length > 0) {
-          return candidates.slice(0, limitCount);
-        }
-      } catch (err) {
-        console.warn('[SCM-PERSISTENCE] Firestore read outbox_events failed, falling back to cache:', err);
+        return candidates.slice(0, limitCount);
+      } catch (err: any) {
+        console.error(`[SCM-PERSISTENCE] Firestore read outbox_events failed in ${currentEnv} mode:`, err);
+        throw err;
       }
     }
 
@@ -262,7 +267,10 @@ export class ScmPersistenceService {
     const firestoreInstance = isDurable ? (DatabaseConnectionManager.getInstance().getFirestore(currentEnv) || this.firestore) : null;
     const now = Date.now();
 
-    if (isDurable && firestoreInstance) {
+    if (isDurable) {
+      if (!firestoreInstance) {
+        throw new Error(`[SCM-PERSISTENCE] Firestore instance unavailable in ${currentEnv} mode for claimOutboxEvent. In-memory claim rejected.`);
+      }
       try {
         const outboxRef = doc(firestoreInstance, 'outbox_events', outboxId);
         return await runTransaction(firestoreInstance, async (transaction) => {
@@ -299,6 +307,7 @@ export class ScmPersistenceService {
         console.warn(`[SCM-PERSISTENCE] Transactional claimOutboxEvent failed for ${outboxId}:`, err);
         return null;
       }
+      return null;
     }
 
     // In-memory claim
@@ -340,7 +349,10 @@ export class ScmPersistenceService {
     const firestoreInstance = isDurable ? (DatabaseConnectionManager.getInstance().getFirestore(currentEnv) || this.firestore) : null;
     const nowIso = new Date().toISOString();
 
-    if (isDurable && firestoreInstance) {
+    if (isDurable) {
+      if (!firestoreInstance) {
+        throw new Error(`[SCM-PERSISTENCE] Firestore instance unavailable in ${currentEnv} mode for markOutboxPublished. In-memory update rejected.`);
+      }
       try {
         const outboxRef = doc(firestoreInstance, 'outbox_events', outboxId);
         return await runTransaction(firestoreInstance, async (transaction) => {
@@ -372,6 +384,7 @@ export class ScmPersistenceService {
         console.warn(`[SCM-PERSISTENCE] markOutboxPublished firestore update failed for ${outboxId}:`, err);
         return false;
       }
+      return false;
     }
 
     for (const [key, value] of this.memoryCache.entries()) {
@@ -414,7 +427,10 @@ export class ScmPersistenceService {
     const firestoreInstance = isDurable ? (DatabaseConnectionManager.getInstance().getFirestore(currentEnv) || this.firestore) : null;
     const newStatus = isPermanent ? 'DEAD_LETTER' : 'PENDING';
 
-    if (isDurable && firestoreInstance) {
+    if (isDurable) {
+      if (!firestoreInstance) {
+        throw new Error(`[SCM-PERSISTENCE] Firestore instance unavailable in ${currentEnv} mode for markOutboxFailed. In-memory update rejected.`);
+      }
       try {
         const outboxRef = doc(firestoreInstance, 'outbox_events', outboxId);
         return await runTransaction(firestoreInstance, async (transaction) => {
@@ -442,6 +458,7 @@ export class ScmPersistenceService {
         console.warn(`[SCM-PERSISTENCE] markOutboxFailed firestore update failed for ${outboxId}:`, err);
         return false;
       }
+      return false;
     }
 
     for (const [key, value] of this.memoryCache.entries()) {

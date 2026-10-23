@@ -115,6 +115,9 @@ export class QueueConsumer {
     const env = DatabaseConnectionManager.getInstance().getEnvironment();
     if (env === 'LIVE' || env === 'STAGING') {
       const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore(env) || this.firestore;
+      if (!firestoreInstance) {
+        throw new Error(`[QUEUE-CONSUMER-CRITICAL] Firestore instance unavailable in ${env} mode for isAlreadyProcessed check.`);
+      }
       if (firestoreInstance) {
         try {
           const docId = `dedup_${idempotencyKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
@@ -213,6 +216,12 @@ export class QueueConsumer {
       };
     }
 
+    const envFromBinding = env?.ORION_RUNTIME_ENVIRONMENT ? (env.ORION_RUNTIME_ENVIRONMENT.toUpperCase() as any) : undefined;
+    if (envFromBinding && (envFromBinding === 'LIVE' || envFromBinding === 'STAGING' || envFromBinding === 'DEMO')) {
+      if (DatabaseConnectionManager.getInstance().getEnvironment() !== envFromBinding) {
+        DatabaseConnectionManager.getInstance().setEnvironment(envFromBinding);
+      }
+    }
     const currentEnv = DatabaseConnectionManager.getInstance().getEnvironment();
     const isDurableMode = currentEnv === 'LIVE' || currentEnv === 'STAGING';
     const firestoreInstance = isDurableMode
@@ -221,7 +230,12 @@ export class QueueConsumer {
     const docId = `dedup_${envelope.idempotencyKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
 
     try {
-      if (isDurableMode && firestoreInstance) {
+      if (isDurableMode) {
+        if (!firestoreInstance) {
+          throw new Error(
+            `[QUEUE-CONSUMER-CRITICAL] Firestore instance is unavailable in ${currentEnv} mode. Cannot safely process event without durable deduplication.`
+          );
+        }
         // ATOMIC FIRESTORE TRANSACTION (Read-all-before-write)
         const isDuplicate = await runTransaction(firestoreInstance, async (transaction) => {
           // READ PHASE: Must read dedup record first

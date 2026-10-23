@@ -356,9 +356,17 @@ export function verifyWorkerAuthToken(
       }
 
       // Project audience and issuer validation strictly isolated per environment
-      const expectedProjectId = activeEnv === 'STAGING'
-        ? ((typeof process !== 'undefined' && process.env?.FIREBASE_PROJECT_ID) || 'orion-9-staging')
-        : 'orion9-dev-db-2026';
+      let expectedProjectId: string;
+      if (activeEnv === 'STAGING') {
+        const configuredStagingProject = typeof process !== 'undefined' && process.env?.FIREBASE_PROJECT_ID;
+        if (configuredStagingProject && configuredStagingProject !== 'orion9-dev-db-2026') {
+          expectedProjectId = configuredStagingProject;
+        } else {
+          expectedProjectId = 'orion-9-staging';
+        }
+      } else {
+        expectedProjectId = 'orion9-dev-db-2026';
+      }
       if (payload.aud !== expectedProjectId) {
         return {
           authorized: false,

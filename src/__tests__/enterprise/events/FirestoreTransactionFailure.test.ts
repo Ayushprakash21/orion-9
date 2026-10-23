@@ -5,6 +5,10 @@ vi.mock('firebase/firestore', async (importOriginal) => {
   return {
     ...actual,
     doc: vi.fn().mockImplementation((_fs: any, col: string, id: string) => ({ path: `${col}/${id}`, id })),
+    collection: vi.fn().mockImplementation((_fs: any, col: string) => ({ path: col })),
+    query: vi.fn((...args: any[]) => args[0]),
+    where: vi.fn(() => ({})),
+    getDocs: vi.fn().mockResolvedValue({ forEach: () => {} }),
     runTransaction: vi.fn().mockRejectedValue(new Error('Firestore transaction contention limit exceeded'))
   };
 });

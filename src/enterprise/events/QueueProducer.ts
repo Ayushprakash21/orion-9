@@ -14,6 +14,7 @@ export interface CloudflareQueueBinding<T = any> {
 
 export interface QueuePublishOptions {
   isLive?: boolean;
+  environment?: 'LIVE' | 'DEMO' | 'STAGING';
   delaySeconds?: number;
 }
 
@@ -121,7 +122,8 @@ export class QueueProducer {
 
     // Handle missing queue binding
     if (!queue || typeof queue.send !== 'function') {
-      if (options.isLive) {
+      const isCloudEnv = options.isLive || options.environment === 'LIVE' || options.environment === 'STAGING';
+      if (isCloudEnv) {
         const err = `[QUEUE-PRODUCER-ERROR] Cloudflare Queue binding is unavailable in LIVE mode for event ${envelope.eventId}`;
         console.error(err);
         return {
