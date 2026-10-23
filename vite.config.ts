@@ -12,7 +12,7 @@ import fs from 'fs';
 // Force load .env overriding process environment for Vite build
 dotenv.config({ override: true });
 
-function generateBuildInfoPlugin() {
+function generateBuildInfoPlugin(targetEnv: string = 'LIVE') {
   return {
     name: 'generate-build-info',
     buildStart() {
@@ -29,7 +29,7 @@ function generateBuildInfoPlugin() {
         gitSha,
         gitFullSha,
         buildTime: new Date().toISOString(),
-        environment: 'LIVE'
+        environment: targetEnv
       };
       const publicDir = path.resolve(__dirname, 'public');
       if (!fs.existsSync(publicDir)) {
@@ -58,7 +58,19 @@ function generateBuildInfoPlugin() {
   };
 }
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
+  const targetEnv = mode === 'staging' ? 'STAGING' : 'LIVE';
+
+  // Fail closed if staging build is attempted with missing or production Firebase configuration
+  if (mode === 'staging') {
+    const stagingProjectId = process.env.VITE_STAGING_FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
+    if (!stagingProjectId || stagingProjectId === 'orion9-dev-db-2026') {
+      throw new Error(
+        '[STAGING-BUILD-VALIDATION-ERROR] Staging build failed: Staging Firebase configuration is unavailable or matches the production project. ' +
+        'A dedicated staging Firebase project configuration (.env.staging with distinct VITE_FIREBASE_PROJECT_ID) is required before building for staging.'
+      );
+    }
+  }
   let gitSha = '0337510';
   let gitFullSha = '0337510a23d62e79c986a26aed42921994691707';
   try {
@@ -67,8 +79,9 @@ export default defineConfig(() => {
   } catch (e) {}
 
   return {
-    plugins: [generateBuildInfoPlugin(), react(), tailwindcss(), cloudflare()],
+    plugins: [generateBuildInfoPlugin(targetEnv), react(), tailwindcss(), cloudflare()],
     define: {
+      'import.meta.env.VITE_ORION_ENV': JSON.stringify(targetEnv),
       'import.meta.env.VITE_GIT_SHA': JSON.stringify(gitSha),
       'import.meta.env.VITE_GIT_FULL_SHA': JSON.stringify(gitFullSha),
       'import.meta.env.VITE_BUILD_TIME': JSON.stringify(new Date().toISOString()),

@@ -26,6 +26,15 @@ export const LIVE_FIREBASE_CONFIG = {
   appId: getEnvVar('VITE_FIREBASE_APP_ID', '1:1031466156269:web:44dd23cdcc883f809b8ce4')
 };
 
+export const STAGING_FIREBASE_CONFIG = {
+  apiKey: getEnvVar('VITE_STAGING_FIREBASE_API_KEY', getEnvVar('VITE_FIREBASE_API_KEY', '')),
+  authDomain: getEnvVar('VITE_STAGING_FIREBASE_AUTH_DOMAIN', 'orion-9-staging.firebaseapp.com'),
+  projectId: getEnvVar('VITE_STAGING_FIREBASE_PROJECT_ID', 'orion-9-staging'),
+  storageBucket: getEnvVar('VITE_STAGING_FIREBASE_STORAGE_BUCKET', 'orion-9-staging.firebasestorage.app'),
+  messagingSenderId: getEnvVar('VITE_STAGING_FIREBASE_MESSAGING_SENDER_ID', ''),
+  appId: getEnvVar('VITE_STAGING_FIREBASE_APP_ID', '')
+};
+
 export const DEMO_FIREBASE_CONFIG = {
   apiKey: getEnvVar('VITE_DEMO_FIREBASE_API_KEY', "AIzaSyDemo00000000000000000000000000000"),
   authDomain: getEnvVar('VITE_DEMO_FIREBASE_AUTH_DOMAIN', "demo-orion9-db-2026.firebaseapp.com"),
@@ -48,22 +57,22 @@ const connectedEmulators: Set<string> = new Set();
  * Resolves the authoritative environment dynamically.
  * If omitted or unspecified, defaults safely to DEMO to prevent accidental LIVE writes.
  */
-export const resolveCurrentEnvironment = (environment?: 'LIVE' | 'DEMO'): 'LIVE' | 'DEMO' => {
-  if (environment === 'LIVE' || environment === 'DEMO') {
+export const resolveCurrentEnvironment = (environment?: 'LIVE' | 'DEMO' | 'STAGING'): 'LIVE' | 'DEMO' | 'STAGING' => {
+  if (environment === 'LIVE' || environment === 'DEMO' || environment === 'STAGING') {
     return environment;
   }
   if (typeof window !== 'undefined' && window.localStorage) {
     try {
       const saved = localStorage.getItem('orion9_database_environment');
-      if (saved === 'LIVE' || saved === 'DEMO') {
-        return saved;
+      if (saved === 'LIVE' || saved === 'DEMO' || saved === 'STAGING') {
+        return saved as 'LIVE' | 'DEMO' | 'STAGING';
       }
     } catch {}
   }
   if (typeof process !== 'undefined' && process.env) {
-    const nodeEnv = process.env.VITE_ORION_ENV || process.env.ORION_ENV;
-    if (nodeEnv === 'LIVE' || nodeEnv === 'DEMO') {
-      return nodeEnv as 'LIVE' | 'DEMO';
+    const nodeEnv = (process.env.VITE_ORION_ENV || process.env.ORION_ENV || process.env.ORION_RUNTIME_ENVIRONMENT)?.toUpperCase();
+    if (nodeEnv === 'LIVE' || nodeEnv === 'DEMO' || nodeEnv === 'STAGING') {
+      return nodeEnv as 'LIVE' | 'DEMO' | 'STAGING';
     }
   }
   return 'DEMO';
@@ -117,23 +126,34 @@ export const resetFirebaseInstances = (): void => {
  * Returns the isolated Firebase App instance for the given environment.
  * LIVE uses the default instance ('orion9-dev-db-2026'), DEMO uses named instance ('demo-orion9-db-2026').
  */
-export const getFirebaseApp = (environment?: 'LIVE' | 'DEMO'): FirebaseApp => {
+export const getFirebaseApp = (environment?: 'LIVE' | 'DEMO' | 'STAGING'): FirebaseApp => {
   const envKey = resolveCurrentEnvironment(environment);
   if (appInstances.has(envKey)) {
     return appInstances.get(envKey)!;
   }
 
   const existingApps = getApps();
-  const targetConfig = envKey === 'DEMO' ? DEMO_FIREBASE_CONFIG : LIVE_FIREBASE_CONFIG;
+  let targetConfig = LIVE_FIREBASE_CONFIG;
+  let appName = '[DEFAULT]';
+
+  if (envKey === 'DEMO') {
+    targetConfig = DEMO_FIREBASE_CONFIG;
+    appName = 'DEMO_ORION9_APP';
+  } else if (envKey === 'STAGING') {
+    targetConfig = STAGING_FIREBASE_CONFIG;
+    appName = 'STAGING_ORION9_APP';
+  }
 
   let targetApp: FirebaseApp;
-  const found = existingApps.find(a => (envKey === 'DEMO' ? a.name === 'DEMO_ORION9_APP' : a.name === '[DEFAULT]'));
+  const found = existingApps.find(a => (appName === '[DEFAULT]' ? a.name === '[DEFAULT]' : a.name === appName));
 
   if (found) {
     targetApp = found;
   } else {
     if (envKey === 'DEMO') {
       targetApp = initializeApp(targetConfig, 'DEMO_ORION9_APP');
+    } else if (envKey === 'STAGING') {
+      targetApp = initializeApp(targetConfig, 'STAGING_ORION9_APP');
     } else {
       if (!targetConfig.apiKey && typeof process !== 'undefined' && process.env?.NODE_ENV !== 'test') {
         console.warn('[FIREBASE-CONFIG] Warning: VITE_FIREBASE_API_KEY is not set for LIVE environment. Firebase client calls may fail.');
@@ -150,7 +170,7 @@ export const getFirebaseApp = (environment?: 'LIVE' | 'DEMO'): FirebaseApp => {
 /**
  * Returns Auth instance isolated per environment.
  */
-export const getFirebaseAuth = (environment?: 'LIVE' | 'DEMO'): Auth => {
+export const getFirebaseAuth = (environment?: 'LIVE' | 'DEMO' | 'STAGING'): Auth => {
   const envKey = resolveCurrentEnvironment(environment);
   if (!authInstances.has(envKey)) {
     const app = getFirebaseApp(envKey);
@@ -162,7 +182,7 @@ export const getFirebaseAuth = (environment?: 'LIVE' | 'DEMO'): Auth => {
 /**
  * Returns Cloud Firestore instance strictly connected to the corresponding environment project.
  */
-export const getFirebaseFirestore = (environment?: 'LIVE' | 'DEMO'): Firestore => {
+export const getFirebaseFirestore = (environment?: 'LIVE' | 'DEMO' | 'STAGING'): Firestore => {
   const envKey = resolveCurrentEnvironment(environment);
   if (!firestoreInstances.has(envKey)) {
     const app = getFirebaseApp(envKey);
@@ -174,7 +194,7 @@ export const getFirebaseFirestore = (environment?: 'LIVE' | 'DEMO'): Firestore =
 /**
  * Returns Firebase Storage instance strictly connected to the corresponding environment project.
  */
-export const getFirebaseStorage = (environment?: 'LIVE' | 'DEMO'): FirebaseStorage => {
+export const getFirebaseStorage = (environment?: 'LIVE' | 'DEMO' | 'STAGING'): FirebaseStorage => {
   const envKey = resolveCurrentEnvironment(environment);
   if (!storageInstances.has(envKey)) {
     const app = getFirebaseApp(envKey);

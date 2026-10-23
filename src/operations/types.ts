@@ -210,7 +210,7 @@ export interface IncidentRecord {
   id: string;
   tenantId: string;
   organizationId?: string;
-  environment?: 'LIVE' | 'DEMO';
+  environment?: 'LIVE' | 'DEMO' | 'STAGING';
   title: string;
   description: string;
   severity: IncidentSeverity;
@@ -312,7 +312,7 @@ export interface BackupSnapshot {
   id: string;
   tenantId: string;
   organizationId?: string;
-  environment?: 'LIVE' | 'DEMO';
+  environment?: 'LIVE' | 'DEMO' | 'STAGING';
   planId?: string;
   createdAt: string;
   createdBy: string;
@@ -342,7 +342,7 @@ export interface RestoreDrillResult {
   drillId: string;
   backupId: string;
   tenantId: string;
-  environment: 'LIVE' | 'DEMO';
+  environment: 'LIVE' | 'DEMO' | 'STAGING';
   targetEnvironment: string; // e.g. "isolated-drill-target"
   startedAt: string;
   completedAt: string;
@@ -732,7 +732,7 @@ export interface GovernancePolicyRecord {
   policyId: string;
   tenantId: string;
   organizationId: string;
-  environment?: 'LIVE' | 'DEMO';
+  environment?: 'LIVE' | 'DEMO' | 'STAGING';
   domain: EnterpriseGovernanceDomain;
   name: string;
   version: number;

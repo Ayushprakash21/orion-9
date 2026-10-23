@@ -113,8 +113,8 @@ export class QueueConsumer {
     }
 
     const env = DatabaseConnectionManager.getInstance().getEnvironment();
-    if (env === 'LIVE') {
-      const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore('LIVE') || this.firestore;
+    if (env === 'LIVE' || env === 'STAGING') {
+      const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore(env) || this.firestore;
       if (firestoreInstance) {
         try {
           const docId = `dedup_${idempotencyKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
@@ -214,11 +214,14 @@ export class QueueConsumer {
     }
 
     const currentEnv = DatabaseConnectionManager.getInstance().getEnvironment();
-    const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore('LIVE') || this.firestore;
+    const isDurableMode = currentEnv === 'LIVE' || currentEnv === 'STAGING';
+    const firestoreInstance = isDurableMode
+      ? (DatabaseConnectionManager.getInstance().getFirestore(currentEnv) || this.firestore)
+      : null;
     const docId = `dedup_${envelope.idempotencyKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
 
     try {
-      if (currentEnv === 'LIVE' && firestoreInstance) {
+      if (isDurableMode && firestoreInstance) {
         // ATOMIC FIRESTORE TRANSACTION (Read-all-before-write)
         const isDuplicate = await runTransaction(firestoreInstance, async (transaction) => {
           // READ PHASE: Must read dedup record first

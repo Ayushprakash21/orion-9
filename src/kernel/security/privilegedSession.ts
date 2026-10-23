@@ -57,7 +57,7 @@ class PrivilegedSessionManager {
     organizationId: string,
     role: RoleCode,
     authMethod: 'step_up_password' | 'mfa_totp' | 'enterprise_sso' = 'step_up_password',
-    environment?: 'DEMO' | 'LIVE'
+    environment?: 'DEMO' | 'LIVE' | 'STAGING'
   ): PrivilegedAdminSession {
     if (role !== 'platform_admin' && role !== 'organization_admin') {
       throw new Error(`Forbidden: Role ${role} is not authorized for privileged administrative access.`);

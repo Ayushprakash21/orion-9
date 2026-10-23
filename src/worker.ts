@@ -49,7 +49,7 @@ export interface Env {
   CLOUDFLARE_API_TOKEN?: string;
   CLOUDFLARE_ACCOUNT_ID?: string;
   GEMINI_API_KEY?: string;
-  ORION_RUNTIME_ENVIRONMENT?: string;
+  ORION_RUNTIME_ENVIRONMENT?: "DEMO" | "LIVE" | "STAGING" | string;
   FIREBASE_API_KEY?: string;
   FIREBASE_PROJECT_ID?: string;
 }
@@ -75,7 +75,8 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     try {
       const url = new URL(request.url);
-    const activeEnv = ((env.ORION_RUNTIME_ENVIRONMENT || dbManager.getEnvironment() || "DEMO").toUpperCase() === "LIVE" ? "LIVE" : "DEMO") as 'DEMO' | 'LIVE';
+    const rawEnv = (env.ORION_RUNTIME_ENVIRONMENT || dbManager.getEnvironment() || "DEMO").toUpperCase();
+    const activeEnv = (rawEnv === "LIVE" ? "LIVE" : rawEnv === "STAGING" ? "STAGING" : "DEMO") as 'DEMO' | 'LIVE' | 'STAGING';
 
     // 0. Handle CORS Preflight Requests
     if (request.method === "OPTIONS") {
@@ -164,7 +165,7 @@ export default {
       if (!isAdmin) {
         return createSecurityErrorResponse("Forbidden: Administrative privileges required to dispatch outbox.", 403);
       }
-      const isLive = activeEnv === "LIVE";
+      const isLive = activeEnv === "LIVE" || activeEnv === "STAGING";
       const summary = await outboxDispatcher.dispatch({
         queue: env.SCM_EVENTS,
         dlq: env.SCM_EVENTS_DLQ,
@@ -880,7 +881,7 @@ Analyze the supplied document and return a strict JSON object with:
     const dispatchTask = async () => {
       try {
         const serverEnv = (env.ORION_RUNTIME_ENVIRONMENT || dbManager.getEnvironment() || "DEMO").toUpperCase();
-        const isLive = serverEnv === "LIVE";
+        const isLive = serverEnv === "LIVE" || serverEnv === "STAGING";
         const summary = await outboxDispatcher.dispatch({
           queue: env.SCM_EVENTS,
           dlq: env.SCM_EVENTS_DLQ,
@@ -896,7 +897,7 @@ Analyze the supplied document and return a strict JSON object with:
     const serverEnv = (env.ORION_RUNTIME_ENVIRONMENT || dbManager.getEnvironment() || "DEMO").toUpperCase();
     const demoTask = async () => {
       if (serverEnv !== "DEMO") {
-        console.log(`[ORION-SCHEDULER] [DEMO-ENGINE-GUARD] Demo generation skipped in LIVE mode.`);
+        console.log(`[ORION-SCHEDULER] [DEMO-ENGINE-GUARD] Demo generation skipped in ${serverEnv} mode.`);
         return;
       }
       if (scheduledTime.getUTCMinutes() !== 0) {

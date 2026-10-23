@@ -10,6 +10,7 @@ import {
   DatabaseEnvironmentState,
   DatabaseConnectionStatus,
   LIVE_DATABASE_CONFIG,
+  STAGING_DATABASE_CONFIG,
   DEMO_DATABASE_CONFIG,
   EnvironmentSwitchRequest,
   EnvironmentSwitchResult,
@@ -46,7 +47,7 @@ export class DatabaseConnectionManager {
     if (typeof window !== 'undefined' && window.localStorage) {
       try {
         const saved = localStorage.getItem(STORAGE_ENV_KEY);
-        if (saved === 'DEMO' || saved === 'LIVE') {
+        if (saved === 'DEMO' || saved === 'LIVE' || saved === 'STAGING') {
           this.currentEnvironment = saved;
         } else {
           this.currentEnvironment = 'DEMO';
@@ -98,7 +99,9 @@ export class DatabaseConnectionManager {
   }
 
   public getConfig(): DatabaseEnvironmentConfig {
-    return this.currentEnvironment === 'LIVE' ? LIVE_DATABASE_CONFIG : DEMO_DATABASE_CONFIG;
+    if (this.currentEnvironment === 'LIVE') return LIVE_DATABASE_CONFIG;
+    if (this.currentEnvironment === 'STAGING') return STAGING_DATABASE_CONFIG;
+    return DEMO_DATABASE_CONFIG;
   }
 
   public getFirestore(environment?: DatabaseEnvironmentMode): Firestore | null {

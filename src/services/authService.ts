@@ -21,7 +21,7 @@ export interface AuthSessionDetails {
   permissions: PermissionCode[];
   token?: string;
   expiresAt?: string;
-  environment?: 'DEMO' | 'LIVE';
+  environment?: 'DEMO' | 'LIVE' | 'STAGING';
 }
 
 export const authService = {

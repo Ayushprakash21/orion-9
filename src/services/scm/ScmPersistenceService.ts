@@ -40,7 +40,7 @@ export interface OutboxEventRecord {
   tenantId: string;
   collectionName: string;
   entityId: string;
-  environment: 'LIVE' | 'DEMO';
+  environment: 'LIVE' | 'DEMO' | 'STAGING';
   status: 'PENDING' | 'CLAIMED' | 'PUBLISHED' | 'FAILED' | 'DEAD_LETTER';
   envelope: DistributedEventEnvelope;
   idempotencyKey: string;
@@ -153,10 +153,10 @@ export class ScmPersistenceService {
       };
     }
 
-    if (env === 'LIVE') {
-      const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore('LIVE') || this.firestore;
+    if (env === 'LIVE' || env === 'STAGING') {
+      const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore(env) || this.firestore;
       if (!firestoreInstance) {
-        throw new Error(`[SCM-AUTHORITATIVE-ERROR] LIVE environment requested but Firestore instance is unavailable for ${collectionName}/${id}. Unpersisted writes are rejected.`);
+        throw new Error(`[SCM-AUTHORITATIVE-ERROR] ${env} environment requested but Firestore instance is unavailable for ${collectionName}/${id}. Unpersisted writes are rejected.`);
       }
 
       if (opts.emitEvent && outboxRecord) {
@@ -210,7 +210,7 @@ export class ScmPersistenceService {
     const candidates: OutboxEventRecord[] = [];
     const now = Date.now();
 
-    if (currentEnv === 'LIVE' && this.firestore) {
+    if ((currentEnv === 'LIVE' || currentEnv === 'STAGING') && this.firestore) {
       try {
         const colRef = collection(this.firestore, 'outbox_events');
         const q = tenantId
@@ -258,10 +258,11 @@ export class ScmPersistenceService {
     leaseDurationMs: number = 60000
   ): Promise<OutboxEventRecord | null> {
     const currentEnv = DatabaseConnectionManager.getInstance().getEnvironment();
-    const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore('LIVE') || this.firestore;
+    const isDurable = currentEnv === 'LIVE' || currentEnv === 'STAGING';
+    const firestoreInstance = isDurable ? (DatabaseConnectionManager.getInstance().getFirestore(currentEnv) || this.firestore) : null;
     const now = Date.now();
 
-    if (currentEnv === 'LIVE' && firestoreInstance) {
+    if (isDurable && firestoreInstance) {
       try {
         const outboxRef = doc(firestoreInstance, 'outbox_events', outboxId);
         return await runTransaction(firestoreInstance, async (transaction) => {
@@ -335,10 +336,11 @@ export class ScmPersistenceService {
    */
   public async markOutboxPublished(outboxId: string, workerId: string, fenceToken?: number): Promise<boolean> {
     const currentEnv = DatabaseConnectionManager.getInstance().getEnvironment();
-    const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore('LIVE') || this.firestore;
+    const isDurable = currentEnv === 'LIVE' || currentEnv === 'STAGING';
+    const firestoreInstance = isDurable ? (DatabaseConnectionManager.getInstance().getFirestore(currentEnv) || this.firestore) : null;
     const nowIso = new Date().toISOString();
 
-    if (currentEnv === 'LIVE' && firestoreInstance) {
+    if (isDurable && firestoreInstance) {
       try {
         const outboxRef = doc(firestoreInstance, 'outbox_events', outboxId);
         return await runTransaction(firestoreInstance, async (transaction) => {
@@ -408,10 +410,11 @@ export class ScmPersistenceService {
     fenceToken?: number
   ): Promise<boolean> {
     const currentEnv = DatabaseConnectionManager.getInstance().getEnvironment();
-    const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore('LIVE') || this.firestore;
+    const isDurable = currentEnv === 'LIVE' || currentEnv === 'STAGING';
+    const firestoreInstance = isDurable ? (DatabaseConnectionManager.getInstance().getFirestore(currentEnv) || this.firestore) : null;
     const newStatus = isPermanent ? 'DEAD_LETTER' : 'PENDING';
 
-    if (currentEnv === 'LIVE' && firestoreInstance) {
+    if (isDurable && firestoreInstance) {
       try {
         const outboxRef = doc(firestoreInstance, 'outbox_events', outboxId);
         return await runTransaction(firestoreInstance, async (transaction) => {

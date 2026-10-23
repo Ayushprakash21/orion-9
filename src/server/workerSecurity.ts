@@ -16,7 +16,7 @@ export interface WorkerAuthUser {
   userId: string;
   email: string;
   role: 'platform_admin' | 'organization_admin' | 'buyer' | 'planner' | 'user' | 'viewer' | 'operator';
-  environment: 'DEMO' | 'LIVE';
+  environment: 'DEMO' | 'LIVE' | 'STAGING';
   organizationId?: string;
 }
 
@@ -268,7 +268,7 @@ export function extractBearerToken(request: Request): string | null {
  */
 export function verifyWorkerAuthToken(
   token: string | null,
-  activeEnv: 'DEMO' | 'LIVE' = 'DEMO'
+  activeEnv: 'DEMO' | 'LIVE' | 'STAGING' = 'DEMO'
 ): AuthValidationResult {
   if (!token || !token.trim()) {
     return {
@@ -278,28 +278,28 @@ export function verifyWorkerAuthToken(
     };
   }
 
-  // 1. Strict LIVE environment gate: reject unverified client-minted session tokens and demo tokens
-  if (activeEnv === 'LIVE') {
+  // 1. Strict LIVE & STAGING environment gates: reject demo tokens and unverified client tokens
+  if (activeEnv === 'LIVE' || activeEnv === 'STAGING') {
     if (token === 'demo-admin-token' || token.startsWith('demo-')) {
       return {
         authorized: false,
-        error: 'Demo tokens are strictly forbidden in LIVE environment. Genuine Firebase ID token verification required.',
+        error: `Demo tokens are strictly forbidden in ${activeEnv} environment. Genuine Firebase ID token verification required.`,
         statusCode: 401,
       };
     }
     if (token.startsWith('orion_sess:')) {
       const parts = token.split(':');
       const tokenEnv = parts[1];
-      if (tokenEnv !== 'LIVE') {
+      if (tokenEnv !== activeEnv) {
         return {
           authorized: false,
-          error: `Cross-environment token rejection (Token: ${tokenEnv}, Active: LIVE).`,
+          error: `Cross-environment token rejection (Token: ${tokenEnv}, Active: ${activeEnv}).`,
           statusCode: 403,
         };
       }
       return {
         authorized: false,
-        error: 'Client-minted session tokens are strictly forbidden in LIVE environment. Genuine Firebase ID token verification required.',
+        error: `Client-minted session tokens are strictly forbidden in ${activeEnv} environment. Genuine Firebase ID token verification required.`,
         statusCode: 401,
       };
     }
@@ -333,8 +333,8 @@ export function verifyWorkerAuthToken(
       };
     }
 
-    // In LIVE mode, genuine cryptographic RS256 signature verification is MANDATORY
-    if (activeEnv === 'LIVE') {
+    // In LIVE and STAGING mode, genuine cryptographic RS256 signature verification is MANDATORY
+    if (activeEnv === 'LIVE' || activeEnv === 'STAGING') {
       const sigResult = verifyJwtSignature(token);
       if (!sigResult.valid) {
         return {
@@ -355,8 +355,10 @@ export function verifyWorkerAuthToken(
         };
       }
 
-      // Project audience and issuer validation
-      const expectedProjectId = 'orion9-dev-db-2026';
+      // Project audience and issuer validation strictly isolated per environment
+      const expectedProjectId = activeEnv === 'STAGING'
+        ? ((typeof process !== 'undefined' && process.env?.FIREBASE_PROJECT_ID) || 'orion-9-staging')
+        : 'orion9-dev-db-2026';
       if (payload.aud !== expectedProjectId) {
         return {
           authorized: false,

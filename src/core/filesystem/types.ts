@@ -43,7 +43,7 @@ export interface OrionFile {
   ownerName?: string;
   tenantId: string;
   organizationId?: string;
-  environment: 'DEMO' | 'LIVE';
+  environment: 'DEMO' | 'LIVE' | 'STAGING';
   createdAt: string;
   updatedAt: string;
   createdBy: string;
@@ -67,7 +67,7 @@ export interface OrionFolder {
   icon?: string;
   ownerId: string;
   tenantId: string;
-  environment: 'DEMO' | 'LIVE';
+  environment: 'DEMO' | 'LIVE' | 'STAGING';
   createdAt: string;
   updatedAt: string;
   isDeleted: boolean;
@@ -99,7 +99,7 @@ export interface DesktopItemRecord {
   ownerId: string;
   tenantId: string;
   organizationId: string;
-  environment: 'DEMO' | 'LIVE';
+  environment: 'DEMO' | 'LIVE' | 'STAGING';
   createdAt: string;
   updatedAt: string;
   metadata?: Record<string, any>;
@@ -123,7 +123,7 @@ export interface VirtualStorageInfo {
     system: number;
     recycleBin: number;
   };
-  environment: 'DEMO' | 'LIVE';
+  environment: 'DEMO' | 'LIVE' | 'STAGING';
   tenantId: string;
 }
 
@@ -147,7 +147,7 @@ export interface FileSystemEvent {
   folderId?: string;
   shortcutId?: string;
   tenantId: string;
-  environment: 'DEMO' | 'LIVE';
+  environment: 'DEMO' | 'LIVE' | 'STAGING';
   timestamp: string;
 }
 
@@ -186,7 +186,7 @@ export interface DesktopWidgetRecord {
   ownerId: string;
   tenantId: string;
   organizationId: string;
-  environment: 'DEMO' | 'LIVE';
+  environment: 'DEMO' | 'LIVE' | 'STAGING';
   config?: Record<string, any>;
   createdAt: string;
   updatedAt: string;

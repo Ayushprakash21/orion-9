@@ -4,7 +4,7 @@
  * configuration boundaries, cache namespaces, outbox isolation, and event contracts.
  */
 
-export type DatabaseEnvironmentMode = 'LIVE' | 'DEMO';
+export type DatabaseEnvironmentMode = 'LIVE' | 'DEMO' | 'STAGING';
 
 export type DatabaseConnectionStatus =
   | 'CONNECTED'
@@ -34,6 +34,17 @@ export const LIVE_DATABASE_CONFIG: DatabaseEnvironmentConfig = {
   isProductionSafe: true,
   cachePrefix: 'orion9:live',
   description: 'Authoritative Cloud Firestore Production Database',
+};
+
+export const STAGING_DATABASE_CONFIG: DatabaseEnvironmentConfig = {
+  environment: 'STAGING',
+  projectId: 'orion-9-staging',
+  authDomain: 'orion-9-staging.firebaseapp.com',
+  databaseId: '(default)',
+  isEmulator: false,
+  isProductionSafe: false,
+  cachePrefix: 'orion9:staging',
+  description: 'Dedicated Isolated Staging Cloud Firestore Database',
 };
 
 export const DEMO_DATABASE_CONFIG: DatabaseEnvironmentConfig = {

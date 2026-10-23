@@ -23,7 +23,7 @@ export interface BaseSubsystemStatus {
   latencyMs?: number;
   errorCode?: string;
   errorMessage?: string;
-  environment: 'DEMO' | 'LIVE';
+  environment: 'DEMO' | 'LIVE' | 'STAGING';
   source: string;
 }
 
@@ -167,7 +167,7 @@ export type BackupHealthStatus =
 export interface SystemStatusSnapshot {
   overallStatus: OverallSystemStatus;
   generatedAt: number;
-  environment: 'DEMO' | 'LIVE';
+  environment: 'DEMO' | 'LIVE' | 'STAGING';
   tenantId: string;
   organizationId?: string;
   runtime: RuntimeSubsystemStatus;

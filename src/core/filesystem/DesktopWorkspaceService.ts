@@ -49,7 +49,7 @@ export class DesktopWorkspaceService {
     this.initializedWorkspaces.clear();
   }
 
-  private getContext(tenantId?: string, environment?: 'DEMO' | 'LIVE') {
+  private getContext(tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING') {
     const activeEnv = environment || DatabaseConnectionManager.getInstance().getEnvironment();
     const activeTenant = tenantId || 'tenant_default';
     return { activeTenant, activeEnv };
@@ -95,7 +95,7 @@ export class DesktopWorkspaceService {
   public async ensureWorkspaceShortcuts(
     workspaceId: WorkspaceId,
     tenantId?: string,
-    environment?: 'DEMO' | 'LIVE',
+    environment?: 'DEMO' | 'LIVE' | 'STAGING',
     viewportHeight: number = 900
   ): Promise<DesktopShortcut[]> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
@@ -274,7 +274,7 @@ export class DesktopWorkspaceService {
   public async listShortcuts(
     workspaceId: WorkspaceId,
     tenantId?: string,
-    environment?: 'DEMO' | 'LIVE'
+    environment?: 'DEMO' | 'LIVE' | 'STAGING'
   ): Promise<DesktopShortcut[]> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const all = await scmPersistenceService.listRecords<DesktopShortcut>('desktop_items', activeTenant);
@@ -293,7 +293,7 @@ export class DesktopWorkspaceService {
     viewportWidth: number = 1920,
     viewportHeight: number = 1080,
     tenantId?: string,
-    environment?: 'DEMO' | 'LIVE',
+    environment?: 'DEMO' | 'LIVE' | 'STAGING',
     gridConfig: GridConfig = DEFAULT_GRID_CONFIG
   ): Promise<DesktopShortcut> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
@@ -352,7 +352,7 @@ export class DesktopWorkspaceService {
     sortBy: 'name' | 'type' | 'date',
     viewportHeight: number = 900,
     tenantId?: string,
-    environment?: 'DEMO' | 'LIVE',
+    environment?: 'DEMO' | 'LIVE' | 'STAGING',
     gridConfig: GridConfig = DEFAULT_GRID_CONFIG
   ): Promise<DesktopShortcut[]> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
@@ -404,7 +404,7 @@ export class DesktopWorkspaceService {
     workspaceId: WorkspaceId;
     tenantId?: string;
     organizationId?: string;
-    environment?: 'DEMO' | 'LIVE';
+    environment?: 'DEMO' | 'LIVE' | 'STAGING';
     viewportHeight?: number;
     viewportWidth?: number;
     isDirectory?: boolean;
@@ -517,7 +517,7 @@ export class DesktopWorkspaceService {
     shortcutId: string,
     newName: string,
     tenantId?: string,
-    environment?: 'DEMO' | 'LIVE'
+    environment?: 'DEMO' | 'LIVE' | 'STAGING'
   ): Promise<DesktopShortcut> {
     const { activeTenant } = this.getContext(tenantId, environment);
     const existing = await scmPersistenceService.getRecord<DesktopShortcut>('desktop_items', activeTenant, shortcutId);
@@ -542,7 +542,7 @@ export class DesktopWorkspaceService {
   public async removeShortcut(
     shortcutId: string,
     tenantId?: string,
-    environment?: 'DEMO' | 'LIVE'
+    environment?: 'DEMO' | 'LIVE' | 'STAGING'
   ): Promise<boolean> {
     const { activeTenant } = this.getContext(tenantId, environment);
     return await scmPersistenceService.deleteRecord('desktop_items', activeTenant, shortcutId);
@@ -558,7 +558,7 @@ export class DesktopWorkspaceService {
   public async listWidgets(
     workspaceId: WorkspaceId = 'operations',
     tenantId?: string,
-    environment?: 'DEMO' | 'LIVE'
+    environment?: 'DEMO' | 'LIVE' | 'STAGING'
   ): Promise<import('./types').DesktopWidgetRecord[]> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const records = await scmPersistenceService.listRecords<import('./types').DesktopWidgetRecord>('desktop_widgets', activeTenant);
@@ -571,7 +571,7 @@ export class DesktopWorkspaceService {
   public async saveWidget(
     widget: import('./types').DesktopWidgetRecord,
     tenantId?: string,
-    environment?: 'DEMO' | 'LIVE'
+    environment?: 'DEMO' | 'LIVE' | 'STAGING'
   ): Promise<import('./types').DesktopWidgetRecord> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const record: import('./types').DesktopWidgetRecord = {
@@ -590,7 +590,7 @@ export class DesktopWorkspaceService {
   public async removeWidget(
     widgetId: string,
     tenantId?: string,
-    environment?: 'DEMO' | 'LIVE'
+    environment?: 'DEMO' | 'LIVE' | 'STAGING'
   ): Promise<boolean> {
     const { activeTenant } = this.getContext(tenantId, environment);
     return await scmPersistenceService.deleteRecord('desktop_widgets', activeTenant, widgetId);
@@ -603,7 +603,7 @@ export class DesktopWorkspaceService {
   public async ensureDefaultWidgets(
     workspaceId: WorkspaceId = 'operations',
     tenantId?: string,
-    environment?: 'DEMO' | 'LIVE'
+    environment?: 'DEMO' | 'LIVE' | 'STAGING'
   ): Promise<import('./types').DesktopWidgetRecord[]> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const existing = await this.listWidgets(workspaceId, activeTenant, activeEnv);
@@ -639,7 +639,7 @@ export class DesktopWorkspaceService {
   private async seedDefaultWidgets(
     workspaceId: WorkspaceId,
     activeTenant: string,
-    activeEnv: 'DEMO' | 'LIVE'
+    activeEnv: 'DEMO' | 'LIVE' | 'STAGING'
   ): Promise<import('./types').DesktopWidgetRecord[]> {
     const now = new Date().toISOString();
     const vWidth = typeof window !== 'undefined' ? window.innerWidth : 1440;
@@ -727,7 +727,7 @@ export class DesktopWorkspaceService {
   public async restoreDefaultWidgets(
     workspaceId: WorkspaceId = 'operations',
     tenantId?: string,
-    environment?: 'DEMO' | 'LIVE'
+    environment?: 'DEMO' | 'LIVE' | 'STAGING'
   ): Promise<import('./types').DesktopWidgetRecord[]> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     

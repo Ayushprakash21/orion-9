@@ -95,7 +95,7 @@ export class SystemStatusEngine {
    */
   public getSnapshot(
     tenantId: string = 'default-tenant',
-    environment?: 'DEMO' | 'LIVE',
+    environment?: 'DEMO' | 'LIVE' | 'STAGING',
     orgId?: string
   ): SystemStatusSnapshot {
     const activeEnv = environment || dbManager.getEnvironment();
@@ -192,7 +192,7 @@ export class SystemStatusEngine {
 
   private evalRuntime(
     tenantId: string,
-    environment: 'DEMO' | 'LIVE',
+    environment: 'DEMO' | 'LIVE' | 'STAGING',
     orgId?: string,
     now: number = Date.now()
   ): RuntimeSubsystemStatus {
@@ -247,7 +247,7 @@ export class SystemStatusEngine {
 
   private evalScheduler(
     tenantId: string,
-    environment: 'DEMO' | 'LIVE',
+    environment: 'DEMO' | 'LIVE' | 'STAGING',
     orgId?: string,
     now: number = Date.now()
   ): SchedulerSubsystemStatus {
@@ -323,7 +323,7 @@ export class SystemStatusEngine {
 
   private evalFirestore(
     tenantId: string,
-    environment: 'DEMO' | 'LIVE',
+    environment: 'DEMO' | 'LIVE' | 'STAGING',
     orgId?: string,
     now: number = Date.now()
   ): FirestoreSubsystemStatus {
@@ -382,7 +382,7 @@ export class SystemStatusEngine {
 
   private evalListeners(
     tenantId: string,
-    environment: 'DEMO' | 'LIVE',
+    environment: 'DEMO' | 'LIVE' | 'STAGING',
     orgId?: string,
     now: number = Date.now()
   ): {
@@ -465,7 +465,7 @@ export class SystemStatusEngine {
 
   private evalFreshness(
     tenantId: string,
-    environment: 'DEMO' | 'LIVE',
+    environment: 'DEMO' | 'LIVE' | 'STAGING',
     orgId: string | undefined,
     now: number,
     listeners: {
@@ -538,7 +538,7 @@ export class SystemStatusEngine {
 
   private evalGraphs(
     tenantId: string,
-    environment: 'DEMO' | 'LIVE',
+    environment: 'DEMO' | 'LIVE' | 'STAGING',
     orgId: string | undefined,
     now: number,
     listeners: {
@@ -592,7 +592,7 @@ export class SystemStatusEngine {
 
   private evalAutomation(
     tenantId: string,
-    environment: 'DEMO' | 'LIVE',
+    environment: 'DEMO' | 'LIVE' | 'STAGING',
     orgId?: string,
     now: number = Date.now()
   ): AutomationSubsystemStatus {

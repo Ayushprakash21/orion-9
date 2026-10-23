@@ -41,7 +41,7 @@ export interface WallpaperRecord {
   aspectRatio: string; // '16:9'
   mode?: WallpaperMode;
   target?: WallpaperTarget;
-  environment: 'DEMO' | 'LIVE';
+  environment: 'DEMO' | 'LIVE' | 'STAGING';
   status: WallpaperStatus;
   isSystemDefault?: boolean;
   createdAt: string;
@@ -88,7 +88,7 @@ export interface WallpaperPolicy {
   allowAiGeneration: boolean;
   allowUserUpload: boolean;
   defaultWallpaperId: string;
-  environment: 'DEMO' | 'LIVE';
+  environment: 'DEMO' | 'LIVE' | 'STAGING';
   updatedAt: string;
 
   // Deprecated legacy limits preserved for backward-compatibility only

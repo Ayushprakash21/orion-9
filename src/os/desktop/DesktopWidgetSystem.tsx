@@ -1,3 +1,4 @@
+import { DatabaseEnvironmentMode } from '../../core/database/DatabaseEnvironment';
 /**
  * ORION-9 DESKTOP WIDGET SYSTEM
  * Native macOS-inspired spatial desktop widgets with real data binding (DEMO/LIVE),
@@ -111,7 +112,7 @@ export function DesktopWidgetSystem({
 }: WidgetComponentProps) {
   const { openApplication } = useWindowManager();
   const { showToast } = useToast();
-  const [dbEnv, setDbEnv] = useState<'DEMO' | 'LIVE'>(() => dbManager.getEnvironment());
+  const [dbEnv, setDbEnv] = useState<DatabaseEnvironmentMode>(() => dbManager.getEnvironment());
 
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
   const [healthData, setHealthData] = useState<{ liveness: boolean; readiness: boolean; latency: number }>({

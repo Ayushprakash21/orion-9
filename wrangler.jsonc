@@ -47,7 +47,7 @@
         "binding": "AI"
       },
       "vars": {
-        "ORION_RUNTIME_ENVIRONMENT": "DEMO",
+        "ORION_RUNTIME_ENVIRONMENT": "STAGING",
         "FIREBASE_PROJECT_ID": "orion-9-staging"
       },
       "queues": {

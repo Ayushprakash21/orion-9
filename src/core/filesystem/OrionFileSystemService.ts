@@ -53,7 +53,7 @@ export class OrionFileSystemService {
   /**
    * Helper to resolve active tenant and environment.
    */
-  private getContext(tenantId?: string, environment?: 'DEMO' | 'LIVE') {
+  private getContext(tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING') {
     const activeEnv = environment || DatabaseConnectionManager.getInstance().getEnvironment();
     const activeTenant = tenantId || 'tenant_default';
     return { activeTenant, activeEnv };
@@ -62,7 +62,7 @@ export class OrionFileSystemService {
   /**
    * Initialize system folders and synthetic files for DEMO mode if required.
    */
-  public async ensureSystemStructure(tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<void> {
+  public async ensureSystemStructure(tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<void> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const key = `${activeTenant}:${activeEnv}`;
     if (this.initializedTenants.has(key)) return;
@@ -279,7 +279,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
     content?: string;
     folderId: string;
     tenantId?: string;
-    environment?: 'DEMO' | 'LIVE';
+    environment?: 'DEMO' | 'LIVE' | 'STAGING';
     ownerId?: string;
     ownerName?: string;
     tags?: string[];
@@ -339,7 +339,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
     fileId: string,
     updates: Partial<Pick<OrionFile, 'name' | 'content' | 'tags' | 'isFavorite' | 'metadata' | 'folderId'>>,
     tenantId?: string,
-    environment?: 'DEMO' | 'LIVE'
+    environment?: 'DEMO' | 'LIVE' | 'STAGING'
   ): Promise<OrionFile> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const existing = await this.getFile(fileId, activeTenant, activeEnv);
@@ -377,7 +377,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   /**
    * Soft-delete file (move to Recycle Bin).
    */
-  public async deleteFile(fileId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<void> {
+  public async deleteFile(fileId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<void> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const file = await this.getFile(fileId, activeTenant, activeEnv);
     if (!file) return;
@@ -404,7 +404,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   /**
    * Restore file from Recycle Bin.
    */
-  public async restoreFile(fileId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<void> {
+  public async restoreFile(fileId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<void> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const file = await this.getFile(fileId, activeTenant, activeEnv);
     if (!file) return;
@@ -432,7 +432,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   /**
    * Permanently delete file.
    */
-  public async permanentlyDeleteFile(fileId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<void> {
+  public async permanentlyDeleteFile(fileId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<void> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     // In persistence layer, remove from cache / record
     scmPersistenceService.clear('files');
@@ -449,14 +449,14 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   /**
    * Rename file.
    */
-  public async renameFile(fileId: string, newName: string, tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<OrionFile> {
+  public async renameFile(fileId: string, newName: string, tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<OrionFile> {
     return this.updateFile(fileId, { name: newName }, tenantId, environment);
   }
 
   /**
    * Copy file to target folder.
    */
-  public async copyFile(fileId: string, targetFolderId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<OrionFile> {
+  public async copyFile(fileId: string, targetFolderId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<OrionFile> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const original = await this.getFile(fileId, activeTenant, activeEnv);
     if (!original) throw new Error(`Source file ${fileId} not found`);
@@ -477,7 +477,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   /**
    * Duplicate file in place (same folder).
    */
-  public async duplicateFile(fileId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<OrionFile> {
+  public async duplicateFile(fileId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<OrionFile> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const original = await this.getFile(fileId, activeTenant, activeEnv);
     if (!original) throw new Error(`Source file ${fileId} not found`);
@@ -498,14 +498,14 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   /**
    * Move file to target folder.
    */
-  public async moveFile(fileId: string, targetFolderId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<OrionFile> {
+  public async moveFile(fileId: string, targetFolderId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<OrionFile> {
     return this.updateFile(fileId, { folderId: targetFolderId }, tenantId, environment);
   }
 
   /**
    * Get a single file by ID with tenant validation.
    */
-  public async getFile(fileId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<OrionFile | null> {
+  public async getFile(fileId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<OrionFile | null> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     await this.ensureSystemStructure(activeTenant, activeEnv);
     const file = await scmPersistenceService.getRecord<OrionFile>('files', activeTenant, fileId);
@@ -521,7 +521,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   public async listFiles(
     folderId: string | null,
     tenantId?: string,
-    environment?: 'DEMO' | 'LIVE',
+    environment?: 'DEMO' | 'LIVE' | 'STAGING',
     includeDeleted: boolean = false
   ): Promise<OrionFile[]> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
@@ -545,7 +545,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
     parentId?: string | null;
     icon?: string;
     tenantId?: string;
-    environment?: 'DEMO' | 'LIVE';
+    environment?: 'DEMO' | 'LIVE' | 'STAGING';
     ownerId?: string;
   }): Promise<OrionFolder> {
     const { activeTenant, activeEnv } = this.getContext(params.tenantId, params.environment);
@@ -582,7 +582,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   /**
    * Rename folder.
    */
-  public async renameFolder(folderId: string, newName: string, tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<OrionFolder> {
+  public async renameFolder(folderId: string, newName: string, tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<OrionFolder> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const existing = await this.getFolder(folderId, activeTenant, activeEnv);
     if (!existing) throw new Error(`Folder ${folderId} not found`);
@@ -610,7 +610,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   /**
    * Delete folder (soft-delete).
    */
-  public async deleteFolder(folderId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<void> {
+  public async deleteFolder(folderId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<void> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const folder = await this.getFolder(folderId, activeTenant, activeEnv);
     if (!folder) return;
@@ -637,7 +637,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   /**
    * Get a single folder.
    */
-  public async getFolder(folderId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<OrionFolder | null> {
+  public async getFolder(folderId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<OrionFolder | null> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     await this.ensureSystemStructure(activeTenant, activeEnv);
     const folder = await scmPersistenceService.getRecord<OrionFolder>('folders', activeTenant, folderId);
@@ -650,7 +650,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   /**
    * Get a system folder by key.
    */
-  public async getSystemFolder(key: SystemFolderKey, tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<OrionFolder | null> {
+  public async getSystemFolder(key: SystemFolderKey, tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<OrionFolder | null> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     await this.ensureSystemStructure(activeTenant, activeEnv);
     const id = `folder_sys_${key}_${activeTenant}`;
@@ -663,7 +663,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   public async listFolders(
     parentId: string | null,
     tenantId?: string,
-    environment?: 'DEMO' | 'LIVE',
+    environment?: 'DEMO' | 'LIVE' | 'STAGING',
     includeDeleted: boolean = false
   ): Promise<OrionFolder[]> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
@@ -684,7 +684,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
     folderId: string,
     newParentId: string | null,
     tenantId?: string,
-    environment?: 'DEMO' | 'LIVE'
+    environment?: 'DEMO' | 'LIVE' | 'STAGING'
   ): Promise<OrionFolder> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const folder = await this.getFolder(folderId, activeTenant, activeEnv);
@@ -730,7 +730,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
    * Search files across all folders.
 
    */
-  public async searchFiles(query: string, tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<OrionFile[]> {
+  public async searchFiles(query: string, tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<OrionFile[]> {
     if (!query.trim()) return [];
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     await this.ensureSystemStructure(activeTenant, activeEnv);
@@ -749,7 +749,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   /**
    * Get favorite files.
    */
-  public async getFavoriteFiles(tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<OrionFile[]> {
+  public async getFavoriteFiles(tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<OrionFile[]> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const all = await this.listFiles(null, activeTenant, activeEnv, false);
     return all.filter(f => f.isFavorite);
@@ -758,7 +758,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   /**
    * Toggle favorite state.
    */
-  public async toggleFavorite(fileId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<boolean> {
+  public async toggleFavorite(fileId: string, tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<boolean> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const file = await this.getFile(fileId, activeTenant, activeEnv);
     if (!file) return false;
@@ -770,7 +770,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   /**
    * Get recent files.
    */
-  public async getRecentFiles(limit: number = 10, tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<OrionFile[]> {
+  public async getRecentFiles(limit: number = 10, tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<OrionFile[]> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const all = await this.listFiles(null, activeTenant, activeEnv, false);
     return all
@@ -781,7 +781,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   /**
    * Get deleted files and folders in Recycle Bin.
    */
-  public async getRecycleBinItems(tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<{ files: OrionFile[]; folders: OrionFolder[] }> {
+  public async getRecycleBinItems(tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<{ files: OrionFile[]; folders: OrionFolder[] }> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const files = await this.listFiles(null, activeTenant, activeEnv, true);
     const folders = await this.listFolders(undefined, activeTenant, activeEnv, true);
@@ -791,7 +791,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   /**
    * Empty Recycle Bin.
    */
-  public async emptyRecycleBin(tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<void> {
+  public async emptyRecycleBin(tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<void> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     const { files } = await this.getRecycleBinItems(activeTenant, activeEnv);
     for (const f of files) {
@@ -802,7 +802,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   /**
    * Calculate virtual storage utilization.
    */
-  public async getVirtualStorageInfo(tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<VirtualStorageInfo> {
+  public async getVirtualStorageInfo(tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<VirtualStorageInfo> {
     const { activeTenant, activeEnv } = this.getContext(tenantId, environment);
     await this.ensureSystemStructure(activeTenant, activeEnv);
 
@@ -855,7 +855,7 @@ You are the Orion-9 Demand Sensing Expert. Analyze high-frequency point-of-sale 
   /**
    * Alias method for calculateStorageInfo for desktop widget compatibility.
    */
-  public async calculateStorageInfo(tenantId?: string, environment?: 'DEMO' | 'LIVE'): Promise<VirtualStorageInfo> {
+  public async calculateStorageInfo(tenantId?: string, environment?: 'DEMO' | 'LIVE' | 'STAGING'): Promise<VirtualStorageInfo> {
     return this.getVirtualStorageInfo(tenantId, environment);
   }
 

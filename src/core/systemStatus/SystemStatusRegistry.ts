@@ -13,7 +13,7 @@ import {
   AutomationSubsystemStatus,
 } from './SystemStatusTypes';
 
-export type ProviderFn<T> = (tenantId: string, environment: 'DEMO' | 'LIVE', orgId?: string) => Partial<T> | null;
+export type ProviderFn<T> = (tenantId: string, environment: 'DEMO' | 'LIVE' | 'STAGING', orgId?: string) => Partial<T> | null;
 
 export class SystemStatusRegistry {
   private static instance: SystemStatusRegistry;
@@ -54,7 +54,7 @@ export class SystemStatusRegistry {
     this.notify();
   }
 
-  public getRuntimeOverride(tenantId: string, environment: 'DEMO' | 'LIVE', orgId?: string): Partial<RuntimeSubsystemStatus> | null {
+  public getRuntimeOverride(tenantId: string, environment: 'DEMO' | 'LIVE' | 'STAGING', orgId?: string): Partial<RuntimeSubsystemStatus> | null {
     return this.runtimeProvider ? this.runtimeProvider(tenantId, environment, orgId) : null;
   }
 
@@ -63,7 +63,7 @@ export class SystemStatusRegistry {
     this.notify();
   }
 
-  public getSchedulerOverride(tenantId: string, environment: 'DEMO' | 'LIVE', orgId?: string): Partial<SchedulerSubsystemStatus> | null {
+  public getSchedulerOverride(tenantId: string, environment: 'DEMO' | 'LIVE' | 'STAGING', orgId?: string): Partial<SchedulerSubsystemStatus> | null {
     return this.schedulerProvider ? this.schedulerProvider(tenantId, environment, orgId) : null;
   }
 
@@ -72,7 +72,7 @@ export class SystemStatusRegistry {
     this.notify();
   }
 
-  public getFirestoreOverride(tenantId: string, environment: 'DEMO' | 'LIVE', orgId?: string): Partial<FirestoreSubsystemStatus> | null {
+  public getFirestoreOverride(tenantId: string, environment: 'DEMO' | 'LIVE' | 'STAGING', orgId?: string): Partial<FirestoreSubsystemStatus> | null {
     return this.firestoreProvider ? this.firestoreProvider(tenantId, environment, orgId) : null;
   }
 
@@ -87,7 +87,7 @@ export class SystemStatusRegistry {
     this.notify();
   }
 
-  public getListenerOverride(tenantId: string, environment: 'DEMO' | 'LIVE', orgId?: string) {
+  public getListenerOverride(tenantId: string, environment: 'DEMO' | 'LIVE' | 'STAGING', orgId?: string) {
     return this.listenerProvider ? this.listenerProvider(tenantId, environment, orgId) : null;
   }
 
@@ -102,7 +102,7 @@ export class SystemStatusRegistry {
     this.notify();
   }
 
-  public getFreshnessOverride(tenantId: string, environment: 'DEMO' | 'LIVE', orgId?: string) {
+  public getFreshnessOverride(tenantId: string, environment: 'DEMO' | 'LIVE' | 'STAGING', orgId?: string) {
     return this.freshnessProvider ? this.freshnessProvider(tenantId, environment, orgId) : null;
   }
 
@@ -111,7 +111,7 @@ export class SystemStatusRegistry {
     this.notify();
   }
 
-  public getGraphOverride(tenantId: string, environment: 'DEMO' | 'LIVE', orgId?: string): Partial<GraphSubsystemStatus> | null {
+  public getGraphOverride(tenantId: string, environment: 'DEMO' | 'LIVE' | 'STAGING', orgId?: string): Partial<GraphSubsystemStatus> | null {
     return this.graphProvider ? this.graphProvider(tenantId, environment, orgId) : null;
   }
 
@@ -120,7 +120,7 @@ export class SystemStatusRegistry {
     this.notify();
   }
 
-  public getAutomationOverride(tenantId: string, environment: 'DEMO' | 'LIVE', orgId?: string): Partial<AutomationSubsystemStatus> | null {
+  public getAutomationOverride(tenantId: string, environment: 'DEMO' | 'LIVE' | 'STAGING', orgId?: string): Partial<AutomationSubsystemStatus> | null {
     return this.automationProvider ? this.automationProvider(tenantId, environment, orgId) : null;
   }
 
