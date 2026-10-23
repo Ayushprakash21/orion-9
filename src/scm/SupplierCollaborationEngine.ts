@@ -9,6 +9,7 @@
 
 import { SupplierCommitmentRecord } from './types';
 import { eventBus } from '../kernel/events/eventBus';
+import { scmPersistenceService } from '../services/scm/ScmPersistenceService';
 
 export class SupplierCollaborationEngine {
   private static instance: SupplierCollaborationEngine;
@@ -35,6 +36,16 @@ export class SupplierCollaborationEngine {
     list.unshift(record);
     this.commitments.set(params.tenantId, list);
 
+    // Durable persistence with transactional outbox event
+    scmPersistenceService.saveRecord('supplier_commitments', record.commitmentId, record, {
+      emitEvent: true,
+      eventType: 'scm.supplier_commitment.recorded',
+      partitionKey: `${params.tenantId}:${record.commitmentId}`,
+      idempotencyKey: `collab-${params.tenantId}-${record.commitmentId}`
+    }).catch((err) => {
+      console.warn('[SUPPLIER-COLLAB-ENGINE] Async persistence failed:', err);
+    });
+
     eventBus.emit({
       eventId: `EVT-COLLAB-${Date.now()}`,
       eventType: 'SUPPLIER_COMMITMENT_RECORDED',
@@ -47,8 +58,33 @@ export class SupplierCollaborationEngine {
     return record;
   }
 
-  public getCommitments(tenantId: string): SupplierCommitmentRecord[] {
+  /**
+   * Reconstruct authoritative state from storage for a fresh instance.
+   */
+  public async hydrateFromStorage(tenantId: string): Promise<SupplierCommitmentRecord[]> {
+    const stored = await scmPersistenceService.listRecords<SupplierCommitmentRecord>('supplier_commitments', tenantId);
+    if (stored.length > 0) {
+      this.commitments.set(tenantId, stored);
+      return stored;
+    }
     return this.commitments.get(tenantId) || [];
+  }
+
+  public getCommitments(tenantId: string): SupplierCommitmentRecord[] {
+    const current = this.commitments.get(tenantId);
+    if (current && current.length > 0) {
+      return current;
+    }
+    const cached = scmPersistenceService.listCachedRecords<SupplierCommitmentRecord>('supplier_commitments', tenantId);
+    if (cached.length > 0) {
+      this.commitments.set(tenantId, cached);
+      return cached;
+    }
+    return [];
+  }
+
+  public clear(): void {
+    this.commitments.clear();
   }
 }
 

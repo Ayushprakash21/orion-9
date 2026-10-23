@@ -13,6 +13,7 @@
 
 import { AtpCalculationRecord } from './types';
 import { eventBus } from '../kernel/events/eventBus';
+import { scmPersistenceService } from '../services/scm/ScmPersistenceService';
 
 export interface AtpCheckRequest {
   tenantId: string;
@@ -100,6 +101,16 @@ export class AvailableToPromiseEngine {
     list.unshift(record);
     this.calculations.set(record.tenantId, list);
 
+    // Durable persistence with transactional outbox event
+    scmPersistenceService.saveRecord('atp_calculations', record.atpId, record, {
+      emitEvent: true,
+      eventType: 'scm.atp.calculated',
+      partitionKey: `${record.tenantId}:${record.atpId}`,
+      idempotencyKey: `atp-${record.tenantId}-${record.atpId}`
+    }).catch((err) => {
+      console.warn(`[ATP-ENGINE] Async persistence failed for ${record.atpId}:`, err);
+    });
+
     eventBus.emit({
       eventId: `EVT-ATP-${Date.now()}`,
       eventType: 'ATP_CHECKED',
@@ -119,6 +130,16 @@ export class AvailableToPromiseEngine {
 
     item.allocated = true;
 
+    // Durable persistence of allocation mutation
+    scmPersistenceService.saveRecord('atp_calculations', item.atpId, item, {
+      emitEvent: true,
+      eventType: 'scm.atp.allocated',
+      partitionKey: `${tenantId}:${atpId}`,
+      idempotencyKey: `atp-alloc-${tenantId}-${atpId}`
+    }).catch((err) => {
+      console.warn(`[ATP-ENGINE] Async persistence failed for allocation ${atpId}:`, err);
+    });
+
     eventBus.emit({
       eventId: `EVT-ATP-ALLOC-${Date.now()}`,
       eventType: 'ORDER_ALLOCATED',
@@ -131,8 +152,33 @@ export class AvailableToPromiseEngine {
     return item;
   }
 
-  public getCalculations(tenantId: string): AtpCalculationRecord[] {
+  /**
+   * Reconstruct authoritative state from storage for a fresh instance.
+   */
+  public async hydrateFromStorage(tenantId: string): Promise<AtpCalculationRecord[]> {
+    const stored = await scmPersistenceService.listRecords<AtpCalculationRecord>('atp_calculations', tenantId);
+    if (stored.length > 0) {
+      this.calculations.set(tenantId, stored);
+      return stored;
+    }
     return this.calculations.get(tenantId) || [];
+  }
+
+  public getCalculations(tenantId: string): AtpCalculationRecord[] {
+    const current = this.calculations.get(tenantId);
+    if (current && current.length > 0) {
+      return current;
+    }
+    const cached = scmPersistenceService.listCachedRecords<AtpCalculationRecord>('atp_calculations', tenantId);
+    if (cached.length > 0) {
+      this.calculations.set(tenantId, cached);
+      return cached;
+    }
+    return [];
+  }
+
+  public clear(): void {
+    this.calculations.clear();
   }
 }
 

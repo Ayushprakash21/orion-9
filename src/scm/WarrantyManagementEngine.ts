@@ -9,6 +9,7 @@
 
 import { WarrantyClaimRecord } from './types';
 import { eventBus } from '../kernel/events/eventBus';
+import { scmPersistenceService } from '../services/scm/ScmPersistenceService';
 
 export class WarrantyManagementEngine {
   private static instance: WarrantyManagementEngine;
@@ -32,6 +33,16 @@ export class WarrantyManagementEngine {
     const list = this.claims.get(params.tenantId) || [];
     list.unshift(record);
     this.claims.set(params.tenantId, list);
+
+    // Durable persistence with transactional outbox event
+    scmPersistenceService.saveRecord('warranty_claims', record.claimId, record, {
+      emitEvent: true,
+      eventType: 'scm.warranty.submitted',
+      partitionKey: `${params.tenantId}:${record.claimId}`,
+      idempotencyKey: `warr-${params.tenantId}-${record.claimId}`
+    }).catch((err) => {
+      console.warn('[WARRANTY-ENGINE] Async persistence failed:', err);
+    });
 
     eventBus.emit({
       eventId: `EVT-WARR-SUB-${Date.now()}`,
@@ -60,6 +71,16 @@ export class WarrantyManagementEngine {
     claim.resolution = params.resolution;
     claim.inspectionFinding = params.inspectionFinding;
     claim.resolvedAt = new Date().toISOString();
+
+    // Durable persistence of resolved claim
+    scmPersistenceService.saveRecord('warranty_claims', claim.claimId, claim, {
+      emitEvent: true,
+      eventType: 'scm.warranty.resolved',
+      partitionKey: `${params.tenantId}:${claim.claimId}`,
+      idempotencyKey: `warr-res-${params.tenantId}-${claim.claimId}`
+    }).catch((err) => {
+      console.warn('[WARRANTY-ENGINE] Async update failed:', err);
+    });
     if (params.supplierRecoveryAmount !== undefined) {
       claim.supplierRecoveryAmount = params.supplierRecoveryAmount;
       claim.supplierRecoveryStatus = params.supplierRecoveryAmount > 0 ? 'RECOVERED' : 'NOT_APPLICABLE';
@@ -77,8 +98,33 @@ export class WarrantyManagementEngine {
     return claim;
   }
 
-  public getClaims(tenantId: string): WarrantyClaimRecord[] {
+  /**
+   * Reconstruct authoritative state from storage for a fresh instance.
+   */
+  public async hydrateFromStorage(tenantId: string): Promise<WarrantyClaimRecord[]> {
+    const stored = await scmPersistenceService.listRecords<WarrantyClaimRecord>('warranty_claims', tenantId);
+    if (stored.length > 0) {
+      this.claims.set(tenantId, stored);
+      return stored;
+    }
     return this.claims.get(tenantId) || [];
+  }
+
+  public getClaims(tenantId: string): WarrantyClaimRecord[] {
+    const current = this.claims.get(tenantId);
+    if (current && current.length > 0) {
+      return current;
+    }
+    const cached = scmPersistenceService.listCachedRecords<WarrantyClaimRecord>('warranty_claims', tenantId);
+    if (cached.length > 0) {
+      this.claims.set(tenantId, cached);
+      return cached;
+    }
+    return [];
+  }
+
+  public clear(): void {
+    this.claims.clear();
   }
 }
 

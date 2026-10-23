@@ -220,6 +220,17 @@ export class DeadLetterQueueManager {
     return true;
   }
 
+  public getDeadLetterCount(tenantId?: string): number {
+    if (!tenantId) {
+      return this.deadLetters.size;
+    }
+    let count = 0;
+    for (const record of this.deadLetters.values()) {
+      if (record.tenantId === tenantId) count++;
+    }
+    return count;
+  }
+
   public clear(): void {
     this.deadLetters.clear();
   }

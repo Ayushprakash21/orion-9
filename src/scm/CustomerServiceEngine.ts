@@ -9,6 +9,7 @@
 
 import { CustomerServiceCaseRecord } from './types';
 import { eventBus } from '../kernel/events/eventBus';
+import { scmPersistenceService } from '../services/scm/ScmPersistenceService';
 
 export class CustomerServiceEngine {
   private static instance: CustomerServiceEngine;
@@ -35,6 +36,16 @@ export class CustomerServiceEngine {
     list.unshift(record);
     this.cases.set(params.tenantId, list);
 
+    // Durable persistence with transactional outbox event
+    scmPersistenceService.saveRecord('customer_service_cases', record.caseId, record, {
+      emitEvent: true,
+      eventType: 'scm.customer_service.opened',
+      partitionKey: `${params.tenantId}:${record.caseId}`,
+      idempotencyKey: `cs-${params.tenantId}-${record.caseId}`
+    }).catch((err) => {
+      console.warn('[CS-ENGINE] Async persistence failed:', err);
+    });
+
     eventBus.emit({
       eventId: `EVT-CS-OPEN-${Date.now()}`,
       eventType: 'CUSTOMER_SERVICE_CASE_OPENED',
@@ -56,6 +67,16 @@ export class CustomerServiceEngine {
     csCase.resolutionNotes = resolutionNotes;
     csCase.updatedAt = new Date().toISOString();
 
+    // Durable persistence of case resolution
+    scmPersistenceService.saveRecord('customer_service_cases', csCase.caseId, csCase, {
+      emitEvent: true,
+      eventType: 'scm.customer_service.resolved',
+      partitionKey: `${tenantId}:${csCase.caseId}`,
+      idempotencyKey: `cs-res-${tenantId}-${csCase.caseId}`
+    }).catch((err) => {
+      console.warn('[CS-ENGINE] Async update failed:', err);
+    });
+
     eventBus.emit({
       eventId: `EVT-CS-RES-${Date.now()}`,
       eventType: 'CUSTOMER_SERVICE_CASE_RESOLVED',
@@ -68,8 +89,33 @@ export class CustomerServiceEngine {
     return csCase;
   }
 
-  public getCases(tenantId: string): CustomerServiceCaseRecord[] {
+  /**
+   * Reconstruct authoritative state from storage for a fresh instance.
+   */
+  public async hydrateFromStorage(tenantId: string): Promise<CustomerServiceCaseRecord[]> {
+    const stored = await scmPersistenceService.listRecords<CustomerServiceCaseRecord>('customer_service_cases', tenantId);
+    if (stored.length > 0) {
+      this.cases.set(tenantId, stored);
+      return stored;
+    }
     return this.cases.get(tenantId) || [];
+  }
+
+  public getCases(tenantId: string): CustomerServiceCaseRecord[] {
+    const current = this.cases.get(tenantId);
+    if (current && current.length > 0) {
+      return current;
+    }
+    const cached = scmPersistenceService.listCachedRecords<CustomerServiceCaseRecord>('customer_service_cases', tenantId);
+    if (cached.length > 0) {
+      this.cases.set(tenantId, cached);
+      return cached;
+    }
+    return [];
+  }
+
+  public clear(): void {
+    this.cases.clear();
   }
 }
 

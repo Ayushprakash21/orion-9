@@ -7,6 +7,7 @@
 
 import { DeliveryPodRecord } from './types';
 import { eventBus } from '../kernel/events/eventBus';
+import { scmPersistenceService } from '../services/scm/ScmPersistenceService';
 
 export class DeliveryPodEngine {
   private static instance: DeliveryPodEngine;
@@ -30,6 +31,16 @@ export class DeliveryPodEngine {
     list.unshift(record);
     this.pods.set(params.tenantId, list);
 
+    // Durable persistence with transactional outbox event
+    scmPersistenceService.saveRecord('delivery_pods', record.podId, record, {
+      emitEvent: true,
+      eventType: 'scm.pod.captured',
+      partitionKey: `${params.tenantId}:${record.podId}`,
+      idempotencyKey: `pod-${params.tenantId}-${record.podId}`
+    }).catch((err) => {
+      console.warn('[POD-ENGINE] Async persistence failed:', err);
+    });
+
     eventBus.emit({
       eventId: `EVT-POD-${Date.now()}`,
       eventType: 'POD_CAPTURED',
@@ -42,8 +53,33 @@ export class DeliveryPodEngine {
     return record;
   }
 
-  public getPods(tenantId: string): DeliveryPodRecord[] {
+  /**
+   * Reconstruct authoritative state from storage for a fresh instance.
+   */
+  public async hydrateFromStorage(tenantId: string): Promise<DeliveryPodRecord[]> {
+    const stored = await scmPersistenceService.listRecords<DeliveryPodRecord>('delivery_pods', tenantId);
+    if (stored.length > 0) {
+      this.pods.set(tenantId, stored);
+      return stored;
+    }
     return this.pods.get(tenantId) || [];
+  }
+
+  public getPods(tenantId: string): DeliveryPodRecord[] {
+    const current = this.pods.get(tenantId);
+    if (current && current.length > 0) {
+      return current;
+    }
+    const cached = scmPersistenceService.listCachedRecords<DeliveryPodRecord>('delivery_pods', tenantId);
+    if (cached.length > 0) {
+      this.pods.set(tenantId, cached);
+      return cached;
+    }
+    return [];
+  }
+
+  public clear(): void {
+    this.pods.clear();
   }
 }
 

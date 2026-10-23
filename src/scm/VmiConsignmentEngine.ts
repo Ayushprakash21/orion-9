@@ -9,6 +9,7 @@
 
 import { VmiConsignmentRecord } from './types';
 import { eventBus } from '../kernel/events/eventBus';
+import { scmPersistenceService } from '../services/scm/ScmPersistenceService';
 
 export class VmiConsignmentEngine {
   private static instance: VmiConsignmentEngine;
@@ -33,6 +34,16 @@ export class VmiConsignmentEngine {
     const list = this.inventoryPools.get(params.tenantId) || [];
     list.unshift(record);
     this.inventoryPools.set(params.tenantId, list);
+
+    // Durable persistence with transactional outbox event
+    scmPersistenceService.saveRecord('vmi_pools', record.vmiId, record, {
+      emitEvent: true,
+      eventType: 'scm.vmi_pool.registered',
+      partitionKey: `${params.tenantId}:${record.vmiId}`,
+      idempotencyKey: `vmi-${params.tenantId}-${record.vmiId}`
+    }).catch((err) => {
+      console.warn('[VMI-ENGINE] Async persistence failed:', err);
+    });
 
     eventBus.emit({
       eventId: `EVT-VMI-REG-${Date.now()}`,
@@ -72,8 +83,33 @@ export class VmiConsignmentEngine {
     return pool;
   }
 
-  public getStockPools(tenantId: string): VmiConsignmentRecord[] {
+  /**
+   * Reconstruct authoritative state from storage for a fresh instance.
+   */
+  public async hydrateFromStorage(tenantId: string): Promise<VmiConsignmentRecord[]> {
+    const stored = await scmPersistenceService.listRecords<VmiConsignmentRecord>('vmi_pools', tenantId);
+    if (stored.length > 0) {
+      this.inventoryPools.set(tenantId, stored);
+      return stored;
+    }
     return this.inventoryPools.get(tenantId) || [];
+  }
+
+  public getStockPools(tenantId: string): VmiConsignmentRecord[] {
+    const current = this.inventoryPools.get(tenantId);
+    if (current && current.length > 0) {
+      return current;
+    }
+    const cached = scmPersistenceService.listCachedRecords<VmiConsignmentRecord>('vmi_pools', tenantId);
+    if (cached.length > 0) {
+      this.inventoryPools.set(tenantId, cached);
+      return cached;
+    }
+    return [];
+  }
+
+  public clear(): void {
+    this.inventoryPools.clear();
   }
 }
 

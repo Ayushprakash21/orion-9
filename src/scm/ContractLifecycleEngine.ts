@@ -10,6 +10,7 @@ import {
   ContractLifecycleStatus
 } from './types';
 import { kernelAuditEngine } from '../kernel/AuditEngine';
+import { scmPersistenceService } from '../services/scm/ScmPersistenceService';
 import { observabilityService } from '../operations/ObservabilityService';
 
 export class ContractLifecycleEngine {
@@ -109,6 +110,16 @@ export class ContractLifecycleEngine {
 
     this.contracts.set(contractId, record);
 
+    // Durable persistence with transactional outbox event
+    scmPersistenceService.saveRecord('contracts', contractId, record, {
+      emitEvent: true,
+      eventType: 'scm.contract.created',
+      partitionKey: `${params.tenantId}:${contractId}`,
+      idempotencyKey: `cntr-${params.tenantId}-${contractId}`
+    }).catch((err) => {
+      console.warn('[CONTRACT-ENGINE] Async persistence failed:', err);
+    });
+
     kernelAuditEngine.record({
       action: 'CREATE_CONTRACT_DRAFT',
       actor: { id: params.creator, type: 'USER', name: params.creator },
@@ -130,6 +141,13 @@ export class ContractLifecycleEngine {
     contract.status = 'ACTIVE';
     contract.approvalId = `appr-${Date.now().toString(36)}`;
     contract.updatedAt = new Date().toISOString();
+
+    scmPersistenceService.saveRecord('contracts', contract.contractId, contract, {
+      emitEvent: true,
+      eventType: 'scm.contract.updated',
+      partitionKey: `${contract.tenantId}:${contract.contractId}`,
+      idempotencyKey: `cntr-upd-${contract.tenantId}-${contract.contractId}-${Date.now()}`
+    }).catch(() => {});
 
     kernelAuditEngine.record({
       action: 'APPROVE_CONTRACT',
@@ -221,10 +239,35 @@ export class ContractLifecycleEngine {
     };
   }
 
+  /**
+   * Reconstruct authoritative state from storage for a fresh instance.
+   */
+  public async hydrateFromStorage(tenantId: string): Promise<EnterpriseContractRecord[]> {
+    const stored = await scmPersistenceService.listRecords<EnterpriseContractRecord>('contracts', tenantId);
+    for (const c of stored) {
+      this.contracts.set(c.contractId, c);
+    }
+    return stored;
+  }
+
   public listContracts(tenantId?: string): EnterpriseContractRecord[] {
     const list = Array.from(this.contracts.values());
     if (!tenantId || tenantId === 'GLOBAL') return list;
-    return list.filter(c => c.tenantId === tenantId);
+    const filtered = list.filter(c => c.tenantId === tenantId);
+    if (filtered.length > 0) return filtered;
+
+    const cached = scmPersistenceService.listCachedRecords<EnterpriseContractRecord>('contracts', tenantId);
+    if (cached.length > 0) {
+      for (const c of cached) {
+        this.contracts.set(c.contractId, c);
+      }
+      return cached;
+    }
+    return [];
+  }
+
+  public clear(): void {
+    this.contracts.clear();
   }
 }
 

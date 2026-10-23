@@ -20,6 +20,10 @@ import {
   getCorsHeaders,
   EDGE_SECURITY_HEADERS,
 } from "./server/workerSecurity";
+import { outboxDispatcher } from "./enterprise/events/OutboxDispatcher";
+import { queueConsumer } from "./enterprise/events/QueueConsumer";
+import { deadLetterQueueManager } from "./enterprise/events/DeadLetterQueueManager";
+import { scmPersistenceService } from "./services/scm/ScmPersistenceService";
 import {
   getDurableBranding,
   saveDurableBranding,
@@ -40,6 +44,8 @@ export interface ExecutionContext {
 export interface Env {
   ASSETS: { fetch: (request: Request | string) => Promise<Response> };
   AI?: any; // Cloudflare Workers AI Binding
+  SCM_EVENTS?: any;
+  SCM_EVENTS_DLQ?: any;
   CLOUDFLARE_API_TOKEN?: string;
   CLOUDFLARE_ACCOUNT_ID?: string;
   GEMINI_API_KEY?: string;
@@ -95,12 +101,37 @@ export default {
     }
 
     // 0c. Safe Public Health Check Endpoints (Zero internal IP, port, or credential leakage)
-    if ((url.pathname === "/health" || url.pathname === "/api/health") && request.method === "GET") {
+    if ((url.pathname === "/health" || url.pathname === "/api/health" || url.pathname === "/api/system/status") && request.method === "GET") {
+      const outboxMetrics = scmPersistenceService.getOutboxMetrics();
+      const dlqCount = deadLetterQueueManager.getDeadLetterCount();
+      const lastProcessed = queueConsumer.getLastProcessedAt();
+      const firestoreConnected = Boolean(dbManager.getFirestore(activeEnv) || env.FIREBASE_PROJECT_ID);
+
       return applySecurityHeaders(
         new Response(
           JSON.stringify({
             status: "ok",
-            service: "orion-9"
+            service: "orion-9",
+            environment: activeEnv,
+            firestoreStatus: firestoreConnected ? "CONFIGURED" : "DEGRADED",
+            queueBindingStatus: env.SCM_EVENTS ? "CONFIGURED" : "NOT_CONFIGURED",
+            queueConfigured: Boolean(env.SCM_EVENTS),
+            queueDeliveryVerified: false,
+            deliveryVerificationStatus: "NOT_VERIFIED",
+            outbox: {
+              pendingCount: outboxMetrics.pendingCount,
+              claimedCount: outboxMetrics.claimedCount,
+              publishedCount: outboxMetrics.publishedCount,
+              deadLetterCount: outboxMetrics.deadLetterCount,
+              oldestPendingAgeSeconds: outboxMetrics.oldestPendingAgeSeconds
+            },
+            deadLetterQuarantine: {
+              quarantinedCount: dlqCount
+            },
+            consumer: {
+              lastProcessedAt: lastProcessed
+            },
+            note: "queueDeliveryVerified is false until an actual message round-trip is verified on Cloudflare runtime network"
           }),
           { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }
         ),
@@ -116,6 +147,32 @@ export default {
             status: "ok",
             service: "orion-auth"
           }),
+          { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }
+        ),
+        request
+      );
+    }
+
+    // 0f. Authorized SCM Outbox Dispatch Route
+    if (url.pathname === "/api/scm/events/dispatch" && request.method === "POST") {
+      const token = extractBearerToken(request);
+      const auth = verifyWorkerAuthToken(token, activeEnv);
+      if (!auth.authorized || !auth.user) {
+        return createSecurityErrorResponse(auth.error || "Authentication required.", auth.statusCode || 401);
+      }
+      const isAdmin = auth.user.role === "platform_admin" || auth.user.role === "organization_admin";
+      if (!isAdmin) {
+        return createSecurityErrorResponse("Forbidden: Administrative privileges required to dispatch outbox.", 403);
+      }
+      const isLive = activeEnv === "LIVE";
+      const summary = await outboxDispatcher.dispatch({
+        queue: env.SCM_EVENTS,
+        dlq: env.SCM_EVENTS_DLQ,
+        isLive
+      });
+      return applySecurityHeaders(
+        new Response(
+          JSON.stringify({ success: true, summary }),
           { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }
         ),
         request
@@ -818,25 +875,60 @@ Analyze the supplied document and return a strict JSON object with:
 
     console.log(`[ORION-SCHEDULER] Cloudflare Cron Trigger invoked scheduledTime=${scheduledTime.toISOString()} cron="${controller.cron}"`);
 
-    // 1. Authoritative Server-Side Environment Safety Guard
-    const serverEnv = (env.ORION_RUNTIME_ENVIRONMENT || dbManager.getEnvironment() || "DEMO").toUpperCase();
-    if (serverEnv !== "DEMO") {
-      console.error(`[ORION-SCHEDULER] [DEMO-ENGINE-GUARD] Access Denied: Cloudflare Cron cannot execute in LIVE mode (Active: ${serverEnv}). Execution aborted.`);
-      return;
-    }
-
-    // 2. Execute scheduled hourly generation inside Worker execution context
-    const scheduledTask = async () => {
+    // 1. Run outbox dispatcher cycle
+    const dispatchTask = async () => {
       try {
-        console.log(`[ORION-SCHEDULER] processing scheduledHour=${scheduledHourIso}`);
-        const result = await demoPersistentSchedulerService.executeScheduledHourlyGeneration(scheduledHourIso, false);
-        console.log(`[ORION-SCHEDULER] scheduled execution finished: batchId=${result.batchId} status=${result.status} packages=${result.packagesCount}`);
-      } catch (err: any) {
-        console.error(`[ORION-SCHEDULER] scheduled execution failed scheduledHour=${scheduledHourIso} error:`, err);
+        const serverEnv = (env.ORION_RUNTIME_ENVIRONMENT || dbManager.getEnvironment() || "DEMO").toUpperCase();
+        const isLive = serverEnv === "LIVE";
+        const summary = await outboxDispatcher.dispatch({
+          queue: env.SCM_EVENTS,
+          dlq: env.SCM_EVENTS_DLQ,
+          isLive
+        });
+        console.log(`[ORION-SCHEDULER] Outbox dispatch completed: scanned=${summary.scanned} claimed=${summary.claimed} published=${summary.published} failed=${summary.failed} quarantined=${summary.quarantined}`);
+      } catch (dispatchErr) {
+        console.error(`[ORION-SCHEDULER] Outbox dispatch failed:`, dispatchErr);
       }
     };
 
-    const taskPromise = scheduledTask();
+    // 2. Demo Synthetic Data Engine (DEMO mode only)
+    const serverEnv = (env.ORION_RUNTIME_ENVIRONMENT || dbManager.getEnvironment() || "DEMO").toUpperCase();
+    const demoTask = async () => {
+      if (serverEnv !== "DEMO") {
+        console.log(`[ORION-SCHEDULER] [DEMO-ENGINE-GUARD] Demo generation skipped in LIVE mode.`);
+        return;
+      }
+      try {
+        console.log(`[ORION-SCHEDULER] processing scheduledHour=${scheduledHourIso}`);
+        const result = await demoPersistentSchedulerService.executeScheduledHourlyGeneration(scheduledHourIso, false);
+        console.log(`[ORION-SCHEDULER] demo generation finished: batchId=${result.batchId} status=${result.status} packages=${result.packagesCount}`);
+      } catch (err) {
+        console.error(`[ORION-SCHEDULER] demo generation failed:`, err);
+      }
+    };
+
+    const tasks = Promise.all([dispatchTask(), demoTask()]);
+    if (ctx && typeof ctx.waitUntil === "function") {
+      ctx.waitUntil(tasks);
+    }
+    await tasks;
+  },
+
+  /**
+   * CLOUDFLARE WORKER QUEUE CONSUMER HANDLER
+   */
+  async queue(batch: any, env: Env, ctx: ExecutionContext): Promise<void> {
+    const queueTask = async () => {
+      try {
+        console.log(`[ORION-QUEUE] Received batch of ${batch?.messages?.length || 0} messages from queue=${batch?.queue}`);
+        const results = await queueConsumer.handleBatch(batch, env);
+        console.log(`[ORION-QUEUE] Processed batch: ${results.length} results.`);
+      } catch (err) {
+        console.error(`[ORION-QUEUE] Error processing queue batch:`, err);
+      }
+    };
+
+    const taskPromise = queueTask();
     if (ctx && typeof ctx.waitUntil === "function") {
       ctx.waitUntil(taskPromise);
     }

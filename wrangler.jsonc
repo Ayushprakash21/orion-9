@@ -16,5 +16,27 @@
     "crons": [
       "0 * * * *"
     ]
+  },
+  "queues": {
+    "producers": [
+      {
+        "binding": "SCM_EVENTS",
+        "queue": "orion-scm-events"
+      },
+      {
+        "binding": "SCM_EVENTS_DLQ",
+        "queue": "orion-scm-events-dlq"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "orion-scm-events",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 5,
+        "dead_letter_queue": "orion-scm-events-dlq",
+        "retry_delay": 30
+      }
+    ]
   }
 }

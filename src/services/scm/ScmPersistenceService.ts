@@ -1,7 +1,8 @@
 /**
  * ORION-9 SCM PERSISTENCE SERVICE
  * Authoritative persistence layer for all SCM entities via Cloud Firestore
- * with LocalForage/IndexedDB offline read cache and strict tenant isolation.
+ * with LocalForage/IndexedDB offline read cache, strict tenant isolation,
+ * and Transactional Outbox for Distributed Event Fabric.
  */
 
 import { getFirebaseFirestore } from '../../lib/firebaseClient';
@@ -15,6 +16,7 @@ import {
   deleteDoc,
   query,
   where,
+  runTransaction,
   Firestore,
 } from 'firebase/firestore';
 import { db, loadData, saveData } from '../../data/db';
@@ -22,6 +24,36 @@ import { InventoryTransactionRecord, InventoryTransactionType } from '../../scm/
 import { Inventory } from '../../types';
 import { DatabaseConnectionManager } from '../../core/database/DatabaseConnectionManager';
 import { sanitizeFirestorePayload, validateDesktopItemRecord } from '../../core/database/firestoreSanitizer';
+import { createDistributedEventEnvelope, DistributedEventEnvelope } from '../../enterprise/events/EventEnvelope';
+
+export interface SaveRecordOptions {
+  emitEvent?: boolean;
+  eventType?: string;
+  partitionKey?: string;
+  correlationId?: string;
+  causationId?: string;
+  idempotencyKey?: string;
+}
+
+export interface OutboxEventRecord {
+  id: string;
+  tenantId: string;
+  collectionName: string;
+  entityId: string;
+  environment: 'LIVE' | 'DEMO';
+  status: 'PENDING' | 'CLAIMED' | 'PUBLISHED' | 'FAILED' | 'DEAD_LETTER';
+  envelope: DistributedEventEnvelope;
+  idempotencyKey: string;
+  attempts: number;
+  maxAttempts: number;
+  claimedBy: string | null;
+  claimedAt: string | null;
+  leaseExpiresAt: number | null;
+  fenceToken?: number;
+  createdAt: string;
+  publishedAt: string | null;
+  lastError: string | null;
+}
 
 export class ScmPersistenceService {
   private static instance: ScmPersistenceService;
@@ -42,7 +74,7 @@ export class ScmPersistenceService {
   private initFirestore(): void {
     try {
       this.firestore = getFirebaseFirestore();
-    } catch (err) {
+    } catch {
       // In non-Firebase test environments, gracefully use in-memory and local cache
       this.firestore = null;
     }
@@ -54,11 +86,15 @@ export class ScmPersistenceService {
 
   /**
    * Authoritatively save an entity to Cloud Firestore, memory cache, and offline storage.
+   * When options.emitEvent is true, atomically creates a Transactional Outbox record
+   * in the exact same Firestore transaction as the business write.
    */
   public async saveRecord<T extends { tenantId: string }>(
     collectionName: string,
     id: string,
-    data: T
+    data: T,
+    options?: SaveRecordOptions | boolean,
+    legacyIdempotencyKey?: string
   ): Promise<T> {
     if (!id) {
       throw new Error(`[SCM-VALIDATION-ERROR] Document id is required for ${collectionName}`);
@@ -75,23 +111,86 @@ export class ScmPersistenceService {
     // Sanitize payload: strip any undefined fields and reject non-serializable objects
     const sanitizedData = sanitizeFirestorePayload(data, `${collectionName}/${id}`);
 
+    // Normalize options
+    const opts: SaveRecordOptions = typeof options === 'boolean'
+      ? { emitEvent: options, idempotencyKey: legacyIdempotencyKey }
+      : (options || {});
+
     const env = DatabaseConnectionManager.getInstance().getEnvironment();
+
+    let outboxRecord: OutboxEventRecord | null = null;
+    if (opts.emitEvent) {
+      const idempotencyKey = opts.idempotencyKey || `${data.tenantId}:${collectionName}:${id}:${Date.now()}`;
+      const envelope = createDistributedEventEnvelope({
+        tenantId: data.tenantId,
+        eventType: opts.eventType || `scm.${collectionName}.saved`,
+        partitionKey: opts.partitionKey || `${data.tenantId}:${id}`,
+        correlationId: opts.correlationId,
+        causationId: opts.causationId,
+        producer: 'orion-scm-persistence',
+        idempotencyKey,
+        payload: sanitizedData,
+      });
+
+      const outboxId = `outbox_${idempotencyKey.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
+      outboxRecord = {
+        id: outboxId,
+        tenantId: data.tenantId,
+        collectionName,
+        entityId: id,
+        environment: env,
+        status: 'PENDING',
+        envelope,
+        idempotencyKey,
+        attempts: 0,
+        maxAttempts: 5,
+        claimedBy: null,
+        claimedAt: null,
+        leaseExpiresAt: null,
+        createdAt: new Date().toISOString(),
+        publishedAt: null,
+        lastError: null,
+      };
+    }
+
     if (env === 'LIVE') {
       const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore('LIVE') || this.firestore;
       if (!firestoreInstance) {
         throw new Error(`[SCM-AUTHORITATIVE-ERROR] LIVE environment requested but Firestore instance is unavailable for ${collectionName}/${id}. Unpersisted writes are rejected.`);
       }
-      try {
-        const ref = doc(firestoreInstance, collectionName, id);
-        await setDoc(ref, sanitizedData, { merge: true });
-      } catch (err: any) {
-        console.error(`[SCM-PERSISTENCE] Authoritative Firestore write failed for ${collectionName}/${id}:`, err);
-        throw new Error(`[SCM-AUTHORITATIVE-ERROR] Firestore persistence failed for ${collectionName}/${id}: ${err?.message || err}`);
+
+      if (opts.emitEvent && outboxRecord) {
+        // Atomic transaction: business write + outbox record in the same commit
+        const businessRef = doc(firestoreInstance, collectionName, id);
+        const outboxRef = doc(firestoreInstance, 'outbox_events', outboxRecord.id);
+
+        try {
+          await runTransaction(firestoreInstance, async (transaction) => {
+            transaction.set(businessRef, sanitizedData, { merge: true });
+            transaction.set(outboxRef, outboxRecord);
+          });
+        } catch (err: any) {
+          console.error(`[SCM-PERSISTENCE] Atomic Firestore write + outbox failed for ${collectionName}/${id}:`, err);
+          throw new Error(`[SCM-AUTHORITATIVE-ERROR] Firestore persistence failed for ${collectionName}/${id}: ${err?.message || err}`);
+        }
+      } else {
+        try {
+          const ref = doc(firestoreInstance, collectionName, id);
+          await setDoc(ref, sanitizedData, { merge: true });
+        } catch (err: any) {
+          console.error(`[SCM-PERSISTENCE] Authoritative Firestore write failed for ${collectionName}/${id}:`, err);
+          throw new Error(`[SCM-AUTHORITATIVE-ERROR] Firestore persistence failed for ${collectionName}/${id}: ${err?.message || err}`);
+        }
       }
     }
 
     const key = this.getCacheKey(collectionName, data.tenantId, id);
     this.memoryCache.set(key, sanitizedData);
+
+    if (opts.emitEvent && outboxRecord) {
+      const outboxKey = this.getCacheKey('outbox_events', data.tenantId, outboxRecord.id);
+      this.memoryCache.set(outboxKey, outboxRecord);
+    }
 
     // Offline cache sync (read cache & local persistence)
     try {
@@ -101,6 +200,320 @@ export class ScmPersistenceService {
     }
 
     return sanitizedData as T;
+  }
+
+  /**
+   * Retrieve pending or expired-lease outbox events.
+   */
+  public async getPendingOutboxEvents(tenantId?: string, limitCount: number = 50): Promise<OutboxEventRecord[]> {
+    const currentEnv = DatabaseConnectionManager.getInstance().getEnvironment();
+    const candidates: OutboxEventRecord[] = [];
+    const now = Date.now();
+
+    if (currentEnv === 'LIVE' && this.firestore) {
+      try {
+        const colRef = collection(this.firestore, 'outbox_events');
+        const q = tenantId
+          ? query(colRef, where('tenantId', '==', tenantId))
+          : query(colRef);
+        const snap = await getDocs(q);
+        snap.forEach((d) => {
+          const item = d.data() as OutboxEventRecord;
+          const isExpiredClaim = item.status === 'CLAIMED' && (!item.leaseExpiresAt || item.leaseExpiresAt <= now);
+          if (item.status === 'PENDING' || isExpiredClaim) {
+            candidates.push(item);
+          }
+        });
+        if (candidates.length > 0) {
+          return candidates.slice(0, limitCount);
+        }
+      } catch (err) {
+        console.warn('[SCM-PERSISTENCE] Firestore read outbox_events failed, falling back to cache:', err);
+      }
+    }
+
+    // Fallback to in-memory cache
+    for (const [key, value] of this.memoryCache.entries()) {
+      if (key.startsWith('outbox_events:')) {
+        const rec = value as OutboxEventRecord;
+        if (!tenantId || rec.tenantId === tenantId) {
+          const isExpiredClaim = rec.status === 'CLAIMED' && (!rec.leaseExpiresAt || rec.leaseExpiresAt <= now);
+          if (rec.status === 'PENDING' || isExpiredClaim) {
+            candidates.push(rec);
+          }
+        }
+      }
+    }
+
+    return candidates.slice(0, limitCount);
+  }
+
+  /**
+   * Concurrency-safe outbox event claim using a lease with ownership and expiry.
+   * Prevents two workers from claiming or publishing the same event simultaneously.
+   */
+  public async claimOutboxEvent(
+    outboxId: string,
+    workerId: string,
+    leaseDurationMs: number = 60000
+  ): Promise<OutboxEventRecord | null> {
+    const currentEnv = DatabaseConnectionManager.getInstance().getEnvironment();
+    const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore('LIVE') || this.firestore;
+    const now = Date.now();
+
+    if (currentEnv === 'LIVE' && firestoreInstance) {
+      try {
+        const outboxRef = doc(firestoreInstance, 'outbox_events', outboxId);
+        return await runTransaction(firestoreInstance, async (transaction) => {
+          const snap = await transaction.get(outboxRef);
+          if (!snap.exists()) {
+            return null;
+          }
+          const data = snap.data() as OutboxEventRecord;
+          const isExpiredClaim = data.status === 'CLAIMED' && (!data.leaseExpiresAt || data.leaseExpiresAt <= now);
+          const isEligible = data.status === 'PENDING' || isExpiredClaim;
+          if (!isEligible) {
+            return null;
+          }
+
+          if ((data.attempts || 0) >= (data.maxAttempts || 5)) {
+            transaction.set(outboxRef, { ...data, status: 'DEAD_LETTER', lastError: 'Max retries exhausted prior to claim' }, { merge: true });
+            return null;
+          }
+
+          const nextFenceToken = (data.fenceToken || 0) + 1;
+          const claimed: OutboxEventRecord = {
+            ...data,
+            status: 'CLAIMED',
+            claimedBy: workerId,
+            claimedAt: new Date(now).toISOString(),
+            leaseExpiresAt: now + leaseDurationMs,
+            fenceToken: nextFenceToken,
+            attempts: (data.attempts || 0) + 1,
+          };
+          transaction.set(outboxRef, claimed, { merge: true });
+          return claimed;
+        });
+      } catch (err) {
+        console.warn(`[SCM-PERSISTENCE] Transactional claimOutboxEvent failed for ${outboxId}:`, err);
+        return null;
+      }
+    }
+
+    // In-memory claim
+    for (const [key, value] of this.memoryCache.entries()) {
+      if (key.startsWith('outbox_events:') && (value as OutboxEventRecord).id === outboxId) {
+        const data = value as OutboxEventRecord;
+        const isExpiredClaim = data.status === 'CLAIMED' && (!data.leaseExpiresAt || data.leaseExpiresAt <= now);
+        const isEligible = data.status === 'PENDING' || isExpiredClaim;
+        if (!isEligible) {
+          return null;
+        }
+        if ((data.attempts || 0) >= (data.maxAttempts || 5)) {
+          data.status = 'DEAD_LETTER';
+          data.lastError = 'Max retries exhausted prior to claim';
+          return null;
+        }
+        const nextFenceToken = (data.fenceToken || 0) + 1;
+        data.status = 'CLAIMED';
+        data.claimedBy = workerId;
+        data.claimedAt = new Date(now).toISOString();
+        data.leaseExpiresAt = now + leaseDurationMs;
+        data.fenceToken = nextFenceToken;
+        data.attempts = (data.attempts || 0) + 1;
+        return { ...data };
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Mark an outbox event as successfully published.
+   * STRICT LEASE OWNERSHIP: Verifies that the outbox event is currently claimed by workerId.
+   * If a stale worker lost its lease to a newer worker, the update is rejected (returns false).
+   */
+  public async markOutboxPublished(outboxId: string, workerId: string, fenceToken?: number): Promise<boolean> {
+    const currentEnv = DatabaseConnectionManager.getInstance().getEnvironment();
+    const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore('LIVE') || this.firestore;
+    const nowIso = new Date().toISOString();
+
+    if (currentEnv === 'LIVE' && firestoreInstance) {
+      try {
+        const outboxRef = doc(firestoreInstance, 'outbox_events', outboxId);
+        return await runTransaction(firestoreInstance, async (transaction) => {
+          const snap = await transaction.get(outboxRef);
+          if (!snap.exists()) {
+            return false;
+          }
+          const data = snap.data() as OutboxEventRecord;
+          if (data.status === 'PUBLISHED') {
+            return true;
+          }
+          if (data.claimedBy !== workerId) {
+            console.warn(`[SCM-PERSISTENCE] Stale worker ${workerId} denied from marking ${outboxId} published. Current owner is ${data.claimedBy}`);
+            return false;
+          }
+          if (fenceToken !== undefined && data.fenceToken !== undefined && data.fenceToken !== fenceToken) {
+            console.warn(`[SCM-PERSISTENCE] Fence token mismatch for ${outboxId}: current fence ${data.fenceToken}, worker fence ${fenceToken}`);
+            return false;
+          }
+          transaction.update(outboxRef, {
+            status: 'PUBLISHED',
+            publishedAt: nowIso,
+            claimedBy: null,
+            leaseExpiresAt: null,
+          });
+          return true;
+        });
+      } catch (err) {
+        console.warn(`[SCM-PERSISTENCE] markOutboxPublished firestore update failed for ${outboxId}:`, err);
+        return false;
+      }
+    }
+
+    for (const [key, value] of this.memoryCache.entries()) {
+      if (key.startsWith('outbox_events:') && (value as OutboxEventRecord).id === outboxId) {
+        const rec = value as OutboxEventRecord;
+        if (rec.status === 'PUBLISHED') {
+          return true;
+        }
+        if (rec.claimedBy !== workerId) {
+          console.warn(`[SCM-PERSISTENCE] Stale worker ${workerId} denied from marking ${outboxId} published. Current owner is ${rec.claimedBy}`);
+          return false;
+        }
+        if (fenceToken !== undefined && rec.fenceToken !== undefined && rec.fenceToken !== fenceToken) {
+          console.warn(`[SCM-PERSISTENCE] Fence token mismatch for ${outboxId}: current fence ${rec.fenceToken}, worker fence ${fenceToken}`);
+          return false;
+        }
+        rec.status = 'PUBLISHED';
+        rec.publishedAt = nowIso;
+        rec.claimedBy = null;
+        rec.leaseExpiresAt = null;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Mark an outbox event as failed or permanently dead-lettered.
+   * STRICT LEASE OWNERSHIP: Only allows update if the outbox event is currently claimed by workerId.
+   */
+  public async markOutboxFailed(
+    outboxId: string,
+    workerId: string,
+    error: string,
+    isPermanent: boolean = false,
+    fenceToken?: number
+  ): Promise<boolean> {
+    const currentEnv = DatabaseConnectionManager.getInstance().getEnvironment();
+    const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore('LIVE') || this.firestore;
+    const newStatus = isPermanent ? 'DEAD_LETTER' : 'PENDING';
+
+    if (currentEnv === 'LIVE' && firestoreInstance) {
+      try {
+        const outboxRef = doc(firestoreInstance, 'outbox_events', outboxId);
+        return await runTransaction(firestoreInstance, async (transaction) => {
+          const snap = await transaction.get(outboxRef);
+          if (!snap.exists()) return false;
+          const data = snap.data() as OutboxEventRecord;
+          if (data.status === 'PUBLISHED') return false;
+          if (data.claimedBy !== workerId) {
+            console.warn(`[SCM-PERSISTENCE] Stale worker ${workerId} denied from failing ${outboxId}. Current owner is ${data.claimedBy}`);
+            return false;
+          }
+          if (fenceToken !== undefined && data.fenceToken !== undefined && data.fenceToken !== fenceToken) {
+            console.warn(`[SCM-PERSISTENCE] Fence token mismatch for ${outboxId}: current fence ${data.fenceToken}, worker fence ${fenceToken}`);
+            return false;
+          }
+          transaction.update(outboxRef, {
+            status: newStatus,
+            lastError: error,
+            claimedBy: null,
+            leaseExpiresAt: null,
+          });
+          return true;
+        });
+      } catch (err) {
+        console.warn(`[SCM-PERSISTENCE] markOutboxFailed firestore update failed for ${outboxId}:`, err);
+        return false;
+      }
+    }
+
+    for (const [key, value] of this.memoryCache.entries()) {
+      if (key.startsWith('outbox_events:') && (value as OutboxEventRecord).id === outboxId) {
+        const rec = value as OutboxEventRecord;
+        if (rec.status === 'PUBLISHED') return false;
+        if (rec.claimedBy !== workerId) {
+          console.warn(`[SCM-PERSISTENCE] Stale worker ${workerId} denied from failing ${outboxId}. Current owner is ${rec.claimedBy}`);
+          return false;
+        }
+        if (fenceToken !== undefined && rec.fenceToken !== undefined && rec.fenceToken !== fenceToken) {
+          console.warn(`[SCM-PERSISTENCE] Fence token mismatch for ${outboxId}: current fence ${rec.fenceToken}, worker fence ${fenceToken}`);
+          return false;
+        }
+        rec.status = newStatus;
+        rec.lastError = error;
+        rec.claimedBy = null;
+        rec.leaseExpiresAt = null;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Safe operational outbox metrics for system status and health endpoints.
+   * Never leaks payloads, customer data, or internal credentials.
+   */
+  public getOutboxMetrics(tenantId?: string): {
+    pendingCount: number;
+    claimedCount: number;
+    publishedCount: number;
+    deadLetterCount: number;
+    oldestPendingAgeSeconds: number | null;
+  } {
+    let pendingCount = 0;
+    let claimedCount = 0;
+    let publishedCount = 0;
+    let deadLetterCount = 0;
+    let oldestPendingTimestamp: number | null = null;
+    const now = Date.now();
+
+    for (const [key, value] of this.memoryCache.entries()) {
+      if (key.startsWith('outbox_events:')) {
+        const rec = value as OutboxEventRecord;
+        if (tenantId && rec.tenantId !== tenantId) continue;
+        if (rec.status === 'PENDING') {
+          pendingCount++;
+          const created = Date.parse(rec.createdAt);
+          if (!isNaN(created)) {
+            if (oldestPendingTimestamp === null || created < oldestPendingTimestamp) {
+              oldestPendingTimestamp = created;
+            }
+          }
+        } else if (rec.status === 'CLAIMED') {
+          claimedCount++;
+        } else if (rec.status === 'PUBLISHED') {
+          publishedCount++;
+        } else if (rec.status === 'DEAD_LETTER') {
+          deadLetterCount++;
+        }
+      }
+    }
+
+    const oldestPendingAgeSeconds = oldestPendingTimestamp !== null
+      ? Math.max(0, Math.floor((now - oldestPendingTimestamp) / 1000))
+      : null;
+
+    return {
+      pendingCount,
+      claimedCount,
+      publishedCount,
+      deadLetterCount,
+      oldestPendingAgeSeconds
+    };
   }
 
   /**
@@ -181,7 +594,7 @@ export class ScmPersistenceService {
         if (results.length > 0) {
           return results;
         }
-      } catch (err) {
+      } catch {
         // Fall back to memory cache
       }
     }
@@ -294,7 +707,8 @@ export class ScmPersistenceService {
     referenceEntityType: 'GRN' | 'PUTAWAY' | 'CUSTOMER_ORDER' | 'CYCLE_COUNT' | 'TRANSFER' | 'PRODUCTION_ORDER' | 'RMA';
     referenceEntityId: string;
     actor: string;
-    correlationId: string;
+    operationId?: string;
+    correlationId?: string;
     lotNumber?: string;
     batchNumber?: string;
   }): Promise<{ balanceBefore: number; balanceAfter: number; transactionId: string; isDuplicate?: boolean }> {
@@ -306,6 +720,10 @@ export class ScmPersistenceService {
     }
     if (!params.warehouseId) {
       throw new Error('[SCM-VALIDATION-ERROR] warehouseId is required for inventory adjustment');
+    }
+    const stableOpId = (params.operationId || params.correlationId || '').trim();
+    if (!stableOpId) {
+      throw new Error('[SCM-IDEMPOTENCY-ERROR] Stable operationId or correlationId is required for inventory adjustment. Omission is rejected to prevent silent duplicate mutations on retry.');
     }
 
     const lockKey = `${params.tenantId}:${params.warehouseId}:${params.productId}`;
@@ -329,14 +747,17 @@ export class ScmPersistenceService {
     referenceEntityType: 'GRN' | 'PUTAWAY' | 'CUSTOMER_ORDER' | 'CYCLE_COUNT' | 'TRANSFER' | 'PRODUCTION_ORDER' | 'RMA';
     referenceEntityId: string;
     actor: string;
-    correlationId: string;
+    operationId?: string;
+    correlationId?: string;
     lotNumber?: string;
     batchNumber?: string;
   }): Promise<{ balanceBefore: number; balanceAfter: number; transactionId: string; isDuplicate?: boolean }> {
-    // 0. Idempotency pre-check via correlationId
-    if (params.correlationId) {
+    const stableOpId = (params.operationId || params.correlationId || '').trim();
+
+    // 0a. Idempotency pre-check via stable operationId / correlationId
+    if (stableOpId) {
       const existingTxs = this.listCachedRecords<InventoryTransactionRecord>('inventory_transactions', params.tenantId);
-      const matched = existingTxs.find((tx) => tx.correlationId === params.correlationId);
+      const matched = existingTxs.find((tx) => tx.correlationId === stableOpId || (tx as any).operationId === stableOpId);
       if (matched) {
         return {
           balanceBefore: matched.balanceBefore,
@@ -344,6 +765,24 @@ export class ScmPersistenceService {
           transactionId: matched.transactionId,
           isDuplicate: true,
         };
+      }
+    }
+
+    // 0b. Command-level conflict detection: prevent retrying the same business command under an altered operation ID
+    if (params.referenceEntityType && params.referenceEntityId) {
+      const commandKey = `cmd:${params.tenantId}:${params.referenceEntityType}:${params.referenceEntityId}:${params.productId}`;
+      const existingCmd = this.memoryCache.get(commandKey) as any;
+      if (existingCmd) {
+        if (existingCmd.operationId === stableOpId) {
+          return {
+            balanceBefore: existingCmd.balanceBefore,
+            balanceAfter: existingCmd.balanceAfter,
+            transactionId: existingCmd.transactionId,
+            isDuplicate: true,
+          };
+        } else {
+          throw new Error(`[SCM-DUPLICATE-OPERATION-CONFLICT] Business operation for ${params.referenceEntityType}:${params.referenceEntityId} on product ${params.productId} was already executed under operation ID '${existingCmd.operationId}'. Retrying without original correlation ID is rejected to prevent duplicate mutations.`);
+        }
       }
     }
 
@@ -373,11 +812,22 @@ export class ScmPersistenceService {
       lastUpdated: now,
     };
 
-    await this.saveRecord('inventory', invId, updatedInv);
+    // Operation-level stable idempotency key
+    // Distinguishes legitimate separate adjustments while preserving key on retries
+    const inventoryAdjustmentIdempotencyKey = `inv-op:${params.tenantId}:${invId}:${stableOpId}`;
+
+    // Save inventory mutation with transactional outbox event
+    await this.saveRecord('inventory', invId, updatedInv, {
+      emitEvent: true,
+      eventType: 'scm.inventory.adjusted',
+      partitionKey: `${params.tenantId}:${invId}`,
+      correlationId: stableOpId,
+      idempotencyKey: inventoryAdjustmentIdempotencyKey
+    });
 
     // 2. Post immutable inventory transaction
     const transactionId = `TX-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-    const txRecord: InventoryTransactionRecord = {
+    const txRecord: InventoryTransactionRecord & { operationId?: string } = {
       transactionId,
       tenantId: params.tenantId,
       transactionType: params.transactionType,
@@ -389,13 +839,32 @@ export class ScmPersistenceService {
       referenceEntityType: params.referenceEntityType,
       referenceEntityId: params.referenceEntityId,
       actor: params.actor,
-      correlationId: params.correlationId,
+      correlationId: stableOpId,
+      operationId: stableOpId,
       lotNumber: params.lotNumber,
       batchNumber: params.batchNumber,
       timestamp: now,
     };
 
-    await this.saveRecord('inventory_transactions', transactionId, txRecord);
+    await this.saveRecord('inventory_transactions', transactionId, txRecord, {
+      emitEvent: true,
+      eventType: 'scm.inventory_transaction.created',
+      partitionKey: `${params.tenantId}:${transactionId}`,
+      correlationId: stableOpId,
+      idempotencyKey: `tx-${params.tenantId}-${stableOpId}`
+    });
+
+    // Persist canonical command record in cache for conflict detection
+    if (params.referenceEntityType && params.referenceEntityId) {
+      const commandKey = `cmd:${params.tenantId}:${params.referenceEntityType}:${params.referenceEntityId}:${params.productId}`;
+      this.memoryCache.set(commandKey, {
+        operationId: stableOpId,
+        balanceBefore,
+        balanceAfter,
+        transactionId,
+        timestamp: now,
+      });
+    }
 
     return { balanceBefore, balanceAfter, transactionId };
   }
