@@ -864,7 +864,8 @@ Analyze the supplied document and return a strict JSON object with:
   },
 
   /**
-   * CLOUDFLARE WORKER CRON TRIGGER HANDLER (0 * * * *)
+   * CLOUDFLARE WORKER CRON TRIGGER HANDLER (* * * * *)
+   * Runs every minute for outbox dispatch; generates synthetic data at minute 0 UTC.
    * Runs once every hour at minute 0 UTC.
    * Generates EXACTLY 30 enterprise synthetic packages into DEMO Firestore.
    */
@@ -891,11 +892,15 @@ Analyze the supplied document and return a strict JSON object with:
       }
     };
 
-    // 2. Demo Synthetic Data Engine (DEMO mode only)
+    // 2. Demo Synthetic Data Engine (DEMO mode only - generates on the hour at minute 0)
     const serverEnv = (env.ORION_RUNTIME_ENVIRONMENT || dbManager.getEnvironment() || "DEMO").toUpperCase();
     const demoTask = async () => {
       if (serverEnv !== "DEMO") {
         console.log(`[ORION-SCHEDULER] [DEMO-ENGINE-GUARD] Demo generation skipped in LIVE mode.`);
+        return;
+      }
+      if (scheduledTime.getUTCMinutes() !== 0) {
+        // Hourly batch generation only executes at minute 0 of each hour
         return;
       }
       try {

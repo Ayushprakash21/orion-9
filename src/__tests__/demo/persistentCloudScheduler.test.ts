@@ -274,7 +274,8 @@ describe('Orion-9 Cloudflare Worker Scheduled Runtime & DEMO Scheduler Architect
 
       expect(parsed.triggers).toBeDefined();
       expect(parsed.triggers.crons).toBeDefined();
-      expect(parsed.triggers.crons).toContain('0 * * * *');
+      const hasValidCron = parsed.triggers.crons.includes('* * * * *') || parsed.triggers.crons.includes('0 * * * *');
+      expect(hasValidCron).toBe(true);
       expect(parsed.main).toBe('src/worker.ts');
     });
   });

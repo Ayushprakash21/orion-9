@@ -7,6 +7,7 @@
     "enabled": true
   },
   "assets": {
+    "directory": "dist/client",
     "not_found_handling": "single-page-application"
   },
   "ai": {
@@ -14,7 +15,7 @@
   },
   "triggers": {
     "crons": [
-      "0 * * * *"
+      "* * * * *"
     ]
   },
   "queues": {
@@ -38,5 +39,70 @@
         "retry_delay": 30
       }
     ]
+  },
+  "env": {
+    "staging": {
+      "name": "orion-9-staging",
+      "ai": {
+        "binding": "AI"
+      },
+      "vars": {
+        "ORION_RUNTIME_ENVIRONMENT": "DEMO",
+        "FIREBASE_PROJECT_ID": "orion-9-staging"
+      },
+      "queues": {
+        "producers": [
+          {
+            "binding": "SCM_EVENTS",
+            "queue": "orion-scm-events-staging"
+          },
+          {
+            "binding": "SCM_EVENTS_DLQ",
+            "queue": "orion-scm-events-dlq-staging"
+          }
+        ],
+        "consumers": [
+          {
+            "queue": "orion-scm-events-staging",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 5,
+            "dead_letter_queue": "orion-scm-events-dlq-staging",
+            "retry_delay": 30
+          }
+        ]
+      }
+    },
+    "production": {
+      "name": "orion-9",
+      "ai": {
+        "binding": "AI"
+      },
+      "vars": {
+        "ORION_RUNTIME_ENVIRONMENT": "LIVE"
+      },
+      "queues": {
+        "producers": [
+          {
+            "binding": "SCM_EVENTS",
+            "queue": "orion-scm-events"
+          },
+          {
+            "binding": "SCM_EVENTS_DLQ",
+            "queue": "orion-scm-events-dlq"
+          }
+        ],
+        "consumers": [
+          {
+            "queue": "orion-scm-events",
+            "max_batch_size": 10,
+            "max_batch_timeout": 5,
+            "max_retries": 5,
+            "dead_letter_queue": "orion-scm-events-dlq",
+            "retry_delay": 30
+          }
+        ]
+      }
+    }
   }
 }
