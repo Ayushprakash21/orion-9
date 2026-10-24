@@ -24,6 +24,9 @@ import { outboxDispatcher } from "./enterprise/events/OutboxDispatcher";
 import { queueConsumer } from "./enterprise/events/QueueConsumer";
 import { deadLetterQueueManager } from "./enterprise/events/DeadLetterQueueManager";
 import { scmPersistenceService } from "./services/scm/ScmPersistenceService";
+import { ediFabric } from "./integration/edi/EDIFabric";
+
+const seenInterchangeControlNumbers = new Set<string>();
 import {
   getDurableBranding,
   saveDurableBranding,
@@ -840,6 +843,109 @@ Analyze the supplied document and return a strict JSON object with:
       } catch (err: any) {
         return createSafeErrorResponse(err, 500, "Failed to analyze document.", request);
       }
+    }
+
+    // 7. POST /api/edi/receive or /api/integration/edi/receive (Inbound Enterprise EDI Pipeline)
+    if (
+      (url.pathname === "/api/edi/receive" || url.pathname === "/api/integration/edi/receive") &&
+      request.method === "POST"
+    ) {
+      const partnerKey = request.headers.get("X-Orion-Partner-Key");
+      let authenticatedTenantId = request.headers.get("X-Orion-Tenant-Id") || "";
+
+      if (!partnerKey) {
+        const token = extractBearerToken(request);
+        const auth = verifyWorkerAuthToken(token, activeEnv);
+        if (!auth.authorized) {
+          return createSecurityErrorResponse(`Unauthorized: ${auth.error || 'Valid Bearer JWT or X-Orion-Partner-Key required.'}`, 401);
+        }
+        if (!authenticatedTenantId && auth.user?.organizationId) {
+          authenticatedTenantId = auth.user.organizationId;
+        }
+      }
+
+      const rawPayload = await request.text();
+      if (!rawPayload || rawPayload.trim().length === 0) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "EMPTY_PAYLOAD",
+            message: "EDI payload cannot be empty or whitespace."
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      const parsingResult = ediFabric.parseX12(rawPayload);
+      if (!parsingResult.isValid || !parsingResult.envelope) {
+        const rejectedAck997 = [
+          "ISA*00*          *00*          *ZZ*ORION9_HUB     *ZZ*UNKNOWN        *261024*0000*U*00401*000000001*0*P*>~",
+          "GS*FA*ORION9_HUB*UNKNOWN*20261024*0000*1*X*004010~",
+          "ST*997*0001~",
+          "AK1*UNKNOWN*0001~",
+          "AK9*R*1*1*0~",
+          "SE*4*0001~",
+          "GE*1*1~",
+          "IEA*1*000000001~"
+        ].join("");
+
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "EDI_VALIDATION_FAILED",
+            message: "EDI document failed structural syntax validation.",
+            errors: parsingResult.errors,
+            ack997: rejectedAck997
+          }),
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      const envelope = parsingResult.envelope;
+      const dedupeKey = `${envelope.senderId}:${envelope.interchangeControlNumber}`;
+
+      if (seenInterchangeControlNumbers.has(dedupeKey)) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "DUPLICATE_TRANSMISSION",
+            message: `EDI interchange control number ${envelope.interchangeControlNumber} from ${envelope.senderId} has already been processed.`
+          }),
+          { status: 409, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      seenInterchangeControlNumbers.add(dedupeKey);
+
+      const ack997 = ediFabric.generate997(envelope, "A");
+
+      if (env.SCM_EVENTS && typeof env.SCM_EVENTS.send === "function") {
+        await env.SCM_EVENTS.send({
+          eventType: `edi.${envelope.transactionType}.received`,
+          eventId: `edi-${envelope.interchangeControlNumber}-${Date.now()}`,
+          tenantId: authenticatedTenantId || "default-tenant",
+          payload: {
+            envelope,
+            parsedData: envelope.parsedData,
+            receivedAt: new Date().toISOString()
+          },
+          timestamp: new Date().toISOString()
+        });
+      }
+
+      return applySecurityHeaders(
+        new Response(
+          JSON.stringify({
+            success: true,
+            transactionType: envelope.transactionType,
+            interchangeControlNumber: envelope.interchangeControlNumber,
+            senderId: envelope.senderId,
+            parsedData: envelope.parsedData,
+            ack997: ack997.raw997
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        ),
+        request
+      );
     }
 
     // API 404 Guard: Unknown /api/* routes must never fall back to SPA index.html

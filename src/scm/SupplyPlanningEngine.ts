@@ -11,6 +11,7 @@ import {
 } from './types';
 import { kernelAuditEngine } from '../kernel/AuditEngine';
 import { observabilityService } from '../operations/ObservabilityService';
+import { scmPersistenceService } from '../services/scm/ScmPersistenceService';
 
 export class SupplyPlanningEngine {
   private static instance: SupplyPlanningEngine;
@@ -219,6 +220,48 @@ export class SupplyPlanningEngine {
 
     po.status = 'CONVERTED';
     po.convertedEntityId = params.convertedEntityId;
+
+    if (po.type === 'PLANNED_PO') {
+      const subtotal = po.quantity * 150;
+      const taxAmount = Math.round(subtotal * 0.08 * 100) / 100;
+      const freightAmount = 150;
+      const totalAmount = subtotal + taxAmount + freightAmount;
+
+      const poRecord = {
+        poId: params.convertedEntityId,
+        tenantId: params.tenantId,
+        poNumber: `PO-${Date.now().toString().slice(-6)}`,
+        supplierId: 'SUP-001',
+        items: [{
+          lineId: `line-${Date.now()}`,
+          productId: po.productId,
+          quantity: po.quantity,
+          unitPrice: 150,
+          totalPrice: subtotal,
+          unitOfMeasure: 'EA',
+          expectedDeliveryDate: po.requiredDate
+        }],
+        subtotal,
+        taxAmount,
+        freightAmount,
+        totalAmount,
+        currency: 'USD',
+        paymentTerms: 'NET30',
+        incoterms: 'FOB',
+        deliveryLocation: po.warehouseId,
+        status: 'APPROVED' as const,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      scmPersistenceService.saveRecord('purchase_orders', params.convertedEntityId, poRecord, {
+        emitEvent: true,
+        eventType: 'purchase_order.created',
+        idempotencyKey: `idemp-convert-${params.plannedOrderId}`
+      }).catch(err => {
+        observabilityService.log('WARN', `Async PO persistence from planned order failed: ${err.message}`, { tenantId: params.tenantId });
+      });
+    }
 
     kernelAuditEngine.record({
       action: 'CONVERT_PLANNED_ORDER',

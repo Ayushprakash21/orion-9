@@ -10,11 +10,11 @@
  * - Kernel CommandBus routing & Event Fabric dispatch
  */
 
-import * as crypto from 'node:crypto';
 import { CircuitBreaker } from '../CircuitBreaker';
 import { messageBroker } from '../../enterprise/events/MessageBroker';
 import { createDistributedEventEnvelope } from '../../enterprise/events/EventEnvelope';
 import { credentialVaultService } from '../CredentialVaultService';
+import { hmacSha256, timingSafeEqualStr } from '../../kernel/security/crypto';
 
 export interface TokenBucket {
   tokens: number;
@@ -275,23 +275,16 @@ export class IntegrationGateway {
       return { valid: false, reason: 'Replay attack detected: webhook message has already been processed.' };
     }
 
-    // 5. Cryptographic HMAC-SHA256 Verification with Timing-Safe Comparison
+    // 5. Cryptographic HMAC-SHA256 Verification with Timing-Safe Comparison (Environment-Agnostic & Browser-Compatible)
     const rawSig = params.signatureHeader.replace(/^sha256=/, '').replace(/^v1=/, '').trim().toLowerCase();
-    const computedHmac = crypto.createHmac('sha256', secret).update(params.rawPayload).digest('hex').toLowerCase();
+    const computedHmac = hmacSha256(secret, params.rawPayload).toLowerCase();
 
     if (rawSig.length !== computedHmac.length) {
       return { valid: false, reason: 'HMAC signature verification failed: signature length mismatch or invalid format.' };
     }
 
-    try {
-      const rawSigBuf = Buffer.from(rawSig, 'hex');
-      const compBuf = Buffer.from(computedHmac, 'hex');
-
-      if (rawSigBuf.length !== compBuf.length || !crypto.timingSafeEqual(rawSigBuf, compBuf)) {
-        return { valid: false, reason: 'HMAC signature verification failed: signature mismatch.' };
-      }
-    } catch {
-      return { valid: false, reason: 'HMAC signature verification failed: cryptographic comparison error.' };
+    if (!timingSafeEqualStr(rawSig, computedHmac)) {
+      return { valid: false, reason: 'HMAC signature verification failed: signature mismatch.' };
     }
 
     // Record in replay cache

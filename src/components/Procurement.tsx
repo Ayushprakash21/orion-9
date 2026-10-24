@@ -13,8 +13,9 @@ import { useOrionSearch } from '../os/OrionSearchContext';
 import { 
   Filter, AlertTriangle, Clock, ArrowRight, ArrowRightCircle, 
   DollarSign, TrendingUp, TrendingDown, Layers, Building2, Search, RefreshCw,
-  Calendar, CheckCircle2, ChevronRight
+  Calendar, CheckCircle2, ChevronRight, Plus
 } from 'lucide-react';
+import { CreatePOModal } from './procurement/CreatePOModal';
 import { MobileRecordCard } from './MobileRecordCard';
 import { KPICard } from './ui/KPICard';
 import { PageHeader } from './ui/PageHeader';
@@ -31,6 +32,7 @@ export const Procurement: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('All');
   const [selectedSupplierId, setSelectedSupplierId] = useState<string>('All');
   const [trendMetric, setTrendMetric] = useState<'value' | 'count'>('value');
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   useEffect(() => {
     const filterParam = searchParams.get('filter');
@@ -210,6 +212,14 @@ export const Procurement: React.FC = () => {
         description="Monitor purchase order execution, supplier commitments, and schedule slippage exposure."
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setIsCreateModalOpen(true)}
+              className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-md shadow-emerald-950/30"
+              data-testid="create-po-btn"
+            >
+              <Plus size={14} />
+              Create Purchase Order
+            </button>
             <button
               onClick={() => {
                 setStatusFilter('All');
@@ -823,6 +833,11 @@ export const Procurement: React.FC = () => {
           )}
         </div>
       </div>
+
+      <CreatePOModal 
+        isOpen={isCreateModalOpen} 
+        onClose={() => setIsCreateModalOpen(false)} 
+      />
     </div>
   );
 };

@@ -3,7 +3,8 @@ import { useSupplyChain } from '../store/SupplyChainContext';
 import { useEntityDrawer } from '../store/EntityDrawerContext';
 import { useEntityContextMenu } from '../os/contextMenu/useEntityContextMenu';
 import { formatCurrency, formatCurrencyCompact, formatCurrencyPair, formatNumber } from '../lib/formatters';
-import { Search, Filter, AlertTriangle, TrendingUp, Package, Activity, Building2 } from 'lucide-react';
+import { Search, Filter, AlertTriangle, TrendingUp, Package, Activity, Building2, Plus } from 'lucide-react';
+import { AdjustStockModal } from './inventory/AdjustStockModal';
 import { useSearchParams } from 'react-router-dom';
 import { useOrionSearch } from '../os/OrionSearchContext';
 import { AnalyticsEngine } from '../services/AnalyticsEngine';
@@ -41,6 +42,8 @@ export const Inventory = () => {
   const [selectedWarehouse, setSelectedWarehouse] = useState('All');
   const [statusFilter, setStatusFilter] = useState('All');
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
+  const [selectedAdjustItem, setSelectedAdjustItem] = useState<{ productId?: string; warehouseId?: string }>({});
 
   useEffect(() => {
     const filterParam = searchParams.get('filter');
@@ -132,6 +135,17 @@ export const Inventory = () => {
         description="Monitor availability, days of supply, network valuation and stock-out exposure across the network."
         actions={
           <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+            <button
+              onClick={() => {
+                setSelectedAdjustItem({});
+                setIsAdjustModalOpen(true);
+              }}
+              className="px-3 py-1.5 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-500 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer shadow-md shadow-emerald-950/30"
+              data-testid="adjust-stock-btn"
+            >
+              <Plus size={14} />
+              Adjust Stock
+            </button>
             <select 
               className="flex-1 sm:w-auto rounded-lg border border-os-border-strong bg-os-surface px-3 py-1.5 text-xs text-os-text-primary focus:outline-none focus:border-os-border transition-colors"
               value={selectedWarehouse}

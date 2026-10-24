@@ -13,7 +13,7 @@
 export interface EDITransactionEnvelope {
   standard: 'X12' | 'EDIFACT';
   version: string; // e.g. "004010" or "D96A"
-  transactionType: '850' | '855' | '856' | '810' | '820' | '997' | '999' | 'ORDERS' | 'ORDRSP' | 'DESADV' | 'INVOIC';
+  transactionType: '850' | '855' | '856' | '810' | '820' | '214' | '997' | '999' | 'ORDERS' | 'ORDRSP' | 'DESADV' | 'INVOIC';
   senderQualifier: string; // e.g. "ZZ", "01"
   senderId: string;
   receiverQualifier: string;
@@ -172,6 +172,25 @@ export class EDIFabric {
       parsedData.invoiceNumber = big?.elements[1];
       parsedData.invoiceDate = big?.elements[0];
       parsedData.purchaseOrderNumber = big?.elements[3];
+    } else if (transactionType === '214') {
+      // Carrier Shipment Status Message
+      const b10 = parsedSegments.find(s => s.tag === 'B10');
+      const at7 = parsedSegments.find(s => s.tag === 'AT7');
+      const ms1 = parsedSegments.find(s => s.tag === 'MS1');
+      parsedData.referenceId = b10?.elements[0];
+      parsedData.shipmentId = b10?.elements[1];
+      parsedData.carrierCode = b10?.elements[2];
+      parsedData.statusCode = at7?.elements[0];
+      parsedData.statusReason = at7?.elements[1];
+      parsedData.statusDate = at7?.elements[2];
+      parsedData.statusTime = at7?.elements[3];
+      if (ms1) {
+        parsedData.location = {
+          city: ms1.elements[0],
+          state: ms1.elements[1],
+          country: ms1.elements[2]
+        };
+      }
     }
 
     const envelope: EDITransactionEnvelope = {
