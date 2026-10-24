@@ -23,6 +23,7 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+        channel: 'chrome',
         launchOptions: {
           args: [
             '--no-sandbox',
@@ -35,7 +36,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npm run dev',
+    command: 'node dist/server.cjs',
     url: 'http://localhost:3000',
     reuseExistingServer: true,
     timeout: 120 * 1000,

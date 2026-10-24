@@ -141,4 +141,5 @@ npx wrangler deploy --dry-run --env production
 - [x] Production build clean: `npm run build` completed in 26.88s.
 - [x] Zero exposed secrets and zero exposed origin hostnames in repository.
 - [x] Deployment dry-runs successful for staging and production.
+- [x] Playwright E2E testing unblocked locally (zero Cloudflare token dependency; production server + Google Chrome channel).
 - [x] Strict non-deployment constraints respected (zero live pushes, zero live Cloudflare deployments).

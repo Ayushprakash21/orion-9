@@ -27,6 +27,21 @@ export class AutonomyGovernanceEngine {
     'AUDIT_TAMPERING',
     'SECRET_EXTRACTION',
     'POLICY_BYPASS',
+    'TENANT_BOUNDARY_BYPASS',
+    ]);
+
+  private static readonly PROHIBITED_FROM_AUTONOMOUS_EXECUTION = new Set([
+    'PAYMENT_SETTLEMENT',
+    'CONTRACT_MODIFICATION',
+    'UPDATE_POLICY',
+    'CREATE_ROLE',
+    'DATABASE_MUTATION',
+    'CODE_EXECUTION',
+    'SECURITY_BYPASS',
+    'AUTONOMY_ESCALATION',
+    'AUDIT_TAMPERING',
+    'SECRET_EXTRACTION',
+    'POLICY_BYPASS',
     'TENANT_BOUNDARY_BYPASS'
   ]);
 
@@ -154,7 +169,7 @@ export class AutonomyGovernanceEngine {
    */
   public static isOperationProhibited(operation: string): boolean {
     const normalized = operation.toUpperCase().replace(/[:.-]/g, '_');
-    for (const prohibited of this.PROHIBITED_AUTONOMOUS_ACTIONS) {
+    for (const prohibited of this.PROHIBITED_FROM_AUTONOMOUS_EXECUTION) {
       if (normalized.includes(prohibited) || prohibited.includes(normalized)) {
         return true;
       }
@@ -204,3 +219,4 @@ export class AutonomyGovernanceEngine {
 }
 
 export const autonomyGovernanceEngine = new AutonomyGovernanceEngine();
+

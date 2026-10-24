@@ -58,7 +58,7 @@ function generateBuildInfoPlugin(targetEnv: string = 'LIVE') {
   };
 }
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   const targetEnv = mode === 'staging' ? 'STAGING' : 'LIVE';
 
   // Fail closed if staging build is attempted with missing or production Firebase configuration
@@ -79,7 +79,12 @@ export default defineConfig(({ mode }) => {
   } catch (e) {}
 
   return {
-    plugins: [generateBuildInfoPlugin(targetEnv), react(), tailwindcss(), cloudflare()],
+    plugins: [
+      generateBuildInfoPlugin(targetEnv),
+      react(),
+      tailwindcss(),
+      ...(command === 'build' || process.env.CLOUDFLARE_VITE_DEV === 'true' ? [cloudflare()] : [])
+    ],
     define: {
       'import.meta.env.VITE_ORION_ENV': JSON.stringify(targetEnv),
       'import.meta.env.VITE_GIT_SHA': JSON.stringify(gitSha),

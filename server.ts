@@ -1102,7 +1102,9 @@ Analyze the supplied document and return a strict JSON object with:
     });
     app.use(vite.middlewares);
   } else {
-    const distPath = path.join(process.cwd(), 'dist');
+    const distPath = fs.existsSync(path.join(process.cwd(), 'dist', 'client'))
+      ? path.join(process.cwd(), 'dist', 'client')
+      : path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.use('/api/*', (req, res) => res.status(404).json({ error: "API endpoint not found" }));
     app.get('*', (req, res) => {

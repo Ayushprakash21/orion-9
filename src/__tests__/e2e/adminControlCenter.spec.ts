@@ -40,6 +40,8 @@ test.describe('Orion-9 Admin AI + Manual Control Center E2E Suite', () => {
     // 1. Authenticate as Admin
     await page.goto('/login');
     await page.fill('input#username', 'admin');
+    await page.click('button[type="submit"]');
+    await expect(page.locator('input#password')).toBeVisible({ timeout: 5000 });
     await page.fill('input#password', 'admin');
     await page.click('button[type="submit"]');
 
@@ -89,3 +91,4 @@ test.describe('Orion-9 Admin AI + Manual Control Center E2E Suite', () => {
     await expect(page.locator('a:has-text("View Audit")')).toBeVisible();
   });
 });
+

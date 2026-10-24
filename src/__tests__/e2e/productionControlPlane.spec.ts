@@ -24,6 +24,8 @@ test.describe('Orion-9 Wave 10 Enterprise Production Control Plane E2E Suite', (
   test('1. Operations Center loads health diagnostics and emergency safety controls', async ({ page }) => {
     // Authenticate as Admin
     await page.fill('input#username', 'admin');
+    await page.click('button[type="submit"]');
+    await expect(page.locator('input#password')).toBeVisible({ timeout: 5000 });
     await page.fill('input#password', 'admin');
     await page.click('button[type="submit"]');
 
@@ -52,6 +54,8 @@ test.describe('Orion-9 Wave 10 Enterprise Production Control Plane E2E Suite', (
   test('2. Incident Center displays triage queue, blast radius and timeline ledger', async ({ page }) => {
     // Authenticate as Admin
     await page.fill('input#username', 'admin');
+    await page.click('button[type="submit"]');
+    await expect(page.locator('input#password')).toBeVisible({ timeout: 5000 });
     await page.fill('input#password', 'admin');
     await page.click('button[type="submit"]');
 
@@ -77,6 +81,8 @@ test.describe('Orion-9 Wave 10 Enterprise Production Control Plane E2E Suite', (
   test('3. Configuration Center renders version catalog, secret masking and diffs', async ({ page }) => {
     // Authenticate as Admin
     await page.fill('input#username', 'admin');
+    await page.click('button[type="submit"]');
+    await expect(page.locator('input#password')).toBeVisible({ timeout: 5000 });
     await page.fill('input#password', 'admin');
     await page.click('button[type="submit"]');
 
@@ -104,6 +110,8 @@ test.describe('Orion-9 Wave 10 Enterprise Production Control Plane E2E Suite', (
   test('4. Release Center displays preflight verification gates and rollback target', async ({ page }) => {
     // Authenticate as Admin
     await page.fill('input#username', 'admin');
+    await page.click('button[type="submit"]');
+    await expect(page.locator('input#password')).toBeVisible({ timeout: 5000 });
     await page.fill('input#password', 'admin');
     await page.click('button[type="submit"]');
 
@@ -119,3 +127,4 @@ test.describe('Orion-9 Wave 10 Enterprise Production Control Plane E2E Suite', (
     await expect(page.locator('text=Designated Rollback Target')).toBeVisible();
   });
 });
+

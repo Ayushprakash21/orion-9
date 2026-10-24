@@ -46,7 +46,7 @@
 | **SAP S/4HANA** | `IntegrationGateway.ts` | OData v4 / Webhooks | **IMPLEMENTED, NOT LIVE-VERIFIED** | Contract-tested with HMAC verification; sandbox unverified |
 | **Oracle Fusion SCM**| `IntegrationGateway.ts` | REST / Webhooks | **IMPLEMENTED, NOT LIVE-VERIFIED** | Contract-tested with HMAC verification; sandbox unverified |
 | **Cloudflare Queues** | `worker.ts` (`env.SCM_EVENTS`) | Cloudflare Queue API | **IMPLEMENTED, NOT LIVE-VERIFIED** | Dry-run verified; awaits live Cloudflare runtime deployment |
-| **Playwright E2E** | `src/__tests__/e2e/` | Headless Chromium | **BLOCKED** | Dev server requires `CLOUDFLARE_API_TOKEN` in non-interactive shell |
+| **Playwright E2E** | `src/__tests__/e2e/` | Headless Chrome | **VERIFIED OPERATIONAL (LOCAL)** | Unblocked locally; runs with `dist/server.cjs` and Google Chrome without Cloudflare token |
 
 ---
 
