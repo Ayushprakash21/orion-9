@@ -850,10 +850,36 @@ Analyze the supplied document and return a strict JSON object with:
       (url.pathname === "/api/edi/receive" || url.pathname === "/api/integration/edi/receive") &&
       request.method === "POST"
     ) {
+      const rateLimitErr = applyWorkerRateLimit(request, 'edi');
+      if (rateLimitErr) return rateLimitErr;
+
+      // 5MB maximum payload limit
+      const contentLength = parseInt(request.headers.get("content-length") || "0", 10);
+      if (contentLength > 5 * 1024 * 1024) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "PAYLOAD_TOO_LARGE",
+            message: "EDI transmission exceeds maximum allowable size of 5MB."
+          }),
+          { status: 413, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
       const partnerKey = request.headers.get("X-Orion-Partner-Key");
       let authenticatedTenantId = request.headers.get("X-Orion-Tenant-Id") || "";
 
-      if (!partnerKey) {
+      if (partnerKey) {
+        if (!partnerKey.trim() || partnerKey.length < 8) {
+          return createSecurityErrorResponse("Unauthorized: Invalid partner key.", 401);
+        }
+        if (activeEnv === 'LIVE' || activeEnv === 'STAGING') {
+          const allowedKeys = ((env as any).EDI_PARTNER_KEYS || '').split(',').map((k: string) => k.trim()).filter(Boolean);
+          if (allowedKeys.length > 0 && !allowedKeys.includes(partnerKey)) {
+            return createSecurityErrorResponse("Unauthorized: Partner key not recognized.", 401);
+          }
+        }
+      } else {
         const token = extractBearerToken(request);
         const auth = verifyWorkerAuthToken(token, activeEnv);
         if (!auth.authorized) {
@@ -873,6 +899,17 @@ Analyze the supplied document and return a strict JSON object with:
             message: "EDI payload cannot be empty or whitespace."
           }),
           { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      if (rawPayload.length > 5 * 1024 * 1024) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "PAYLOAD_TOO_LARGE",
+            message: "EDI transmission exceeds maximum allowable size of 5MB."
+          }),
+          { status: 413, headers: { "Content-Type": "application/json" } }
         );
       }
 
@@ -919,17 +956,39 @@ Analyze the supplied document and return a strict JSON object with:
       const ack997 = ediFabric.generate997(envelope, "A");
 
       if (env.SCM_EVENTS && typeof env.SCM_EVENTS.send === "function") {
-        await env.SCM_EVENTS.send({
-          eventType: `edi.${envelope.transactionType}.received`,
-          eventId: `edi-${envelope.interchangeControlNumber}-${Date.now()}`,
-          tenantId: authenticatedTenantId || "default-tenant",
-          payload: {
-            envelope,
-            parsedData: envelope.parsedData,
-            receivedAt: new Date().toISOString()
-          },
-          timestamp: new Date().toISOString()
-        });
+        try {
+          await env.SCM_EVENTS.send({
+            eventType: `edi.${envelope.transactionType}.received`,
+            eventId: `edi-${envelope.interchangeControlNumber}-${Date.now()}`,
+            tenantId: authenticatedTenantId || "default-tenant",
+            payload: {
+              envelope,
+              parsedData: envelope.parsedData,
+              receivedAt: new Date().toISOString()
+            },
+            timestamp: new Date().toISOString()
+          });
+        } catch (queueErr: any) {
+          seenInterchangeControlNumbers.delete(dedupeKey);
+          if (env.SCM_EVENTS_DLQ && typeof env.SCM_EVENTS_DLQ.send === "function") {
+            try {
+              await env.SCM_EVENTS_DLQ.send({
+                eventType: `edi.${envelope.transactionType}.failed`,
+                error: queueErr?.message || "Queue delivery failure",
+                dedupeKey,
+                payload: envelope
+              });
+            } catch {}
+          }
+          return new Response(
+            JSON.stringify({
+              success: false,
+              error: "QUEUE_DISPATCH_FAILED",
+              message: "Failed to queue inbound EDI event."
+            }),
+            { status: 500, headers: { "Content-Type": "application/json" } }
+          );
+        }
       }
 
       return applySecurityHeaders(

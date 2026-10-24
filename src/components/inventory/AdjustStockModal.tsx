@@ -34,7 +34,10 @@ export const AdjustStockModal: React.FC<AdjustStockModalProps> = ({
   const [reasonCode, setReasonCode] = useState<
     'CYCLE_COUNT' | 'TRANSFER' | 'CUSTOMER_ORDER' | 'GRN' | 'RMA'
   >('CYCLE_COUNT');
-  const [referenceId, setReferenceId] = useState<string>(`CC-${Date.now().toString(36).toUpperCase()}`);
+  const [referenceId, setReferenceId] = useState<string>(() => `CC-${Date.now().toString(36).toUpperCase()}`);
+  const [operationId, setOperationId] = useState<string>(
+    () => `op-adj-${tenantId}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`
+  );
   const [lotNumber, setLotNumber] = useState<string>('LOT-PRIMARY');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -62,7 +65,7 @@ export const AdjustStockModal: React.FC<AdjustStockModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      const stableOpId = `op-adj-${tenantId}-${warehouseId}-${productId}-${Date.now().toString(36)}`;
+      const stableOpId = `${operationId}-${warehouseId}-${productId}`;
       const txType = delta > 0 ? 'ADJUSTMENT_IN' : 'ADJUSTMENT_OUT';
 
       const result = await scmPersistenceService.adjustInventory({
@@ -106,6 +109,7 @@ export const AdjustStockModal: React.FC<AdjustStockModalProps> = ({
       );
 
       if (onAdjusted) onAdjusted(result);
+      setOperationId(`op-adj-${tenantId}-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`);
       onClose();
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to adjust inventory stock.');

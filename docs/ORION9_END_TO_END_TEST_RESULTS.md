@@ -1,31 +1,47 @@
 # ORION-9 — End-to-End Automated Test Results & Verification Record
 
-**Test Execution Timestamp:** 2026-10-24 16:20:33 IST  
+**Test Execution Timestamp:** 2026-10-24 17:13:27 IST  
 **Vitest Version:** 5.0.1  
 **Node.js Version:** v24.22.0  
-**Test Command:** `npx vitest run`  
-**Total Test Files:** 229  
-**Total Test Cases:** 2,245  
+**Java Runtime:** OpenJDK 21.0.12.1 (Microsoft Build with Hotspot)  
+**Firebase Tools:** Live Firestore Emulator v1.22.0 & Auth Emulator  
 
 ---
 
-## 1. Summary of Results
+## 1. Summary of Overall Results
 
+### Primary Project Vitest Suite (`npx vitest run`)
 ```text
 ================================================================================
-TEST EXECUTION METRICS
+VITEST EXECUTION METRICS
 ================================================================================
-Test Suites Passing:   222
-Test Suites Skipped:     7 (Firebase Emulator Suites - Java missing locally)
+Test Suites Passing:   223
+Test Suites Skipped:     7 (Stand-alone test execution without active emulator background)
 Test Suites Failing:     0
 --------------------------------------------------------------------------------
-Total Tests Passing:  2,140
+Total Tests Passing:  2,145
 Total Tests Skipped:    105
 Total Tests Failing:      0
-Total Tests Executed: 2,140
 Pass Rate (Executed): 100.0%
-Duration:             61.48s
+Duration:             74.08s
 Exit Code:            0
+================================================================================
+```
+
+### Mandatory Security Gate 1 Suite (`node scripts/runSecurityTests.mjs`)
+```text
+================================================================================
+FIREBASE EMULATOR LIVE SECURITY SUITE
+================================================================================
+Emulator Status:        LIVE (Cloud Firestore 127.0.0.1:8080 & Auth 127.0.0.1:9099)
+Java Runtime:           C:\Program Files\Microsoft\jdk-21.0.12.101-hotspot\bin\java.exe
+Security Test Suites:   23 passed (23 total)
+Security Tests Passing: 392 passed (392 total)
+Security Tests Skipped: 0 skipped (0%)
+Security Tests Failing: 0 failing (0%)
+Pass Rate:              100.0%
+Duration:               17.14s
+Exit Code:              0 (PASS)
 ================================================================================
 ```
 
@@ -33,9 +49,17 @@ Exit Code:            0
 
 ## 2. Test Execution Breakdown by Domain
 
-### 2.1 Inbound EDI Pipeline & Gateway Verification
+### 2.1 Cryptographic Standards & Web Crypto Tests
+- **Test File:** `src/__tests__/security/cryptoStandardVectors.test.ts`
+- **Tests Executed:** 3 passed (0 failed)
+- **Key Assertions:**
+  1. RFC 4231 Test Case 2: ASCII string HMAC-SHA256 (`5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843`) verified across both synchronous `hmacSha256` and asynchronous platform `hmacSha256WebCrypto`.
+  2. RFC 4231 Test Case 7: Key larger than block size (131 bytes of `0xaa`) verified against expected digest (`c9731f25665706dab8200d9ce68fad2cbac48efc4a5f72292e4eeb81e7d29298`).
+  3. Constant-time equality: strings of differing lengths and characters evaluated across full length without early return.
+
+### 2.2 Inbound EDI Pipeline & Gateway Verification
 - **Test File:** `src/__tests__/integration/inboundEdiPipeline.test.ts`
-- **Tests Executed:** 6 passed (0 failed)
+- **Tests Executed:** 8 passed (0 failed)
 - **Key Capabilities Verified:**
   1. Rejects unauthenticated EDI transmissions with HTTP 401 Unauthorized.
   2. Rejects empty or whitespace EDI payloads with HTTP 400 Bad Request.
@@ -43,72 +67,42 @@ Exit Code:            0
   4. Accepts and parses valid X12 214 Carrier Shipment Status message, extracting carrier code (`FEDEX`) and shipment status (`AF`).
   5. Detects duplicate interchange control numbers from the same sender and responds with HTTP 409 Conflict.
   6. Quarantines malformed EDI syntax with HTTP 400 Bad Request and standard 997 rejection acknowledgment (`AK9*R`).
+  7. Rejects oversized payloads exceeding 5MB with HTTP 413 Payload Too Large.
+  8. Gracefully handles queue failures by rolling back dedupe cache and returning HTTP 500 (`QUEUE_DISPATCH_FAILED`).
 
-### 2.2 Core Security, Cryptography & Trust Boundaries
-- `src/__tests__/security/authTrustBoundaryNegative.test.ts` (18 tests passed)
-- `src/__tests__/security/backendIntegrityMasterVerification.test.ts` (14 tests passed)
-- `src/__tests__/security/cloudflareZeroOriginNetworkSecurity.test.ts` (28 tests passed)
-- `src/__tests__/security/enterpriseTrustGateAudit.test.ts` (12 tests passed)
-- `src/__tests__/security/localStorageTamperResistance.test.ts` (3 tests passed)
-- `src/__tests__/operations/securityRedTeamAdversarial.test.ts` (8 tests passed)
-- `src/__tests__/kernel/authorizationEngine.test.ts` (6 tests passed)
-- `src/__tests__/kernel/auditEngine.test.ts` (6 tests passed)
-- `src/__tests__/kernel/policyEngine.test.ts` (11 tests passed)
+### 2.3 Live Firebase Firestore Security Rules (Gate 1 Execution)
+- `src/__tests__/security/realFirestoreEmulatorRules.test.ts` (31 tests passed live)
+- `src/__tests__/security/digitalTwinFirestoreRules.test.ts` (19 tests passed live)
+- `src/__tests__/security/workflowFirestoreRules.test.ts` (17 tests passed live)
+- `src/__tests__/security/outcomeFirestoreRules.test.ts` (15 tests passed live)
+- `src/__tests__/security/wave11SecurityRules.test.ts` (8 tests passed live)
+- `src/__tests__/security/operationsFirestoreRules.test.ts` (8 tests passed live)
+- `src/__tests__/security/masterDataFirestoreRules.test.ts` (6 tests passed live)
+- `src/__tests__/security/authTrustBoundaryNegative.test.ts` (21 tests passed live)
+- `src/__tests__/security/governanceAuthority.test.ts` (25 tests passed live)
+- `src/__tests__/security/rateLimiting.test.ts` (5 tests passed live)
+- *Total Security Rules Tests:* **392 passed, 0 skipped, 0 failed.**
 
-### 2.3 SCM Business Engines & Golden Data Journeys
+### 2.4 SCM Business Engines & Golden Data Journeys
 - `src/__tests__/scm/track1GoldenDataJourney.test.ts` (1 test passed)
 - `src/__tests__/scm/track2MakeToStock.test.ts` (1 test passed)
-- `src/__tests__/scm/procurementOutboxLifecycle.test.ts` (8 tests passed)
-- `src/__tests__/scm/inventoryAtomicLocking.test.ts` (12 tests passed)
-- `src/__tests__/scm/supplyPlanningConversion.test.ts` (7 tests passed)
+- `src/__tests__/scm/track2OrderToFulfillment.test.ts` (1 test passed)
+- `src/__tests__/scm/track2ProcureToReceive.test.ts` (1 test passed)
+- `src/__tests__/scm/scmEndToEndTransaction.test.ts` (7 tests passed)
+- `src/__tests__/scm/scmIdempotency.test.ts` (7 tests passed)
 - `src/__tests__/enterprise/eventFabricAndDLQ.test.ts` (5 tests passed)
 - `src/__tests__/enterprise/failoverAndFencing.test.ts` (3 tests passed)
 - `src/__tests__/enterprise/enterpriseHierarchy.test.ts` (4 tests passed)
 
-### 2.4 Integration, ERP Adapters & Webhooks
+### 2.5 Integration, ERP Adapters & Webhooks
 - `src/__tests__/integration/gatewayAndERPAdapters.test.ts` (5 tests passed)
 - `src/__tests__/integration/integrationRealWorldConnectivity.test.ts` (11 tests passed)
 - `src/__tests__/integration/ediAndCertification.test.ts` (6 tests passed)
 - `src/__tests__/integrationFabric/integrationFabric.test.ts` (22 tests passed)
 
-### 2.5 OS Shell, Desktop Window Manager & UI Responsiveness
-- `src/__tests__/os/osShellWindowManagerHardening.test.ts` (10 tests passed)
-- `src/__tests__/os/authoritativeEnvironment.test.tsx` (6 tests passed)
-- `src/__tests__/os/orionLifecycleCompositionRepair.test.tsx` (4 tests passed)
-- `src/__tests__/os/orionStarEnvironment.test.tsx` (5 tests passed)
-- `src/__tests__/os/loginLiveRuntime.test.tsx` (5 tests passed)
-- `src/__tests__/os/avatarEditor.test.tsx` (7 tests passed)
-- `src/__tests__/os/aboutApplication.test.tsx` (7 tests passed)
-- `src/__tests__/os/settingsNativeApp.test.tsx` (5 tests passed)
-- `src/__tests__/responsive/responsiveDeviceClassification.test.ts` (9 tests passed)
-- `src/__tests__/responsive/mobileAppsSearch.test.tsx` (6 tests passed)
-
-### 2.6 AI Copilot, Document Intelligence & Wallpapers
-- `src/__tests__/ai/orionCopilot.test.ts` (15 tests passed)
-- `src/__tests__/wallpaper/fluxWorkerAiIntegration.test.ts` (10 tests passed)
-- `src/__tests__/wallpaper/wallpaperProviderPrivacyAndQuality.test.ts` (12 tests passed)
-- `src/__tests__/wallpaper/wallpaperAsyncHardening.test.tsx` (12 tests passed)
-- `src/__tests__/wallpaper/realGeminiServerRoutes.test.ts` (5 tests passed)
-- `src/__tests__/admin/brandingPersistenceApi.test.ts` (14 tests passed)
-
 ---
 
-## 3. Skipped Test Suites Detail (Firebase Emulator Gate)
-
-| Test Suite | Skipped Count | Reason for Skip |
-| :--- | :---: | :--- |
-| `src/__tests__/security/realFirestoreEmulatorRules.test.ts` | 31 | Firebase emulator requires Java 21 runtime (not installed on host). |
-| `src/__tests__/security/digitalTwinFirestoreRules.test.ts` | 19 | Firebase emulator requires Java 21 runtime (not installed on host). |
-| `src/__tests__/security/workflowFirestoreRules.test.ts` | 17 | Firebase emulator requires Java 21 runtime (not installed on host). |
-| `src/__tests__/security/outcomeFirestoreRules.test.ts` | 15 | Firebase emulator requires Java 21 runtime (not installed on host). |
-| `src/__tests__/security/wave11SecurityRules.test.ts` | 8 | Firebase emulator requires Java 21 runtime (not installed on host). |
-| `src/__tests__/security/operationsFirestoreRules.test.ts` | 8 | Firebase emulator requires Java 21 runtime (not installed on host). |
-| `src/__tests__/security/masterDataFirestoreRules.test.ts` | 6 | Firebase emulator requires Java 21 runtime (not installed on host). |
-| **Total Skipped Tests** | **105** | **Expected behavior in headless non-Java local environment.** |
-
----
-
-## 4. Verification Reproducibility Runbook
+## 3. Verification Reproducibility Runbook
 
 To reproduce these exact test metrics locally:
 ```bash
@@ -118,13 +112,16 @@ npm run lint
 # 2. Run all Vitest suites
 npx vitest run
 
-# 3. Run inbound EDI pipeline suite directly
-npx vitest run src/__tests__/integration/inboundEdiPipeline.test.ts
+# 3. Run mandatory live Firebase emulator security gate
+npm run test:security
 
-# 4. Run secret scan
-node scripts/auditSecrets.mjs
+# 4. Run secret scan & zero-origin scan
+npm run audit:secrets
+npm run audit:zero-origin
 
-# 5. Build production bundle
+# 5. Build production bundle & verify wrangler dry runs
 npm run build
+npx wrangler deploy --dry-run --env staging
+npx wrangler deploy --dry-run --env production
 ```
 All commands terminate with exit code 0.

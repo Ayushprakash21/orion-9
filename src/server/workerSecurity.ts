@@ -698,7 +698,7 @@ export function createSecurityErrorResponse(message: string, status: number, hea
  */
 export function applyWorkerRateLimit(
   request: Request,
-  tier: 'ai' | 'wallpaper' | 'admin' | 'default' = 'default'
+  tier: 'ai' | 'wallpaper' | 'admin' | 'edi' | 'default' = 'default'
 ): Response | null {
   const clientIp = request.headers.get('CF-Connecting-IP') || 
                    request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
@@ -708,6 +708,7 @@ export function applyWorkerRateLimit(
     ai: { maxRequests: 60, windowMs: 60000 },       // 60 req/min
     wallpaper: { maxRequests: 10, windowMs: 60000 },// 10 req/min
     admin: { maxRequests: 15, windowMs: 60000 },    // 15 req/min
+    edi: { maxRequests: 60, windowMs: 60000 },      // 60 req/min
     default: { maxRequests: 100, windowMs: 60000 }, // 100 req/min
   };
 

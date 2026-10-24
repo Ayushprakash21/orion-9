@@ -110,14 +110,19 @@ export async function sha256(content: string): Promise<string> {
 
 /**
  * Constant-time comparison of two strings to prevent timing side-channel attacks.
- * Browser-compatible and environment-agnostic.
+ * Browser-compatible and environment-agnostic. Evaluates full maximum length
+ * without early termination to avoid leaking length via timing.
  */
 export function timingSafeEqualStr(a: string, b: string): boolean {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
-  if (a.length !== b.length) return false;
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  const aLen = a.length;
+  const bLen = b.length;
+  let result = aLen ^ bLen;
+  const maxLen = Math.max(aLen, bLen);
+  for (let i = 0; i < maxLen; i++) {
+    const charA = i < aLen ? a.charCodeAt(i) : 0;
+    const charB = i < bLen ? b.charCodeAt(i) : 0;
+    result |= charA ^ charB;
   }
   return result === 0;
 }
@@ -191,11 +196,12 @@ function sha256Bytes(data: Uint8Array): Uint8Array {
 /**
  * Computes an HMAC-SHA256 digest formatted as lowercase hex string.
  * Completely browser-compatible, worker-compatible, and synchronous.
+ * Supports string or raw binary Uint8Array inputs.
  */
-export function hmacSha256(keyStr: string, msgStr: string): string {
+export function hmacSha256(keyInput: string | Uint8Array, msgInput: string | Uint8Array): string {
   const encoder = new TextEncoder();
-  let key = encoder.encode(keyStr);
-  const msg = encoder.encode(msgStr);
+  let key = typeof keyInput === 'string' ? encoder.encode(keyInput) : keyInput;
+  const msg = typeof msgInput === 'string' ? encoder.encode(msgInput) : msgInput;
   const blockSize = 64;
 
   if (key.length > blockSize) {
@@ -226,4 +232,33 @@ export function hmacSha256(keyStr: string, msgStr: string): string {
 
   return Array.from(outerHash).map(b => b.toString(16).padStart(2, '0')).join('');
 }
+
+/**
+ * Asynchronous HMAC-SHA256 utilizing platform Web Crypto (crypto.subtle)
+ * when available, falling back to deterministic synchronous FIPS 180-4 byte implementation.
+ */
+export async function hmacSha256WebCrypto(keyInput: string | Uint8Array, msgInput: string | Uint8Array): Promise<string> {
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    try {
+      const encoder = new TextEncoder();
+      const keyData = typeof keyInput === 'string' ? encoder.encode(keyInput) : keyInput;
+      const msgData = typeof msgInput === 'string' ? encoder.encode(msgInput) : msgInput;
+      const cryptoKey = await crypto.subtle.importKey(
+        'raw',
+        keyData,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+      const signature = await crypto.subtle.sign('HMAC', cryptoKey, msgData);
+      return Array.from(new Uint8Array(signature))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+    } catch {
+      // Fall back if subtle crypto fails in runtime
+    }
+  }
+  return hmacSha256(keyInput, msgInput);
+}
+
 

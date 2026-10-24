@@ -200,4 +200,40 @@ describe('ORION-9 Inbound EDI Pipeline & Gateway Verification', () => {
     expect(body.error).toBe('EDI_VALIDATION_FAILED');
     expect(body.ack997).toContain('AK9*R');
   });
+
+  it('rejects payloads exceeding 5MB with 413 Payload Too Large', async () => {
+    const hugePayload = 'A'.repeat(5 * 1024 * 1024 + 10);
+    const req = new Request('https://orion9.internal/api/edi/receive', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain',
+        'X-Orion-Partner-Key': 'pk_partner_carrier_fedex'
+      },
+      body: hugePayload
+    });
+
+    const res = await worker.fetch(req, mockEnv, dummyCtx);
+    expect(res.status).toBe(413);
+    const body: any = await res.json();
+    expect(body.error).toBe('PAYLOAD_TOO_LARGE');
+  });
+
+  it('handles queue dispatch failures gracefully by rolling back dedupe key and returning 500', async () => {
+    mockEnv.SCM_EVENTS.send = vi.fn().mockRejectedValue(new Error('Queue unavailable'));
+
+    const req = new Request('https://orion9.internal/api/edi/receive', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain',
+        'X-Orion-Partner-Key': 'pk_partner_carrier_fedex',
+        'X-Orion-Tenant-Id': 'org-tenant-a'
+      },
+      body: sampleX12_856.replaceAll('000000856', '000000999')
+    });
+
+    const res = await worker.fetch(req, mockEnv, dummyCtx);
+    expect(res.status).toBe(500);
+    const body: any = await res.json();
+    expect(body.error).toBe('QUEUE_DISPATCH_FAILED');
+  });
 });

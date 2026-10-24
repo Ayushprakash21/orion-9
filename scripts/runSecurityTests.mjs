@@ -1,6 +1,22 @@
 #!/usr/bin/env node
 import { spawn } from 'child_process';
 import process from 'process';
+import fs from 'fs';
+
+// Auto-detect Java 21 if not in system PATH
+const candidateJavaHomes = [
+  'C:\\Program Files\\Microsoft\\jdk-21.0.12.101-hotspot',
+  process.env.JAVA_HOME,
+];
+const foundJavaHome = candidateJavaHomes.find(p => p && fs.existsSync(p));
+if (foundJavaHome) {
+  process.env.JAVA_HOME = foundJavaHome;
+  const pathSep = process.platform === 'win32' ? ';' : ':';
+  const binDir = process.platform === 'win32' ? `${foundJavaHome}\\bin` : `${foundJavaHome}/bin`;
+  if (!process.env.PATH.includes(binDir)) {
+    process.env.PATH = `${binDir}${pathSep}${process.env.PATH}`;
+  }
+}
 
 console.log('============================================================');
 console.log('ORION-9 MANDATORY SECURITY GATE 1 ENFORCEMENT');
