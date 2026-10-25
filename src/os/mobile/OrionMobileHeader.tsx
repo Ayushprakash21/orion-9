@@ -6,6 +6,7 @@ import { useNotifications } from '../../store/NotificationContext';
 import { Bell, User, ChevronLeft, Database, LogOut } from 'lucide-react';
 import { BrandLogo } from '../../components/brand/BrandLogo';
 import { NotificationCenter } from '../../components/modals/NotificationCenter';
+import { dbManager } from '../../core/database/DatabaseConnectionManager';
 
 export const OrionMobileHeader: React.FC = () => {
   const { activeTab, activeApp, closeApp, navigateToTab } = useMobileNavigation();
@@ -16,6 +17,9 @@ export const OrionMobileHeader: React.FC = () => {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   const isAdvancedMode = settings?.userExperienceMode === 'ADVANCED';
+  const environment = dbManager.getEnvironment();
+  const isLive = environment === 'LIVE';
+  const isStaging = environment === 'STAGING';
 
   return (
     <header className="sticky top-0 z-40 w-full bg-os-surface/95 backdrop-blur-md border-b border-os-border pt-[env(safe-area-inset-top,0px)] select-none">
@@ -38,8 +42,21 @@ export const OrionMobileHeader: React.FC = () => {
               aria-label="Orion-9 Home"
             >
               <BrandLogo sizePreset="sm" variant="mark" height={28} />
+              <span className="font-mono text-xs font-bold tracking-wider text-os-text-primary hidden min-[360px]:inline">
+                ORION-9
+              </span>
             </button>
           )}
+        </div>
+
+        {/* CENTER: Compact Connection & System Status Indicator */}
+        <div 
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-os-surface-secondary/80 border border-os-border text-[10px] font-mono text-os-text-muted shrink-0"
+          aria-label={`System Environment: ${environment}`}
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${isLive ? 'bg-emerald-400' : isStaging ? 'bg-sky-400' : 'bg-amber-400'} animate-pulse`} />
+          <span className="font-semibold text-os-text-primary">{environment}</span>
+          <span className="text-[9px] text-os-text-muted hidden min-[380px]:inline">• ONLINE</span>
         </div>
 
         {/* RIGHT: Notifications + Profile */}

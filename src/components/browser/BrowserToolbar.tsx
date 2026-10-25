@@ -109,7 +109,7 @@ export const BrowserToolbar: React.FC<BrowserToolbarProps> = ({
           data-testid="browser-home-btn"
           aria-label="Home page"
           onClick={onHome}
-          className="p-1.5 rounded-[6px] transition-colors cursor-pointer text-[var(--orion-text-secondary,#A7AAA8)] hover:text-[var(--orion-text-primary,#F2F2EF)] hover:bg-white/[0.08] focus:outline-none"
+          className="p-1.5 rounded-[6px] transition-colors cursor-pointer text-[var(--orion-text-secondary,#A7AAA8)] hover:text-[var(--orion-text-primary,#F2F2EF)] hover:bg-white/[0.08] focus:outline-none hidden min-[420px]:flex"
           title="Open New Tab / Home"
         >
           <Home className="w-4 h-4" />
@@ -132,11 +132,11 @@ export const BrowserToolbar: React.FC<BrowserToolbarProps> = ({
           data-testid="browser-ask-copilot-btn"
           aria-label="Ask Orion Copilot about this page"
           onClick={onAskCopilot}
-          className="flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] bg-[var(--orion-accent,#0071E3)]/12 hover:bg-[var(--orion-accent,#0071E3)]/20 border border-[var(--orion-accent,#0071E3)]/25 text-[var(--orion-accent,#0071E3)] text-xs font-medium transition-colors cursor-pointer shrink-0 focus:outline-none"
+          className="flex items-center gap-1 p-1.5 sm:px-2.5 sm:py-1.5 rounded-[6px] bg-[var(--orion-accent,#0071E3)]/12 hover:bg-[var(--orion-accent,#0071E3)]/20 border border-[var(--orion-accent,#0071E3)]/25 text-[var(--orion-accent,#0071E3)] text-xs font-medium transition-colors cursor-pointer shrink-0 focus:outline-none"
           title="Ask Orion Copilot"
         >
           <Sparkles className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Ask Orion Copilot</span>
+          <span className="hidden min-[540px]:inline">Ask Orion Copilot</span>
         </button>
 
         {/* Browser Menu Button */}

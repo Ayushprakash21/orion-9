@@ -21,6 +21,8 @@ import {
 } from '../../components/browser/WebModePolicy';
 import { BrowserContent } from '../../components/browser/BrowserContent';
 import { BrowserTab } from '../../components/browser/BrowserTypes';
+import { validateBrowserUrl, openExternally } from '../../components/browser/BrowserSecurity';
+import { normalizeUrl } from '../../components/browser/BrowserEngine';
 
 describe('Orion Browser Web Mode Policy & Embedding Security Suite', () => {
   // Test 1: example.com -> EMBED_ALLOWED, iframe permitted
@@ -133,5 +135,75 @@ describe('Orion Browser Web Mode Policy & Embedding Security Suite', () => {
     const blank = resolveWebModePolicy('about:blank');
     expect(blank.decision).toBe('INTERNAL_ORION');
     expect(blank.iframeAllowed).toBe(false);
+  });
+
+  // Search normalization & engine resolution
+  it('Resolves "google" and search queries accurately based on configured search engine', () => {
+    // 1. "google" with default duckduckgo
+    const ddgNorm = normalizeUrl('google', 'duckduckgo');
+    expect(ddgNorm).toBe('https://duckduckgo.com/?q=google');
+    const ddgVal = validateBrowserUrl('google', 'duckduckgo');
+    expect(ddgVal.normalizedUrl).toBe('https://duckduckgo.com/?q=google');
+    expect(ddgVal.valid).toBe(true);
+
+    // 2. "google" with configured google engine
+    const googleNorm = normalizeUrl('google', 'google');
+    expect(googleNorm).toBe('https://www.google.com/search?q=google');
+    const googleVal = validateBrowserUrl('google', 'google');
+    expect(googleVal.normalizedUrl).toBe('https://www.google.com/search?q=google');
+    expect(googleVal.valid).toBe(true);
+
+    // 3. Domain pattern google.com resolves to https://google.com
+    expect(normalizeUrl('google.com')).toBe('https://google.com');
+  });
+
+  // External destination preservation and fallback UI
+  it('Preserves exact destination URL, query, and renders copy button in fallback card', () => {
+    const searchTab: BrowserTab = {
+      id: 'tab-search-ddg',
+      url: 'https://duckduckgo.com/?q=google',
+      title: 'DuckDuckGo',
+      loading: false,
+      loadState: 'EXTERNAL_REQUIRED',
+      contentState: 'EXTERNAL_REQUIRED',
+      webNavigationState: 'EXTERNAL_REQUIRED',
+      canGoBack: false,
+      canGoForward: false,
+      historyStack: ['https://duckduckgo.com/?q=google'],
+      historyIndex: 0,
+      createdAt: Date.now(),
+      zoomLevel: 1.0,
+      securityStatus: 'secure',
+    };
+
+    const html = renderToString(
+      React.createElement(BrowserContent, {
+        activeTab: searchTab,
+        onNavigate: () => {},
+        runtimeMode: 'WEB_EMBEDDED',
+      })
+    );
+
+    // Assert preserved target URL and search query label
+    expect(html).toContain('data-testid="browser-target-url"');
+    expect(html).toContain('https://duckduckgo.com/?q=google');
+    expect(html).toContain('data-testid="browser-copy-url-btn"');
+    expect(html).toContain('Search Query: &quot;google&quot;');
+    expect(html).toContain('Open Externally');
+  });
+
+  // openExternally security verification
+  it('openExternally rejects dangerous URL protocols and handles window context safely', () => {
+    const jsRes = openExternally('javascript:alert(1)');
+    expect(jsRes.success).toBe(false);
+    expect(jsRes.error).toContain('Security Restriction');
+
+    const fileRes = openExternally('file:///etc/passwd');
+    expect(fileRes.success).toBe(false);
+    expect(fileRes.error).toContain('Security Restriction');
+
+    const validRes = openExternally('https://duckduckgo.com/?q=google');
+    // In node/vitest environment without window.open, returns false without throwing
+    expect(typeof validRes.popupBlocked).toBe('boolean');
   });
 });

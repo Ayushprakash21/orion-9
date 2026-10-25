@@ -90,6 +90,7 @@ export const OrionMobileAppLauncher: React.FC = () => {
       id: 'platform',
       name: 'Platform, Workspace & Admin',
       appIds: [
+        'browser',
         'file-manager',
         'notepad',
         'orion-computer',

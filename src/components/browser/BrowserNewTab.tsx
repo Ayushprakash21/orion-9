@@ -4,21 +4,31 @@ import {
   Sparkles, Settings, Clock, ArrowUpRight, Trash2,
   Compass
 } from 'lucide-react';
-import { BrowserHistoryEntry } from './BrowserTypes';
+import { BrowserHistoryEntry, SearchEngineType } from './BrowserTypes';
 import { cn } from '../../lib/utils';
 
 export interface BrowserNewTabProps {
   onNavigate: (url: string) => void;
   recentHistory: BrowserHistoryEntry[];
   onRemoveHistoryItem?: (id: string) => void;
+  defaultSearchEngine?: SearchEngineType;
 }
 
 export const BrowserNewTab: React.FC<BrowserNewTabProps> = ({
   onNavigate,
   recentHistory,
   onRemoveHistoryItem,
+  defaultSearchEngine = 'duckduckgo',
 }) => {
   const [searchInput, setSearchInput] = useState('');
+
+  const searchEngineName = defaultSearchEngine === 'google'
+    ? 'Google'
+    : defaultSearchEngine === 'bing'
+    ? 'Bing'
+    : defaultSearchEngine === 'ecosia'
+    ? 'Ecosia'
+    : 'DuckDuckGo';
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,7 +107,7 @@ export const BrowserNewTab: React.FC<BrowserNewTabProps> = ({
               data-testid="browser-newtab-search"
               aria-label="Search the web or enter URL"
               value={searchInput}
-              placeholder="Search with DuckDuckGo or enter web address..."
+              placeholder={`Search with ${searchEngineName} or enter web address...`}
               onChange={(e) => setSearchInput(e.target.value)}
               className="flex-1 bg-transparent px-3 py-2 text-sm text-os-text-primary placeholder:text-os-text-muted focus:outline-none"
               autoFocus

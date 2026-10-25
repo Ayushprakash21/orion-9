@@ -122,11 +122,22 @@ describe('Mobile Home & Information Architecture Navigation Suite', () => {
         </MemoryRouter>
       );
 
-      expect(html).toContain('Quick Actions');
-      expect(html).toContain('Search Network');
-      expect(html).toContain('New Requisition');
+      expect(html).toContain('data-orion-launcher-grid="true"');
+      expect(html).toContain('Control Tower');
+      expect(html).toContain('Inventory');
+      expect(html).toContain('Procurement');
+      expect(html).toContain('Planning');
+      expect(html).toContain('Orders');
+      expect(html).toContain('Logistics');
+      expect(html).toContain('Suppliers');
+      expect(html).toContain('Analytics');
+      expect(html).toContain('AI Copilot');
+      expect(html).toContain('Alerts');
+      expect(html).toContain('Integrations');
+
+
       expect(html).toContain('System Health');
-      expect(html).toContain('Ask Orion AI');
+
     });
 
     it('renders 4 Quick Access buttons (Control, AI, Alerts, Apps)', () => {
@@ -138,7 +149,7 @@ describe('Mobile Home & Information Architecture Navigation Suite', () => {
         </MemoryRouter>
       );
 
-      expect(html).toContain('Quick Access');
+      expect(html).toContain('All Apps');
       expect(html).toContain('Control');
       expect(html).toContain('AI');
       expect(html).toContain('Alerts');
@@ -236,7 +247,18 @@ describe('Mobile Home & Information Architecture Navigation Suite', () => {
       );
 
       expect(html).toContain('data-orion-mobile-shell="true"');
-      expect(html).toContain('Quick Actions');
+      expect(html).toContain('data-orion-launcher-grid="true"');
+      expect(html).toContain('Control Tower');
+      expect(html).toContain('Inventory');
+      expect(html).toContain('Procurement');
+      expect(html).toContain('Planning');
+      expect(html).toContain('Orders');
+      expect(html).toContain('Logistics');
+      expect(html).toContain('Suppliers');
+      expect(html).toContain('Analytics');
+      expect(html).toContain('AI Copilot');
+      expect(html).toContain('Alerts');
+      expect(html).toContain('Integrations');
       expect(html).toContain('Recent Activity');
     });
   });

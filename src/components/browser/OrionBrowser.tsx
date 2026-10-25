@@ -21,6 +21,7 @@ import { BrowserRuntimeAdapter, getBrowserRuntimeAdapter, BrowserBounds } from '
 import { detectBrowserRuntimeCapability, resolveAuthoritativeCapability, getCachedAuthoritativeCapability, BrowserRuntimeCapability } from './BrowserRuntimeCapability';
 import { BrowserDiagnosticsOverlay } from './BrowserDiagnosticsOverlay';
 import { useWindowManager } from '../../os/WindowManagerContext';
+import { ORION_REGISTRY } from '../../os/OrionApplicationRegistry';
 import { useToast } from '../../store/ToastContext';
 import { Search, X, ChevronUp, ChevronDown, Clock, Bookmark as BookmarkIcon, Trash2, Settings, ExternalLink, Activity, Download } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -282,6 +283,29 @@ export function OrionBrowser() {
 
     const validation = validateBrowserUrl(targetUrl, preferences.defaultSearchEngine);
     const resolvedUrl = validation.normalizedUrl;
+
+    // Internal application route launching
+    if (resolvedUrl.startsWith('/') && resolvedUrl !== 'orion://newtab') {
+      let matchedAppId: string | null = null;
+      if (resolvedUrl === '/' || resolvedUrl === '/control') {
+        matchedAppId = 'command-center';
+      } else if (resolvedUrl === '/ai-copilot' || resolvedUrl === '/copilot') {
+        matchedAppId = 'orion-ai';
+      } else {
+        for (const [id, app] of Object.entries(ORION_REGISTRY)) {
+          if (app.route === resolvedUrl) {
+            matchedAppId = id;
+            break;
+          }
+        }
+      }
+
+      if (matchedAppId && openApplication) {
+        openApplication(matchedAppId);
+        showToast?.(`Opening ${ORION_REGISTRY[matchedAppId]?.name || matchedAppId}...`, 'info', 'Orion OS');
+        return;
+      }
+    }
     const isInternalUrl = validation.scheme === 'internal' || resolvedUrl === 'orion://newtab' || resolvedUrl.startsWith('/');
     const isNative = (currentCap.mode === 'NATIVE_WEBVIEW' && currentCap.nativeAvailable) || currentCap.verifiedNative;
     const webPolicy = !isNative ? resolveWebModePolicy(resolvedUrl) : null;
@@ -503,6 +527,7 @@ export function OrionBrowser() {
     const prevUrl = activeTab.historyStack[prevIndex];
     const isInternal = prevUrl === 'orion://newtab' || prevUrl.startsWith('/');
     const isSecure = prevUrl.startsWith('https://');
+    const isNative = (capability.mode === 'NATIVE_WEBVIEW' && capability.nativeAvailable) || capability.verifiedNative;
 
     adapterRef.current?.goBack().catch(err => {
       recordBrowserError(activeTab.id, err, 'goBack');
@@ -518,8 +543,9 @@ export function OrionBrowser() {
         canGoBack: prevIndex > 0,
         canGoForward: true,
         loading: !isInternal,
-        loadState: isInternal ? 'EMPTY_TAB' : 'PAGE_LOADED',
-        contentState: isInternal ? 'EMPTY_TAB' : 'PAGE_LOADED',
+        loadState: isInternal ? 'EMPTY_TAB' : (!isNative && resolveWebModePolicy(prevUrl).decision === 'EXTERNAL_REQUIRED' ? 'EXTERNAL_REQUIRED' : 'PAGE_LOADED'),
+        contentState: isInternal ? 'EMPTY_TAB' : (!isNative && resolveWebModePolicy(prevUrl).decision === 'EXTERNAL_REQUIRED' ? 'EXTERNAL_REQUIRED' : 'PAGE_LOADED'),
+        webNavigationState: isInternal ? 'IDLE' : (!isNative && resolveWebModePolicy(prevUrl).decision === 'EXTERNAL_REQUIRED' ? 'EXTERNAL_REQUIRED' : 'LOADED'),
         generation: (t.generation || 0) + 1,
         securityStatus: isInternal ? 'internal' : (isSecure ? 'secure' : 'insecure'),
       };
@@ -532,6 +558,7 @@ export function OrionBrowser() {
     const nextUrl = activeTab.historyStack[nextIndex];
     const isInternal = nextUrl === 'orion://newtab' || nextUrl.startsWith('/');
     const isSecure = nextUrl.startsWith('https://');
+    const isNative = (capability.mode === 'NATIVE_WEBVIEW' && capability.nativeAvailable) || capability.verifiedNative;
 
     adapterRef.current?.goForward().catch(err => {
       recordBrowserError(activeTab.id, err, 'goForward');
@@ -547,8 +574,9 @@ export function OrionBrowser() {
         canGoBack: true,
         canGoForward: nextIndex < t.historyStack.length - 1,
         loading: !isInternal,
-        loadState: nextUrl === 'orion://newtab' ? 'EMPTY_TAB' : 'PAGE_LOADED',
-        contentState: nextUrl === 'orion://newtab' ? 'EMPTY_TAB' : 'PAGE_LOADED',
+        loadState: nextUrl === 'orion://newtab' ? 'EMPTY_TAB' : (!isNative && resolveWebModePolicy(nextUrl).decision === 'EXTERNAL_REQUIRED' ? 'EXTERNAL_REQUIRED' : 'PAGE_LOADED'),
+        contentState: nextUrl === 'orion://newtab' ? 'EMPTY_TAB' : (!isNative && resolveWebModePolicy(nextUrl).decision === 'EXTERNAL_REQUIRED' ? 'EXTERNAL_REQUIRED' : 'PAGE_LOADED'),
+        webNavigationState: nextUrl === 'orion://newtab' ? 'IDLE' : (!isNative && resolveWebModePolicy(nextUrl).decision === 'EXTERNAL_REQUIRED' ? 'EXTERNAL_REQUIRED' : 'LOADED'),
         generation: (t.generation || 0) + 1,
         securityStatus: isInternal ? 'internal' : (isSecure ? 'secure' : 'insecure'),
       };
@@ -851,7 +879,10 @@ export function OrionBrowser() {
         onOpenDiagnostics={() => setIsDiagnosticsOpen(true)}
         onOpenExternal={() => {
           if (activeTab && activeTab.url !== 'orion://newtab') {
-            window.open(activeTab.url, '_blank', 'noopener,noreferrer');
+            const res = openExternally(activeTab.url);
+            if (res.popupBlocked) {
+              showToast?.('Popup blocked by browser. Please allow popups for Orion-9.', 'warning', 'Browser');
+            }
           }
         }}
       />
@@ -908,6 +939,7 @@ export function OrionBrowser() {
         recentHistory={historyList}
         zoomLevel={zoomLevel}
         runtimeMode={(capability.mode === 'NATIVE_WEBVIEW' && capability.nativeAvailable) || capability.verifiedNative ? 'NATIVE_WEBVIEW' : 'WEB_EMBEDDED'}
+        defaultSearchEngine={preferences.defaultSearchEngine}
         onNavigate={(url) => navigateTab(activeTabId, url)}
         onReload={handleReload}
         onBlocked={() => {
@@ -922,7 +954,10 @@ export function OrionBrowser() {
         onError={(err) => handleLoadError(activeTabId, err)}
         onOpenExternal={() => {
           if (activeTab && activeTab.url !== 'orion://newtab') {
-            window.open(activeTab.url, '_blank', 'noopener,noreferrer');
+            const res = openExternally(activeTab.url);
+            if (res.popupBlocked) {
+              showToast?.('Popup blocked by browser. Please allow popups for Orion-9.', 'warning', 'Browser');
+            }
           }
         }}
         onInstallDesktop={handleInstallDesktop}

@@ -197,8 +197,8 @@ describe('Orion-9 Mobile Application Shell Rebuild Architecture', () => {
 
       expect(html).toContain('Chief Supply Chain Officer');
       expect(html).toContain('System Operational');
-      expect(html).toContain('Quick Actions');
-      expect(html).toContain('Quick Access');
+      expect(html).toContain('data-orion-launcher-grid="true"');
+      expect(html).toContain('Applications');
       expect(html).toContain('Ask ORION about your supply chain');
       expect(html).not.toContain('Orion Control Tower');
       expect(html).not.toContain('Telemetry Trajectories');

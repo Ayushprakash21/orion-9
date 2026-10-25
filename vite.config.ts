@@ -1,7 +1,7 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import dotenv from 'dotenv';
 
 import { cloudflare } from "@cloudflare/vite-plugin";
@@ -63,7 +63,8 @@ export default defineConfig(({ mode, command }) => {
 
   // Fail closed if staging build is attempted with missing or production Firebase configuration
   if (mode === 'staging') {
-    const stagingProjectId = process.env.VITE_STAGING_FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID;
+    const env = loadEnv(mode, process.cwd(), '');
+    const stagingProjectId = env.VITE_STAGING_FIREBASE_PROJECT_ID || env.VITE_FIREBASE_PROJECT_ID || process.env.VITE_STAGING_FIREBASE_PROJECT_ID;
     if (!stagingProjectId || stagingProjectId === 'orion9-dev-db-2026') {
       throw new Error(
         '[STAGING-BUILD-VALIDATION-ERROR] Staging build failed: Staging Firebase configuration is unavailable or matches the production project. ' +

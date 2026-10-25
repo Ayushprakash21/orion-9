@@ -130,8 +130,8 @@ describe('ORION-9 Mobile UI Forensic Verification Suite', () => {
     // Must contain Home elements
     expect(html).toContain('Alex Vance');
     expect(html).toContain('System Operational');
-    expect(html).toContain('Quick Actions');
-    expect(html).toContain('Quick Access');
+    expect(html).toContain('data-orion-launcher-grid="true"');
+    expect(html).toContain('Applications');
 
     // MUST NOT contain Control Center specific panels
     expect(html).not.toContain('Orion Control Tower');
@@ -154,7 +154,7 @@ describe('ORION-9 Mobile UI Forensic Verification Suite', () => {
     );
 
     expect(html).toContain('Control');
-    expect(html).toContain('aria-label="Open Command Center"');
+    expect(html).toContain('aria-label="Open Control Tower"');
   });
 
   // 4. Home navigation returns to Home

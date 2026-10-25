@@ -50,17 +50,23 @@ export const MobileNavigationProvider: React.FC<{ children: ReactNode }> = ({ ch
     if (p.startsWith('/mobile/ai') || p === '/copilot' || p === '/ai') return 'ai';
     if (p.startsWith('/mobile/alerts') || p === '/exceptions' || p === '/alerts') return 'alerts';
     if (p.startsWith('/mobile/apps') || p === '/apps') return 'apps';
+    if (p.startsWith('/browser')) return 'app_view';
     if (p.startsWith('/mobile/home') || p === '/mobile' || p === '/') return 'home';
     return 'home';
   }, []);
 
   const [activeTab, setActiveTabState] = useState<MobileTab>(() => getTabFromPath(pathname));
-  const [openedAppId, setOpenedAppId] = useState<string | null>(null);
+  const [openedAppId, setOpenedAppId] = useState<string | null>(() => pathname.toLowerCase().startsWith('/browser') ? 'browser' : null);
   const [selectedEntity, setSelectedEntity] = useState<MobileEntityDetail | null>(null);
   const [isDetailSheetOpen, setIsDetailSheetOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
+    if (pathname.toLowerCase().startsWith('/browser')) {
+      setOpenedAppId('browser');
+      setActiveTabState('app_view');
+      return;
+    }
     const tabFromUrl = getTabFromPath(pathname);
     if (tabFromUrl !== activeTab && activeTab !== 'app_view') {
       setActiveTabState(tabFromUrl);

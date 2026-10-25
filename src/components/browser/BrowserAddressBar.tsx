@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Lock, Unlock, Shield, Star, Search } from 'lucide-react';
+import { Lock, Unlock, Shield, Star, Search, ArrowRight } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export interface BrowserAddressBarProps {
@@ -60,8 +60,18 @@ export const BrowserAddressBar: React.FC<BrowserAddressBarProps> = ({
     setIsFocused(false);
   };
 
+  const handleGo = () => {
+    const val = inputValue.trim();
+    if (val) {
+      onNavigate(val);
+    } else {
+      onNavigate('orion://newtab');
+    }
+    activeInputRef.current?.blur();
+  };
+
   return (
-    <div className="relative flex-1 flex items-center min-w-[200px] h-8 bg-white/[0.05] backdrop-blur-md border border-white/[0.08] focus-within:border-[var(--orion-accent,#0071E3)]/60 focus-within:ring-2 focus-within:ring-[var(--orion-accent,#0071E3)]/25 rounded-[8px] shadow-[inset_0_1px_1px_rgba(0,0,0,0.15)] transition-all overflow-hidden">
+    <div className="relative flex-1 flex items-center min-w-[90px] sm:min-w-[160px] h-8 bg-white/[0.05] backdrop-blur-md border border-white/[0.08] focus-within:border-[var(--orion-accent,#0071E3)]/60 focus-within:ring-2 focus-within:ring-[var(--orion-accent,#0071E3)]/25 rounded-[8px] shadow-[inset_0_1px_1px_rgba(0,0,0,0.15)] transition-all overflow-hidden">
       {/* Security Status Badge */}
       <div 
         className="flex items-center pl-2.5 pr-1.5 shrink-0 select-none text-xs"
@@ -94,8 +104,20 @@ export const BrowserAddressBar: React.FC<BrowserAddressBarProps> = ({
         onFocus={handleFocus}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        className="flex-1 bg-transparent text-xs text-[var(--orion-text-primary,#F2F2EF)] placeholder:text-[var(--orion-text-muted,#747875)] focus:outline-none px-1 py-1 selection:bg-[var(--orion-accent,#0071E3)]/30"
+        className="flex-1 min-w-0 bg-transparent text-xs text-[var(--orion-text-primary,#F2F2EF)] placeholder:text-[var(--orion-text-muted,#747875)] focus:outline-none px-1 py-1 selection:bg-[var(--orion-accent,#0071E3)]/30"
       />
+
+      {/* Go / Navigate Action Button */}
+      <button
+        type="button"
+        data-testid="browser-go-btn"
+        aria-label="Navigate to address"
+        onClick={handleGo}
+        className="p-1.5 rounded-[5px] text-[var(--orion-text-muted,#747875)] hover:text-[var(--orion-accent,#0071E3)] hover:bg-white/[0.08] transition-colors cursor-pointer shrink-0"
+        title="Go to URL (Enter)"
+      >
+        <ArrowRight className="w-3.5 h-3.5" />
+      </button>
 
       {/* Bookmark Action */}
       <button

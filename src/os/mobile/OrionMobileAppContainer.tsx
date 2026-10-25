@@ -12,11 +12,11 @@ export const OrionMobileAppContainer: React.FC = () => {
   const AppComponent = getAppComponent(openedAppId);
 
   return (
-    <div className="w-full max-w-full flex flex-col select-none">
+    <div className="w-full max-w-full flex-1 flex flex-col min-h-[calc(100dvh-112px)] h-full select-none">
       {/* Application Content View — global header already provides back nav + app title */}
-      <div className="w-full max-w-full overflow-x-hidden px-2 sm:px-4 pt-2">
+      <div className="w-full max-w-full flex-1 flex flex-col min-h-0 overflow-x-hidden px-1 sm:px-2 pt-1">
         {AppComponent ? (
-          <div className="orion-mobile-app-wrapper w-full max-w-full">
+          <div className="orion-mobile-app-wrapper w-full max-w-full flex-1 flex flex-col min-h-0 h-full">
             <AppComponent />
           </div>
         ) : (

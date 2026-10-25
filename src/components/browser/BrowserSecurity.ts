@@ -244,10 +244,6 @@ export interface ExternalNavigationResult {
  * Honestly detects if the host browser blocked popup window creation.
  */
 export function openExternally(url: string): ExternalNavigationResult {
-  if (typeof window === 'undefined') {
-    return { success: false, popupBlocked: false, url, error: 'Window environment unavailable' };
-  }
-
   // Ensure only valid web URLs are opened externally
   const validation = validateBrowserUrl(url);
   if (!validation.valid || (validation.scheme !== 'http' && validation.scheme !== 'https')) {
@@ -257,6 +253,10 @@ export function openExternally(url: string): ExternalNavigationResult {
       url,
       error: validation.error || 'Cannot open invalid or forbidden protocol externally',
     };
+  }
+
+  if (typeof window === 'undefined') {
+    return { success: false, popupBlocked: false, url, error: 'Window environment unavailable' };
   }
 
   try {

@@ -35,8 +35,10 @@ test.describe('Orion-9 Native Mobile Application Shell Rebuild E2E', () => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.goto('/login');
 
-      // 2. Perform Standard Demo Login
+      // 2. Perform Standard Demo Login (Two-Stage Flow)
       await page.fill('input#username', 'admin');
+      await page.click('button[type="submit"]');
+      await expect(page.locator('input#password')).toBeVisible({ timeout: 5000 });
       await page.fill('input#password', 'admin');
       await page.click('button[type="submit"]');
 
@@ -73,8 +75,9 @@ test.describe('Orion-9 Native Mobile Application Shell Rebuild E2E', () => {
       });
       expect(hasNoHorizontalOverflow).toBe(true);
 
-      // Capture Home Screen Screenshot
-      await page.screenshot({ path: `test-results/mobile-${vp.name}-home.png` });
+      // Capture Home Screen Screenshot to Artifacts Directory
+      const artifactDir = 'C:/Users/Ayush/.gemini/antigravity/brain/5f06512e-da58-4a5d-be62-e2ac72ec78f8';
+      await page.screenshot({ path: `${artifactDir}/mobile_launcher_${vp.name}_home.png` });
 
       // 9. Navigate to Control Tower Tab
       await bottomNav.getByText('Control').click();
@@ -100,7 +103,7 @@ test.describe('Orion-9 Native Mobile Application Shell Rebuild E2E', () => {
 
       // 12. Navigate to Apps Launcher Tab
       await bottomNav.getByText('Apps').click();
-      const appSearch = page.getByPlaceholder(/Search 100\+ Enterprise Apps/i);
+      const appSearch = page.getByPlaceholder(/Search enterprise apps/i);
       await expect(appSearch).toBeVisible();
       await page.screenshot({ path: `test-results/mobile-${vp.name}-apps.png` });
 
@@ -108,11 +111,16 @@ test.describe('Orion-9 Native Mobile Application Shell Rebuild E2E', () => {
       const invApp = page.getByRole('button', { name: /Inventory/i }).first();
       if (await invApp.isVisible()) {
         await invApp.click();
-        await expect(page.getByText(/MOBILE VIEW/i)).toBeVisible();
+        await expect(page.locator('.orion-mobile-app-wrapper')).toBeVisible();
         await page.screenshot({ path: `test-results/mobile-${vp.name}-app-view.png` });
 
         // Click Back to return to launcher
-        await page.getByRole('button', { name: /Apps/i }).first().click();
+        const backBtn = page.getByLabel('Back to Applications');
+        if (await backBtn.isVisible()) {
+          await backBtn.click();
+        } else {
+          await bottomNav.getByText('Apps').click();
+        }
         await expect(appSearch).toBeVisible();
       }
     });
