@@ -12,11 +12,11 @@
 
 Orion-9 has achieved full release-readiness across the core event fabric, transactional persistence, enterprise business workflows, browser-agnostic cryptography, and inbound B2B EDI integration. All P0 security blockers, P1 business workflow disconnects, and P2 EDI pipeline requirements have been remediated and verified through local automated testing and end-to-end builds.
 
-- **Automated Vitest Test Suites:** 223 suites passed (2,145 unit and integration tests passing; 0 failing).
+- **Automated Vitest Test Suites:** 224 suites passed (2,148 unit and integration tests passing; 0 failing; 105 skipped for Gate 1 live emulator execution and optional browser runner).
 - **Mandatory Firebase Emulator Security Gate:** **PASSED (100%)**. 24 security test files with 395 tests executed against the live Firebase Firestore emulator and Auth emulator with zero skipped tests (`node scripts/runSecurityTests.mjs` exited with code 0).
 - **TypeScript Compilation:** Strict validation passed with zero type errors (`tsc --noEmit` exited with code 0).
-- **Production Asset Build:** `npm run build` executed cleanly in 26.88s; client bundle, Cloudflare SSR worker, and Node server packaged with zero crypto externalization warnings.
-- **Edge Deployment Dry Runs:** `npx wrangler deploy --dry-run --env staging` and `npx wrangler deploy --dry-run --env production` both succeeded with exit code 0.
+- **Production Asset Build:** `npm run build` executed cleanly; client bundle, Cloudflare SSR worker, Node server packaged, and `.wrangler/deploy/config.json` cleaned to preserve multi-environment fidelity.
+- **Edge Deployment Dry Runs:** `npm run dry-run:staging` (`wrangler deploy --dry-run --env staging -c wrangler.jsonc`) and `npm run dry-run:production` both succeeded with exit code 0. Staging queue isolation verified: binds `orion-scm-events-staging` and `orion-scm-events-dlq-staging`.
 - **Playwright E2E Test Suite:** **UNBLOCKED & VERIFIED**. Removed remote Cloudflare AI binding requirement from local test server; configured production Node bundle (`dist/server.cjs`) with local Google Chrome channel. Executed all 52 key end-to-end user journeys (authentication, administration, production control plane, app smoke, autonomous workflows) with 52 passed, 0 failed, 0 skipped.
 - **Automated Secret Audit:** `node scripts/auditSecrets.mjs` scanned all 1,406 tracked files and working tree with 0 exposed credentials, private keys, or tokens.
 - **Zero-Origin Security Audit:** `node scripts/auditZeroOriginSecurity.cjs` verified 0 origin endpoint/port leaks in client and worker distribution bundles.

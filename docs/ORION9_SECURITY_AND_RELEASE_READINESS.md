@@ -114,16 +114,26 @@ Dry-run deployments were performed using Cloudflare Wrangler CLI to ensure the r
 npx wrangler deploy --dry-run --env staging
 ```
 - **Exit Code:** 0 (Clean)
-- **Asset Count:** 70 client assets (2,404 KiB raw / 430 KiB gzip)
+- **Asset Count:** 70 client assets (2,620 KiB raw / 470 KiB gzip)
 - **Worker Modules:** `assets/vendor-firebase-D6-uINgQ.js` attached (1,236 KiB)
-- **Bindings Verified:** `env.SCM_EVENTS`, `env.SCM_EVENTS_DLQ`, `env.AI`
+- **Bindings Verified:**
+  - `env.SCM_EVENTS (orion-scm-events-staging)` (Queue)
+  - `env.SCM_EVENTS_DLQ (orion-scm-events-dlq-staging)` (Queue)
+  - `env.AI` (AI)
+  - `env.ORION_RUNTIME_ENVIRONMENT ("STAGING")` (Env Var)
+  - `env.FIREBASE_PROJECT_ID ("orion-9-staging")` (Env Var)
+- **Queue Fencing Resolution:** The `@cloudflare/vite-plugin` build hook previously output `.wrangler/deploy/config.json` redirecting to `dist/orion_9/wrangler.json`, where Wrangler prohibited `env` declarations and stripped staging configurations. A post-build script (`scripts/cleanupWranglerDeployRedirect.cjs`) was added to ensure Wrangler directly processes `wrangler.jsonc`, guaranteeing true staging queue isolation.
 
 ### Production Dry-Run
 ```bash
 npx wrangler deploy --dry-run --env production
 ```
 - **Exit Code:** 0 (Clean)
-- **Verification:** Worker configuration strictly adheres to `wrangler.jsonc` production specifications.
+- **Bindings Verified:**
+  - `env.SCM_EVENTS (orion-scm-events)` (Queue)
+  - `env.SCM_EVENTS_DLQ (orion-scm-events-dlq)` (Queue)
+  - `env.AI` (AI)
+  - `env.ORION_RUNTIME_ENVIRONMENT ("LIVE")` (Env Var)
 
 ---
 
@@ -136,10 +146,11 @@ npx wrangler deploy --dry-run --env production
 - [x] P1 Stable inventory operation idempotency key across retries.
 - [x] P2 Inbound EDI receiver pipeline operational with X12 214 & 856 parsing, 5MB limit, and DLQ rollback.
 - [x] Mandatory Security Gate 1 passed (395 security tests passing, 0 skipped against live Firestore emulator).
-- [x] Vitest suites passing: 223 suites passed, 2,145 tests passed, 0 failures.
+- [x] Vitest suites passing: 224 suites passed, 2,148 tests passed, 0 failures (105 skipped for live emulator Gate 1 / optional local browser).
 - [x] TypeScript validation clean: `tsc --noEmit` exited with code 0.
-- [x] Production build clean: `npm run build` completed in 26.88s.
+- [x] Production build clean: `npm run build` completed with automated post-build redirect cleanup.
 - [x] Zero exposed secrets and zero exposed origin hostnames in repository.
+- [x] Cloudflare staging queue-binding isolation verified (`orion-scm-events-staging` / `orion-scm-events-dlq-staging`).
 - [x] Deployment dry-runs successful for staging and production.
 - [x] Playwright E2E testing reconciled and 100% operational locally (52/52 tests passed; zero Cloudflare token dependency; production server + Google Chrome channel).
 - [x] Strict non-deployment constraints respected (zero live pushes, zero live Cloudflare deployments).

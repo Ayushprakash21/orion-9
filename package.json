@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "npx vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
-    "build:staging": "npx vite build --mode staging && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
+    "build": "npx vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs && node scripts/cleanupWranglerDeployRedirect.cjs",
+    "build:staging": "npx vite build --mode staging && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs && node scripts/cleanupWranglerDeployRedirect.cjs",
     "preview": "npm run build && wrangler dev",
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist server.js",
@@ -21,7 +21,11 @@
     "deploy": "npm run build && wrangler deploy",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "deploy:staging": "wrangler deploy --env staging -c wrangler.jsonc",
+    "deploy:production": "wrangler deploy --env production -c wrangler.jsonc",
+    "dry-run:staging": "wrangler deploy --dry-run --env staging -c wrangler.jsonc",
+    "dry-run:production": "wrangler deploy --dry-run --env production -c wrangler.jsonc"
   },
   "dependencies": {
     "@google/genai": "^2.21.0",

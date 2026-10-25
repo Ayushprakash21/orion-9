@@ -17,15 +17,15 @@
 ================================================================================
 VITEST EXECUTION METRICS
 ================================================================================
-Test Files Passing:    223 passed (230 total)
+Test Files Passing:    224 passed (231 total)
 Test Files Skipped:      7 (Stand-alone test execution without active emulator background)
 Test Files Failing:      0 failing (0%)
 --------------------------------------------------------------------------------
-Total Tests Passing:  2,145 passed
-Total Tests Skipped:    105 skipped (Emulator suites executed in Gate 1)
+Total Tests Passing:  2,148 passed
+Total Tests Skipped:    105 skipped (104 Emulator suites executed in Gate 1 + 1 optional browser test)
 Total Tests Failing:      0 failing (0%)
 Pass Rate (Executed): 100.0%
-Duration:             89.39s
+Duration:             60.10s
 Exit Code:            0 (PASS)
 ================================================================================
 ```
@@ -140,6 +140,14 @@ The previous pre-staging report captured 49 passing tests across 5 test specs, w
 - `src/__tests__/security/governanceAuthority.test.ts` (25 tests passed live)
 - `src/__tests__/security/rateLimiting.test.ts` (5 tests passed live)
 - *Total Security Rules Tests:* **395 passed, 0 skipped, 0 failed.**
+
+### 3.4 Staging Deployment & Queue Fencing Gate
+- **Test File:** `src/__tests__/operations/stagingDeploymentQueueFencing.test.ts`
+- **Tests Executed:** 3 passed (0 failed)
+- **Key Assertions:**
+  1. `wrangler.jsonc` defines isolated staging queue names (`orion-scm-events-staging`, `orion-scm-events-dlq-staging`).
+  2. Ensures strict separation: staging queue names do NOT equal production queues (`orion-scm-events`, `orion-scm-events-dlq`).
+  3. Executes `wrangler deploy --dry-run --env staging` and asserts that the effective worker deployment output binds `env.SCM_EVENTS (orion-scm-events-staging)` and `env.SCM_EVENTS_DLQ (orion-scm-events-dlq-staging)`, with zero fallback to production queues.
 
 ---
 
