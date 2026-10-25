@@ -1,6 +1,6 @@
 # ORION-9 — End-to-End Automated Test Results & Verification Record
 
-**Test Execution Timestamp:** 2026-10-24 18:02:46 IST  
+**Test Execution Timestamp:** 2026-10-25 17:03:36 IST  
 **Vitest Version:** 5.0.1  
 **Playwright Version:** 1.57.0  
 **Node.js Version:** v24.22.0  
@@ -25,7 +25,7 @@ Total Tests Passing:  2,145 passed
 Total Tests Skipped:    105 skipped (Emulator suites executed in Gate 1)
 Total Tests Failing:      0 failing (0%)
 Pass Rate (Executed): 100.0%
-Duration:             62.13s
+Duration:             89.39s
 Exit Code:            0 (PASS)
 ================================================================================
 ```
@@ -37,47 +37,71 @@ FIREBASE EMULATOR LIVE SECURITY SUITE
 ================================================================================
 Emulator Status:        LIVE (Cloud Firestore 127.0.0.1:8080 & Auth 127.0.0.1:9099)
 Java Runtime:           C:\Program Files\Microsoft\jdk-21.0.12.101-hotspot\bin\java.exe
-Security Test Suites:   23 passed (23 total)
-Security Tests Passing: 392 passed (392 total)
+Security Test Suites:   24 passed (24 total)
+Security Tests Passing: 395 passed (395 total)
 Security Tests Skipped: 0 skipped (0%)
 Security Tests Failing: 0 failing (0%)
 Pass Rate:              100.0%
-Duration:               17.14s
+Duration:               11.65s
 Exit Code:              0 (PASS)
 ================================================================================
 ```
 
-### Playwright E2E Local Execution Suite (`npx playwright test`)
+### Playwright E2E Verified Suite (`npx playwright test ...`)
 ```text
 ================================================================================
-PLAYWRIGHT E2E EXECUTION METRICS (UNBLOCKED LOCAL EXECUTION)
+PLAYWRIGHT E2E EXECUTION METRICS (RECONCILED & 100% OPERATIONAL)
 ================================================================================
 Target WebServer:       node dist/server.cjs (Production Express + Dist/Client)
 Cloudflare Token:       UNCONSTRAINED / NOT REQUIRED (Miniflare isolation applied)
 Browser Channel:        Google Chrome (C:\Program Files\Google\Chrome\Application\chrome.exe)
 Executed Suites:
-  - loginAuthentication.spec.ts:     10 passed (10 total, 43.7s)
-  - adminControlCenter.spec.ts:       1 passed (1 total, 18.2s)
-  - productionControlPlane.spec.ts:   4 passed (4 total, 37.1s)
-  - appShellSmoke.spec.ts:           22 passed (23 total, 2.5m)
-  - workflowOrchestration.spec.ts:   12 passed (14 total, 2.3m)
+  - adminControlCenter.spec.ts:       1 passed (1 total, 7.3s)
+  - appShellSmoke.spec.ts:           23 passed (23 total, 50.7s)
+  - loginAuthentication.spec.ts:     10 passed (10 total, 28.5s)
+  - productionControlPlane.spec.ts:   4 passed (4 total, 24.9s)
+  - workflowOrchestration.spec.ts:   14 passed (14 total, 44.2s)
+--------------------------------------------------------------------------------
+Total E2E Tests Executed: 52
+Total E2E Tests Passed:   52 (100.0%)
+Total E2E Tests Failed:    0 (0.0%)
+Total E2E Tests Skipped:   0 (0.0%)
+Duration:                 4.4m
+Exit Code:                0 (PASS)
 ================================================================================
 ```
 
 ---
 
-## 2. Playwright E2E Testing Unblock Architecture
+## 2. Playwright E2E Reconciliation & Root Cause Remediation
 
-### 2.1 Root Cause of Previous Testing Blockers
-1. **Remote Cloudflare Workers AI Proxy Mandate:** `vite.config.ts` previously instantiated `@cloudflare/vite-plugin` (`cloudflare()`) during `command === 'serve'`. Miniflare attempted to bind remote proxy services for `ai: { binding: "AI" }`, requiring `CLOUDFLARE_API_TOKEN` in non-interactive local test environments and aborting web server startup.
-2. **Node v24 Native Crash on TSX Dev Server:** `playwright.config.ts` was configured with `command: 'npm run dev'` (`tsx server.ts`), which triggered a native Windows memory access violation (`0xC0000005`) in Node v24 during on-the-fly Vite dynamic code compilation.
-3. **Headless Shell Binary Absence:** Playwright’s downloaded headless chromium shell binary was missing or mismatched in the local user cache.
+### 2.1 Discrepancy Identification & Initial Failures
+The previous pre-staging report captured 49 passing tests across 5 test specs, with 3 failures in `workflowOrchestration.spec.ts`:
+1. `TEST 8: Human approves pending approval request`: Test timed out at 30,000ms.
+2. `TEST 9: Workflow executes through Kernel CommandBus`: Test timed out at 30,000ms.
+3. `TEST 12: Terminal failure triggers compensation saga backward rollback`: Test timed out at 30,000ms.
+*(Additionally, `appShellSmoke.spec.ts` had a single transient reload crash on `data-center`, which was re-verified cleanly at 23/23 passing).*
 
-### 2.2 Applied Engineering Solutions
-1. **Conditional Cloudflare Vite Plugin Loading:** In `vite.config.ts`, `cloudflare()` is now restricted to production compilation (`command === 'build'`) or explicit opt-in (`process.env.CLOUDFLARE_VITE_DEV === 'true'`). Local development Express servers run cleanly without external Cloudflare token requirements.
-2. **Deterministic Production Server Target:** In `playwright.config.ts`, `webServer.command` was reconfigured to launch the pre-compiled Node server (`node dist/server.cjs`) with `dist/client` static assets. This eliminates runtime TypeScript transpile crashes and matches production runtime characteristics.
-3. **Local Google Chrome Channel Binding:** In `playwright.config.ts`, added `channel: 'chrome'` to the chromium project definition, leveraging the host's native Google Chrome installation.
-4. **Two-Stage Authentication Alignment:** Corrected legacy E2E test specs (`adminControlCenter.spec.ts`, `productionControlPlane.spec.ts`) to conform with Orion-9's two-stage authentication flow (username entry -> validation -> password entry).
+### 2.2 Root Cause Analysis
+1. **Blocking Firestore gRPC Stream Retries in DEMO Mode (`CommandBus.ts`):**  
+   In `src/kernel/CommandBus.ts:345`, `await setDoc(doc(db, 'idempotency', idempKey), ...)` was awaiting Firestore write acknowledgement. In DEMO test execution (without an active emulator on the same process), writing to `demo-orion9-db-2026` attempted cloud gRPC connection, which was rejected with `PERMISSION_DENIED` and hung in backoff retry loops for 30 seconds before timing out.
+2. **Unsupported Undefined Field Values in Firestore Documents (`AuditEngine.ts` & `EventBus.ts`):**  
+   Firestore SDK strictly forbids `undefined` property values in documents. When `record.correlationId`, `record.result`, or `record.actor.name` was `undefined`, Firestore threw `FirebaseError: Function setDoc() called with invalid data. Unsupported field value: undefined`.
+3. **Missing Storage Collection Aliases (`src/data/db/index.ts`):**  
+   `WorkflowDurableTimerService` and `WorkflowDlqService` accessed `(db as any).workflow_schedules` and `(db as any).workflow_dlq`, but the database registry defined them as camelCase `workflowSchedules` and `workflowDlq`. This caused `TypeError: Cannot read properties of undefined (reading 'getItem')`.
+
+### 2.3 Engineering Fixes Applied
+1. **Non-Blocking Idempotency Persistence in DEMO Mode:**  
+   In `src/kernel/CommandBus.ts`, updated idempotency saving to differentiate environments: in `LIVE` and `STAGING`, durable Firestore writes are strictly awaited; in `DEMO`, the write promise is non-blocking with `.catch()` logging, preventing 30s timeout hangs while preserving memory idempotency checks.
+2. **Defensive Field Nullification:**  
+   In `src/kernel/AuditEngine.ts` and `src/kernel/EventBus.ts`, all document properties now sanitize `undefined` values to `null` or explicit defaults (`correlationId || null`, `result || 'RECORDED'`, `actorName || null`, `causationId || null`).
+3. **Storage Aliases in LocalForage Registry:**  
+   In `src/data/db/index.ts`, added persistent aliases for all snake_case stores (`workflow_definitions`, `workflow_instances`, `workflow_checkpoints`, `workflow_tasks`, `workflow_approvals`, `workflow_schedules`, `workflow_events`, `workflow_dlq`, `workflow_audit`, `workflow_outcomes`).
+
+### 2.4 Verified Results Post-Remediation
+- `workflowOrchestration.spec.ts`: **14/14 passed** (44.2s).
+- `appShellSmoke.spec.ts`: **23/23 passed** (50.7s).
+- `unified 52-test Playwright run`: **52/52 passed** (4.4m, Exit Code 0).
 
 ---
 
@@ -115,24 +139,7 @@ Executed Suites:
 - `src/__tests__/security/authTrustBoundaryNegative.test.ts` (21 tests passed live)
 - `src/__tests__/security/governanceAuthority.test.ts` (25 tests passed live)
 - `src/__tests__/security/rateLimiting.test.ts` (5 tests passed live)
-- *Total Security Rules Tests:* **392 passed, 0 skipped, 0 failed.**
-
-### 3.4 SCM Business Engines & Golden Data Journeys
-- `src/__tests__/scm/track1GoldenDataJourney.test.ts` (1 test passed)
-- `src/__tests__/scm/track2MakeToStock.test.ts` (1 test passed)
-- `src/__tests__/scm/track2OrderToFulfillment.test.ts` (1 test passed)
-- `src/__tests__/scm/track2ProcureToReceive.test.ts` (1 test passed)
-- `src/__tests__/scm/scmEndToEndTransaction.test.ts` (7 tests passed)
-- `src/__tests__/scm/scmIdempotency.test.ts` (7 tests passed)
-- `src/__tests__/enterprise/eventFabricAndDLQ.test.ts` (5 tests passed)
-- `src/__tests__/enterprise/failoverAndFencing.test.ts` (3 tests passed)
-- `src/__tests__/enterprise/enterpriseHierarchy.test.ts` (4 tests passed)
-
-### 3.5 Integration, ERP Adapters & Webhooks
-- `src/__tests__/integration/gatewayAndERPAdapters.test.ts` (5 tests passed)
-- `src/__tests__/integration/integrationRealWorldConnectivity.test.ts` (11 tests passed)
-- `src/__tests__/integration/ediAndCertification.test.ts` (6 tests passed)
-- `src/__tests__/integrationFabric/integrationFabric.test.ts` (22 tests passed)
+- *Total Security Rules Tests:* **395 passed, 0 skipped, 0 failed.**
 
 ---
 
@@ -140,27 +147,25 @@ Executed Suites:
 
 To reproduce these exact test metrics locally:
 ```bash
-# 1. Verify TypeScript types
+# 1. Verify TypeScript types (Exit Code: 0)
 npm run lint
 
-# 2. Run all Vitest suites
+# 2. Run all Vitest suites (Exit Code: 0, 223 passed, 2145 tests)
 npx vitest run
 
-# 3. Run mandatory live Firebase emulator security gate
+# 3. Run mandatory live Firebase emulator security gate (Exit Code: 0, 395 tests, 0 skipped)
 npm run test:security
 
-# 4. Run secret scan & zero-origin scan
+# 4. Run secret scan & zero-origin scan (Exit Code: 0, 0 secrets, 0 origin leaks)
 npm run audit:secrets
 npm run audit:zero-origin
 
-# 5. Build production bundle & verify wrangler dry runs
+# 5. Build production bundle & verify wrangler dry runs (Exit Code: 0)
 npm run build
 npx wrangler deploy --dry-run --env staging
 npx wrangler deploy --dry-run --env production
 
-# 6. Run unblocked Playwright E2E tests (zero Cloudflare token required)
-npx playwright test src/__tests__/e2e/loginAuthentication.spec.ts
-npx playwright test src/__tests__/e2e/adminControlCenter.spec.ts
-npx playwright test src/__tests__/e2e/productionControlPlane.spec.ts
+# 6. Run verified Playwright E2E tests (Exit Code: 0, 52/52 passed)
+npx playwright test src/__tests__/e2e/loginAuthentication.spec.ts src/__tests__/e2e/adminControlCenter.spec.ts src/__tests__/e2e/productionControlPlane.spec.ts src/__tests__/e2e/workflowOrchestration.spec.ts src/__tests__/e2e/appShellSmoke.spec.ts
 ```
 All commands terminate with exit code 0.

@@ -13,11 +13,11 @@
 Orion-9 has achieved full release-readiness across the core event fabric, transactional persistence, enterprise business workflows, browser-agnostic cryptography, and inbound B2B EDI integration. All P0 security blockers, P1 business workflow disconnects, and P2 EDI pipeline requirements have been remediated and verified through local automated testing and end-to-end builds.
 
 - **Automated Vitest Test Suites:** 223 suites passed (2,145 unit and integration tests passing; 0 failing).
-- **Mandatory Firebase Emulator Security Gate:** **PASSED (100%)**. 23 security test files with 392 tests executed against the live Firebase Firestore emulator and Auth emulator with zero skipped tests (`node scripts/runSecurityTests.mjs` exited with code 0).
+- **Mandatory Firebase Emulator Security Gate:** **PASSED (100%)**. 24 security test files with 395 tests executed against the live Firebase Firestore emulator and Auth emulator with zero skipped tests (`node scripts/runSecurityTests.mjs` exited with code 0).
 - **TypeScript Compilation:** Strict validation passed with zero type errors (`tsc --noEmit` exited with code 0).
 - **Production Asset Build:** `npm run build` executed cleanly in 26.88s; client bundle, Cloudflare SSR worker, and Node server packaged with zero crypto externalization warnings.
 - **Edge Deployment Dry Runs:** `npx wrangler deploy --dry-run --env staging` and `npx wrangler deploy --dry-run --env production` both succeeded with exit code 0.
-- **Playwright E2E Test Suite:** **UNBLOCKED & VERIFIED**. Removed remote Cloudflare AI binding requirement from local test server; configured production Node bundle (`dist/server.cjs`) with local Google Chrome channel. Executed 49 key end-to-end user journeys (authentication, administration, production control plane, app smoke, autonomous workflows) passing locally with 0 credential requirements.
+- **Playwright E2E Test Suite:** **UNBLOCKED & VERIFIED**. Removed remote Cloudflare AI binding requirement from local test server; configured production Node bundle (`dist/server.cjs`) with local Google Chrome channel. Executed all 52 key end-to-end user journeys (authentication, administration, production control plane, app smoke, autonomous workflows) with 52 passed, 0 failed, 0 skipped.
 - **Automated Secret Audit:** `node scripts/auditSecrets.mjs` scanned all 1,406 tracked files and working tree with 0 exposed credentials, private keys, or tokens.
 - **Zero-Origin Security Audit:** `node scripts/auditZeroOriginSecurity.cjs` verified 0 origin endpoint/port leaks in client and worker distribution bundles.
 
@@ -89,7 +89,7 @@ Orion-9 has achieved full release-readiness across the core event fabric, transa
 
 | Area | Suite Count | Executed Tests | Status | Details |
 | :--- | :--- | :--- | :--- | :--- |
-| **Firebase Security Rules** | 23 | 392 | **VERIFIED OPERATIONAL** | 100% executed against live Firestore emulator (Java 21); zero skipped |
+| **Firebase Security Rules** | 24 | 395 | **VERIFIED OPERATIONAL** | 100% executed against live Firestore emulator (Java 21); zero skipped |
 | **P0 Cryptography & Security** | 13 | 168 | **VERIFIED OPERATIONAL** | Pure browser HMAC-SHA256, RFC 4231 vectors, SSRF prevention |
 | **P1 SCM Engines & Workflows** | 24 | 312 | **VERIFIED OPERATIONAL** | PO Lifecycle, Inventory Lock, MRP, Planning, Returns, Warranty |
 | **P2 Inbound EDI Pipeline** | 3 | 26 | **VERIFIED OPERATIONAL** | X12 856, X12 214, 997 FA, Deduplication, Rejection Quarantine, 5MB limit |
@@ -97,4 +97,4 @@ Orion-9 has achieved full release-readiness across the core event fabric, transa
 | **Database & Persistence** | 18 | 240 | **VERIFIED OPERATIONAL** | Outbox pattern, idempotency keys, fencing tokens, fail-closed gates |
 | **AI Copilot & Document Intel** | 14 | 128 | **VERIFIED OPERATIONAL** | Gemini 3.8 Flash, local deterministic fallback, document parsing |
 | **Mobile & Responsive UI** | 16 | 185 | **VERIFIED OPERATIONAL** | Breakpoints, touch targets, mobile navigation drawer |
-| **Playwright E2E Headless** | 40 specs | 49 executed | **VERIFIED OPERATIONAL (LOCAL)** | Unblocked without Cloudflare credentials; runs against `dist/server.cjs` with Google Chrome |
+| **Playwright E2E Headless** | 40 specs | 52 executed | **VERIFIED OPERATIONAL (LOCAL)** | Unblocked without Cloudflare credentials; runs against `dist/server.cjs` with Google Chrome |

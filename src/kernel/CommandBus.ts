@@ -10,6 +10,7 @@ import { kernelPolicyEngine } from './PolicyEngine';
 import { kernelEventBus } from './EventBus';
 import { kernelAuditEngine } from './AuditEngine';
 import { authorizationEngine } from './authorization/AuthorizationEngine';
+import { DatabaseConnectionManager } from '../core/database/DatabaseConnectionManager';
 import { getFirebaseFirestore } from '../lib/firebaseClient';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
@@ -339,17 +340,23 @@ export class KernelCommandBus {
       // Save successful result to durable idempotency store if key exists
       if (context.idempotencyKey) {
         try {
-          const db = getFirebaseFirestore();
+          const currentEnv = DatabaseConnectionManager.getInstance().getEnvironment();
+          const db = DatabaseConnectionManager.getInstance().getFirestore(currentEnv) || getFirebaseFirestore(currentEnv);
           if (db) {
             const idempKey = `${context.tenant.organizationId}_${context.idempotencyKey}`;
-            await setDoc(doc(db, 'idempotency', idempKey), {
+            const promise = setDoc(doc(db, 'idempotency', idempKey), {
               idempotencyKey: context.idempotencyKey,
               commandId,
               tenantId: context.tenant.organizationId,
               status: 'COMPLETED',
-              result,
+              result: result !== undefined ? result : null,
               createdAt: executionTimestamp,
             });
+            if (currentEnv === 'LIVE' || currentEnv === 'STAGING') {
+              await promise;
+            } else {
+              promise.catch(err => console.warn(`[COMMAND-BUS] Firestore idempotency notice:`, err));
+            }
           }
         } catch (e) {
           console.warn(`[COMMAND-BUS] Failed to persist idempotency key for command ${commandId}:`, e);

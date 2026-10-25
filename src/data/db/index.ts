@@ -82,6 +82,17 @@ export const db = {
   workflowDlq: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_dlq' }),
   workflowAudit: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_audit' }),
   workflowOutcomes: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_outcomes' }),
+  // Snake_case aliases for durable workflow persistence
+  workflow_definitions: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_definitions' }),
+  workflow_instances: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_instances' }),
+  workflow_checkpoints: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_checkpoints' }),
+  workflow_tasks: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_tasks' }),
+  workflow_approvals: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_approvals' }),
+  workflow_schedules: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_schedules' }),
+  workflow_events: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_events' }),
+  workflow_dlq: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_dlq' }),
+  workflow_audit: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_audit' }),
+  workflow_outcomes: createSafeInstance({ name: 'SC_DB', storeName: 'workflow_outcomes' }),
   documentVersions: createSafeInstance({ name: 'SC_DB', storeName: 'document_versions' }),
 
   documentExtractions: createSafeInstance({ name: 'SC_DB', storeName: 'document_extractions' }),

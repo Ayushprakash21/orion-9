@@ -77,21 +77,21 @@ export class KernelAuditEngine {
       if (dbInstance) {
         setDoc(doc(dbInstance, 'audit_logs', auditId), {
           auditId: record.auditId,
-          correlationId: record.correlationId,
+          correlationId: record.correlationId || null,
           actorUserId: record.actor.id,
-          actorName: record.actor.name,
+          actorName: record.actor.name || null,
           actorRole: record.actor.role || 'user',
           organizationId: record.tenantId || 'ORION_PLATFORM',
           action: record.action,
           entityType: record.entityType,
           entityId: record.entityId,
-          result: record.result,
+          result: record.result || 'RECORDED',
           failureReason: record.failureReason || null,
           beforeState: record.beforeState || null,
           afterState: record.afterState || null,
           policyEvaluation: record.policyEvaluation || null,
           approval: record.approval || null,
-          classification: record.classification,
+          classification: record.classification || 'INTERNAL',
           timestamp: record.timestamp,
         }).catch(err => console.warn('[AuditEngine] Firestore audit log warning:', err));
       }

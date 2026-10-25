@@ -39,14 +39,14 @@
 
 | Integration Target | Adapter Module | Protocol | Status | Evidence / Notes |
 | :--- | :--- | :--- | :---: | :--- |
-| **Firebase Firestore** | `DatabaseConnectionManager.ts` | REST / Admin SDK | **VERIFIED OPERATIONAL** | Verified via live emulator (392/392 security tests passing) |
+| **Firebase Firestore** | `DatabaseConnectionManager.ts` | REST / Admin SDK | **VERIFIED OPERATIONAL** | Verified via live emulator (395/395 security tests passing) |
 | **Firebase Auth** | `workerSecurity.ts` | RS256 JWKS | **VERIFIED OPERATIONAL** | Validated against emulator & test suites |
 | **ANSI ASC X12 EDI** | `EDIFabric.ts` & `worker.ts` | ASC X12 (214/856) | **VERIFIED OPERATIONAL** | Verified via `/api/edi/receive` test suite (8/8 passing) |
 | **Google Gemini AI** | `AIProvider.ts` & `worker.ts` | REST (`gemini-3.8-flash`) | **IMPLEMENTED, NOT LIVE-VERIFIED** | Unit tested with mock & deterministic fallback active |
 | **SAP S/4HANA** | `IntegrationGateway.ts` | OData v4 / Webhooks | **IMPLEMENTED, NOT LIVE-VERIFIED** | Contract-tested with HMAC verification; sandbox unverified |
 | **Oracle Fusion SCM**| `IntegrationGateway.ts` | REST / Webhooks | **IMPLEMENTED, NOT LIVE-VERIFIED** | Contract-tested with HMAC verification; sandbox unverified |
 | **Cloudflare Queues** | `worker.ts` (`env.SCM_EVENTS`) | Cloudflare Queue API | **IMPLEMENTED, NOT LIVE-VERIFIED** | Dry-run verified; awaits live Cloudflare runtime deployment |
-| **Playwright E2E** | `src/__tests__/e2e/` | Headless Chrome | **VERIFIED OPERATIONAL (LOCAL)** | Unblocked locally; runs with `dist/server.cjs` and Google Chrome without Cloudflare token |
+| **Playwright E2E** | `src/__tests__/e2e/` | Headless Chrome | **VERIFIED OPERATIONAL (LOCAL)** | Reconciled & 100% operational (52/52 passed); runs with `dist/server.cjs` and Google Chrome |
 
 ---
 

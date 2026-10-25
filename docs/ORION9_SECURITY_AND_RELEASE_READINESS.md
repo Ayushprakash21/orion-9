@@ -135,11 +135,11 @@ npx wrangler deploy --dry-run --env production
 - [x] P1 UI-to-Engine direct outbox wiring complete (Procurement, Inventory, Supply Planning).
 - [x] P1 Stable inventory operation idempotency key across retries.
 - [x] P2 Inbound EDI receiver pipeline operational with X12 214 & 856 parsing, 5MB limit, and DLQ rollback.
-- [x] Mandatory Security Gate 1 passed (392 security tests passing, 0 skipped against live Firestore emulator).
+- [x] Mandatory Security Gate 1 passed (395 security tests passing, 0 skipped against live Firestore emulator).
 - [x] Vitest suites passing: 223 suites passed, 2,145 tests passed, 0 failures.
 - [x] TypeScript validation clean: `tsc --noEmit` exited with code 0.
 - [x] Production build clean: `npm run build` completed in 26.88s.
 - [x] Zero exposed secrets and zero exposed origin hostnames in repository.
 - [x] Deployment dry-runs successful for staging and production.
-- [x] Playwright E2E testing unblocked locally (zero Cloudflare token dependency; production server + Google Chrome channel).
+- [x] Playwright E2E testing reconciled and 100% operational locally (52/52 tests passed; zero Cloudflare token dependency; production server + Google Chrome channel).
 - [x] Strict non-deployment constraints respected (zero live pushes, zero live Cloudflare deployments).

@@ -134,10 +134,12 @@ export class KernelEventBus {
     try {
       const db = DatabaseConnectionManager.getInstance().getFirestore();
       if (db) {
-        setDoc(doc(db, 'events', eventId), {
-          ...envelope,
-          organizationId: envelope.tenant?.organizationId || 'ORION_PLATFORM',
-        }).catch(err => {
+        const cleanPayload: Record<string, any> = {};
+        for (const [k, v] of Object.entries(envelope)) {
+          cleanPayload[k] = v !== undefined ? v : null;
+        }
+        cleanPayload.organizationId = envelope.tenant?.organizationId || 'ORION_PLATFORM';
+        setDoc(doc(db, 'events', eventId), cleanPayload).catch(err => {
           if (DatabaseConnectionManager.getInstance().getEnvironment() === 'LIVE') {
             console.error('[EventBus] Authoritative Firestore event persistence failed in LIVE mode:', err);
           } else {
