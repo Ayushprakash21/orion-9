@@ -17,7 +17,7 @@ export interface BrowserContentProps {
   tab?: BrowserTab;
   recentHistory?: BrowserHistoryEntry[];
   zoomLevel?: number;
-  runtimeMode?: 'WEB_EMBEDDED' | 'NATIVE_WEBVIEW';
+  runtimeMode?: 'WEB_EMBEDDED' | 'NATIVE_WEBVIEW' | 'detecting';
   defaultSearchEngine?: SearchEngineType;
   onNavigate?: (url: string) => void;
   onBack?: () => void;
@@ -56,7 +56,8 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
   const [popupBlocked, setPopupBlocked] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
-  const isNative = runtimeMode === 'NATIVE_WEBVIEW' || (runtimeMode === undefined && isNativeRuntimeAvailable());
+  const isDetecting = runtimeMode === 'detecting';
+  const isNative = runtimeMode === 'NATIVE_WEBVIEW' || (!isDetecting && runtimeMode === undefined && isNativeRuntimeAvailable());
 
   useEffect(() => {
     setPopupBlocked(false);
@@ -103,7 +104,17 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
       if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
       rafIdRef.current = requestAnimationFrame(() => {
         const rect = el.getBoundingClientRect();
-        if (rect.width <= 0 || rect.height <= 0) return;
+        if (rect.width <= 0 || rect.height <= 0) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn('[BROWSER:DIAGNOSTIC] Case D: Native viewport element has 0 dimensions:', {
+              width: rect.width,
+              height: rect.height,
+              top: rect.top,
+              left: rect.left,
+            });
+          }
+          return;
+        }
 
         const clamped: BrowserBounds = {
           x: Math.round(rect.left),
@@ -120,6 +131,9 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
           prev.width !== clamped.width ||
           prev.height !== clamped.height
         ) {
+          if (process.env.NODE_ENV !== 'production' && !prev) {
+            console.log('[BROWSER:DIAGNOSTIC] Case E: Initial native viewport bounds applied:', clamped);
+          }
           lastBoundsRef.current = clamped;
           onBoundsChange(clamped);
         }
@@ -154,7 +168,28 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
 
   const effectiveZoom = activeTab.zoomLevel || zoomLevel || 1.0;
 
-  // 1. STATE: INTERNAL_ORION_CONTENT (Empty or New Tab)
+  // 1. STATE: RUNTIME DETECTION IN PROGRESS
+  // Do NOT display a permanent web-mode fallback while native capability detection is in progress.
+  if (isDetecting) {
+    return (
+      <div
+        data-testid="browser-detecting-runtime"
+        className="flex-1 h-full flex flex-col items-center justify-center p-8 bg-os-bg text-center select-none animate-in fade-in duration-150"
+      >
+        <div className="w-12 h-12 rounded-2xl bg-os-accent/10 border border-os-accent/20 flex items-center justify-center text-os-accent mb-4 shadow-lg">
+          <RotateCw className="w-6 h-6 animate-spin" />
+        </div>
+        <h3 className="text-sm font-semibold text-os-text-primary mb-1">
+          Detecting Desktop Runtime...
+        </h3>
+        <p className="text-xs text-os-text-muted max-w-sm">
+          Checking native child WebView capabilities for direct in-window browsing.
+        </p>
+      </div>
+    );
+  }
+
+  // 2. STATE: INTERNAL_ORION_CONTENT (Empty or New Tab)
   if (
     activeTab.url === 'orion://newtab' ||
     activeTab.url === 'about:blank' ||
@@ -182,9 +217,9 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
     );
   }
 
-  // 2. STATE: BLOCKED EMBEDDING OR EXTERNAL REQUIRED (Only in Web Embedded mode, NEVER in native mode)
+  // 3. STATE: BLOCKED EMBEDDING OR EXTERNAL REQUIRED (Only in Web Embedded mode, NEVER in native mode or while detecting)
   const isWebBlockedOrExternal =
-    !isNative && (
+    !isNative && !isDetecting && (
       activeTab.loadState === 'EXTERNAL_REQUIRED' ||
       activeTab.contentState === 'EXTERNAL_REQUIRED' ||
       activeTab.webNavigationState === 'EXTERNAL_REQUIRED' ||
@@ -194,6 +229,9 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
     );
 
   if (isWebBlockedOrExternal) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[BROWSER:DIAGNOSTIC] Case A/Web: Rendering web-mode fallback card for:', activeTab.url);
+    }
     let siteName = 'This website';
     let searchQuery: string | null = null;
     try {
@@ -330,7 +368,7 @@ export const BrowserContent: React.FC<BrowserContentProps> = ({
                 onInstallDesktop();
               } else {
                 const link = document.createElement('a');
-                link.href = '/downloads/Orion-9-Setup.exe';
+                link.href = '/api/download/desktop';
                 link.download = 'Orion-9-Setup.exe';
                 document.body.appendChild(link);
                 link.click();

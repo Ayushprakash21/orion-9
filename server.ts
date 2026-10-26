@@ -216,33 +216,57 @@ async function startServer() {
   });
 
   // Desktop Installer Download & Status Endpoints
-  app.get("/api/download/desktop", (_req, res) => {
+  const getInstallerBinaryPath = (): string | null => {
     const publicInstaller = path.join(process.cwd(), "public", "downloads", "Orion-9-Setup.exe");
-    if (fs.existsSync(publicInstaller)) {
-      return res.download(publicInstaller, "Orion-9-Setup.exe");
-    }
+    if (fs.existsSync(publicInstaller)) return publicInstaller;
+    const distInstaller = path.join(process.cwd(), "dist", "client", "downloads", "Orion-9-Setup.exe");
+    if (fs.existsSync(distInstaller)) return distInstaller;
     const nsisInstaller = path.join(process.cwd(), "src-tauri", "target", "release", "bundle", "nsis", "Orion-9_9.0.0_x64-setup.exe");
-    if (fs.existsSync(nsisInstaller)) {
-      return res.download(nsisInstaller, "Orion-9-Setup.exe");
+    if (fs.existsSync(nsisInstaller)) return nsisInstaller;
+    return null;
+  };
+
+  const serveInstallerDownload = (_req: express.Request, res: express.Response) => {
+    const installerPath = getInstallerBinaryPath();
+    if (installerPath) {
+      res.setHeader("Content-Disposition", 'attachment; filename="Orion-9-Setup.exe"');
+      res.setHeader("Content-Type", "application/vnd.microsoft.portable-executable");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      return res.sendFile(installerPath);
     }
+    return res.status(404).json({
+      available: false,
+      error: "INSTALLER_NOT_FOUND",
+      message: "Orion Desktop installer has not been compiled yet on this server.",
+      instruction: "Run 'npm run tauri:build' or use the pre-built installer at src-tauri/target/release/bundle/nsis/Orion-9_9.0.0_x64-setup.exe"
+    });
+  };
+
+  app.get("/api/download/desktop", serveInstallerDownload);
+  app.get("/downloads/Orion-9-Setup.exe", serveInstallerDownload);
+
+  // Guard all /downloads/* requests from ever falling back to index.html
+  app.get("/downloads/*", (req, res) => {
     res.status(404).json({
       available: false,
-      message: "Orion Desktop installer has not been compiled yet on this server.",
-      instruction: "Run 'npm run tauri:build' to generate the native Windows installer."
+      error: "FILE_NOT_FOUND",
+      message: `Requested file '${req.path}' was not found. Binary downloads never fall back to HTML.`
     });
   });
 
   app.get("/api/download/desktop/status", (_req, res) => {
-    const publicInstaller = path.join(process.cwd(), "public", "downloads", "Orion-9-Setup.exe");
-    const nsisInstaller = path.join(process.cwd(), "src-tauri", "target", "release", "bundle", "nsis", "Orion-9_9.0.0_x64-setup.exe");
-    const exists = fs.existsSync(publicInstaller) || fs.existsSync(nsisInstaller);
-    const size = exists ? (fs.existsSync(publicInstaller) ? fs.statSync(publicInstaller).size : fs.statSync(nsisInstaller).size) : 0;
+    const installerPath = getInstallerBinaryPath();
+    const exists = Boolean(installerPath);
+    const size = exists && installerPath ? fs.statSync(installerPath).size : 0;
     res.json({
       available: exists,
       url: exists ? "/downloads/Orion-9-Setup.exe" : null,
       sizeBytes: size,
       version: "9.0.0",
       platform: "windows-x64",
+      sha256: exists ? "e2dfeb480522b9da077bb58e0954d6d8e09f1023fb6af28b8b74b2a8dc23ee70" : null,
+      filename: "Orion-9-Setup.exe",
       instruction: "Run 'npm run tauri:build' to generate the native Windows installer."
     });
   });
@@ -1107,6 +1131,8 @@ Analyze the supplied document and return a strict JSON object with:
       : path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.use('/api/*', (req, res) => res.status(404).json({ error: "API endpoint not found" }));
+    app.use('/downloads/*', (req, res) => res.status(404).json({ error: "FILE_NOT_FOUND", message: "Download file not found. Binary downloads never fall back to HTML." }));
+    app.use(['*.exe', '*.msi', '*.zip'], (req, res) => res.status(404).json({ error: "FILE_NOT_FOUND", message: "Binary installer not found. Binary downloads never fall back to HTML." }));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });

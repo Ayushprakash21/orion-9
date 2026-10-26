@@ -189,4 +189,73 @@ describe('ORION-9 Scheduled Event Handler & Endpoint Security', () => {
       expect(bodyStr).not.toContain('internal_project_db');
     });
   });
+
+  describe('Desktop Installer Download & Non-SPA Guard Security', () => {
+    it('/api/download/desktop/status returns authoritative metadata and package information', async () => {
+      const mockEnv: any = {
+        ASSETS: { fetch: vi.fn() }
+      };
+
+      const request = new Request('https://orion9.test/api/download/desktop/status', { method: 'GET' });
+      const response = await worker.fetch(request, mockEnv, dummyCtx);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('Content-Type')).toContain('application/json');
+
+      const body = await response.json();
+      expect(body.available).toBe(true);
+      expect(body.version).toBe('9.0.0');
+      expect(body.platform).toBe('windows-x64');
+      expect(body.sizeBytes).toBe(30336791);
+      expect(body.sha256).toBe('e2dfeb480522b9da077bb58e0954d6d8e09f1023fb6af28b8b74b2a8dc23ee70');
+    });
+
+    it('/api/download/desktop returns honest 404 JSON explaining Cloudflare 25 MiB asset limit without returning HTML', async () => {
+      const mockEnv: any = {
+        ASSETS: { fetch: vi.fn() }
+      };
+
+      const request = new Request('https://orion9.test/api/download/desktop', { method: 'GET' });
+      const response = await worker.fetch(request, mockEnv, dummyCtx);
+      expect(response.status).toBe(404);
+      expect(response.headers.get('Content-Type')).toContain('application/json');
+
+      const body = await response.json();
+      expect(body.available).toBe(false);
+      expect(body.error).toBe('HOSTING_LIMITATION_CLOUDFLARE');
+      expect(body.localArtifactPath).toBe('src-tauri/target/release/bundle/nsis/Orion-9_9.0.0_x64-setup.exe');
+      expect(mockEnv.ASSETS.fetch).not.toHaveBeenCalled();
+    });
+
+    it('/downloads/Orion-9-Setup.exe returns honest 404 JSON and never falls back to SPA index.html', async () => {
+      const mockEnv: any = {
+        ASSETS: { fetch: vi.fn().mockResolvedValue(new Response('<!doctype html><html>', { status: 200, headers: { 'Content-Type': 'text/html' } })) }
+      };
+
+      const request = new Request('https://orion9.test/downloads/Orion-9-Setup.exe', { method: 'GET' });
+      const response = await worker.fetch(request, mockEnv, dummyCtx);
+      expect(response.status).toBe(404);
+      expect(response.headers.get('Content-Type')).toContain('application/json');
+
+      const body = await response.json();
+      expect(body.available).toBe(false);
+      expect(body.error).toBe('HOSTING_LIMITATION_CLOUDFLARE');
+      // Verifies env.ASSETS.fetch was NOT called, preventing SPA HTML fallback
+      expect(mockEnv.ASSETS.fetch).not.toHaveBeenCalled();
+    });
+
+    it('arbitrary missing .exe download paths are caught by non-SPA guard and return 404 JSON', async () => {
+      const mockEnv: any = {
+        ASSETS: { fetch: vi.fn().mockResolvedValue(new Response('<!doctype html><html>', { status: 200, headers: { 'Content-Type': 'text/html' } })) }
+      };
+
+      const request = new Request('https://orion9.test/downloads/unknown_setup.exe', { method: 'GET' });
+      const response = await worker.fetch(request, mockEnv, dummyCtx);
+      expect(response.status).toBe(404);
+      expect(response.headers.get('Content-Type')).toContain('application/json');
+
+      const body = await response.json();
+      expect(body.error).toBe('NOT_FOUND');
+      expect(mockEnv.ASSETS.fetch).not.toHaveBeenCalled();
+    });
+  });
 });

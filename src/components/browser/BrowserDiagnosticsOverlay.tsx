@@ -68,17 +68,19 @@ export const BrowserDiagnosticsOverlay: React.FC<BrowserDiagnosticsProps> = ({
           <div className="flex justify-between items-center py-1 px-2 rounded-lg bg-os-bg/50">
             <span className="text-os-text-muted">Runtime:</span>
             <span className={`font-bold px-1.5 py-0.5 rounded text-[10px] ${
-              isNative 
-                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' 
+              capability.state === 'detecting'
+                ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                : isNative
+                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
                 : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
             }`}>
-              {capability.mode}
+              {capability.state === 'detecting' ? 'DETECTING' : capability.mode}
             </span>
           </div>
           <div className="flex justify-between items-center py-1 px-2 rounded-lg bg-os-bg/50">
-            <span className="text-os-text-muted">Runtime Type:</span>
-            <span className="font-bold text-[10px] text-os-text-primary">
-              {capability.runtimeType}
+            <span className="text-os-text-muted">State:</span>
+            <span className="font-bold text-[10px] text-os-text-primary uppercase">
+              {capability.state || 'web'}
             </span>
           </div>
         </div>

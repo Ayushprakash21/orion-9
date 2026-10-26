@@ -300,6 +300,51 @@ export default {
       );
     }
 
+    // 0g. Desktop Installer Download & Status Endpoints
+    if (url.pathname === "/api/download/desktop/status" && request.method === "GET") {
+      return applySecurityHeaders(
+        new Response(
+          JSON.stringify({
+            available: true,
+            version: "9.0.0",
+            platform: "windows-x64",
+            filename: "Orion-9-Setup.exe",
+            sizeBytes: 30336791,
+            sha256: "e2dfeb480522b9da077bb58e0954d6d8e09f1023fb6af28b8b74b2a8dc23ee70",
+            downloadUrl: "/api/download/desktop",
+            hostingType: "desktop-package",
+            message: "Orion-9 Windows x64 Desktop Installer Package."
+          }),
+          { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=3600" } }
+        ),
+        request
+      );
+    }
+
+    if ((url.pathname === "/api/download/desktop" || url.pathname === "/downloads/Orion-9-Setup.exe") && request.method === "GET") {
+      // Cloudflare Workers Static Assets imposes a hard 25 MiB single-file limit.
+      // Orion-9-Setup.exe is 28.93 MiB (30,336,791 bytes), so it cannot be deployed to Workers Static Assets.
+      // Returning honest 404 JSON response preventing the browser from ever receiving or saving SPA index.html as .exe!
+      return applySecurityHeaders(
+        new Response(
+          JSON.stringify({
+            available: false,
+            error: "HOSTING_LIMITATION_CLOUDFLARE",
+            message: "The Orion-9 desktop installer package is 28.93 MiB (30,336,791 bytes), which exceeds Cloudflare Workers Static Assets maximum file limit of 25 MiB.",
+            status: 404,
+            version: "9.0.0",
+            platform: "windows-x64",
+            filename: "Orion-9-Setup.exe",
+            sha256: "e2dfeb480522b9da077bb58e0954d6d8e09f1023fb6af28b8b74b2a8dc23ee70",
+            localArtifactPath: "src-tauri/target/release/bundle/nsis/Orion-9_9.0.0_x64-setup.exe",
+            instructions: "To install Orion Desktop locally: 1. Run 'npm start' on your machine to download from the local Express server at http://localhost:3000/downloads/Orion-9-Setup.exe. 2. Or run the installer directly from the project repository at 'src-tauri/target/release/bundle/nsis/Orion-9_9.0.0_x64-setup.exe'."
+          }),
+          { status: 404, headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" } }
+        ),
+        request
+      );
+    }
+
     // AI status route (Public, rate-limited)
     if (url.pathname === "/api/ai/status" && request.method === "GET") {
       const rateLimitErr = applyWorkerRateLimit(request, 'ai');
@@ -1007,13 +1052,19 @@ Analyze the supplied document and return a strict JSON object with:
       );
     }
 
-    // API 404 Guard: Unknown /api/* routes must never fall back to SPA index.html
-    if (url.pathname.startsWith('/api/')) {
+    // Non-SPA & API 404 Guard: Unknown /api/*, /downloads/*, and binary assets must NEVER fall back to SPA index.html
+    if (
+      url.pathname.startsWith('/api/') ||
+      url.pathname.startsWith('/downloads/') ||
+      url.pathname.endsWith('.exe') ||
+      url.pathname.endsWith('.msi') ||
+      url.pathname.endsWith('.zip')
+    ) {
       return applySecurityHeaders(
         new Response(
           JSON.stringify({
             error: "NOT_FOUND",
-            message: `API endpoint '${url.pathname}' not found.`,
+            message: `Resource '${url.pathname}' was not found. Binary downloads and API requests never fall back to HTML.`,
             status: 404,
           }),
           { status: 404, headers: { "Content-Type": "application/json" } }

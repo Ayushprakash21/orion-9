@@ -18,7 +18,17 @@ export type BrowserRuntimeMode =
 
 export type BrowserRuntimeEnvironmentType = 'TAURI' | 'ELECTRON' | 'WEBVIEW2' | 'WEB_EMBEDDED';
 
+/**
+ * Explicit runtime detection lifecycle state:
+ * - 'detecting': Bridge evaluation / IPC verification handshake in flight. Do NOT display permanent fallback.
+ * - 'native': Authoritative IPC handshake succeeded. Native child WebViews active.
+ * - 'web': Standard browser SPA or verified fallback. Safe web mode active.
+ */
+export type BrowserCapabilityState = 'detecting' | 'native' | 'web';
+
 export interface BrowserRuntimeCapability {
+  /** Explicit capability lifecycle state */
+  state: BrowserCapabilityState;
   /** Canonical runtime mode: WEB_EMBEDDED for browser environments, NATIVE_WEBVIEW for desktop */
   mode: BrowserRuntimeMode;
   /** Whether a real native WebView host runtime is active and usable */
@@ -53,6 +63,7 @@ export function detectBrowserRuntimeCapability(): BrowserRuntimeCapability {
 
   if (typeof window === 'undefined') {
     return {
+      state: 'web',
       mode: 'WEB_EMBEDDED',
       nativeAvailable: false,
       iframeAvailable: true,
@@ -80,6 +91,7 @@ export function detectBrowserRuntimeCapability(): BrowserRuntimeCapability {
 
   if (hasCallableTauriInvoke) {
     return {
+      state: 'detecting',
       mode: 'NATIVE_WEBVIEW',
       nativeAvailable: true,
       iframeAvailable: true,
@@ -100,6 +112,7 @@ export function detectBrowserRuntimeCapability(): BrowserRuntimeCapability {
   );
   if (isElectron) {
     return {
+      state: 'detecting',
       mode: 'NATIVE_WEBVIEW',
       nativeAvailable: true,
       iframeAvailable: true,
@@ -116,6 +129,7 @@ export function detectBrowserRuntimeCapability(): BrowserRuntimeCapability {
   const isWebView2 = Boolean(win.chrome?.webview && typeof win.chrome.webview.postMessage === 'function');
   if (isWebView2) {
     return {
+      state: 'detecting',
       mode: 'NATIVE_WEBVIEW',
       nativeAvailable: true,
       iframeAvailable: true,
@@ -130,6 +144,7 @@ export function detectBrowserRuntimeCapability(): BrowserRuntimeCapability {
 
   // 4. Default web environment (Chrome / Brave / Firefox / Safari)
   return {
+    state: 'web',
     mode: 'WEB_EMBEDDED',
     nativeAvailable: false,
     iframeAvailable: true,
@@ -153,12 +168,16 @@ export function getCachedAuthoritativeCapability(): BrowserRuntimeCapability | n
 }
 
 /**
- * Authoritatively verifies whether native Tauri desktop IPC handshake succeeds.
- * If verification fails, safely falls back to WEB_EMBEDDED and captures diagnostic error.
+ * Authoritatively verifies whether native desktop IPC handshake succeeds.
+ * Distinguishes Case A (web browser), Case B (host present but handshake fails),
+ * Case C (IPC command fails), Case E (IPC handshake succeeds).
  */
-export async function verifyNativeRuntimeUsable(): Promise<boolean> {
-  if (typeof window === 'undefined') return false;
+export async function verifyNativeRuntimeUsable(): Promise<{ ok: boolean; reason?: string }> {
+  if (typeof window === 'undefined') {
+    return { ok: false, reason: 'Environment is non-browser (SSR/Node)' };
+  }
   const win = window as any;
+
   let invoke = win.__TAURI__?.core?.invoke || win.__TAURI__?.invoke || win.__TAURI_INTERNALS__?.invoke;
 
   if (typeof invoke !== 'function') {
@@ -177,19 +196,62 @@ export async function verifyNativeRuntimeUsable(): Promise<boolean> {
     if (win.electronAPI?.invoke && typeof win.electronAPI.invoke === 'function') {
       try {
         const caps = await win.electronAPI.invoke('browser_runtime_capabilities');
-        return Boolean(caps?.native_available || caps?.nativeAvailable);
-      } catch {
-        return false;
+        const ok = Boolean(caps?.native_available || caps?.nativeAvailable);
+        return { ok, reason: ok ? undefined : 'Electron IPC returned non-native capability' };
+      } catch (err: any) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[BROWSER:DIAGNOSTIC] Case C: Electron detected but invoke failed:', err);
+        }
+        return { ok: false, reason: `Electron invoke failed: ${err?.message || err}` };
       }
     }
-    return false;
+
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[BROWSER:DIAGNOSTIC] Case A: Running in ordinary web browser. No desktop IPC bridge available.');
+    }
+    return { ok: false, reason: 'Case A: No desktop host IPC bridge (window.__TAURI__ or electronAPI)' };
   }
 
+  // Attempt primary Tauri 2 command: browser_runtime_capabilities
   try {
     const caps = await invoke('browser_runtime_capabilities');
-    return Boolean(caps?.native_available || caps?.nativeAvailable);
+    const ok = Boolean(caps?.native_available || caps?.nativeAvailable);
+    if (ok) {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[BROWSER:DIAGNOSTIC] Case E: Primary Tauri 2 handshake succeeded via browser_runtime_capabilities.', caps);
+      }
+      return { ok: true };
+    }
+    return { ok: false, reason: 'Tauri command browser_runtime_capabilities returned nativeAvailable: false' };
   } catch (err: any) {
-    return false;
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[BROWSER:DIAGNOSTIC] Case C: Tauri invoke of browser_runtime_capabilities failed, testing fallback probe:', err);
+    }
+
+    // Fallback probe for binaries where browser_runtime_capabilities was not yet compiled into the invoke handler:
+    // Probe browser_ensure_surface with an invalid URL scheme.
+    // If Rust responds with "NATIVE_INVALID_URL", the native Rust command handler is demonstrably alive and callable.
+    try {
+      await invoke('browser_ensure_surface', {
+        tabId: '__probe__',
+        surfaceId: '__probe__',
+        initialUrl: 'invalid://scheme',
+        bounds: { x: 0, y: 0, width: 1, height: 1 },
+      });
+      return { ok: true };
+    } catch (probeErr: any) {
+      const probeMsg = String(probeErr?.message || probeErr);
+      if (probeMsg.includes('NATIVE_') || probeMsg.includes('Protocol') || probeMsg.includes('scheme')) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[BROWSER:DIAGNOSTIC] Case E: Secondary Tauri 2 probe confirmed Rust browser controller is active:', probeMsg);
+        }
+        return { ok: true };
+      }
+      return {
+        ok: false,
+        reason: `Case C: IPC command failed: primary error (${err?.message || err}), probe error (${probeMsg})`,
+      };
+    }
   }
 }
 
@@ -205,10 +267,11 @@ export async function resolveAuthoritativeCapability(): Promise<BrowserRuntimeCa
   const syncCap = detectBrowserRuntimeCapability();
 
   try {
-    const isUsable = await verifyNativeRuntimeUsable();
+    const { ok: isUsable, reason } = await verifyNativeRuntimeUsable();
     if (isUsable) {
       cachedAuthoritativeCapability = {
         ...syncCap,
+        state: 'native',
         mode: 'NATIVE_WEBVIEW',
         nativeAvailable: true,
         verifiedNative: true,
@@ -216,29 +279,47 @@ export async function resolveAuthoritativeCapability(): Promise<BrowserRuntimeCa
         hasMultiSurface: true,
         canBypassIframeSandbox: true,
       };
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('[BROWSER:DIAGNOSTIC] Case E: Authoritative native capability resolved successfully.');
+      }
+      return cachedAuthoritativeCapability;
+    } else {
+      if (process.env.NODE_ENV !== 'production') {
+        if (syncCap.runtimeType === 'WEB_EMBEDDED') {
+          console.log('[BROWSER:DIAGNOSTIC] Case A: Ordinary web browser confirmed. Web fallback mode active.');
+        } else {
+          console.warn('[BROWSER:DIAGNOSTIC] Case B: Host runtime present but IPC handshake failed. Reason:', reason);
+        }
+      }
+      cachedAuthoritativeCapability = {
+        ...syncCap,
+        state: 'web',
+        mode: 'WEB_EMBEDDED',
+        nativeAvailable: false,
+        verifiedNative: false,
+        lastVerificationError: reason || 'Native IPC handshake returned false',
+        runtimeType: syncCap.runtimeType === 'TAURI' ? 'WEB_EMBEDDED' : syncCap.runtimeType,
+        canBypassIframeSandbox: false,
+      };
       return cachedAuthoritativeCapability;
     }
   } catch (err: any) {
+    const errMsg = err?.message || 'Native IPC handshake threw unexpected exception';
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('[BROWSER:DIAGNOSTIC] Case C: Handshake exception:', err);
+    }
     cachedAuthoritativeCapability = {
       ...syncCap,
+      state: 'web',
       mode: 'WEB_EMBEDDED',
       nativeAvailable: false,
       verifiedNative: false,
-      lastVerificationError: err?.message || 'Native IPC handshake threw exception',
+      lastVerificationError: errMsg,
+      runtimeType: syncCap.runtimeType === 'TAURI' ? 'WEB_EMBEDDED' : syncCap.runtimeType,
+      canBypassIframeSandbox: false,
     };
     return cachedAuthoritativeCapability;
   }
-
-  cachedAuthoritativeCapability = {
-    ...syncCap,
-    mode: 'WEB_EMBEDDED',
-    nativeAvailable: false,
-    verifiedNative: false,
-    runtimeType: syncCap.runtimeType === 'TAURI' ? 'WEB_EMBEDDED' : syncCap.runtimeType,
-    canBypassIframeSandbox: false,
-  };
-
-  return cachedAuthoritativeCapability;
 }
 
 /**
@@ -247,4 +328,3 @@ export async function resolveAuthoritativeCapability(): Promise<BrowserRuntimeCa
 export function resetAuthoritativeCapabilityCache(): void {
   cachedAuthoritativeCapability = null;
 }
-

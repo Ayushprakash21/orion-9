@@ -177,7 +177,7 @@ export function OrionBrowser() {
       setCapability(cap);
       setIsCapabilityResolved(true);
       if (process.env.NODE_ENV !== 'production') {
-        console.log('[BROWSER:RUNTIME]', `Authoritative capability: mode=${cap.mode}, nativeAvailable=${cap.nativeAvailable}, verified=${cap.verifiedNative}`);
+        console.log('[BROWSER:RUNTIME]', `Authoritative capability: state=${cap.state}, mode=${cap.mode}, nativeAvailable=${cap.nativeAvailable}, verified=${cap.verifiedNative}`);
       }
 
       // Re-create adapter using FINAL authoritative capability if mode differs
@@ -186,6 +186,32 @@ export function OrionBrowser() {
         const authoritativeAdapter = getBrowserRuntimeAdapter(activeTabId, 'orion://newtab', cap.mode);
         adapterRef.current = authoritativeAdapter;
         attachAdapterListeners(authoritativeAdapter);
+      }
+
+      // Auto-promote tabs: if native runtime was authoritatively confirmed, re-evaluate any tabs
+      // that were prematurely put into EXTERNAL_REQUIRED while runtime detection was in progress
+      if (cap.state === 'native' || cap.mode === 'NATIVE_WEBVIEW') {
+        setTabs(prev => prev.map(t => {
+          if (t.loadState === 'EXTERNAL_REQUIRED' || t.contentState === 'EXTERNAL_REQUIRED' || t.webNavigationState === 'EXTERNAL_REQUIRED') {
+            const urlToNavigate = t.url;
+            setTimeout(() => {
+              if (adapterRef.current) {
+                adapterRef.current.navigate(urlToNavigate).catch(err => {
+                  recordBrowserError(t.id, err, 'promoteTabNativeNavigate');
+                });
+              }
+            }, 0);
+            return {
+              ...t,
+              loading: true,
+              loadState: 'LOADING',
+              contentState: 'PAGE_LOADED',
+              webNavigationState: 'NAVIGATING',
+              errorDetails: undefined,
+            };
+          }
+          return t;
+        }));
       }
     });
     return () => { 
@@ -269,7 +295,7 @@ export function OrionBrowser() {
   // Tab Navigation with Generation / Race Protection
   const navigateTab = useCallback(async (tabId: string, targetUrl: string) => {
     let currentCap = capability;
-    if (!isCapabilityResolved) {
+    if (!isCapabilityResolved || currentCap.state === 'detecting') {
       currentCap = await resolveAuthoritativeCapability();
       setCapability(currentCap);
       setIsCapabilityResolved(true);
@@ -307,7 +333,7 @@ export function OrionBrowser() {
       }
     }
     const isInternalUrl = validation.scheme === 'internal' || resolvedUrl === 'orion://newtab' || resolvedUrl.startsWith('/');
-    const isNative = (currentCap.mode === 'NATIVE_WEBVIEW' && currentCap.nativeAvailable) || currentCap.verifiedNative;
+    const isNative = (currentCap.state === 'native' || currentCap.mode === 'NATIVE_WEBVIEW') && (currentCap.nativeAvailable || currentCap.verifiedNative);
     const webPolicy = !isNative ? resolveWebModePolicy(resolvedUrl) : null;
 
     setTabs(prev => prev.map(tab => {
@@ -653,11 +679,12 @@ export function OrionBrowser() {
       const res = await fetch('/api/download/desktop/status');
       if (res.ok) {
         const data = await res.json();
-        if (data.available) {
-          showToast?.('Downloading Orion-9 Desktop Installer (14.4 MB)...', 'success', 'Orion Desktop');
+        if (data.available && data.sizeBytes > 0) {
+          const mbSize = (data.sizeBytes / (1024 * 1024)).toFixed(1);
+          showToast?.(`Downloading Orion-9 Desktop Installer (${mbSize} MB)...`, 'success', 'Orion Desktop');
           const link = document.createElement('a');
-          link.href = data.url || '/downloads/Orion-9-Setup.exe';
-          link.download = 'Orion-9-Setup.exe';
+          link.href = '/api/download/desktop';
+          link.download = data.filename || 'Orion-9-Setup.exe';
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -938,7 +965,13 @@ export function OrionBrowser() {
         activeTab={activeTab}
         recentHistory={historyList}
         zoomLevel={zoomLevel}
-        runtimeMode={(capability.mode === 'NATIVE_WEBVIEW' && capability.nativeAvailable) || capability.verifiedNative ? 'NATIVE_WEBVIEW' : 'WEB_EMBEDDED'}
+        runtimeMode={
+          capability.state === 'detecting'
+            ? 'detecting'
+            : (capability.state === 'native' || (capability.mode === 'NATIVE_WEBVIEW' && capability.nativeAvailable) || capability.verifiedNative)
+            ? 'NATIVE_WEBVIEW'
+            : 'WEB_EMBEDDED'
+        }
         defaultSearchEngine={preferences.defaultSearchEngine}
         onNavigate={(url) => navigateTab(activeTabId, url)}
         onReload={handleReload}
@@ -1177,19 +1210,30 @@ export function OrionBrowser() {
                 The native Orion-9 Desktop runtime provides full, unrestricted web browsing with OS-native WebView surfaces (enabling Google, GitHub, and all public websites without iframe restrictions).
               </p>
               
-              <div className="p-3 rounded-xl bg-os-bg/70 border border-os-border font-mono text-[11px] text-os-text-primary">
-                <div className="text-[10px] text-os-text-muted mb-1 uppercase tracking-wider">Developer Build Command:</div>
-                <code>npm run tauri:build</code>
+              <div className="p-3 rounded-xl bg-os-bg/70 border border-os-border font-mono text-[11px] text-os-text-primary space-y-1.5">
+                <div>
+                  <span className="text-[10px] text-os-text-muted uppercase tracking-wider block">Local Package Path:</span>
+                  <code className="text-[10px] text-os-accent break-all">src-tauri/target/release/bundle/nsis/Orion-9_9.0.0_x64-setup.exe</code>
+                </div>
+                <div className="flex justify-between text-[10px] text-os-text-muted">
+                  <span>Size: <strong className="text-os-text-primary">28.9 MB (30,336,791 bytes)</strong></span>
+                  <span>Type: <strong className="text-os-text-primary">NSIS Installer (x64)</strong></span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-os-text-muted uppercase tracking-wider block">SHA-256:</span>
+                  <code className="text-[9px] text-os-text-muted block truncate" title="e2dfeb480522b9da077bb58e0954d6d8e09f1023fb6af28b8b74b2a8dc23ee70">
+                    e2dfeb480522b9da077bb58e0954d6d8e09f1023fb6af28b8b74b2a8dc23ee70
+                  </code>
+                </div>
               </div>
 
-              <p className="text-[11px] text-os-text-muted">
-                Installer output location:<br />
-                <code className="text-os-accent">src-tauri/target/release/bundle/nsis/Orion-9_9.0.0_x64-setup.exe</code>
+              <p className="text-[10px] text-os-text-muted leading-relaxed">
+                Note: In local server mode (<code className="text-os-accent">npm start</code>), downloads are served directly from the server. On Cloudflare edge deployments, static assets exceeding 25 MiB are excluded; execute the local installer package directly to install.
               </p>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-os-border">
                 <a
-                  href="/downloads/Orion-9-Setup.exe"
+                  href="/api/download/desktop"
                   download="Orion-9-Setup.exe"
                   onClick={() => setIsInstallModalOpen(false)}
                   className="px-4 py-2 rounded-xl bg-os-accent text-os-bg font-medium hover:opacity-90 transition-opacity cursor-pointer text-center"

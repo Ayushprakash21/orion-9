@@ -210,12 +210,22 @@ export class BrowserNativeRuntimeBridge {
           });
         }
         record.lifecycleState = 'READY';
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[BROWSER:DIAGNOSTIC] Case E: Native child surface created/ensured successfully:', {
+            tabId,
+            surfaceId,
+            bounds: defaultBounds,
+          });
+        }
         return surfaceId;
       } catch (err: any) {
         record.lifecycleState = 'ERROR';
         const formattedErr = `NATIVE_RUNTIME_ERROR: ${err?.message || 'Failed to create native surface'}`;
         record.errorMessage = formattedErr;
         this.logError(LOG_PREFIX, `[BROWSER:ERROR] Surface creation failed for ${tabId}:`, err);
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[BROWSER:DIAGNOSTIC] Case C: Tauri/IPC surface creation command failed:', err);
+        }
         this.emitEvent('navigation-failed', {
           tabId,
           url: initialUrl,
@@ -376,12 +386,24 @@ export class BrowserNativeRuntimeBridge {
     const record = this.surfaces.get(tabId);
     if (record) {
       record.url = url;
-      record.lifecycleState = 'VISIBLE';
     }
 
     // Step 2: Issue native navigation
     try {
       await this.invokeNative('browser_navigate', { tabId, url });
+      // Step 3: If this tab is the active tab, ensure the native surface is made visible
+      if (this.activeTabId === tabId && record) {
+        record.visible = true;
+        record.lifecycleState = 'VISIBLE';
+        await this.invokeNative('browser_show_surface', { tabId });
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('[BROWSER:DIAGNOSTIC] Case E: Active tab native surface shown and navigating:', {
+            tabId,
+            url,
+            bounds: record.bounds,
+          });
+        }
+      }
     } catch (err: any) {
       this.logError(LOG_PREFIX, `[BROWSER:ERROR] Native navigation failed for ${tabId}:`, err);
       if (record) {
