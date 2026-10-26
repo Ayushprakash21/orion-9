@@ -43,8 +43,8 @@ vi.mock('../../store/NotificationContext', () => ({
 }));
 
 // Mock Supply Chain Context
-vi.mock('../../store/SupplyChainContext', () => ({
-  useSupplyChain: () => ({
+vi.mock('../../store/SupplyChainContext', () => {
+  const mockSupplyChain = () => ({
     currency: 'USD',
     inventory: [
       { id: 'inv-1', productId: 'SKU-777', warehouseId: 'WH-CENTRAL', onHand: 450, reserved: 50, safetyStock: 200, unitCost: 42 }
@@ -67,8 +67,13 @@ vi.mock('../../store/SupplyChainContext', () => ({
       theme: 'graphite',
     },
     updateSettings: vi.fn(),
-  }),
-}));
+  });
+
+  return {
+    useSupplyChain: mockSupplyChain,
+    useOptionalSupplyChain: mockSupplyChain,
+  };
+});
 
 // Mock Toast Context
 vi.mock('../../store/ToastContext', () => ({
