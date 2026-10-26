@@ -1,31 +1,25 @@
 /**
  * ORION-9 DYNAMIC ISLAND
- * Polished macOS/iOS-inspired interactive Dynamic Island for both Web OS and Native Tauri Desktop.
- * Provides real-time system telemetry, Copilot intelligence status, and 1-click supply chain navigation.
+ * Refined macOS-inspired system-level Dynamic Island for Web OS and Native Tauri Desktop.
+ * Provides compact idle capsule, contextual live event activities, and progressive disclosure
+ * into a single cohesive, compact floating panel.
  */
 
 import React, { useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
+  Sparkles,
   Brain, 
   Activity, 
-  Search, 
-  Sliders, 
+  AlertTriangle, 
+  RefreshCw, 
   Pin, 
   PinOff, 
   ChevronUp, 
   ChevronDown, 
-  Monitor, 
-  Cloud, 
-  AlertTriangle, 
-  Box, 
-  Truck, 
-  FileText, 
-  RefreshCw, 
-  Sparkles,
   ExternalLink,
-  CheckCircle2,
-  Bell
+  Bell,
+  CheckCircle2
 } from 'lucide-react';
 import { useDynamicIslandState } from './useDynamicIslandState';
 import { ORION_SPRING_SMOOTH, isReducedMotionPreferred } from '../../motion/OrionMotion';
@@ -48,7 +42,7 @@ export const DynamicIsland: React.FC = () => {
     handleAction
   } = useDynamicIslandState();
 
-  // Outside click handler to collapse when not pinned
+  // Outside click listener to collapse when not pinned
   useEffect(() => {
     if (!isExpanded || isPinned) return;
 
@@ -70,10 +64,30 @@ export const DynamicIsland: React.FC = () => {
     ? { duration: 0.01 } 
     : ORION_SPRING_SMOOTH;
 
+  // Compute primary event-driven activity label for State B
+  const activityLabel = (() => {
+    switch (activity) {
+      case 'copilot-thinking':
+        return metrics.copilotStatus === 'analyzing' ? 'Copilot is analyzing' : 'Copilot is thinking';
+      case 'critical-alerts':
+        return metrics.criticalExceptionsCount === 1 
+          ? 'Shipment exception detected • 1 Alert' 
+          : `${metrics.criticalExceptionsCount} Alerts • Shipment exceptions detected`;
+      case 'syncing':
+        return `Syncing ${metrics.connectedConnectorsCount || 5} connectors`;
+      case 'simulation-running':
+        return 'Scenario simulation running';
+      case 'notification':
+        return `${metrics.unreadNotificationsCount} new notification${metrics.unreadNotificationsCount > 1 ? 's' : ''}`;
+      default:
+        return 'Optimal';
+    }
+  })();
+
   return (
     <div 
       ref={islandRef}
-      className="absolute left-1/2 -translate-x-1/2 top-1.5 z-[2147483640] flex flex-col items-center select-none"
+      className="absolute left-1/2 -translate-x-1/2 top-[5px] z-[2147483640] flex flex-col items-center select-none"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       role="region"
@@ -82,20 +96,20 @@ export const DynamicIsland: React.FC = () => {
       <motion.div
         layout
         transition={springConfig}
-        className={`relative overflow-hidden bg-[#07090e]/92 backdrop-blur-2xl backdrop-saturate-[180%] border border-white/[0.14] shadow-[0_16px_40px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.20)] text-white transition-colors duration-200 ${
+        className={`relative overflow-hidden bg-[#06070a]/92 backdrop-blur-2xl backdrop-saturate-[180%] border border-white/[0.10] shadow-[0_8px_32px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.15)] text-white transition-colors duration-200 ${
           isExpanded 
-            ? 'w-[min(calc(100vw-24px),460px)] rounded-[22px] p-3.5 sm:p-4' 
-            : 'h-[30px] sm:h-[32px] rounded-full px-3 sm:px-3.5 flex items-center gap-2 cursor-pointer hover:bg-[#07090e]/98 hover:border-white/[0.22] hover:shadow-[0_8px_24px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.25)]'
+            ? 'w-[min(calc(100vw-32px),390px)] rounded-[24px] p-3.5 sm:p-4' 
+            : 'h-[34px] rounded-full px-3 sm:px-3.5 flex items-center cursor-pointer hover:bg-[#07080d]/98 hover:border-white/[0.18] hover:shadow-[0_12px_28px_rgba(0,0,0,0.75),inset_0_1px_0_rgba(255,255,255,0.22)]'
         }`}
       >
         <AnimatePresence mode="wait">
           {!isExpanded ? (
-            /* COMPACT MODE PILL */
+            /* STATE A (IDLE) & STATE B (ACTIVITY) — COMPACT PILL */
             <motion.div
               key="compact"
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              exit={{ opacity: 0, scale: 0.96 }}
               transition={springConfig}
               onClick={toggleExpanded}
               onKeyDown={(e) => {
@@ -108,137 +122,121 @@ export const DynamicIsland: React.FC = () => {
               role="button"
               aria-expanded={false}
               aria-label="Expand Orion Dynamic Island"
-              className="flex items-center gap-2 w-full h-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 rounded-full"
+              className="flex items-center gap-2 w-full h-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/50 rounded-full group"
             >
-              {/* Orion Star Symbol */}
-              <div className="relative flex items-center justify-center w-3.5 h-3.5 shrink-0 text-cyan-400">
-                <Sparkles className="w-3.5 h-3.5 drop-shadow-[0_0_6px_rgba(34,211,238,0.7)]" />
-              </div>
-
-              {/* Status Pulse Dot */}
-              <div className="relative flex items-center justify-center w-2 h-2 shrink-0">
-                {activity === 'copilot-thinking' && (
-                  <>
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75 animate-ping" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.9)]" />
-                  </>
-                )}
-                {activity === 'critical-alerts' && (
-                  <>
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-rose-500 opacity-75 animate-ping" />
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.9)]" />
-                  </>
-                )}
-                {activity === 'syncing' && (
-                  <RefreshCw className="w-2.5 h-2.5 text-blue-400 animate-spin" />
-                )}
-                {activity === 'notification' && (
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.9)]" />
-                )}
-                {activity === 'idle' && (
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.9)]" />
+              {/* Left: Subtle Orion symbol & activity beacon */}
+              <div className="relative flex items-center justify-center shrink-0">
+                {activity === 'copilot-thinking' ? (
+                  <div className="relative flex items-center justify-center w-3.5 h-3.5 text-cyan-400">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-cyan-400/40 animate-ping" />
+                    <Sparkles className="w-3.5 h-3.5 drop-shadow-[0_0_6px_rgba(34,211,238,0.8)]" />
+                  </div>
+                ) : activity === 'critical-alerts' ? (
+                  <div className="relative flex items-center justify-center w-3.5 h-3.5 text-rose-400">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-rose-500/40 animate-ping" />
+                    <AlertTriangle className="w-3 h-3 text-rose-400" />
+                  </div>
+                ) : activity === 'syncing' ? (
+                  <RefreshCw className="w-3 h-3 text-sky-400 animate-spin" />
+                ) : activity === 'simulation-running' ? (
+                  <Activity className="w-3 h-3 text-purple-400 animate-pulse" />
+                ) : (
+                  <div className="relative flex items-center justify-center w-3.5 h-3.5 text-cyan-400/90">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+                  </div>
                 )}
               </div>
 
-              {/* Dynamic Activity Label */}
+              {/* Middle: Status label or live event */}
               <div className="flex items-center gap-1.5 truncate min-w-0">
                 {activity === 'copilot-thinking' ? (
-                  <span className="text-[11px] font-semibold tracking-wider text-cyan-300 uppercase truncate">
-                    Copilot Thinking
+                  <span className="text-[11px] font-medium tracking-tight text-cyan-300 truncate">
+                    {activityLabel}
                   </span>
                 ) : activity === 'critical-alerts' ? (
-                  <span className="text-[11px] font-semibold tracking-wider text-rose-300 uppercase truncate">
-                    {metrics.criticalExceptionsCount} Alert{metrics.criticalExceptionsCount > 1 ? 's' : ''}
+                  <span className="text-[11px] font-medium tracking-tight text-rose-300 truncate">
+                    {activityLabel}
                   </span>
                 ) : activity === 'syncing' ? (
-                  <span className="text-[11px] font-semibold tracking-wider text-blue-300 uppercase truncate">
-                    Fabric Syncing
+                  <span className="text-[11px] font-medium tracking-tight text-sky-300 truncate">
+                    {activityLabel}
+                  </span>
+                ) : activity === 'simulation-running' ? (
+                  <span className="text-[11px] font-medium tracking-tight text-purple-300 truncate">
+                    {activityLabel}
                   </span>
                 ) : metrics.activeAppName ? (
-                  <span className="text-[11px] font-medium tracking-wide text-white/90 truncate max-w-[140px] sm:max-w-[200px]">
+                  <span className="text-[11px] font-medium tracking-tight text-white/90 truncate max-w-[140px] sm:max-w-[200px]">
                     {metrics.activeAppName}
                   </span>
                 ) : (
-                  <span className="text-[11px] font-semibold tracking-wider text-white/80 uppercase truncate">
-                    System Ready
-                  </span>
+                  <div className="flex items-center gap-1.5 truncate">
+                    <span className="text-[11px] font-medium tracking-tight text-white/90">
+                      Optimal
+                    </span>
+                    <span className="text-[10px] text-white/40 hidden md:inline">
+                      • System Ready
+                    </span>
+                  </div>
                 )}
               </div>
 
-              {/* Unread Notifications Pill */}
-              {metrics.unreadNotificationsCount > 0 && (
-                <div 
-                  className="flex items-center gap-0.5 px-1.5 py-0.2 bg-rose-500/80 rounded-full text-[9px] font-bold text-white shadow-xs shrink-0"
-                  title={`${metrics.unreadNotificationsCount} unread notification${metrics.unreadNotificationsCount > 1 ? 's' : ''}`}
-                >
-                  <Bell className="w-2.5 h-2.5" />
-                  <span>{metrics.unreadNotificationsCount}</span>
+              {/* Right: Unread Notifications badge or subtle interactive chevron */}
+              <div className="flex items-center gap-1 shrink-0 ml-auto pl-1">
+                {metrics.unreadNotificationsCount > 0 && (
+                  <div 
+                    className="flex items-center gap-0.5 px-1.5 py-0.2 bg-rose-500/80 rounded-full text-[9px] font-bold text-white shadow-xs shrink-0"
+                    title={`${metrics.unreadNotificationsCount} unread notification${metrics.unreadNotificationsCount > 1 ? 's' : ''}`}
+                  >
+                    <Bell className="w-2.5 h-2.5" />
+                    <span>{metrics.unreadNotificationsCount}</span>
+                  </div>
+                )}
+                <div className="text-white/30 group-hover:text-white/70 transition-colors">
+                  <ChevronDown className="w-3 h-3" />
                 </div>
-              )}
-
-              {/* Expand Indicator */}
-              <div className="ml-0.5 text-white/40 hover:text-white/80 shrink-0">
-                <ChevronDown className="w-3 h-3" />
               </div>
             </motion.div>
           ) : (
-            /* EXPANDED MODE PANEL */
+            /* STATE C — EXPANDED FLOATING PANEL (SINGLE COHESIVE SURFACE) */
             <motion.div
               key="expanded"
-              initial={{ opacity: 0, y: -6 }}
+              initial={{ opacity: 0, y: -4 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
+              exit={{ opacity: 0, y: -4 }}
               transition={springConfig}
               className="flex flex-col gap-3 w-full"
             >
-              {/* SECTION A: SYSTEM BAR & TELEMETRY */}
-              <div className="flex items-center justify-between border-b border-white/[0.08] pb-2.5">
+              {/* 1. Header Row: System Status & Quick Controls */}
+              <div className="flex items-center justify-between border-b border-white/[0.06] pb-2.5">
                 <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-cyan-400">
-                    <Sparkles className="w-4 h-4" />
+                  <div className="w-6 h-6 rounded-lg bg-white/[0.06] border border-white/[0.1] flex items-center justify-center text-cyan-400 shrink-0">
+                    <Sparkles className="w-3.5 h-3.5" />
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[12px] font-mono font-bold tracking-wider text-white">
-                        {metrics.currentTime}
+                      <span className="text-[11px] font-bold tracking-wide text-white">
+                        ORION-9
                       </span>
-                      <span className="text-[10px] text-white/40 font-medium">
-                        • {metrics.currentDate}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                      <span className="text-[10px] uppercase tracking-wider font-semibold text-emerald-400/90">
+                      <span className={`text-[9px] font-semibold uppercase px-1.5 py-0.2 rounded-full border ${
+                        metrics.systemHealth === 'CRITICAL'
+                          ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+                          : metrics.systemHealth === 'DEGRADED'
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                          : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25'
+                      }`}>
                         {metrics.systemHealth}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Runtime Pill & Action Controls */}
-                <div className="flex items-center gap-1.5">
-                  <div 
-                    className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 border ${
-                      metrics.isNativeDesktop
-                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                        : 'bg-sky-500/10 border-sky-500/30 text-sky-300'
-                    }`}
-                    title={metrics.isNativeDesktop ? 'Running in Native Tauri Desktop Runtime' : 'Running in Web Cloud OS Runtime'}
-                  >
-                    {metrics.isNativeDesktop ? (
-                      <>
-                        <Monitor className="w-2.5 h-2.5" />
-                        <span>Tauri Desktop</span>
-                      </>
-                    ) : (
-                      <>
-                        <Cloud className="w-2.5 h-2.5" />
-                        <span>Web Cloud OS</span>
-                      </>
-                    )}
-                  </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-mono text-white/50">
+                    {metrics.currentTime}
+                  </span>
 
-                  {/* Pin Toggle Button */}
+                  {/* Pin Toggle */}
                   <button
                     onClick={togglePin}
                     className={`w-6 h-6 rounded-md flex items-center justify-center transition-colors cursor-pointer ${
@@ -266,212 +264,152 @@ export const DynamicIsland: React.FC = () => {
                 </div>
               </div>
 
-              {/* SECTION B: ORION AI COPILOT INTELLIGENCE */}
-              <div className="bg-white/[0.04] hover:bg-white/[0.06] border border-white/[0.08] rounded-[16px] p-2.5 sm:p-3 transition-colors">
-                <div className="flex items-center justify-between">
+              {/* 2. Active Operation or Notification (1-2 real items max, progressive disclosure) */}
+              <div className="rounded-xl p-2.5 bg-white/[0.03] border border-white/[0.06] transition-colors">
+                {activity === 'copilot-thinking' ? (
                   <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 rounded-[10px] bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300 shrink-0">
-                      <Brain className="w-4 h-4" />
+                    <div className="w-6 h-6 rounded-lg bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-300 shrink-0">
+                      <Brain className="w-3.5 h-3.5 animate-pulse" />
                     </div>
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] font-bold tracking-wide text-white">
-                          Orion Copilot AI
-                        </span>
-                        <span className={`text-[9px] font-semibold uppercase px-1.5 py-0.2 rounded-full ${
-                          metrics.copilotStatus === 'thinking' || metrics.copilotStatus === 'analyzing'
-                            ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                            : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                        }`}>
-                          {metrics.copilotStatus}
-                        </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] font-semibold text-cyan-200">
+                        Copilot Reasoning Active
                       </div>
-                      <p className="text-[10px] text-white/50 leading-tight">
-                        {metrics.copilotStatus === 'thinking' || metrics.copilotStatus === 'analyzing'
-                          ? 'Evaluating supply chain parameters...'
-                          : 'Intelligence core standby. Ask questions or run scenarios.'}
+                      <p className="text-[10px] text-white/50 truncate">
+                        Analyzing supply chain telemetry and generating scenario proposals
                       </p>
                     </div>
                   </div>
-
-                  <button
-                    onClick={() => handleAction('ai-copilot')}
-                    className="px-2.5 py-1 bg-white/[0.08] hover:bg-white/[0.16] active:bg-white/[0.22] text-white text-[10px] font-semibold rounded-lg border border-white/[0.12] transition-all cursor-pointer flex items-center gap-1 shrink-0"
-                    type="button"
-                  >
-                    <span>Launch</span>
-                    <ExternalLink className="w-2.5 h-2.5" />
-                  </button>
-                </div>
+                ) : activity === 'critical-alerts' ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-rose-500/20 border border-rose-500/30 flex items-center justify-center text-rose-300 shrink-0">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] font-semibold text-rose-200">
+                        {metrics.criticalExceptionsCount} High-Severity Alert{metrics.criticalExceptionsCount > 1 ? 's' : ''}
+                      </div>
+                      <p className="text-[10px] text-white/50 truncate">
+                        Logistics exception requires operational review
+                      </p>
+                    </div>
+                  </div>
+                ) : activity === 'syncing' ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-300 shrink-0">
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] font-semibold text-sky-200">
+                        Synchronizing Enterprise Fabric
+                      </div>
+                      <p className="text-[10px] text-white/50 truncate">
+                        {metrics.connectedConnectorsCount} ERP connectors actively updating
+                      </p>
+                    </div>
+                  </div>
+                ) : activity === 'simulation-running' ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-lg bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300 shrink-0">
+                      <Activity className="w-3.5 h-3.5 animate-pulse" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[11px] font-semibold text-purple-200">
+                        Scenario Simulation Running
+                      </div>
+                      <p className="text-[10px] text-white/50 truncate">
+                        Digital twin stress testing demand shock parameters
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <div className="text-[11px] font-medium text-white/80">
+                        All supply chain flows nominal
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-white/40 font-mono">
+                      0 disruptions
+                    </span>
+                  </div>
+                )}
               </div>
 
-              {/* SECTION C: OPERATIONS RADAR */}
-              <div>
-                <div className="flex items-center justify-between px-1 mb-1.5">
-                  <div className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-white/50">
-                    <Activity className="w-3 h-3 text-cyan-400" />
-                    <span>Operations Radar</span>
+              {/* 3. Concise Supply-Chain Health Summary (Single Cohesive Horizontal Strip) */}
+              <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-2.5 flex items-center justify-around text-center">
+                <div className="flex-1 min-w-0">
+                  <div className="text-[9px] uppercase tracking-wider font-semibold text-white/40 mb-0.5">
+                    Exceptions
                   </div>
-                  <span className="text-[9px] text-white/40">Live Telemetry</span>
-                </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-                  {/* Card 1: Exceptions */}
-                  <button
-                    onClick={() => handleAction('exceptions')}
-                    className={`p-2 rounded-[12px] border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                      metrics.criticalExceptionsCount > 0
-                        ? 'bg-rose-500/10 border-rose-500/30 hover:bg-rose-500/20'
-                        : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.07]'
-                    }`}
-                    type="button"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <AlertTriangle className={`w-3.5 h-3.5 ${metrics.criticalExceptionsCount > 0 ? 'text-rose-400' : 'text-white/40'}`} />
-                      <span className={`text-[12px] font-bold font-mono ${metrics.criticalExceptionsCount > 0 ? 'text-rose-300' : 'text-white/90'}`}>
-                        {metrics.activeExceptionsCount}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-semibold text-white/90">Exceptions</div>
-                      <div className="text-[9px] text-white/40 truncate">
-                        {metrics.criticalExceptionsCount > 0 ? `${metrics.criticalExceptionsCount} critical` : 'All nominal'}
-                      </div>
-                    </div>
-                  </button>
-
-                  {/* Card 2: Stockout Risks */}
-                  <button
-                    onClick={() => handleAction('inventory')}
-                    className={`p-2 rounded-[12px] border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                      metrics.stockoutRisksCount > 0
-                        ? 'bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20'
-                        : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.07]'
-                    }`}
-                    type="button"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <Box className={`w-3.5 h-3.5 ${metrics.stockoutRisksCount > 0 ? 'text-amber-400' : 'text-white/40'}`} />
-                      <span className={`text-[12px] font-bold font-mono ${metrics.stockoutRisksCount > 0 ? 'text-amber-300' : 'text-white/90'}`}>
-                        {metrics.stockoutRisksCount}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-semibold text-white/90">Stock Risks</div>
-                      <div className="text-[9px] text-white/40 truncate">
-                        {metrics.stockoutRisksCount > 0 ? 'Low coverage' : 'Optimal stock'}
-                      </div>
-                    </div>
-                  </button>
-
-                  {/* Card 3: Delayed Shipments */}
-                  <button
-                    onClick={() => handleAction('shipments')}
-                    className={`p-2 rounded-[12px] border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                      metrics.delayedShipmentsCount > 0
-                        ? 'bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/20'
-                        : 'bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.07]'
-                    }`}
-                    type="button"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <Truck className={`w-3.5 h-3.5 ${metrics.delayedShipmentsCount > 0 ? 'text-amber-400' : 'text-white/40'}`} />
-                      <span className={`text-[12px] font-bold font-mono ${metrics.delayedShipmentsCount > 0 ? 'text-amber-300' : 'text-white/90'}`}>
-                        {metrics.delayedShipmentsCount}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-semibold text-white/90">Delayed</div>
-                      <div className="text-[9px] text-white/40 truncate">
-                        {metrics.delayedShipmentsCount > 0 ? 'Transit lag' : 'On schedule'}
-                      </div>
-                    </div>
-                  </button>
-
-                  {/* Card 4: Open Purchase Orders */}
-                  <button
-                    onClick={() => handleAction('procurement')}
-                    className="p-2 rounded-[12px] border bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.07] text-left transition-all cursor-pointer flex flex-col justify-between"
-                    type="button"
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <FileText className="w-3.5 h-3.5 text-white/40" />
-                      <span className="text-[12px] font-bold font-mono text-white/90">
-                        {metrics.openPurchaseOrdersCount}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-semibold text-white/90">Open POs</div>
-                      <div className="text-[9px] text-white/40 truncate">Active orders</div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* SECTION D: INTEGRATION FABRIC STATUS */}
-              <div 
-                onClick={() => handleAction('integrations')}
-                className="bg-white/[0.03] hover:bg-white/[0.06] border border-white/[0.06] rounded-[14px] p-2 sm:p-2.5 flex items-center justify-between cursor-pointer transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-md bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-300 shrink-0">
-                    <RefreshCw className={`w-3 h-3 ${metrics.activeSyncJobsCount > 0 ? 'animate-spin' : ''}`} />
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-semibold text-white/90 flex items-center gap-1.5">
-                      <span>Integration Fabric</span>
-                      <span className="text-[9px] text-white/40">• {metrics.connectedConnectorsCount} Connectors</span>
-                    </div>
-                    <div className="text-[9px] text-white/40">
-                      {metrics.activeSyncJobsCount > 0 
-                        ? `${metrics.activeSyncJobsCount} sync jobs currently processing` 
-                        : `Synchronized ${metrics.lastSyncTimestamp ? `(${metrics.lastSyncTimestamp})` : ''}`}
-                    </div>
+                  <div className={`text-[12px] font-bold font-mono ${
+                    metrics.criticalExceptionsCount > 0 ? 'text-rose-300' : 'text-white/90'
+                  }`}>
+                    {metrics.activeExceptionsCount}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1 text-[10px] text-cyan-400 font-medium shrink-0">
-                  <span>Connectors</span>
-                  <ExternalLink className="w-2.5 h-2.5" />
+                <div className="w-[1px] h-6 bg-white/[0.08]" />
+
+                <div className="flex-1 min-w-0">
+                  <div className="text-[9px] uppercase tracking-wider font-semibold text-white/40 mb-0.5">
+                    Stock Coverage
+                  </div>
+                  <div className={`text-[12px] font-bold ${
+                    metrics.stockoutRisksCount > 0 ? 'text-amber-300' : 'text-emerald-300'
+                  }`}>
+                    {metrics.stockoutRisksCount > 0 ? `${metrics.stockoutRisksCount} Low` : 'Optimal'}
+                  </div>
+                </div>
+
+                <div className="w-[1px] h-6 bg-white/[0.08]" />
+
+                <div className="flex-1 min-w-0">
+                  <div className="text-[9px] uppercase tracking-wider font-semibold text-white/40 mb-0.5">
+                    Shipments
+                  </div>
+                  <div className={`text-[12px] font-bold ${
+                    metrics.delayedShipmentsCount > 0 ? 'text-amber-300' : 'text-white/90'
+                  }`}>
+                    {metrics.delayedShipmentsCount > 0 ? `${metrics.delayedShipmentsCount} Delay` : 'On Track'}
+                  </div>
                 </div>
               </div>
 
-              {/* SECTION E: QUICK ACTION COMMAND BAR */}
-              <div className="border-t border-white/[0.08] pt-2.5 flex items-center justify-between gap-1">
+              {/* 4. Quick Actions: Open Copilot & Control Tower */}
+              <div className="flex items-center gap-2 pt-0.5">
                 <button
                   onClick={() => handleAction('ai-copilot')}
-                  className="flex-1 py-1.5 px-2 bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] rounded-[10px] flex items-center justify-center gap-1.5 text-[10px] font-medium text-white/90 transition-all cursor-pointer"
+                  className="flex-1 py-2 px-3 bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/[0.18] border border-white/[0.09] rounded-xl flex items-center justify-center gap-1.5 text-[11px] font-medium text-white transition-all cursor-pointer shadow-xs"
                   type="button"
+                  aria-label="Open Orion Copilot"
                 >
-                  <Brain className="w-3 h-3 text-indigo-400" />
-                  <span>Copilot</span>
+                  <Brain className="w-3.5 h-3.5 text-indigo-300" />
+                  <span>Open Copilot</span>
                 </button>
 
                 <button
                   onClick={() => handleAction('command-center')}
-                  className="flex-1 py-1.5 px-2 bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] rounded-[10px] flex items-center justify-center gap-1.5 text-[10px] font-medium text-white/90 transition-all cursor-pointer"
+                  className="flex-1 py-2 px-3 bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/[0.18] border border-white/[0.09] rounded-xl flex items-center justify-center gap-1.5 text-[11px] font-medium text-white transition-all cursor-pointer shadow-xs"
                   type="button"
+                  aria-label="Open Control Tower"
                 >
-                  <Activity className="w-3 h-3 text-cyan-400" />
+                  <Activity className="w-3.5 h-3.5 text-cyan-300" />
                   <span>Control Tower</span>
                 </button>
+              </div>
 
+              {/* 5. State D — Detailed View Action */}
+              <div className="border-t border-white/[0.06] pt-2 flex items-center justify-center">
                 <button
-                  onClick={() => handleAction('search')}
-                  className="flex-1 py-1.5 px-2 bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] rounded-[10px] flex items-center justify-center gap-1.5 text-[10px] font-medium text-white/90 transition-all cursor-pointer"
+                  onClick={() => handleAction('command-center')}
+                  className="text-[10px] text-white/50 hover:text-white/90 transition-colors flex items-center gap-1 cursor-pointer font-medium"
                   type="button"
+                  aria-label="Open full Control Tower workspace"
                 >
-                  <Search className="w-3 h-3 text-white/60" />
-                  <span>Search</span>
-                </button>
-
-                <button
-                  onClick={() => handleAction('settings')}
-                  className="flex-1 py-1.5 px-2 bg-white/[0.04] hover:bg-white/[0.09] border border-white/[0.08] rounded-[10px] flex items-center justify-center gap-1.5 text-[10px] font-medium text-white/90 transition-all cursor-pointer"
-                  type="button"
-                >
-                  <Sliders className="w-3 h-3 text-white/60" />
-                  <span>Settings</span>
+                  <span>Open Full Control Tower</span>
+                  <ExternalLink className="w-2.5 h-2.5" />
                 </button>
               </div>
             </motion.div>

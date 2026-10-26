@@ -100,6 +100,9 @@ export function useDynamicIslandState(): DynamicIslandState {
   // Copilot Live State
   const [copilotStatus, setCopilotStatus] = useState<DynamicIslandCopilotStatus>('ready');
 
+  // Simulation Live State
+  const [isSimulationRunning, setIsSimulationRunning] = useState<boolean>(false);
+
   // Clock state
   const [currentDateObj, setCurrentDateObj] = useState<Date>(() => new Date());
 
@@ -110,7 +113,7 @@ export function useDynamicIslandState(): DynamicIslandState {
     return () => clearInterval(timer);
   }, []);
 
-  // Listen to Copilot state events dispatched by AICopilot.tsx
+  // Listen to Copilot and Simulation state events
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -120,9 +123,17 @@ export function useDynamicIslandState(): DynamicIslandState {
       }
     };
 
+    const handleSimulationState = (e: any) => {
+      if (e.detail?.state?.isRunning !== undefined) {
+        setIsSimulationRunning(Boolean(e.detail.state.isRunning));
+      }
+    };
+
     window.addEventListener('orion:copilot-state' as any, handleCopilotState);
+    window.addEventListener('orion:demo-simulation-state-changed' as any, handleSimulationState);
     return () => {
       window.removeEventListener('orion:copilot-state' as any, handleCopilotState);
+      window.removeEventListener('orion:demo-simulation-state-changed' as any, handleSimulationState);
     };
   }, []);
 
@@ -210,6 +221,9 @@ export function useDynamicIslandState(): DynamicIslandState {
     if (criticalExceptionsCount > 0) {
       return 'critical-alerts';
     }
+    if (isSimulationRunning) {
+      return 'simulation-running';
+    }
     if (activeSyncJobsCount > 0) {
       return 'syncing';
     }
@@ -217,7 +231,7 @@ export function useDynamicIslandState(): DynamicIslandState {
       return 'notification';
     }
     return 'idle';
-  }, [copilotStatus, criticalExceptionsCount, activeSyncJobsCount, unreadNotificationsCount]);
+  }, [copilotStatus, criticalExceptionsCount, isSimulationRunning, activeSyncJobsCount, unreadNotificationsCount]);
 
   // Formatted Clock
   const currentTime = useMemo(() => {
@@ -243,6 +257,7 @@ export function useDynamicIslandState(): DynamicIslandState {
     runtimeMode,
     isNativeDesktop,
     systemHealth,
+    isSimulationRunning,
     currentTime,
     currentDate
   };

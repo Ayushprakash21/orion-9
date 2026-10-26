@@ -210,4 +210,59 @@ describe('Orion-9 Dynamic Island Architecture & Telemetry', () => {
     expect(typeof capturedState.togglePin).toBe('function');
     expect(typeof capturedState.handleAction).toBe('function');
   });
+
+  it('DYNAMIC-ISLAND-09: State A (Idle) renders compact pill with Optimal status', () => {
+    mockExceptions = [];
+    mockUnreadCount = 0;
+    mockSyncJobs = [];
+    mockActiveAppId = null;
+
+    const html = renderToString(<DynamicIsland />);
+    expect(html).toContain('Optimal');
+    expect(html).toContain('h-[34px]');
+    expect(html).toContain('rounded-full');
+  });
+
+  it('DYNAMIC-ISLAND-10: State B (Activity) adapts pill to show concise event info for critical alerts', () => {
+    mockExceptions = [
+      { id: 'exc-2', title: 'Port Congestion', severity: 'Critical', status: 'Open' }
+    ];
+    mockUnreadCount = 0;
+
+    const html = renderToString(<DynamicIsland />);
+    expect(html).toContain('Shipment exception detected • 1 Alert');
+    expect(html).toContain('text-rose-300');
+  });
+
+  it('DYNAMIC-ISLAND-11: State B (Activity) adapts pill to show syncing connectors when active sync jobs run', () => {
+    mockExceptions = [];
+    mockUnreadCount = 0;
+    mockSyncJobs = [{ id: 'job-1', status: 'RUNNING' }];
+
+    const html = renderToString(<DynamicIsland />);
+    expect(html).toContain('Syncing 3 connectors');
+    expect(html).toContain('text-sky-300');
+  });
+
+  it('DYNAMIC-ISLAND-12: State C & D (Expanded Panel) contains single cohesive surface with Copilot & Control Tower actions', () => {
+    // Force expanded state by testing hook
+    let hookState: any;
+    const TestComponent = () => {
+      hookState = useDynamicIslandState();
+      return <div>test</div>;
+    };
+    renderToString(<TestComponent />);
+
+    // Verify handleAction opens Copilot
+    hookState.handleAction('ai-copilot');
+    expect(mockOpenApplication).toHaveBeenCalledWith('ai-copilot');
+
+    // Verify handleAction opens Control Tower (command-center)
+    hookState.handleAction('command-center');
+    expect(mockOpenApplication).toHaveBeenCalledWith('command-center');
+
+    // Verify handleAction opens Search command palette
+    hookState.handleAction('search');
+    expect(mockSetCommandPaletteOpen).toHaveBeenCalledWith(true);
+  });
 });

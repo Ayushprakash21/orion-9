@@ -10,6 +10,7 @@ export type DynamicIslandActivity =
   | 'copilot-thinking' 
   | 'syncing' 
   | 'critical-alerts' 
+  | 'simulation-running'
   | 'notification';
 
 export type DynamicIslandCopilotStatus = 'ready' | 'thinking' | 'analyzing' | 'idle';
@@ -29,6 +30,7 @@ export interface DynamicIslandMetrics {
   runtimeMode: 'TAURI DESKTOP' | 'WEB OS';
   isNativeDesktop: boolean;
   systemHealth: 'OPTIMAL' | 'DEGRADED' | 'CRITICAL';
+  isSimulationRunning?: boolean;
   currentTime: string;
   currentDate: string;
 }
