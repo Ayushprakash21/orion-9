@@ -262,10 +262,10 @@ export const AICopilot = () => {
 
   return (
     <div className="w-full h-full min-h-0 flex flex-col overflow-hidden bg-transparent">
-      <div className="flex-1 min-h-0 max-w-[1200px] w-full mx-auto p-3 sm:p-5 lg:p-6 flex flex-col gap-3.5 sm:gap-4 overflow-hidden">
+      <div className="flex-1 min-h-0 max-w-[1200px] w-full mx-auto p-2.5 sm:p-4 lg:p-5 flex flex-col gap-2.5 sm:gap-3.5 overflow-hidden">
         
         {/* Header Console */}
-        <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-[14px] p-3.5 sm:p-4.5 flex items-center justify-between relative overflow-hidden shrink-0 shadow-[0_8px_24px_rgba(0,0,0,0.25)]">
+        <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-[12px] p-3 sm:p-3.5 flex items-center justify-between relative overflow-hidden shrink-0 shadow-[0_8px_24px_rgba(0,0,0,0.25)]">
           <div className="flex items-center gap-3 sm:gap-4 relative z-10">
             <div className="relative flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-[10px] bg-[var(--orion-accent,#0071E3)]/12 border border-[var(--orion-accent,#0071E3)]/25 text-[var(--orion-accent,#0071E3)] shrink-0">
               <Cpu className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
@@ -302,7 +302,7 @@ export const AICopilot = () => {
         {/* Chat Area */}
         <div className="flex-1 bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-[14px] flex flex-col min-h-0 overflow-hidden relative shadow-[0_12px_32px_rgba(0,0,0,0.30)]">
           
-          <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 space-y-4 sm:space-y-4.5 min-h-0 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 space-y-3.5 sm:space-y-4 min-h-0 custom-scrollbar">
             {messages.map((message, index) => (
               <div 
                 key={index} 
@@ -365,12 +365,48 @@ export const AICopilot = () => {
               </div>
             ))}
             
+            {messages.length <= 1 && (
+              <div className="pt-1 pb-1 animate-in fade-in duration-300">
+                <div className="text-[10px] font-semibold tracking-wider uppercase text-[var(--orion-text-muted,#747875)] mb-2.5 flex items-center gap-2">
+                  <Sparkles size={11} className="text-[var(--orion-accent,#0071E3)]" />
+                  <span>Executive Quick Launch</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5 max-w-3xl">
+                  {QUICK_ACTIONS.map((action, idx) => {
+                    const ActionIcon = action.icon;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setInput(action.prompt)}
+                        className="group text-left p-2.5 sm:p-3 rounded-[10px] bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.08] hover:border-[var(--orion-accent,#0071E3)]/40 transition-all cursor-pointer flex items-start gap-2.5 shadow-xs"
+                        aria-label={`Select quick action: ${action.label}`}
+                      >
+                        <div className="p-1.5 rounded-[6px] bg-[var(--orion-accent,#0071E3)]/10 border border-[var(--orion-accent,#0071E3)]/20 text-[var(--orion-accent,#0071E3)] group-hover:scale-105 transition-transform shrink-0">
+                          <ActionIcon size={14} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-xs font-semibold text-[var(--orion-text-primary,#F2F2EF)] group-hover:text-white flex items-center justify-between">
+                            <span>{action.label}</span>
+                            <ArrowRight size={11} className="opacity-0 group-hover:opacity-100 text-[var(--orion-accent,#0071E3)] transition-opacity shrink-0 ml-1" />
+                          </div>
+                          <div className="text-[11px] text-[var(--orion-text-muted,#747875)] mt-0.5 line-clamp-2 leading-snug">
+                            {action.prompt}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {isLoading && (
               <div className="max-w-[80%] mr-auto animate-in fade-in duration-200">
                 <div className="text-[11px] font-semibold text-sky-400 mb-1.5">
                   Orion Copilot
                 </div>
-                <div className="p-4 rounded-2xl bg-white/[0.04] border border-white/[0.08] flex items-center gap-3 text-slate-400">
+                <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center gap-3 text-slate-400">
                   <Loader2 className="w-4 h-4 animate-spin text-sky-400" />
                   <span className="text-xs">{aiState === 'thinking' ? 'Synthesizing response...' : 'Analyzing real-time SCM data...'}</span>
                 </div>

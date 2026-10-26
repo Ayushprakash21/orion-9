@@ -369,7 +369,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
     const dy = e.clientY - dragStartRef.current.startY;
     moveApplication(win.id, {
       x: dragStartRef.current.posX + dx,
-      y: dragStartRef.current.posY + dy
+      y: Math.max(4, dragStartRef.current.posY + dy)
     });
 
     const screenW = typeof window !== 'undefined' ? window.innerWidth : 1440;

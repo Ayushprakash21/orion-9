@@ -22,6 +22,8 @@ import {
   Zap,
   Layers,
   ArrowRight,
+  Download,
+  Laptop,
 } from 'lucide-react';
 
 export const ReleaseCenter: React.FC<{ tenantId?: string }> = () => {
@@ -205,6 +207,38 @@ export const ReleaseCenter: React.FC<{ tenantId?: string }> = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Desktop Package Distribution Card */}
+              {selectedRelease.desktopPackage && (
+                <div className="p-4 bg-slate-950/80 rounded-xl border border-cyan-900/50 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 bg-cyan-950 text-cyan-400 rounded-lg border border-cyan-800">
+                        <Laptop className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-white block">
+                          Windows x64 Native Desktop Application Package
+                        </span>
+                        <span className="text-[11px] font-mono text-slate-400">
+                          {selectedRelease.desktopPackage.filename} · {(selectedRelease.desktopPackage.sizeBytes / (1024 * 1024)).toFixed(2)} MB · NSIS Installer
+                        </span>
+                      </div>
+                    </div>
+                    <a
+                      href={selectedRelease.desktopPackage.downloadUrl}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold transition"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      <span>Download .exe</span>
+                    </a>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs font-mono text-slate-400 bg-slate-900/60 p-2.5 rounded-lg border border-slate-800 overflow-x-auto">
+                    <span className="text-slate-500 font-bold shrink-0">SHA-256:</span>
+                    <span className="text-slate-300 select-all">{selectedRelease.desktopPackage.sha256}</span>
+                  </div>
+                </div>
+              )}
 
               {/* Rollback Linkage Box */}
               {selectedRelease.rollbackTargetVersion && (

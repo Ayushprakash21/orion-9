@@ -38,6 +38,13 @@ export class ReleaseManager {
       ],
       rollbackTargetVersion: 'v8.0.0',
       notes: 'Wave 9 Closed-Loop Outcome Intelligence & Enterprise Learning release.',
+      desktopPackage: {
+        platform: 'windows-x64',
+        filename: 'Orion-9-Setup.exe',
+        sizeBytes: 30336791,
+        sha256: 'e2dfeb480522b9da077bb58e0954d6d8e09f1023fb6af28b8b74b2a8dc23ee70',
+        downloadUrl: '/api/download/desktop',
+      },
     };
 
     const wave10Candidate: ReleaseRecord = {

@@ -189,6 +189,12 @@ export const DEFAULT_BOOKMARKS: BrowserBookmarkEntry[] = [
     createdAt: 1700000000000,
   },
   {
+    id: 'bm-marketing-portal',
+    title: 'Orion-9 Platform Portal',
+    url: 'https://orion-9-webos.ai.studio/',
+    createdAt: 1700000000000,
+  },
+  {
     id: 'bm-duckduckgo',
     title: 'DuckDuckGo Search',
     url: 'https://duckduckgo.com',

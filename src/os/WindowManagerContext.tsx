@@ -260,7 +260,7 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
   
 
   // Compute sensible default geometry for a newly opened window
-  const computeDefaultGeometry = useCallback((existingCount: number) => {
+  const computeDefaultGeometry = useCallback((existingCount: number, appId?: string) => {
     const screenW = typeof window !== 'undefined' ? window.innerWidth : 1440;
     const screenH = typeof window !== 'undefined' ? window.innerHeight : 900;
 
@@ -270,11 +270,19 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
     // by default while retaining a modest desktop margin for window chrome.
     // Dock is a macOS-style floating overlay and does not reduce available workspace height.
     const topChrome = 48;
-    const margin = screenW < 1100 ? 0 : Math.max(8, Math.round(Math.min(screenW, screenH) * 0.012));
+    const margin = screenW < 1100 ? 4 : Math.max(8, Math.round(Math.min(screenW, screenH) * 0.012));
     const availableW = Math.max(360, screenW - margin * 2);
     const availableH = Math.max(300, screenH - topChrome - margin * 2);
 
     if (screenW < 900 || screenH < 620) {
+      if (appId === 'orion-ai') {
+        const w = Math.min(screenW - 16, 840);
+        const h = Math.min(screenH - topChrome - 16, 580);
+        return {
+          position: { x: Math.max(8, Math.round((screenW - w) / 2)), y: 8 },
+          size: { width: w, height: h }
+        };
+      }
       return {
         position: { x: 0, y: 0 },
         size: { width: screenW, height: Math.max(300, screenH - topChrome) }
@@ -282,10 +290,23 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
     }
 
     const stagger = (existingCount % 4) * Math.min(24, Math.round(screenW * 0.008));
+
+    // Tailored, ergonomic geometry for Copilot / AI Assistant
+    if (appId === 'orion-ai') {
+      const copilotW = Math.min(880, Math.max(640, Math.round(availableW * 0.62)));
+      const copilotH = Math.min(660, Math.max(500, Math.round(availableH * 0.80)));
+      const x = Math.max(margin, Math.round((screenW - copilotW) / 2) + stagger);
+      const y = Math.max(margin, Math.round((availableH - copilotH) / 2) + Math.round(stagger / 2));
+      return {
+        position: { x, y },
+        size: { width: copilotW, height: copilotH }
+      };
+    }
+
     const width = Math.min(availableW, Math.max(900, Math.round(availableW * (screenW >= 2560 ? 0.96 : 0.94))));
     const height = Math.min(availableH, Math.max(560, Math.round(availableH * 0.94)));
     const x = Math.max(0, Math.min(screenW - width, Math.round((screenW - width) / 2) + stagger - 24));
-    const y = Math.max(0, Math.min(screenH - topChrome - height, margin + Math.round(stagger / 2)));
+    const y = Math.max(4, Math.min(screenH - topChrome - height, margin + Math.round(stagger / 2)));
 
     return {
       position: { x, y },
@@ -329,8 +350,8 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
       } else {
         const screenW = typeof window !== 'undefined' ? window.innerWidth : 1440;
         const screenH = typeof window !== 'undefined' ? window.innerHeight : 900;
-        const shouldMaximize = screenW < 1024 || screenH < 680;
-        const geom = computeDefaultGeometry(Object.keys(prev).length);
+        const shouldMaximize = id === 'orion-ai' ? (screenW < 768 || screenH < 500) : (screenW < 1024 || screenH < 680);
+        const geom = computeDefaultGeometry(Object.keys(prev).length, id);
         res = normalizeWindowZIndexes({
           ...prev,
           [id]: {
@@ -597,7 +618,7 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
       if (!target || target.state === 'maximized') return prev;
 
       const clampedX = Math.max(-target.size.width + 120, Math.min(screenW - 120, position.x));
-      const clampedY = Math.max(0, Math.min(Math.max(0, screenH - 32), position.y));
+      const clampedY = Math.max(4, Math.min(Math.max(4, screenH - 32), position.y));
 
       return {
         ...prev,
@@ -630,7 +651,7 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
 
       const updatedPos = position ? {
         x: Math.max(-clampedW + 120, Math.min(screenW - 120, position.x)),
-        y: Math.max(0, Math.min(Math.max(0, screenH - 32), position.y))
+        y: Math.max(4, Math.min(Math.max(4, screenH - 32), position.y))
       } : target.position;
 
       return {

@@ -425,6 +425,14 @@ export interface ReleaseGate {
   evidence: string;
 }
 
+export interface DesktopPackageMetadata {
+  platform: 'windows-x64';
+  filename: string;
+  sizeBytes: number;
+  sha256: string;
+  downloadUrl: string;
+}
+
 export interface ReleaseRecord {
   id: string;
   version: string;
@@ -435,6 +443,7 @@ export interface ReleaseRecord {
   gates: ReleaseGate[];
   rollbackTargetVersion?: string;
   notes: string;
+  desktopPackage?: DesktopPackageMetadata;
 }
 
 // ============================================================================
