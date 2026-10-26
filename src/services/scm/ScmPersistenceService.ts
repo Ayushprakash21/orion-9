@@ -35,6 +35,16 @@ export interface SaveRecordOptions {
   idempotencyKey?: string;
 }
 
+export type PersistenceSyncStatus = 'SYNCED' | 'PENDING_SYNC' | 'CACHE_ONLY' | 'FAILED' | 'UNAVAILABLE';
+
+export interface PersistenceResult<T> {
+  data: T;
+  status: PersistenceSyncStatus;
+  timestamp: string;
+  environment: 'LIVE' | 'DEMO' | 'STAGING';
+  error?: string;
+}
+
 export interface OutboxEventRecord {
   id: string;
   tenantId: string;
@@ -200,6 +210,70 @@ export class ScmPersistenceService {
     }
 
     return sanitizedData as T;
+  }
+
+  /**
+   * Authoritatively save an entity with explicit synchronization status reporting
+   * (SYNCED, PENDING_SYNC, CACHE_ONLY, FAILED, UNAVAILABLE) for observability.
+   */
+  public async saveRecordWithStatus<T extends { tenantId: string }>(
+    collectionName: string,
+    id: string,
+    data: T,
+    options?: SaveRecordOptions | boolean,
+    legacyIdempotencyKey?: string
+  ): Promise<PersistenceResult<T>> {
+    const env = DatabaseConnectionManager.getInstance().getEnvironment();
+    const timestamp = new Date().toISOString();
+
+    if (env === 'DEMO') {
+      try {
+        const saved = await this.saveRecord(collectionName, id, data, options, legacyIdempotencyKey);
+        return {
+          data: saved,
+          status: 'CACHE_ONLY',
+          timestamp,
+          environment: 'DEMO',
+        };
+      } catch (err: any) {
+        return {
+          data,
+          status: 'FAILED',
+          timestamp,
+          environment: 'DEMO',
+          error: err?.message || String(err),
+        };
+      }
+    }
+
+    const firestoreInstance = DatabaseConnectionManager.getInstance().getFirestore(env) || this.firestore;
+    if (!firestoreInstance) {
+      return {
+        data,
+        status: 'UNAVAILABLE',
+        timestamp,
+        environment: env,
+        error: `Firestore instance unavailable in ${env} environment`,
+      };
+    }
+
+    try {
+      const saved = await this.saveRecord(collectionName, id, data, options, legacyIdempotencyKey);
+      return {
+        data: saved,
+        status: 'SYNCED',
+        timestamp,
+        environment: env,
+      };
+    } catch (err: any) {
+      return {
+        data,
+        status: 'FAILED',
+        timestamp,
+        environment: env,
+        error: err?.message || String(err),
+      };
+    }
   }
 
   /**

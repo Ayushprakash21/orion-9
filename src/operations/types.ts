@@ -426,11 +426,13 @@ export interface ReleaseGate {
 }
 
 export interface DesktopPackageMetadata {
-  platform: 'windows-x64';
+  platform: 'windows-x64' | 'windows-arm64' | 'macos-universal' | 'macos-arm64' | 'macos-x64' | string;
   filename: string;
   sizeBytes: number;
   sha256: string;
   downloadUrl: string;
+  storagePath?: string;
+  uploadedAt?: string;
 }
 
 export interface ReleaseRecord {
@@ -444,6 +446,7 @@ export interface ReleaseRecord {
   rollbackTargetVersion?: string;
   notes: string;
   desktopPackage?: DesktopPackageMetadata;
+  packages?: DesktopPackageMetadata[];
 }
 
 // ============================================================================

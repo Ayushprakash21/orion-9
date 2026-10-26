@@ -1,0 +1,80 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper functions for security enforcement
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        (request.auth.token != null && (
+          request.auth.token.role in ['platform_admin', 'organization_admin', 'admin'] ||
+          request.auth.token.admin == true
+        ))
+      );
+    }
+
+    function isTenantMember(tenantId) {
+      return isAuthenticated() && (
+        (request.auth.token != null && (
+          request.auth.token.tenantId == tenantId ||
+          request.auth.token.organizationId == tenantId
+        )) ||
+        isAdmin()
+      );
+    }
+
+    // Default deny for all unmatched paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+
+    // Public & Authenticated Desktop Installers (Windows .exe/.msi, macOS .dmg)
+    // Read is allowed publicly so users and automatic updaters can download release packages.
+    // Write is strictly restricted to platform administrators with size & extension checks.
+    match /installers/{version}/{filename} {
+      allow read: if true;
+      allow write: if isAdmin() &&
+        request.resource.size < 250 * 1024 * 1024 &&
+        (
+          filename.matches('.*\\.exe$') ||
+          filename.matches('.*\\.msi$') ||
+          filename.matches('.*\\.dmg$') ||
+          filename.matches('.*\\.zip$') ||
+          filename.matches('.*\\.tar\\.gz$')
+        );
+      allow delete: if isAdmin();
+    }
+
+    // User Profile Documents, Avatars, and User Workspace Files
+    match /users/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated() && (isOwner(userId) || isAdmin());
+      allow write: if isAuthenticated() && (isOwner(userId) || isAdmin()) &&
+        request.resource.size < 25 * 1024 * 1024;
+      allow delete: if isAuthenticated() && (isOwner(userId) || isAdmin());
+    }
+
+    // System and Custom Wallpapers
+    match /wallpapers/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() &&
+        request.resource.size < 15 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*');
+      allow delete: if isAdmin();
+    }
+
+    // Tenant Isolated SCM Documents, Attachments, and Invoices
+    match /tenants/{tenantId}/{allPaths=**} {
+      allow read: if isTenantMember(tenantId);
+      allow write: if isTenantMember(tenantId) &&
+        request.resource.size < 50 * 1024 * 1024;
+      allow delete: if isAdmin() || isTenantMember(tenantId);
+    }
+  }
+}

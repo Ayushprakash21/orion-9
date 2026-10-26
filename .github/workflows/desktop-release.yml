@@ -1,4 +1,4 @@
-name: Orion-9 Desktop Multi-Platform Release (Windows & macOS)
+name: Orion-9 Desktop Multi-Platform Packaging (Windows & macOS)
 
 on:
   workflow_dispatch:
@@ -6,14 +6,24 @@ on:
       target_platform:
         description: 'Target Platform to build'
         required: true
-        default: 'all'
+        default: 'macos'
         type: choice
         options:
-          - all
           - macos
           - windows
+          - all
+      macos_build_strategy:
+        description: 'macOS Build Strategy'
+        required: true
+        default: 'universal_with_fallback'
+        type: choice
+        options:
+          - universal_with_fallback
+          - apple_silicon_only
+          - intel_only
+          - both_architectures_separate
       build_mode:
-        description: 'Build Mode'
+        description: 'Tauri Compilation Profile'
         required: true
         default: 'release'
         type: choice
@@ -25,12 +35,208 @@ permissions:
   contents: read
 
 jobs:
-  # --------------------------------------------------------------------------
-  # WINDOWS BUILD JOB: NSIS (.exe) and WiX (.msi)
-  # --------------------------------------------------------------------------
+  # ============================================================================
+  # MACOS DESKTOP PACKAGING JOB (Apple Silicon, Intel, & Universal DMG)
+  # ============================================================================
+  build-macos:
+    name: Build macOS Desktop (${{ inputs.macos_build_strategy }})
+    if: inputs.target_platform == 'macos' || inputs.target_platform == 'all'
+    runs-on: macos-14 # GitHub-hosted Apple Silicon M-series runner
+
+    steps:
+      - name: Checkout Source Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Setup Rust Stable Toolchain & Darwin Targets
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Rust Compilation Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install Frontend Dependencies
+        run: npm ci
+
+      - name: Compile Frontend Production Distribution
+        run: npm run build
+
+      # Code signing preparation: Only activated if Apple Developer credentials exist in secrets
+      - name: Configure Apple Developer ID Code Signing (Optional)
+        id: codesign_setup
+        if: env.HAS_CERT == 'true'
+        env:
+          HAS_CERT: ${{ secrets.APPLE_CERTIFICATE != '' && secrets.APPLE_CERTIFICATE_PASSWORD != '' }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'orion-temporary-build-keychain-pass' }}
+        run: |
+          echo "Setting up temporary build keychain for Apple Developer ID codesigning..."
+          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          echo "$APPLE_CERTIFICATE" | base64 --decode > $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 -k $KEYCHAIN_PATH -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          echo "keychain_configured=true" >> $GITHUB_OUTPUT
+          echo "Apple Developer ID keychain configured successfully."
+
+      # Notice for unsigned development builds
+      - name: Code Signing Status Notice
+        run: |
+          if [ "${{ secrets.APPLE_CERTIFICATE }}" = "" ]; then
+            echo "::notice title=Code Signing Notice::Building UNSIGNED development package. Signing credentials (APPLE_CERTIFICATE) are not configured in repository secrets. The generated .dmg will be labeled as UNSIGNED-DEVELOPMENT and is NOT notarized."
+            echo "SIGNING_STATE=UNSIGNED_DEVELOPMENT" >> $GITHUB_ENV
+          else
+            echo "SIGNING_STATE=SIGNED_DEVELOPER_ID" >> $GITHUB_ENV
+          fi
+
+      # Build Step with Strategy & Resilient Universal Fallback
+      - name: Execute macOS Tauri Build & DMG Packaging
+        id: tauri_build
+        env:
+          CI: true
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          STRATEGY: ${{ inputs.macos_build_strategy }}
+          MODE: ${{ inputs.build_mode }}
+        run: |
+          BUILD_FLAG=""
+          if [ "$MODE" = "debug" ]; then
+            BUILD_FLAG="--debug"
+          fi
+
+          mkdir -p macos-artifacts
+
+          # Strategy: Universal with Fallback
+          if [ "$STRATEGY" = "universal_with_fallback" ]; then
+            echo "Attempting Universal macOS DMG Build (universal-apple-darwin)..."
+            if npx tauri build --target universal-apple-darwin --bundles app,dmg $BUILD_FLAG; then
+              echo "Universal macOS build SUCCEEDED!"
+              echo "UNIVERSAL_SUCCESS=true" >> $GITHUB_ENV
+            else
+              echo "::warning title=Universal Build Notice::Universal macOS compilation encountered friction or native toolchain blocker. Falling back to separate architecture-specific builds (aarch64 and x86_64)..."
+              echo "UNIVERSAL_SUCCESS=false" >> $GITHUB_ENV
+              
+              echo "Building Apple Silicon (aarch64-apple-darwin)..."
+              npx tauri build --target aarch64-apple-darwin --bundles app,dmg $BUILD_FLAG
+              
+              echo "Building Intel x64 (x86_64-apple-darwin)..."
+              npx tauri build --target x86_64-apple-darwin --bundles app,dmg $BUILD_FLAG
+            fi
+          elif [ "$STRATEGY" = "apple_silicon_only" ]; then
+            echo "Building Apple Silicon only (aarch64-apple-darwin)..."
+            npx tauri build --target aarch64-apple-darwin --bundles app,dmg $BUILD_FLAG
+          elif [ "$STRATEGY" = "intel_only" ]; then
+            echo "Building Intel only (x86_64-apple-darwin)..."
+            npx tauri build --target x86_64-apple-darwin --bundles app,dmg $BUILD_FLAG
+          elif [ "$STRATEGY" = "both_architectures_separate" ]; then
+            echo "Building Apple Silicon (aarch64-apple-darwin)..."
+            npx tauri build --target aarch64-apple-darwin --bundles app,dmg $BUILD_FLAG
+            echo "Building Intel (x86_64-apple-darwin)..."
+            npx tauri build --target x86_64-apple-darwin --bundles app,dmg $BUILD_FLAG
+          fi
+
+      # Verification step as required by Section 3:
+      - name: Verify Generated macOS Artifacts (.dmg and .app)
+        run: |
+          echo "=========================================================="
+          echo "     ORION-9 MACOS DESKTOP ARTIFACT INTEGRITY VERIFICATION"
+          echo "=========================================================="
+          
+          DMG_FILES=$(find src-tauri/target -type f -name "*.dmg")
+          if [ -z "$DMG_FILES" ]; then
+            echo "::error::Packaging failure: No .dmg file was found in src-tauri/target!"
+            exit 1
+          fi
+
+          APP_BUNDLES=$(find src-tauri/target -type d -name "Orion-9.app")
+          if [ -z "$APP_BUNDLES" ]; then
+            echo "::error::Packaging failure: No Orion-9.app bundle was found in src-tauri/target!"
+            exit 1
+          fi
+
+          mkdir -p macos-artifacts
+          MANIFEST="macos-artifacts/RELEASE-MANIFEST.txt"
+          echo "# Orion-9 macOS Release Verification Manifest" > "$MANIFEST"
+          echo "GeneratedAt: $(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$MANIFEST"
+          echo "CommitSha: ${{ github.sha }}" >> "$MANIFEST"
+          echo "SigningStatus: $SIGNING_STATE" >> "$MANIFEST"
+          if [ "$SIGNING_STATE" = "UNSIGNED_DEVELOPMENT" ]; then
+            echo "NotarizationStatus: NOT_NOTARIZED" >> "$MANIFEST"
+            echo "Warning: Unsigned development build. Gatekeeper verification will flag as unverified developer." >> "$MANIFEST"
+          else
+            echo "NotarizationStatus: SIGNED_READY_FOR_NOTARIZATION" >> "$MANIFEST"
+          fi
+          echo "" >> "$MANIFEST"
+          echo "--- VERIFIED PACKAGES ---" >> "$MANIFEST"
+
+          for dmg in $DMG_FILES; do
+            DMG_SIZE=$(wc -c < "$dmg" | tr -d ' ')
+            DMG_NAME=$(basename "$dmg")
+
+            # Check size: genuine installer must be > 1 MB
+            if [ "$DMG_SIZE" -lt 1048576 ]; then
+              echo "::error::Generated DMG '$DMG_NAME' is only $DMG_SIZE bytes (expected > 1MB). Rejected!"
+              exit 1
+            fi
+
+            # Locate corresponding app bundle for architecture audit
+            BUNDLE_DIR=$(dirname "$dmg")
+            APP_CANDIDATE=$(find "$(dirname "$BUNDLE_DIR")" -type d -name "Orion-9.app" | head -n 1)
+            ARCH_LABEL="Unknown"
+            if [ -n "$APP_CANDIDATE" ] && [ -f "$APP_CANDIDATE/Contents/MacOS/orion-desktop" ]; then
+              ARCH_LABEL=$(lipo -info "$APP_CANDIDATE/Contents/MacOS/orion-desktop" 2>/dev/null || file "$APP_CANDIDATE/Contents/MacOS/orion-desktop")
+            fi
+
+            SHA256=$(shasum -a 256 "$dmg" | awk '{print $1}')
+
+            echo "----------------------------------------------------"
+            echo "Artifact:     $DMG_NAME"
+            echo "Size:         $DMG_SIZE bytes ($(( DMG_SIZE / 1024 / 1024 )) MB)"
+            echo "Architecture: $ARCH_LABEL"
+            echo "SHA-256:      $SHA256"
+            echo "App Bundle:   Verified ($APP_CANDIDATE)"
+            echo "----------------------------------------------------"
+
+            echo "File: $DMG_NAME" >> "$MANIFEST"
+            echo "Size: $DMG_SIZE bytes" >> "$MANIFEST"
+            echo "Architecture: $ARCH_LABEL" >> "$MANIFEST"
+            echo "SHA256: $SHA256" >> "$MANIFEST"
+            echo "" >> "$MANIFEST"
+
+            cp "$dmg" macos-artifacts/
+          done
+
+          cd macos-artifacts
+          shasum -a 256 *.dmg > SHA256SUMS-macos.txt
+          cat SHA256SUMS-macos.txt
+
+      - name: Upload macOS Release Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: orion-9-macos-desktop-dmg-${{ inputs.build_mode }}
+          path: |
+            macos-artifacts/*.dmg
+            macos-artifacts/SHA256SUMS-macos.txt
+            macos-artifacts/RELEASE-MANIFEST.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  # ============================================================================
+  # WINDOWS DESKTOP PACKAGING JOB (NSIS .exe & WiX .msi)
+  # ============================================================================
   build-windows:
     name: Build Windows Desktop (NSIS & MSI)
-    if: inputs.target_platform == 'all' || inputs.target_platform == 'windows'
+    if: inputs.target_platform == 'windows' || inputs.target_platform == 'all'
     runs-on: windows-latest
 
     steps:
@@ -48,7 +254,7 @@ jobs:
         with:
           targets: x86_64-pc-windows-msvc
 
-      - name: Rust Cache
+      - name: Rust Compilation Cache
         uses: swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
@@ -68,8 +274,16 @@ jobs:
         shell: pwsh
         run: |
           $artifacts = Get-ChildItem -Path "src-tauri/target/release/bundle" -Recurse -Include "*.exe", "*.msi"
+          if ($artifacts.Count -eq 0) {
+            Write-Error "No Windows installer artifacts found!"
+            exit 1
+          }
           $lines = @()
           foreach ($file in $artifacts) {
+            if ($file.Length -lt 1048576) {
+              Write-Error "Artifact $($file.Name) is suspiciously small ($($file.Length) bytes)!"
+              exit 1
+            }
             $hash = (Get-FileHash -Path $file.FullName -Algorithm SHA256).Hash.ToLower()
             $lines += "$hash  $($file.Name)"
             Write-Host "VERIFIED: $($file.Name) - Size: $($file.Length) bytes - SHA256: $hash"
@@ -84,79 +298,5 @@ jobs:
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/release/bundle/msi/*.msi
             src-tauri/target/release/bundle/SHA256SUMS-windows.txt
-          if-no-files-found: error
-          retention-days: 14
-
-  # --------------------------------------------------------------------------
-  # MACOS BUILD JOB: DMG (.dmg) and App Bundle (.app) for Apple Silicon & Universal
-  # --------------------------------------------------------------------------
-  build-macos:
-    name: Build macOS Desktop (Universal & Apple Silicon DMG)
-    if: inputs.target_platform == 'all' || inputs.target_platform == 'macos'
-    runs-on: macos-14
-
-    steps:
-      - name: Checkout Source Repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js 24
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-          cache: 'npm'
-
-      - name: Setup Rust Stable with Universal Darwin Targets
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: aarch64-apple-darwin,x86_64-apple-darwin
-
-      - name: Rust Cache
-        uses: swatinem/rust-cache@v2
-        with:
-          workspaces: src-tauri
-
-      - name: Install Frontend Dependencies
-        run: npm ci
-
-      - name: Compile Frontend Production Distribution
-        run: npm run build
-
-      # Optional Code Signing Preparation (Only executed if secrets are present)
-      - name: Prepare Apple Code Signing Keychain (Optional)
-        if: env.APPLE_CERTIFICATE != ''
-        env:
-          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
-        run: |
-          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain
-          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          echo "$APPLE_CERTIFICATE" | base64 --decode > $RUNNER_TEMP/certificate.p12
-          security import $RUNNER_TEMP/certificate.p12 -k $KEYCHAIN_PATH -P "$APPLE_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          echo "Keychain configured successfully for Apple Developer ID signing."
-
-      - name: Build macOS Universal DMG & App Bundle
-        run: |
-          npx tauri build --target universal-apple-darwin --bundles app,dmg
-        env:
-          CI: true
-          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
-
-      - name: Compute Checksums & Verify macOS Artifacts
-        run: |
-          mkdir -p macos-artifacts
-          find src-tauri/target/universal-apple-darwin/release/bundle -type f \( -name "*.dmg" -o -name "*.tar.gz" \) -exec cp {} macos-artifacts/ \;
-          cd macos-artifacts
-          shasum -a 256 * > SHA256SUMS-macos.txt
-          cat SHA256SUMS-macos.txt
-
-      - name: Upload macOS Release Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: orion-9-macos-universal-dmg
-          path: macos-artifacts/*
           if-no-files-found: error
           retention-days: 14

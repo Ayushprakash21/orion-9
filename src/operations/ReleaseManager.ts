@@ -5,6 +5,7 @@
 
 import { ReleaseRecord, ReleaseStage, ReleaseGate } from './types';
 import { observabilityService } from './ObservabilityService';
+import { releaseService } from '../services/releaseService';
 
 export class ReleaseManager {
   private static instance: ReleaseManager;
@@ -169,6 +170,22 @@ export class ReleaseManager {
 
   public getRelease(id: string): ReleaseRecord | undefined {
     return this.releases.get(id);
+  }
+
+  public addOrUpdateRelease(record: ReleaseRecord): void {
+    this.releases.set(record.id, record);
+  }
+
+  public async syncWithCloudReleases(): Promise<ReleaseRecord[]> {
+    try {
+      const cloudReleases = await releaseService.fetchReleasesFromCloud();
+      for (const rel of cloudReleases) {
+        this.releases.set(rel.id, rel);
+      }
+    } catch (e) {
+      console.warn('[RELEASE-MANAGER] Error syncing cloud releases:', e);
+    }
+    return this.getAllReleases();
   }
 }
 

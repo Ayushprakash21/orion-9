@@ -917,7 +917,12 @@ service cloud.firestore {
     }
 
     match /releases/{id} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() || (
+        resource.data != null && (
+          resource.data.stage == 'PROMOTED' ||
+          resource.data.stage == 'PUBLISHED'
+        )
+      );
       allow create, update, delete: if isAdmin();
     }
 

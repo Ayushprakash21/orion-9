@@ -1,6 +1,7 @@
 import { UserProfile, Organization, RoleCode, PermissionCode, PrivilegedAdminSession } from '../types/auth';
 import { permissionService } from './permissionService';
 import { userService, CANONICAL_DEMO_ADMIN, CANONICAL_DEMO_USER, CANONICAL_DEMO_ORGANIZATION } from './userService';
+import { userPersistenceService } from './userPersistenceService';
 import { organizationService } from './organizationService';
 import { auditService } from './AuditService';
 import { privilegedSessionManager } from '../kernel/security/privilegedSession';
@@ -369,6 +370,24 @@ export const authService = {
 
     // Resolve authoritative profile for authenticated identity
     let profile = userService.getUserByEmail(email) || userService.getUserByIdentifier(cleanId);
+    if (!profile && activeEnv === 'LIVE' && firebaseUid) {
+      try {
+        const liveProfile = await userPersistenceService.ensureUserProfile({
+          id: firebaseUid,
+          email,
+          displayName: cleanId.split('@')[0],
+        }, 'LIVE');
+        if (liveProfile) {
+          profile = liveProfile;
+          userPersistenceService.getUserPreferences(firebaseUid, 'LIVE').catch(() => {});
+        }
+      } catch (e) {
+        console.warn('[AUTH-LIVE] Profile sync from Firestore failed, fallback to local lookup:', e);
+      }
+    } else if (profile && activeEnv === 'LIVE' && firebaseUid) {
+      userPersistenceService.registerProfileInMemory(profile);
+      userPersistenceService.getUserPreferences(firebaseUid, 'LIVE').catch(() => {});
+    }
     if (!profile) {
       profile = {
         id: firebaseUid || cleanId,
@@ -572,7 +591,12 @@ export const authService = {
    * Fetches the complete session context locally with authoritative tenant and role resolution.
    */
   loadFullSession: async (userId: string, authEmail?: string): Promise<AuthSessionDetails> => {
-    const user = userService.getUserById(userId);
+    let user = userService.getUserById(userId);
+    if (!user) {
+      try {
+        user = (await userPersistenceService.getUserProfile(userId)) || undefined;
+      } catch {}
+    }
     if (!user) {
       throw new Error('Authenticated user profile not found.');
     }

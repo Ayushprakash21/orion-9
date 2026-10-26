@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { SessionState, PermissionCode, RoleCode, UserProfile, Organization, AuthUser, PrivilegedAdminSession } from '../types/auth';
 import { authService, AuthSessionDetails } from '../services/authService';
 import { userService } from '../services/userService';
+import { userPersistenceService } from '../services/userPersistenceService';
 import { organizationService } from '../services/organizationService';
 import { privilegedSessionManager } from '../kernel/security/privilegedSession';
 import { dbManager } from '../core/database/DatabaseConnectionManager';
@@ -125,7 +126,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
               return 'LOGIN_REQUIRED';
             }
             if (details?.user?.id && (!details.expiresAt || new Date(details.expiresAt).getTime() > Date.now())) {
-              const verifiedUser = userService.getUserById(details.user.id);
+              if (details.profile) userPersistenceService.registerProfileInMemory(details.profile);
+              const verifiedUser = userService.getUserById(details.user.id) || details.profile;
               if (verifiedUser && verifiedUser.status !== 'inactive' && verifiedUser.status !== 'suspended') {
                 if (activeEnv === 'LIVE' && verifiedUser.organizationId) {
                   const org = organizationService.getOrganizationById(verifiedUser.organizationId);
@@ -154,7 +156,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             return defaultState;
           }
           if (details?.user?.id && (!details.expiresAt || new Date(details.expiresAt).getTime() > Date.now())) {
-            const verifiedUser = userService.getUserById(details.user.id);
+            const verifiedUser = userService.getUserById(details.user.id) || details.profile;
             if (verifiedUser && verifiedUser.status !== 'inactive' && verifiedUser.status !== 'suspended') {
               if (activeEnv === 'LIVE' && verifiedUser.organizationId) {
                 const org = organizationService.getOrganizationById(verifiedUser.organizationId);
@@ -190,7 +192,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             return null;
           }
           if (details?.user?.id) {
-            const verifiedUser = userService.getUserById(details.user.id);
+            const verifiedUser = userService.getUserById(details.user.id) || details.profile;
             if (verifiedUser && verifiedUser.status !== 'inactive' && verifiedUser.status !== 'suspended') {
               return verifiedUser.role || details.role || null;
             }

@@ -1,5 +1,6 @@
 import { UserProfile, RoleCode } from '../types/auth';
 import { hashPassword, verifyPassword } from '../kernel/security/crypto';
+import { userPersistenceService } from './userPersistenceService';
 
 // DEMO/LOCAL ONLY — hard-coded credentials. Do not use for production.
 // Initial local seed identities with pre-hashed salted credentials (SHA-256 with PBKDF2 salt)
@@ -282,9 +283,11 @@ export const userService = {
   getUserById: (id: string): UserProfile | undefined => {
     const localUsers = getLocalUsers();
     const user = localUsers.find(u => u.id === id);
-    if (!user) return undefined;
-    const { password, passwordHash, ...profile } = user;
-    return profile as UserProfile;
+    if (user) {
+      const { password, passwordHash, ...profile } = user;
+      return profile as UserProfile;
+    }
+    return userPersistenceService.getUserProfileSync(id);
   },
 
   /**
@@ -308,9 +311,11 @@ export const userService = {
     const clean = email.trim().toLowerCase();
     const localUsers = getLocalUsers();
     const user = localUsers.find(u => (u.email || '').trim().toLowerCase() === clean);
-    if (!user) return undefined;
-    const { password, passwordHash, ...profile } = user;
-    return profile as UserProfile;
+    if (user) {
+      const { password, passwordHash, ...profile } = user;
+      return profile as UserProfile;
+    }
+    return userPersistenceService.getUserProfileSync(clean);
   },
 
   /**
@@ -324,9 +329,11 @@ export const userService = {
       (u.username || '').trim().toLowerCase() === clean || 
       (u.email || '').trim().toLowerCase() === clean
     );
-    if (!user) return undefined;
-    const { password, passwordHash, ...profile } = user;
-    return profile as UserProfile;
+    if (user) {
+      const { password, passwordHash, ...profile } = user;
+      return profile as UserProfile;
+    }
+    return userPersistenceService.getUserProfileSync(clean);
   },
 
   /**
