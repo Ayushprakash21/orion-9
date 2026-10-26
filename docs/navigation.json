@@ -1,0 +1,282 @@
+[
+  {
+    "category": "Getting Started",
+    "items": [
+      {
+        "id": "overview",
+        "title": "System Overview & Concept",
+        "path": "/docs/getting-started/overview"
+      },
+      {
+        "id": "quick-start",
+        "title": "Quick Start Guide",
+        "path": "/docs/getting-started/quick-start"
+      },
+      {
+        "id": "installation",
+        "title": "Installation & Platforms",
+        "path": "/docs/getting-started/installation"
+      },
+      {
+        "id": "first-session",
+        "title": "Your First Session",
+        "path": "/docs/getting-started/first-session"
+      }
+    ]
+  },
+  {
+    "category": "Operating System",
+    "items": [
+      {
+        "id": "desktop",
+        "title": "Desktop & Workspace",
+        "path": "/docs/os/desktop"
+      },
+      {
+        "id": "windows-and-navigation",
+        "title": "Windows & App Launcher",
+        "path": "/docs/os/windows-and-navigation"
+      },
+      {
+        "id": "window-management",
+        "title": "Window Management & Stacking",
+        "path": "/docs/os/window-management"
+      },
+      {
+        "id": "taskbar-and-notifications",
+        "title": "Taskbar, Dock & Notifications",
+        "path": "/docs/os/taskbar-and-notifications"
+      },
+      {
+        "id": "dynamic-island",
+        "title": "Dynamic Island Telemetry",
+        "path": "/docs/os/dynamic-island"
+      },
+      {
+        "id": "personalization",
+        "title": "Themes & Personalization",
+        "path": "/docs/os/personalization"
+      },
+      {
+        "id": "settings",
+        "title": "System Settings & Hardware",
+        "path": "/docs/os/settings"
+      }
+    ]
+  },
+  {
+    "category": "Supply Chain Applications",
+    "items": [
+      {
+        "id": "application-catalog",
+        "title": "Master Application Catalog (118 Apps)",
+        "path": "/docs/applications/application-catalog"
+      },
+      {
+        "id": "control-tower",
+        "title": "Supply Chain Control Tower",
+        "path": "/docs/applications/control-tower"
+      },
+      {
+        "id": "inventory",
+        "title": "Inventory Management",
+        "path": "/docs/applications/inventory"
+      },
+      {
+        "id": "inbound",
+        "title": "Inbound Logistics & Receiving",
+        "path": "/docs/applications/inbound"
+      },
+      {
+        "id": "outbound",
+        "title": "Outbound Warehouse & Waves",
+        "path": "/docs/applications/outbound"
+      },
+      {
+        "id": "predictions",
+        "title": "Demand Predictions & Forecasting",
+        "path": "/docs/applications/predictions"
+      },
+      {
+        "id": "scenarios",
+        "title": "Scenario Simulation & Lab",
+        "path": "/docs/applications/scenarios"
+      },
+      {
+        "id": "integrations",
+        "title": "Integration Fabric & EDI",
+        "path": "/docs/applications/integrations"
+      },
+      {
+        "id": "data-center",
+        "title": "Master Data Center",
+        "path": "/docs/applications/data-center"
+      },
+      {
+        "id": "data-quality",
+        "title": "Data Quality & 3-Way Match",
+        "path": "/docs/applications/data-quality"
+      },
+      {
+        "id": "synchronization",
+        "title": "Sync Monitor & Offline Outbox",
+        "path": "/docs/applications/synchronization"
+      },
+      {
+        "id": "copilot",
+        "title": "Orion AI Copilot",
+        "path": "/docs/applications/copilot"
+      }
+    ]
+  },
+  {
+    "category": "Architecture & Engineering",
+    "items": [
+      {
+        "id": "arch-overview",
+        "title": "Architecture Pillars",
+        "path": "/docs/architecture/system-overview"
+      },
+      {
+        "id": "frontend",
+        "title": "Frontend Architecture & State",
+        "path": "/docs/architecture/frontend"
+      },
+      {
+        "id": "backend",
+        "title": "Backend & Cloudflare Workers",
+        "path": "/docs/architecture/backend"
+      },
+      {
+        "id": "data-model",
+        "title": "Firestore Schema & Data Model",
+        "path": "/docs/architecture/data-model"
+      },
+      {
+        "id": "integration-fabric",
+        "title": "Canonical Mapping & Pipeline",
+        "path": "/docs/architecture/integration-fabric"
+      },
+      {
+        "id": "event-flow",
+        "title": "Event Fabric & Audit Engine",
+        "path": "/docs/architecture/event-flow"
+      },
+      {
+        "id": "persistence",
+        "title": "Dual-Tier Persistence & Cache",
+        "path": "/docs/architecture/persistence"
+      },
+      {
+        "id": "desktop-runtime",
+        "title": "Desktop Runtime & Tauri IPC",
+        "path": "/docs/architecture/desktop-runtime"
+      }
+    ]
+  },
+  {
+    "category": "Administration & Governance",
+    "items": [
+      {
+        "id": "account-management",
+        "title": "User & Tenant Management",
+        "path": "/docs/administration/account-management"
+      },
+      {
+        "id": "permissions",
+        "title": "Roles & Permission Matrix",
+        "path": "/docs/administration/permissions"
+      },
+      {
+        "id": "configuration",
+        "title": "Configuration & Governance",
+        "path": "/docs/administration/configuration"
+      },
+      {
+        "id": "operations",
+        "title": "Operations Runbook & Failover",
+        "path": "/docs/administration/operations"
+      },
+      {
+        "id": "troubleshooting",
+        "title": "Troubleshooting & Diagnostics",
+        "path": "/docs/administration/troubleshooting"
+      }
+    ]
+  },
+  {
+    "category": "Security & Compliance",
+    "items": [
+      {
+        "id": "security-overview",
+        "title": "Security Architecture",
+        "path": "/docs/security/security-overview"
+      },
+      {
+        "id": "access-control",
+        "title": "Fail-Closed Access Control",
+        "path": "/docs/security/access-control"
+      },
+      {
+        "id": "data-protection",
+        "title": "Tenant Isolation & Encryption",
+        "path": "/docs/security/data-protection"
+      },
+      {
+        "id": "known-limitations",
+        "title": "Known Boundaries & Disclosures",
+        "path": "/docs/security/known-limitations"
+      }
+    ]
+  },
+  {
+    "category": "Developer Reference",
+    "items": [
+      {
+        "id": "development-setup",
+        "title": "Local Development Setup",
+        "path": "/docs/developers/development-setup"
+      },
+      {
+        "id": "project-structure",
+        "title": "Codebase Structure & Conventions",
+        "path": "/docs/developers/project-structure"
+      },
+      {
+        "id": "testing",
+        "title": "Testing Strategy & Suites",
+        "path": "/docs/developers/testing"
+      },
+      {
+        "id": "build-and-release",
+        "title": "Build & Release Pipeline",
+        "path": "/docs/developers/build-and-release"
+      }
+    ]
+  },
+  {
+    "category": "Technical Reference",
+    "items": [
+      {
+        "id": "glossary",
+        "title": "Enterprise SCM Glossary",
+        "path": "/docs/reference/glossary"
+      },
+      {
+        "id": "feature-matrix",
+        "title": "0→100 Capability Matrix",
+        "path": "/docs/reference/feature-matrix"
+      },
+      {
+        "id": "compatibility",
+        "title": "Platform & Browser Matrix",
+        "path": "/docs/reference/compatibility"
+      },
+      {
+        "id": "changelog",
+        "title": "Release Changelog",
+        "path": "/docs/reference/changelog"
+      }
+    ]
+  }
+]

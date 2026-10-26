@@ -1,0 +1,416 @@
+[
+  {
+    "id": "os-desktop",
+    "name": "Desktop Workspace & Window Management",
+    "category": "Operating System",
+    "route": "/",
+    "docPath": "/docs/os/desktop",
+    "status": "Verified",
+    "description": "Multi-window desktop environment with dynamic snapping, z-index elevation, minimized window docking, and custom wallpapers.",
+    "sourceFiles": [
+      "src/os/components/OrionDesktop.tsx",
+      "src/os/components/OrionWindow.tsx",
+      "src/os/WindowManagerContext.tsx"
+    ],
+    "testReferences": [
+      "tests/desktop-workspace.spec.ts",
+      "src/__tests__/window-manager.test.ts"
+    ],
+    "platformSupport": [
+      "Web",
+      "Windows",
+      "macOS"
+    ],
+    "verificationEvidence": "ORION-9-DESKTOP-WORKSPACE-CERTIFICATION.md"
+  },
+  {
+    "id": "os-dynamic-island",
+    "name": "Dynamic Island Activity Telemetry",
+    "category": "Operating System",
+    "route": "/",
+    "docPath": "/docs/os/dynamic-island",
+    "status": "Verified",
+    "description": "Refined macOS-inspired capsule with progressive disclosure, real-time alert count, active playback, and operational activity chips.",
+    "sourceFiles": [
+      "src/os/components/dynamicIsland/DynamicIslandCapsule.tsx",
+      "src/os/components/dynamicIsland/DynamicIslandExpanded.tsx"
+    ],
+    "testReferences": [
+      "tests/dynamic-island.spec.ts"
+    ],
+    "platformSupport": [
+      "Web",
+      "Windows",
+      "macOS"
+    ],
+    "verificationEvidence": "Commit 1c4ba10: feat(ui): redesign Dynamic Island capsule"
+  },
+  {
+    "id": "os-app-launcher",
+    "name": "Application Launcher & Registry",
+    "category": "Operating System",
+    "route": "/",
+    "docPath": "/docs/os/windows-and-navigation",
+    "status": "Verified",
+    "description": "Universal application launcher indexing 118 enterprise modules across Operations, Control, Intelligence, Platform, AI, and System.",
+    "sourceFiles": [
+      "src/os/components/OrionApplicationLauncher.tsx",
+      "src/os/OrionApplicationRegistry.ts",
+      "src/os/OrionComponentMap.tsx"
+    ],
+    "testReferences": [
+      "tests/app-registry.spec.ts"
+    ],
+    "platformSupport": [
+      "Web",
+      "Windows",
+      "macOS"
+    ],
+    "verificationEvidence": "ORION-9-ICON-SYSTEM-CERTIFICATION.md"
+  },
+  {
+    "id": "os-personalization",
+    "name": "Theme, Font & Display Personalization",
+    "category": "Operating System",
+    "route": "/settings",
+    "docPath": "/docs/os/personalization",
+    "status": "Verified",
+    "description": "Multi-theme visual engine (Midnight Navy, Pure Dark, Cyber Slate, Horizon Light) with independent typography and display scale calibration.",
+    "sourceFiles": [
+      "src/os/theme/ThemeContext.tsx",
+      "src/os/DisplayPreferences.tsx",
+      "src/components/Settings.tsx"
+    ],
+    "testReferences": [
+      "src/__tests__/theme.test.ts"
+    ],
+    "platformSupport": [
+      "Web",
+      "Windows",
+      "macOS"
+    ],
+    "verificationEvidence": "ORION-9-DESIGN-SYSTEM-AUDIT.md"
+  },
+  {
+    "id": "control-tower",
+    "name": "Supply Chain Command Center & Control Tower",
+    "category": "Supply Chain",
+    "route": "/",
+    "docPath": "/docs/applications/control-tower",
+    "status": "Verified",
+    "description": "Centralized situational awareness cockpit displaying real-time global map logistics, corridor telemetry, inventory positions, and bottleneck alerts.",
+    "sourceFiles": [
+      "src/components/Dashboard.tsx",
+      "src/components/CommandCenter.tsx",
+      "src/scm/ScmBusinessRuleEngine.ts"
+    ],
+    "testReferences": [
+      "tests/control-tower.spec.ts"
+    ],
+    "platformSupport": [
+      "Web",
+      "Windows",
+      "macOS"
+    ],
+    "verificationEvidence": "ORION-9-SCM-FINAL-CERTIFICATION.md"
+  },
+  {
+    "id": "scm-inventory",
+    "name": "Global Multi-Echelon Inventory Engine",
+    "category": "Supply Chain",
+    "route": "/inventory",
+    "docPath": "/docs/applications/inventory",
+    "status": "Verified",
+    "description": "Real-time multi-location stock tracking, safety stock dynamic calculation, ABC stratification, reorder threshold automation, and VMI consignment.",
+    "sourceFiles": [
+      "src/components/Inventory.tsx",
+      "src/scm/VmiConsignmentEngine.ts",
+      "src/scm/AvailableToPromiseEngine.ts"
+    ],
+    "testReferences": [
+      "src/__tests__/scm-inventory.test.ts"
+    ],
+    "platformSupport": [
+      "Web",
+      "Windows",
+      "macOS"
+    ],
+    "verificationEvidence": "ORION-9-TRACK1-SCM-DATA-AUTHORITY.md"
+  },
+  {
+    "id": "scm-inbound",
+    "name": "Inbound Logistics & Receiving Gate (GRN)",
+    "category": "Supply Chain",
+    "route": "/inbound",
+    "docPath": "/docs/applications/inbound",
+    "status": "Verified",
+    "description": "Advance shipping notice (ASN) validation, appointment booking, optical barcode check-in, discrepancy logging, and Goods Received Note (GRN) generation.",
+    "sourceFiles": [
+      "src/components/Inbound.tsx",
+      "src/components/ReceivingGateCenter.tsx",
+      "src/scm/ReceivingGRNEngine.ts"
+    ],
+    "testReferences": [
+      "tests/inbound-logistics.spec.ts"
+    ],
+    "platformSupport": [
+      "Web",
+      "Windows",
+      "macOS"
+    ],
+    "verificationEvidence": "ORION-9-TRACK2-END-TO-END-SCM-EXECUTION.md"
+  },
+  {
+    "id": "scm-outbound",
+    "name": "Outbound Warehouse & Wave Picking",
+    "category": "Supply Chain",
+    "route": "/outbound",
+    "docPath": "/docs/applications/outbound",
+    "status": "Verified",
+    "description": "Dynamic wave release, carton package containerization with GS1 SSCC barcodes, pick-pack-ship staging, and carrier dispatch manifests.",
+    "sourceFiles": [
+      "src/components/Outbound.tsx",
+      "src/components/OutboundExecutionCenter.tsx",
+      "src/scm/OutboundExecutionEngine.ts"
+    ],
+    "testReferences": [
+      "src/__tests__/scm-outbound.test.ts"
+    ],
+    "platformSupport": [
+      "Web",
+      "Windows",
+      "macOS"
+    ],
+    "verificationEvidence": "ORION-9-SCM-0-100-CAPABILITY-MATRIX.md"
+  },
+  {
+    "id": "scm-atp",
+    "name": "Available-to-Promise (ATP) Order Promising",
+    "category": "Supply Chain",
+    "route": "/atp",
+    "docPath": "/docs/applications/application-catalog",
+    "status": "Verified",
+    "description": "Deterministic mathematical allocation: ATP = OnHand - Reserved + Incoming + Production + Transfer - SafetyStock across facilities.",
+    "sourceFiles": [
+      "src/scm/AvailableToPromiseEngine.ts",
+      "src/components/AtpOrderPromisingCenter.tsx"
+    ],
+    "testReferences": [
+      "src/__tests__/scm-atp.test.ts"
+    ],
+    "platformSupport": [
+      "Web",
+      "Windows",
+      "macOS"
+    ],
+    "verificationEvidence": "ORION-9-SCM-0-100-INDEPENDENT-CERTIFICATION.md"
+  },
+  {
+    "id": "scm-exceptions",
+    "name": "Exceptions, Alerts & Resolution Matrix",
+    "category": "Supply Chain",
+    "route": "/exceptions",
+    "docPath": "/docs/applications/control-tower",
+    "status": "Verified",
+    "description": "Automated anomaly detection for shipment delays, supply shortages, price variances, and customs holds with human approval resolution paths.",
+    "sourceFiles": [
+      "src/components/Exceptions.tsx",
+      "src/operations/AlertEngine.ts",
+      "src/components/ApprovalCenter.tsx"
+    ],
+    "testReferences": [
+      "src/__tests__/alert-engine.test.ts"
+    ],
+    "platformSupport": [
+      "Web",
+      "Windows",
+      "macOS"
+    ],
+    "verificationEvidence": "ORION-9-STABILIZATION-CERTIFICATION.md"
+  },
+  {
+    "id": "ai-copilot",
+    "name": "Orion AI Copilot & Natural Language Assistant",
+    "category": "AI Copilot",
+    "route": "/copilot",
+    "docPath": "/docs/applications/copilot",
+    "status": "Verified",
+    "description": "Conversational assistant backed by Google GenAI with governed tool calling into the Orion Kernel Command Bus; operates under strict role boundaries.",
+    "sourceFiles": [
+      "src/components/AICopilot.tsx",
+      "src/ai/OrionAIGateway.ts",
+      "src/kernel/KernelCommandBus.ts"
+    ],
+    "testReferences": [
+      "tests/copilot-governance.spec.ts"
+    ],
+    "platformSupport": [
+      "Web",
+      "Windows",
+      "macOS"
+    ],
+    "verificationEvidence": "ORION-9-COPILOT-RUNTIME-REPAIR.md"
+  },
+  {
+    "id": "ai-autonomy",
+    "name": "Autonomous Command Center & Mission Engine",
+    "category": "AI Copilot",
+    "route": "/autonomy",
+    "docPath": "/docs/applications/application-catalog",
+    "status": "Verified",
+    "description": "Governed autonomous policy engine allowing three operational modes: Manual Execution, Copilot Human-in-the-Loop, and Governed Autopilot.",
+    "sourceFiles": [
+      "src/components/admin/AutonomyCenter.tsx",
+      "src/autonomy/MissionEngine.ts",
+      "src/operations/EnterpriseGovernanceService.ts"
+    ],
+    "testReferences": [
+      "tests/autonomy-engine.spec.ts"
+    ],
+    "platformSupport": [
+      "Web",
+      "Windows",
+      "macOS"
+    ],
+    "verificationEvidence": "ORION-9-PART4-TRACK12-ADMIN-ENTERPRISE-GOVERNANCE.md"
+  },
+  {
+    "id": "integration-fabric",
+    "name": "Enterprise Integration Fabric & Connectors",
+    "category": "Integration Fabric",
+    "route": "/integrations",
+    "docPath": "/docs/applications/integrations",
+    "status": "Verified Engine (Runtime Pending External ERP Credentials)",
+    "description": "Canonical schema transformation, bidirectional EDI (850, 856, 810, 830), dead-letter queue (DLQ), and idempotent reconciliation bus.",
+    "sourceFiles": [
+      "src/components/Integrations.tsx",
+      "src/integration/IntegrationFabric.ts",
+      "src/scm/canonical/ScmCanonicalRegistry.ts"
+    ],
+    "testReferences": [
+      "tests/edi-transactions.spec.ts"
+    ],
+    "platformSupport": [
+      "Web",
+      "Windows",
+      "macOS"
+    ],
+    "verificationEvidence": "WAVE11-INTEGRATION-ARCHITECTURE.md"
+  },
+  {
+    "id": "data-quality-reconciliation",
+    "name": "Data Quality & Referential Integrity Engine",
+    "category": "Data and Analytics",
+    "route": "/data-quality",
+    "docPath": "/docs/applications/data-quality",
+    "status": "Verified",
+    "description": "Automated entity reconciliation across Purchase Orders, Goods Receipts, Supplier Invoices, and Shipments with 3-way match tolerances.",
+    "sourceFiles": [
+      "src/components/DataQuality.tsx",
+      "src/scm/ScmReconciliationEngine.ts",
+      "src/scm/canonical/ScmReferentialIntegrityEngine.ts"
+    ],
+    "testReferences": [
+      "src/__tests__/scm-reconciliation.test.ts"
+    ],
+    "platformSupport": [
+      "Web",
+      "Windows",
+      "macOS"
+    ],
+    "verificationEvidence": "ORION-9-TRACK1-SCM-DATA-AUTHORITY.md"
+  },
+  {
+    "id": "predictions-scenarios",
+    "name": "Predictions, Forecasting & Scenario Lab",
+    "category": "Data and Analytics",
+    "route": "/scenarios",
+    "docPath": "/docs/applications/scenarios",
+    "status": "Verified",
+    "description": "Deterministic scenario branching engine allowing disruption induction (port strike, canal blockage, supplier default) and alternative routing evaluation.",
+    "sourceFiles": [
+      "src/components/Scenarios.tsx",
+      "src/components/admin/ScenarioLab.tsx",
+      "src/scm/NetworkDesignEngine.ts"
+    ],
+    "testReferences": [
+      "tests/scenario-lab.spec.ts"
+    ],
+    "platformSupport": [
+      "Web",
+      "Windows",
+      "macOS"
+    ],
+    "verificationEvidence": "ORION-9-SCM-0-100-CAPABILITY-MATRIX.md"
+  },
+  {
+    "id": "security-rbac",
+    "name": "Fail-Closed Authorization & Multi-Tenant Security",
+    "category": "Security and Administration",
+    "route": "/admin/security",
+    "docPath": "/docs/security/access-control",
+    "status": "Verified",
+    "description": "Strict multi-tenant token assertion, fail-closed command execution, Firestore security rules enforcement, and immutable audit logs.",
+    "sourceFiles": [
+      "firestore.rules",
+      "src/kernel/KernelCommandBus.ts",
+      "src/operations/SecurityTelemetryGuard.ts"
+    ],
+    "testReferences": [
+      "scripts/runSecurityTests.mjs",
+      "tests/security-auth.spec.ts"
+    ],
+    "platformSupport": [
+      "Web",
+      "Windows",
+      "macOS"
+    ],
+    "verificationEvidence": "ORION9_SECURITY_AND_RELEASE_READINESS.md"
+  },
+  {
+    "id": "sync-persistence",
+    "name": "Cloud Firestore & IndexedDB Dual-Tier Persistence",
+    "category": "Platform Architecture",
+    "route": "/sync",
+    "docPath": "/docs/architecture/persistence",
+    "status": "Verified",
+    "description": "Zero client authority model: authoritative transactions execute against Cloud Firestore while local IndexedDB acts as read cache and outbox.",
+    "sourceFiles": [
+      "src/core/database/DatabaseClient.ts",
+      "src/core/database/FirestoreAuthority.ts",
+      "src/components/SyncMonitor.tsx"
+    ],
+    "testReferences": [
+      "src/__tests__/database-authority.test.ts"
+    ],
+    "platformSupport": [
+      "Web",
+      "Windows",
+      "macOS"
+    ],
+    "verificationEvidence": "ORION-9-FULL-DATABASE-ARCHITECTURE.md"
+  },
+  {
+    "id": "desktop-tauri-runtime",
+    "name": "Native Desktop Runtime (Tauri v2 & Rust)",
+    "category": "Desktop Applications",
+    "route": "/download",
+    "docPath": "/docs/getting-started/installation",
+    "status": "Verified Windows (macOS Artifact Pipeline Ready)",
+    "description": "Tauri v2 native desktop application wrapper utilizing OS webview, system tray integration, deep linking, and secure local keychain storage.",
+    "sourceFiles": [
+      "src-tauri/tauri.conf.json",
+      "src-tauri/src/main.rs",
+      "src-tauri/Cargo.toml"
+    ],
+    "testReferences": [
+      "tests/desktop-launch.spec.ts"
+    ],
+    "platformSupport": [
+      "Windows",
+      "macOS (Build Ready)",
+      "Linux (Configured)"
+    ],
+    "verificationEvidence": "Commit 33192a8: feat(release): implement macOS universal desktop packaging pipeline"
+  }
+]
