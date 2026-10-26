@@ -26,6 +26,7 @@ import {
   DatabaseAuditReport 
 } from '../../core/database/DatabaseIntegrityValidator';
 import { demoSeeder } from '../../core/database/DemoDataSeeder';
+import { getFirebaseAuth } from '../../lib/firebaseClient';
 import { cn } from '../../lib/utils';
 
 export const DatabaseControlCenter: React.FC = () => {
@@ -54,10 +55,15 @@ export const DatabaseControlCenter: React.FC = () => {
   const [isSeeding, setIsSeeding] = useState(false);
 
   // Live Services Probe State
-  const [liveProbeState, setLiveProbeState] = useState({
-    firestore: { status: 'ONLINE', latencyMs: 545, details: 'orion9-dev-db-2026 / gRPC WebChannel' },
-    auth: { status: 'ONLINE', latencyMs: 280, details: 'Google Identity Toolkit v1 bound' },
-    storage: { status: 'ONLINE', latencyMs: 310, details: 'orion9-dev-db-2026.firebasestorage.app' },
+  const [liveProbeState, setLiveProbeState] = useState<{
+    firestore: { status: string; latencyMs: number | null; details: string };
+    auth: { status: string; latencyMs: number | null; details: string };
+    storage: { status: string; latencyMs: number | null; details: string };
+    lastChecked: string;
+  }>({
+    firestore: { status: 'ONLINE', latencyMs: null, details: 'orion9-dev-db-2026 / gRPC WebChannel' },
+    auth: { status: 'AVAILABLE', latencyMs: null, details: 'Google Identity Toolkit v1 (Not measured)' },
+    storage: { status: 'NOT_MEASURED', latencyMs: null, details: 'orion9-dev-db-2026.firebasestorage.app (Not measured)' },
     lastChecked: new Date().toLocaleTimeString(),
   });
   const [isProbingLiveServices, setIsProbingLiveServices] = useState(false);
@@ -65,14 +71,57 @@ export const DatabaseControlCenter: React.FC = () => {
   const probeLiveServices = async () => {
     setIsProbingLiveServices(true);
     try {
+      // 1. Genuine Firestore Probe
       const t0 = performance.now();
       const dbState = await dbManager.testConnectivity();
       const fsLatency = Math.round(performance.now() - t0);
-      
+      const fsStatus = dbState.status === 'CONNECTED' ? 'ONLINE' : dbState.status === 'PERMISSION_DENIED' ? 'RESTRICTED' : 'OFFLINE';
+
+      // 2. Genuine Auth Probe
+      let authStatus = 'NOT_MEASURED';
+      let authLatency: number | null = null;
+      let authDetails = 'Identity Toolkit initialized (no user session)';
+      try {
+        const auth = getFirebaseAuth();
+        if (auth && auth.currentUser) {
+          const tAuth = performance.now();
+          await auth.currentUser.getIdToken(false);
+          authLatency = Math.round(performance.now() - tAuth);
+          authStatus = 'ONLINE';
+          authDetails = `Active user: ${auth.currentUser.email || auth.currentUser.uid}`;
+        } else if (auth) {
+          authStatus = 'AVAILABLE';
+          authDetails = 'Identity Toolkit bound (no user logged in)';
+        }
+      } catch (authErr: any) {
+        authStatus = 'ERROR';
+        authDetails = authErr?.message || 'Auth check error';
+      }
+
+      // 3. Genuine Storage Probe
+      let storageStatus = 'NOT_MEASURED';
+      let storageLatency: number | null = null;
+      let storageDetails = 'Not measured (no probe performed)';
+      try {
+        const tStorage = performance.now();
+        const res = await fetch('/api/download/desktop/status', { method: 'GET', cache: 'no-store' });
+        if (res.ok) {
+          storageLatency = Math.round(performance.now() - tStorage);
+          storageStatus = 'ONLINE';
+          storageDetails = 'Release artifact endpoint verified';
+        } else {
+          storageStatus = 'DEGRADED';
+          storageDetails = `Artifact probe returned status ${res.status}`;
+        }
+      } catch (stErr: any) {
+        storageStatus = 'UNAVAILABLE';
+        storageDetails = 'Artifact probe endpoint unreachable';
+      }
+
       setLiveProbeState({
-        firestore: { status: 'ONLINE', latencyMs: fsLatency || 545, details: 'orion9-dev-db-2026 / gRPC WebChannel' },
-        auth: { status: 'ONLINE', latencyMs: Math.round(fsLatency * 0.6) || 280, details: 'Google Identity Toolkit v1 bound' },
-        storage: { status: 'ONLINE', latencyMs: Math.round(fsLatency * 0.7) || 310, details: 'orion9-dev-db-2026.firebasestorage.app' },
+        firestore: { status: fsStatus, latencyMs: fsLatency, details: `${dbState.environment} / ${dbState.status}` },
+        auth: { status: authStatus, latencyMs: authLatency, details: authDetails },
+        storage: { status: storageStatus, latencyMs: storageLatency, details: storageDetails },
         lastChecked: new Date().toLocaleTimeString(),
       });
       showToast(`Live Firebase probe complete. Firestore latency: ${fsLatency}ms`, 'info');
@@ -435,7 +484,7 @@ export const DatabaseControlCenter: React.FC = () => {
             <div className="text-[11px] font-mono space-y-1 text-os-text-secondary">
               <div className="flex justify-between">
                 <span className="text-os-text-muted">Latency:</span>
-                <span className="text-white font-bold">{liveProbeState.firestore.latencyMs}ms</span>
+                <span className="text-white font-bold">{liveProbeState.firestore.latencyMs !== null ? `${liveProbeState.firestore.latencyMs}ms` : 'Not measured'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-os-text-muted">Rules Engine:</span>
@@ -455,14 +504,19 @@ export const DatabaseControlCenter: React.FC = () => {
                 <Key className="w-3.5 h-3.5 text-amber-400" />
                 Firebase Auth
               </span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+              <span className={cn(
+                "px-2 py-0.5 rounded text-[10px] font-mono font-bold border",
+                liveProbeState.auth.status === 'ONLINE' ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" :
+                liveProbeState.auth.status === 'AVAILABLE' ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/40" :
+                "bg-amber-500/20 text-amber-400 border-amber-500/40"
+              )}>
                 {liveProbeState.auth.status}
               </span>
             </div>
             <div className="text-[11px] font-mono space-y-1 text-os-text-secondary">
               <div className="flex justify-between">
                 <span className="text-os-text-muted">Latency:</span>
-                <span className="text-white font-bold">{liveProbeState.auth.latencyMs}ms</span>
+                <span className="text-white font-bold">{liveProbeState.auth.latencyMs !== null ? `${liveProbeState.auth.latencyMs}ms` : 'Not measured'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-os-text-muted">Provider:</span>
@@ -482,14 +536,19 @@ export const DatabaseControlCenter: React.FC = () => {
                 <FolderArchive className="w-3.5 h-3.5 text-emerald-400" />
                 Firebase Storage
               </span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+              <span className={cn(
+                "px-2 py-0.5 rounded text-[10px] font-mono font-bold border",
+                liveProbeState.storage.status === 'ONLINE' ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40" :
+                liveProbeState.storage.status === 'DEGRADED' ? "bg-amber-500/20 text-amber-400 border-amber-500/40" :
+                "bg-slate-500/20 text-slate-400 border-slate-500/40"
+              )}>
                 {liveProbeState.storage.status}
               </span>
             </div>
             <div className="text-[11px] font-mono space-y-1 text-os-text-secondary">
               <div className="flex justify-between">
                 <span className="text-os-text-muted">Latency:</span>
-                <span className="text-white font-bold">{liveProbeState.storage.latencyMs}ms</span>
+                <span className="text-white font-bold">{liveProbeState.storage.latencyMs !== null ? `${liveProbeState.storage.latencyMs}ms` : 'Not measured'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-os-text-muted">Access Rules:</span>

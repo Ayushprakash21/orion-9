@@ -131,6 +131,7 @@ describe('Orion-9 Firebase Database Audit & Persistence Master Suite', () => {
       expect(result.theme).toBe('os-obsidian');
       expect(result.dynamicIslandMode).toBe('expanded');
       expect(result.lastSyncedAt).toBeDefined();
+      expect(result.syncStatus).toBe('LOCAL_ONLY');
 
       if (typeof window !== 'undefined') {
         expect(localStorage.getItem('orion_theme')).toBe('os-obsidian');
@@ -231,7 +232,7 @@ describe('Orion-9 Firebase Database Audit & Persistence Master Suite', () => {
 
       // Strictly checks for anti-HTML response headers and 404 JSON for missing installers
       expect(serverCode).toContain('Binary downloads never fall back to HTML');
-      expect(serverCode).toContain("app.use(['*.exe', '*.msi', '*.zip']");
+      expect(serverCode).toMatch(/app\.use\(\[['"]\*\.exe['"], ['"]\*\.msi['"], ['"]\*\.zip['"]/);
       expect(serverCode).toContain('app.use(\'/downloads/*\'');
     });
   });

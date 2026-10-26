@@ -1058,7 +1058,10 @@ Analyze the supplied document and return a strict JSON object with:
       url.pathname.startsWith('/downloads/') ||
       url.pathname.endsWith('.exe') ||
       url.pathname.endsWith('.msi') ||
-      url.pathname.endsWith('.zip')
+      url.pathname.endsWith('.zip') ||
+      url.pathname.endsWith('.dmg') ||
+      url.pathname.endsWith('.pkg') ||
+      url.pathname.endsWith('.tar.gz')
     ) {
       return applySecurityHeaders(
         new Response(

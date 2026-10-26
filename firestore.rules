@@ -44,7 +44,12 @@ service cloud.firestore {
       allow create: if isAuthenticated() && (
         isAdmin() ||
         (isOwner(userId) && (
-          !('role' in request.resource.data) || request.resource.data.role in ['buyer', 'planner', 'user', 'viewer', 'operator']
+          // Standard users may only assign safe self-service roles
+          (!('role' in request.resource.data) || request.resource.data.role in ['user', 'viewer']) &&
+          // Standard users cannot grant arbitrary privileges or self-promote
+          (!('permissions' in request.resource.data) || request.resource.data.permissions.size() == 0) &&
+          // Standard users cannot spoof an unauthorized organization
+          (!('organizationId' in request.resource.data) || request.resource.data.organizationId in ['ORION_PLATFORM', 'org-default', 'org-demo'] || (request.auth.token != null && (request.auth.token.organizationId == request.resource.data.organizationId || request.auth.token.tenantId == request.resource.data.organizationId)))
         ))
       );
       allow update: if isAuthenticated() && (
@@ -120,7 +125,11 @@ service cloud.firestore {
 
     match /wallpaperSelections/{selectionId} {
       allow read: if true;
-      allow write: if isAuthenticated() || isAdmin();
+      allow write: if isAdmin() || (
+        isAuthenticated() && 
+        (selectionId == request.auth.uid + '_desktop' || selectionId == request.auth.uid) &&
+        request.resource.data.userId == request.auth.uid
+      );
     }
 
     // Suppliers collection
@@ -841,8 +850,13 @@ service cloud.firestore {
     // =========================================================================
 
     match /system_configs/{id} {
-      allow read: if isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin());
+      allow read: if id == 'branding' || (isAuthenticated() && (isOrgMember(resource.data.tenantId) || isAdmin()));
       allow create, update, delete: if isAdmin();
+    }
+
+    match /system_branding_assets/{assetId} {
+      allow read: if true;
+      allow write, delete: if isAdmin();
     }
 
     match /config_versions/{id} {

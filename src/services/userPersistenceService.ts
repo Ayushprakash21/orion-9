@@ -24,7 +24,20 @@ export interface UserPreferencesRecord {
     soundEnabled?: boolean;
   };
   lastSyncedAt?: string;
+  lastLocalSavedAt?: string;
   syncedFromDevice?: string;
+  localSaved?: boolean;
+  cloudSynced?: boolean;
+  syncStatus?: 'SYNCED' | 'LOCAL_ONLY' | 'PENDING' | 'CONFLICT' | 'FAILED';
+  syncError?: string;
+  userReadableError?: string;
+  isRetryable?: boolean;
+  version?: number;
+  conflictDetails?: {
+    remoteTimestamp?: string;
+    localTimestamp?: string;
+    resolution?: 'LOCAL_WON' | 'REMOTE_WON' | 'MERGED';
+  };
 }
 
 export class UserPersistenceService {
@@ -252,32 +265,133 @@ export class UserPersistenceService {
     const activeEnv = env || DatabaseConnectionManager.getInstance().getEnvironment();
     const existing = (await this.getUserPreferences(userId, env)) || { userId };
 
+    const now = new Date().toISOString();
+    const nextVersion = (existing.version || 0) + 1;
+
+    let conflictDetails: UserPreferencesRecord['conflictDetails'] = undefined;
+
     const merged: UserPreferencesRecord = {
       ...existing,
       ...prefs,
       userId,
-      lastSyncedAt: new Date().toISOString(),
+      version: nextVersion,
+      lastLocalSavedAt: now,
+      localSaved: true,
       syncedFromDevice: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown Device',
     };
 
-    const sanitized = sanitizeFirestorePayload(merged, `user_preferences/${userId}`);
+    let syncedToCloud = false;
+    let syncError: string | undefined;
+    let isRetryable = false;
+    let userReadableError: string | undefined;
 
     if (activeEnv === 'LIVE' || activeEnv === 'STAGING') {
       const db = this.getFirestoreInstance(activeEnv);
       if (db) {
         try {
           const prefRef = doc(db, 'user_preferences', userId);
+
+          // 1. Conflict detection against remote store
+          try {
+            const remoteSnap = await getDoc(prefRef);
+            if (remoteSnap.exists()) {
+              const remoteData = remoteSnap.data() as UserPreferencesRecord;
+              if (
+                remoteData.lastSyncedAt &&
+                existing.lastSyncedAt &&
+                new Date(remoteData.lastSyncedAt).getTime() > new Date(existing.lastSyncedAt).getTime()
+              ) {
+                // Conflict detected: remote is newer than our baseline
+                conflictDetails = {
+                  remoteTimestamp: remoteData.lastSyncedAt,
+                  localTimestamp: now,
+                  resolution: 'MERGED',
+                };
+                // Retain newer remote fields where local update did not explicitly override
+                Object.keys(remoteData).forEach((key) => {
+                  if ((prefs as any)[key] === undefined && (remoteData as any)[key] !== undefined) {
+                    (merged as any)[key] = (remoteData as any)[key];
+                  }
+                });
+                merged.conflictDetails = conflictDetails;
+              }
+            }
+          } catch (readErr) {
+            // Read failure before write is non-fatal for conflict detection
+          }
+
+          // 2. Authoritative Cloud Firestore write
+          const sanitized = sanitizeFirestorePayload({
+            ...merged,
+            lastSyncedAt: now,
+            cloudSynced: true,
+            syncStatus: 'SYNCED',
+          }, `user_preferences/${userId}`);
+
           await setDoc(prefRef, sanitized, { merge: true });
-        } catch (err) {
+          syncedToCloud = true;
+          merged.lastSyncedAt = now;
+          merged.cloudSynced = true;
+          merged.syncStatus = 'SYNCED';
+          merged.isRetryable = false;
+          delete merged.syncError;
+          delete merged.userReadableError;
+        } catch (err: any) {
+          syncError = err?.message || String(err);
+          const errCode = (err?.code || '').toLowerCase();
+          const isNetworkError =
+            errCode === 'unavailable' ||
+            errCode === 'deadline-exceeded' ||
+            syncError?.toLowerCase().includes('network') ||
+            syncError?.toLowerCase().includes('timeout');
+
+          isRetryable = isNetworkError;
+          userReadableError = isNetworkError
+            ? 'Cloud sync temporarily offline. Preferences safely saved locally.'
+            : 'Cloud sync denied or misconfigured. Running with local preferences.';
+
+          merged.cloudSynced = false;
+          merged.syncStatus = isNetworkError ? 'LOCAL_ONLY' : 'FAILED';
+          merged.isRetryable = isRetryable;
+          merged.syncError = syncError;
+          merged.userReadableError = userReadableError;
+
           console.warn(`[USER-PERSISTENCE] Failed to persist user preferences to Firestore for ${userId}:`, err);
         }
+      } else {
+        // Firestore client instance unavailable (e.g. offline, mock error, or uninitialized)
+        merged.cloudSynced = false;
+        merged.syncStatus = 'LOCAL_ONLY';
+        merged.isRetryable = true;
+        merged.syncError = 'Firestore client instance unavailable';
+        merged.userReadableError = 'Cloud sync temporarily offline. Preferences safely saved locally.';
       }
+    } else {
+      // In DEMO environment: data is saved locally and marked as DEMO local-first
+      merged.lastSyncedAt = now;
+      merged.cloudSynced = false;
+      merged.syncStatus = 'LOCAL_ONLY';
+      merged.isRetryable = false;
     }
 
     this.preferencesCache.set(userId, merged);
     this.syncPreferencesToLocal(merged);
 
     return merged;
+  }
+
+  /**
+   * Re-attempts cloud synchronization for preferences that are currently LOCAL_ONLY or FAILED.
+   */
+  public async retrySync(
+    userId: string,
+    env?: 'LIVE' | 'DEMO' | 'STAGING'
+  ): Promise<UserPreferencesRecord> {
+    const cached = await this.getUserPreferences(userId, env);
+    if (!cached) {
+      throw new Error(`[USER-PERSISTENCE] No local preferences found to retry for user ${userId}`);
+    }
+    return this.saveUserPreferences(userId, cached, env);
   }
 
   /**

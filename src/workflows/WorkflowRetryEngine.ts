@@ -12,14 +12,21 @@ export class WorkflowRetryEngine {
   private static readonly NON_RETRYABLE_ERRORS = new Set([
     'UNAUTHORIZED',
     'FORBIDDEN',
-    'POLICY_DENIED',
-    'POLICY_VIOLATION',
+    'PERMISSION_DENIED',
+    'TENANT_ACCESS_DENIED',
     'TENANT_DENIED',
     'TENANT_MISMATCH',
+    'UNAUTHENTICATED',
+    'AUTH_EXPIRED',
+    'POLICY_DENIED',
+    'POLICY_BLOCKED',
+    'POLICY_VIOLATION',
     'APPROVAL_REJECTED',
     'INVALID_STATE',
     'PROHIBITED_ACTION',
-    'INVALID_ARGUMENT'
+    'INVALID_ARGUMENT',
+    'NOT_FOUND',
+    'ALREADY_EXISTS'
   ]);
 
   /**
@@ -31,12 +38,26 @@ export class WorkflowRetryEngine {
     if (this.NON_RETRYABLE_ERRORS.has(normalized)) {
       return false;
     }
+    // Deep check for permission/authorization phrases in composite error codes
+    if (
+      normalized.includes('PERMISSION_DENIED') ||
+      normalized.includes('UNAUTHORIZED') ||
+      normalized.includes('FORBIDDEN') ||
+      normalized.includes('TENANT_ACCESS_DENIED') ||
+      normalized.includes('POLICY_BLOCKED') ||
+      normalized.includes('UNAUTHENTICATED')
+    ) {
+      return false;
+    }
     return (
       normalized.includes('NETWORK') ||
       normalized.includes('TIMEOUT') ||
       normalized.includes('RATE_LIMIT') ||
       normalized.includes('TEMPORARY') ||
       normalized.includes('UNAVAILABLE') ||
+      normalized.includes('ECONNRESET') ||
+      normalized.includes('EPIPE') ||
+      normalized.includes('RESET') ||
       normalized.includes('503') ||
       normalized.includes('504')
     );

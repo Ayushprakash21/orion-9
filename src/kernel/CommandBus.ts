@@ -11,7 +11,7 @@ import { kernelEventBus } from './EventBus';
 import { kernelAuditEngine } from './AuditEngine';
 import { authorizationEngine } from './authorization/AuthorizationEngine';
 import { DatabaseConnectionManager } from '../core/database/DatabaseConnectionManager';
-import { getFirebaseFirestore } from '../lib/firebaseClient';
+import { getFirebaseFirestore, getFirebaseAuth } from '../lib/firebaseClient';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 
 export type CommandHandler<T = any, R = any> = (
@@ -341,25 +341,26 @@ export class KernelCommandBus {
       if (context.idempotencyKey) {
         try {
           const currentEnv = DatabaseConnectionManager.getInstance().getEnvironment();
-          const db = DatabaseConnectionManager.getInstance().getFirestore(currentEnv) || getFirebaseFirestore(currentEnv);
-          if (db) {
-            const idempKey = `${context.tenant.organizationId}_${context.idempotencyKey}`;
-            const promise = setDoc(doc(db, 'idempotency', idempKey), {
-              idempotencyKey: context.idempotencyKey,
-              commandId,
-              tenantId: context.tenant.organizationId,
-              status: 'COMPLETED',
-              result: result !== undefined ? result : null,
-              createdAt: executionTimestamp,
-            });
-            if (currentEnv === 'LIVE' || currentEnv === 'STAGING') {
-              await promise;
-            } else {
-              promise.catch(err => console.warn(`[COMMAND-BUS] Firestore idempotency notice:`, err));
+          const auth = getFirebaseAuth(currentEnv);
+          const isAuthed = !!auth?.currentUser;
+          // Guard: Only attempt Firestore cloud write if the client has an active authenticated session
+          // preventing unauthenticated cloud writes that trigger PERMISSION_DENIED gRPC stream rejections
+          if (isAuthed && (currentEnv === 'LIVE' || currentEnv === 'STAGING')) {
+            const db = DatabaseConnectionManager.getInstance().getFirestore(currentEnv) || getFirebaseFirestore(currentEnv);
+            if (db) {
+              const idempKey = `${context.tenant.organizationId}_${context.idempotencyKey}`;
+              await setDoc(doc(db, 'idempotency', idempKey), {
+                idempotencyKey: context.idempotencyKey,
+                commandId,
+                tenantId: context.tenant.organizationId,
+                status: 'COMPLETED',
+                result: result !== undefined ? result : null,
+                createdAt: executionTimestamp,
+              });
             }
           }
-        } catch (e) {
-          console.warn(`[COMMAND-BUS] Failed to persist idempotency key for command ${commandId}:`, e);
+        } catch (e: any) {
+          console.warn(`[COMMAND-BUS] Firestore idempotency persistence notice for command ${commandId}:`, e?.message || e);
         }
       }
 

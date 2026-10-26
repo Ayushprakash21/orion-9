@@ -66,6 +66,12 @@ jobs:
       - name: Install Frontend Dependencies
         run: npm ci
 
+      - name: Gate 1A: TypeScript Strict Verification (Zero Diagnostic Errors)
+        run: npm run lint
+
+      - name: Gate 1B: Unit & Integration Suites
+        run: npm test
+
       - name: Compile Frontend Production Distribution
         run: npm run build
 
@@ -261,6 +267,12 @@ jobs:
 
       - name: Install Frontend Dependencies
         run: npm ci
+
+      - name: Gate 1A: TypeScript Strict Verification (Zero Diagnostic Errors)
+        run: npm run lint
+
+      - name: Gate 1B: Unit & Integration Suites
+        run: npm test
 
       - name: Compile Frontend Production Distribution
         run: npm run build

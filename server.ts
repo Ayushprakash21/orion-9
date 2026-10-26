@@ -19,6 +19,39 @@ import { verifyWorkerAuthToken } from "./src/server/workerSecurity";
 
 dotenv.config({ path: ['.env.local', '.env'] });
 
+// Diagnostic logging for unhandled rejections with network error resilience
+process.on('unhandledRejection', (reason: any, promise) => {
+  const isRecoverableSocketDrop =
+    reason?.code === 'ECONNRESET' ||
+    reason?.code === 'EPIPE' ||
+    reason?.code === 'ECANCELED' ||
+    reason?.message?.includes('socket hang up') ||
+    reason?.message?.includes('aborted');
+
+  if (isRecoverableSocketDrop) {
+    console.warn('[SERVER:NON-FATAL] Aborted client request or transient socket drop:', reason?.message || reason);
+    return;
+  }
+
+  console.error('[SERVER:UNHANDLED-REJECTION] Critical unhandled rejection at:', promise, 'reason:', reason);
+});
+
+// Process-level fatal error handler: logs diagnostics and exits safely so corrupted state does not serve traffic
+process.on('uncaughtException', (err: any) => {
+  const isRecoverableSocketDrop =
+    err?.code === 'ECONNRESET' ||
+    err?.code === 'EPIPE' ||
+    err?.code === 'ECANCELED';
+
+  if (isRecoverableSocketDrop) {
+    console.warn('[SERVER:NON-FATAL] Socket reset on client disconnect:', err?.message || err);
+    return;
+  }
+
+  console.error('[SERVER:FATAL-UNCAUGHT-EXCEPTION] Process corrupted, shutting down safely:', err);
+  process.exit(1);
+});
+
 let firebaseAdminApp: any = null;
 const getFirebaseAdmin = () => {
   if (firebaseAdminApp) return firebaseAdminApp;
@@ -185,7 +218,7 @@ const logAuditEvent = async (
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
   const server = http.createServer(app);
 
   app.use(express.json({ limit: '50mb' }));
@@ -311,7 +344,7 @@ async function startServer() {
           url: winMsi ? "/downloads/Orion-9-Setup.msi" : null,
           sizeBytes: winMsi ? fs.statSync(winMsi.fullPath).size : 0,
           filename: "Orion-9-Setup.msi",
-          sha256: winMsi ? "35d4855010fe340b9c4b23b1f576754eeec36ee0cbbce4fb448cb372e211b49c" : null,
+          sha256: winMsi ? "35d4855010fe340b9c4b23b1f576754eeec36ee0cbcce4fb448cb372e211b49c" : null,
           platform: "windows-x64",
           format: "msi"
         },
@@ -335,62 +368,7 @@ async function startServer() {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // DEMO PERSISTENT CLOUD SCHEDULER & REALTIME GENERATION ENDPOINTS
-  // ---------------------------------------------------------------------------
 
-  // Get Authoritative Cloud Scheduler Status
-  app.get("/api/demo/scheduler-status", async (_req, res) => {
-    try {
-      const { demoPersistentSchedulerService } = await import("./src/services/demo/DemoPersistentSchedulerService");
-      const state = demoPersistentSchedulerService.getSchedulerState();
-      res.json({ success: true, state });
-    } catch (e: any) {
-      res.status(500).json({ success: false, error: e?.message || "Failed to fetch scheduler state" });
-    }
-  });
-
-  // Authoritative Hourly Batch Trigger (Exact 30 Packages)
-  app.post("/api/demo/generate-hourly-batch", async (req, res) => {
-    try {
-      const { demoPersistentSchedulerService } = await import("./src/services/demo/DemoPersistentSchedulerService");
-      const { scheduledHour, tenantId, organizationId, force } = req.body || {};
-      const audit = await demoPersistentSchedulerService.generateDemoHourlyBatch(scheduledHour, {
-        actorType: 'ADMIN_TRIGGER',
-        actorId: 'admin_api',
-        tenantId,
-        organizationId,
-        force: !!force,
-      });
-      res.json({ success: true, audit });
-    } catch (e: any) {
-      res.status(400).json({ success: false, error: e?.message || "Generation failed" });
-    }
-  });
-
-  // Governed Scheduler Control (Pause / Resume / Reset)
-  app.post("/api/demo/scheduler-control", async (req, res) => {
-    try {
-      const { demoPersistentSchedulerService } = await import("./src/services/demo/DemoPersistentSchedulerService");
-      const { demoLiveSimulationEngine } = await import("./src/core/database/DemoLiveSimulationEngine");
-      const { action, actorId, role } = req.body || {};
-
-      if (action === 'pause') {
-        const state = await demoPersistentSchedulerService.pauseScheduler(actorId || 'admin', role || 'platform_admin');
-        return res.json({ success: true, action: 'pause', state });
-      } else if (action === 'resume') {
-        const state = await demoPersistentSchedulerService.resumeScheduler(actorId || 'admin', role || 'platform_admin');
-        return res.json({ success: true, action: 'resume', state });
-      } else if (action === 'reset') {
-        const resetResult = await demoLiveSimulationEngine.resetDemoData(actorId || 'admin', true);
-        return res.json({ success: true, action: 'reset', result: resetResult });
-      } else {
-        return res.status(400).json({ success: false, error: `Invalid action: ${action}` });
-      }
-    } catch (e: any) {
-      res.status(400).json({ success: false, error: e?.message || "Control operation failed" });
-    }
-  });
 
   // Secure Username-to-Identity Resolution (Protects against email enumeration)
   app.post("/api/auth/resolve-identity", async (req, res) => {
@@ -596,7 +574,7 @@ async function startServer() {
         targetDatabase: "demo-orion9-db-2026"
       });
     } catch (e: any) {
-      return res.status(500).json({ success: false, error: e.message || "Failed to fetch scheduler status" });
+      return res.status(500).json({ success: false, error: e?.message || String(e) || "Failed to fetch scheduler status" });
     }
   });
 
@@ -614,7 +592,7 @@ async function startServer() {
       });
     } catch (e: any) {
       console.error("[DEMO-SCHEDULER-ENDPOINT] Batch generation error:", e);
-      return res.status(500).json({ success: false, error: e.message || "Batch generation failed" });
+      return res.status(500).json({ success: false, error: e?.message || String(e) || "Batch generation failed" });
     }
   });
 
@@ -637,7 +615,7 @@ async function startServer() {
         return res.status(400).json({ success: false, error: "Invalid action. Supported: PAUSE, RESUME, RUN_NOW" });
       }
     } catch (e: any) {
-      return res.status(500).json({ success: false, error: e.message || "Scheduler control action failed" });
+      return res.status(500).json({ success: false, error: e?.message || String(e) || "Scheduler control action failed" });
     }
   });
 
@@ -778,8 +756,8 @@ If unsure for operational queries, include 'getDashboardMetrics'.`;
       }
       
       res.json({ toolsToCall: tools });
-    } catch (error) {
-      console.warn("AI choose-tools error, falling back to default tools:", error.message);
+    } catch (error: any) {
+      console.warn("AI choose-tools error, falling back to default tools:", error?.message || error);
       res.json({ toolsToCall: ["getDashboardMetrics", "getInventoryRisks", "getExceptions", "getPendingDecisions"], fallback: true });
     }
   });
@@ -831,11 +809,11 @@ ${prompt}`;
       const responseText = response.text || "No response generated.";
 
       res.json({ response: responseText, provider: "gemini", model: usedModel });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error communicating with AI API:", error);
       res.status(200).json({
         fallback: true,
-        error: error.message || "Failed to generate AI insights.",
+        error: error?.message || String(error) || "Failed to generate AI insights.",
         message: "Falling back to deterministic Orion reasoning."
       });
     }
@@ -967,7 +945,7 @@ ${JSON.stringify(dataContext, null, 2)}`;
       console.error("Error in /api/ai/platform-intelligence:", error);
       res.status(200).json({
         fallback: true,
-        error: error.message || "Failed to generate AI platform intelligence.",
+        error: error?.message || String(error) || "Failed to generate AI platform intelligence.",
         message: "Falling back to local deterministic Orion reasoning engine."
       });
     }
@@ -1077,7 +1055,7 @@ Analyze the supplied document and return a strict JSON object with:
           linkedEntityType: 'Contract',
           linkedEntityId: ''
         },
-        error: error.message || "Document processed with fallback." 
+        error: error?.message || String(error) || "Document processed with fallback." 
       });
     }
   });
@@ -1196,11 +1174,25 @@ Analyze the supplied document and return a strict JSON object with:
     app.use(express.static(distPath));
     app.use('/api/*', (req, res) => res.status(404).json({ error: "API endpoint not found" }));
     app.use('/downloads/*', (req, res) => res.status(404).json({ error: "FILE_NOT_FOUND", message: "Download file not found. Binary downloads never fall back to HTML." }));
-    app.use(['*.exe', '*.msi', '*.zip'], (req, res) => res.status(404).json({ error: "FILE_NOT_FOUND", message: "Binary installer not found. Binary downloads never fall back to HTML." }));
+    app.use(['*.exe', '*.msi', '*.zip', '*.dmg', '*.pkg', '*.tar.gz'], (req, res) => res.status(404).json({ error: "FILE_NOT_FOUND", message: "Binary installer not found. Binary downloads never fall back to HTML." }));
     app.get('*', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+
+  // Centralized Express Error Handler
+  app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (res.headersSent || req.destroyed) {
+      return next(err);
+    }
+    const status = err?.status || err?.statusCode || 500;
+    console.error(`[SERVER-ERROR] ${req.method} ${req.originalUrl} (${status}):`, err?.message || err);
+    res.status(status).json({
+      success: false,
+      error: err?.message || "Internal server error",
+      code: err?.code || "INTERNAL_ERROR"
+    });
+  });
 
   // Production scheduler runs via Cloudflare Worker cron triggers (0 * * * *).
   // Node.js setInterval timer is strictly for local dev testing when explicitly requested.
@@ -1218,6 +1210,25 @@ Analyze the supplied document and return a strict JSON object with:
   server.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://0.0.0.0:${PORT}`);
   });
+
+  // Graceful Shutdown Coordinator
+  const shutdown = (signal: string) => {
+    console.log(`[SERVER] Received ${signal}. Commencing graceful shutdown...`);
+    try {
+      demoPersistentSchedulerService.stopPersistentScheduler();
+    } catch {}
+    server.close(() => {
+      console.log('[SERVER] HTTP server closed successfully.');
+      process.exit(0);
+    });
+    setTimeout(() => {
+      console.warn('[SERVER] Forcing shutdown after timeout.');
+      process.exit(1);
+    }, 5000).unref();
+  };
+
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGINT', () => shutdown('SIGINT'));
 }
 
 startServer();

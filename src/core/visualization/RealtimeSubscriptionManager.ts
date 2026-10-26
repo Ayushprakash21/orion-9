@@ -101,6 +101,8 @@ export function getTruthfulConnectionState(state: RealtimeSubscriptionState | nu
   if (state.status === 'STOPPED') return 'STOPPED';
   if (state.status === 'DEGRADED') return 'OFFLINE';
   if (state.status === 'CONNECTING') return 'LOADING';
+  // Never label simulated or cached data as live CONNECTED telemetry in LIVE/STAGING
+  if (state.isFromCache && state.environment !== 'DEMO') return 'STALE';
   if (state.lastSnapshotAt) {
     const elapsedMinutes = (Date.now() - new Date(state.lastSnapshotAt).getTime()) / (1000 * 60);
     if (elapsedMinutes > 30) return 'STALE';
@@ -1034,8 +1036,55 @@ export class RealtimeSubscriptionManager {
    * Handle tenant switch: cleans up old tenant listeners and resubscribes for new tenant
    */
   public async handleTenantSwitch(newTenantId: string): Promise<void> {
+    const cleanTenant = newTenantId || 'default-tenant';
     const env = dbManager.getEnvironment();
-    await this.handleEnvironmentSwitch(env);
+
+    const oldEntries = Array.from(this.domainSubscriptions.values());
+    const oldMetricEntries = Array.from(this.metricSubscriptions.values());
+
+    // 1. Tear down all old tenant listeners
+    for (const entry of oldEntries) {
+      if (entry.unsubscribeFirestore) {
+        try {
+          entry.unsubscribeFirestore();
+        } catch (e) {}
+        entry.unsubscribeFirestore = null;
+      }
+      dbManager.unregisterListener(`realtime:${entry.environment}:${entry.tenantId}:${entry.domain}`);
+    }
+
+    // 2. Clear old collections, metrics, and shared store
+    this.domainSubscriptions.clear();
+    this.metricSubscriptions.clear();
+    this.sharedDomainStore.clear();
+
+    // 3. Resubscribe active callbacks under the NEW tenantId
+    for (const oldEntry of oldEntries) {
+      if (oldEntry.callbacks.size > 0) {
+        oldEntry.callbacks.forEach(cb => {
+          this.subscribeDomain(
+            oldEntry.domain,
+            cleanTenant,
+            env,
+            cb,
+            cleanTenant
+          );
+        });
+      }
+    }
+
+    for (const oldMetric of oldMetricEntries) {
+      if (oldMetric.callbacks.size > 0) {
+        oldMetric.callbacks.forEach(cb => {
+          this.subscribeMetric(
+            cleanTenant,
+            env,
+            oldMetric.metricId,
+            cb
+          );
+        });
+      }
+    }
   }
 
   /**
@@ -1059,12 +1108,12 @@ export class RealtimeSubscriptionManager {
         environment: env,
         tenantId: cleanTenant,
         organizationId: 'ORG_GLOBAL',
-        status: 'LIVE',
+        status: env === 'DEMO' ? 'LIVE' : 'DEGRADED',
         lastSnapshotAt: new Date().toISOString(),
         lastChangeAt: new Date().toISOString(),
         documentCount: records.length,
-        error: null,
-        isFromCache: false,
+        error: env === 'DEMO' ? null : 'Synthetic mock snapshot injected; not connected to live cloud',
+        isFromCache: true,
         hasPendingWrites: false,
         subscriberCount: 0,
       };
@@ -1091,11 +1140,12 @@ export class RealtimeSubscriptionManager {
     });
 
     const now = new Date().toISOString();
-    entry.state.status = 'LIVE';
+    entry.state.status = env === 'DEMO' ? 'LIVE' : 'DEGRADED';
+    entry.state.isFromCache = true;
     entry.state.lastSnapshotAt = now;
     entry.state.lastChangeAt = now;
     entry.state.documentCount = records.length;
-    entry.state.error = null;
+    entry.state.error = env === 'DEMO' ? null : 'Synthetic mock snapshot injected; not connected to live cloud';
 
     this.sharedDomainStore.set(key, new Map(entry.records));
     this.broadcastDomainUpdate(entry);
@@ -1128,11 +1178,12 @@ export class RealtimeSubscriptionManager {
     }
 
     const now = new Date().toISOString();
-    entry.state.status = 'LIVE';
+    entry.state.status = env === 'DEMO' ? 'LIVE' : 'DEGRADED';
+    entry.state.isFromCache = true;
     entry.state.lastSnapshotAt = now;
     entry.state.lastChangeAt = now;
     entry.state.documentCount = entry.records.size;
-    entry.state.error = null;
+    entry.state.error = env === 'DEMO' ? null : 'Simulated mutation injected';
 
     this.sharedDomainStore.set(key, new Map(entry.records));
     this.broadcastDomainUpdate(entry);
