@@ -146,3 +146,7 @@ export const useNotifications = () => {
   }
   return context;
 };
+
+export const useOptionalNotifications = () => {
+  return React.useContext(NotificationContext) || null;
+};

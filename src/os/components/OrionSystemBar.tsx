@@ -18,6 +18,7 @@ import { useBranding } from '../../store/BrandingContext';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { DatabaseEnvironmentMode } from '../../core/database/DatabaseEnvironment';
 import { cn } from '../../lib/utils';
+import { DynamicIsland } from './dynamicIsland/DynamicIsland';
 
 export function OrionSystemBar() {
   const navigate = useNavigate();
@@ -178,17 +179,8 @@ export function OrionSystemBar() {
         )}
       </div>
 
-      {/* CENTER: CONTEXTUAL ACTIVE APPLICATION INDICATOR (OS-Level System Bar) */}
-      {activeApp && (
-        <div className="hidden md:flex absolute left-1/2 -translate-x-1/2 items-center gap-2 max-w-[40vw] min-w-0 pointer-events-none">
-          <div className="flex items-center gap-2 px-3 py-0.5 bg-white/[0.06] border border-white/10 rounded-full backdrop-blur-md shadow-xs">
-            <span className="w-1.5 h-1.5 rounded-full shadow-xs shrink-0" style={{ backgroundColor: activeApp.color || 'var(--orion-accent, #D8DDE3)' }} />
-            <span className="text-[11px] font-medium text-white/90 truncate max-w-[180px]">
-              {activeApp.name}
-            </span>
-          </div>
-        </div>
-      )}
+      {/* CENTER: CONTEXTUAL DYNAMIC ISLAND (OS-Level Interactive Telemetry & Copilot Hub) */}
+      <DynamicIsland />
 
       {/* RIGHT: SYSTEM TRAY */}
       <div className="flex items-center h-full gap-1 shrink-0 min-w-0">

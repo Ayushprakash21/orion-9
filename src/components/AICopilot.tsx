@@ -78,6 +78,20 @@ export const AICopilot = () => {
   }, [messages, aiState]);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('orion:copilot-state', {
+          detail: {
+            state: aiState,
+            isThinking: aiState === 'thinking' || aiState === 'analyzing',
+            isLoading,
+          },
+        })
+      );
+    }
+  }, [aiState, isLoading]);
+
+  useEffect(() => {
     const handleCopilotContext = (event: CustomEvent<{ query: string; autoSubmit?: boolean }>) => {
       if (event.detail?.query) {
         if (event.detail.autoSubmit) {

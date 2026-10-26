@@ -215,36 +215,69 @@ async function startServer() {
     });
   });
 
-  // Desktop Installer Download & Status Endpoints
-  const getInstallerBinaryPath = (): string | null => {
-    const publicInstaller = path.join(process.cwd(), "public", "downloads", "Orion-9-Setup.exe");
-    if (fs.existsSync(publicInstaller)) return publicInstaller;
-    const distInstaller = path.join(process.cwd(), "dist", "client", "downloads", "Orion-9-Setup.exe");
-    if (fs.existsSync(distInstaller)) return distInstaller;
-    const nsisInstaller = path.join(process.cwd(), "src-tauri", "target", "release", "bundle", "nsis", "Orion-9_9.0.0_x64-setup.exe");
-    if (fs.existsSync(nsisInstaller)) return nsisInstaller;
+  // Desktop Multi-Platform Release Download & Status Endpoints (Windows & macOS)
+  const resolveReleaseBinary = (filename: string): { fullPath: string; mimeType: string } | null => {
+    const safeName = path.basename(filename);
+    if (!/^[a-zA-Z0-9_\-\.]+\.(exe|msi|dmg|pkg|zip|tar\.gz)$/i.test(safeName)) {
+      return null;
+    }
+
+    const candidateDirs = [
+      path.join(process.cwd(), "public", "downloads"),
+      path.join(process.cwd(), "dist", "client", "downloads"),
+      path.join(process.cwd(), "src-tauri", "target", "release", "bundle", "nsis"),
+      path.join(process.cwd(), "src-tauri", "target", "release", "bundle", "msi"),
+      path.join(process.cwd(), "src-tauri", "target", "release", "bundle", "dmg"),
+      path.join(process.cwd(), "src-tauri", "target", "universal-apple-darwin", "release", "bundle", "dmg"),
+      path.join(process.cwd(), "src-tauri", "target", "aarch64-apple-darwin", "release", "bundle", "dmg"),
+    ];
+
+    for (const dir of candidateDirs) {
+      const candidate = path.join(dir, safeName);
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+        let mimeType = "application/octet-stream";
+        if (safeName.endsWith(".exe")) mimeType = "application/vnd.microsoft.portable-executable";
+        else if (safeName.endsWith(".msi")) mimeType = "application/x-msi";
+        else if (safeName.endsWith(".dmg")) mimeType = "application/x-apple-diskimage";
+        else if (safeName.endsWith(".zip")) mimeType = "application/zip";
+        return { fullPath: candidate, mimeType };
+      }
+    }
+
+    if (safeName === "Orion-9-Setup.exe") {
+      const nsisDefault = path.join(process.cwd(), "src-tauri", "target", "release", "bundle", "nsis", "Orion-9_9.0.0_x64-setup.exe");
+      if (fs.existsSync(nsisDefault)) {
+        return { fullPath: nsisDefault, mimeType: "application/vnd.microsoft.portable-executable" };
+      }
+    }
+
     return null;
   };
 
-  const serveInstallerDownload = (_req: express.Request, res: express.Response) => {
-    const installerPath = getInstallerBinaryPath();
-    if (installerPath) {
-      res.setHeader("Content-Disposition", 'attachment; filename="Orion-9-Setup.exe"');
-      res.setHeader("Content-Type", "application/vnd.microsoft.portable-executable");
+  const serveBinaryDownload = (req: express.Request, res: express.Response) => {
+    let filename = req.params.filename || req.path.replace(/^\/downloads\//, '') || "Orion-9-Setup.exe";
+    if (req.path === "/api/download/desktop") filename = "Orion-9-Setup.exe";
+
+    const resolved = resolveReleaseBinary(filename);
+    if (resolved) {
+      res.setHeader("Content-Disposition", `attachment; filename="${path.basename(filename)}"`);
+      res.setHeader("Content-Type", resolved.mimeType);
       res.setHeader("X-Content-Type-Options", "nosniff");
       res.setHeader("Cache-Control", "public, max-age=3600");
-      return res.sendFile(installerPath);
+      return res.sendFile(resolved.fullPath);
     }
+
     return res.status(404).json({
       available: false,
       error: "INSTALLER_NOT_FOUND",
-      message: "Orion Desktop installer has not been compiled yet on this server.",
-      instruction: "Run 'npm run tauri:build' or use the pre-built installer at src-tauri/target/release/bundle/nsis/Orion-9_9.0.0_x64-setup.exe"
+      filename,
+      message: `Requested installer binary '${filename}' was not found. Binary downloads never fall back to HTML.`,
+      instruction: "Run 'npm run tauri:build' for Windows or trigger the desktop-release workflow for macOS."
     });
   };
 
-  app.get("/api/download/desktop", serveInstallerDownload);
-  app.get("/downloads/Orion-9-Setup.exe", serveInstallerDownload);
+  app.get("/api/download/desktop", serveBinaryDownload);
+  app.get("/downloads/:filename", serveBinaryDownload);
 
   // Guard all /downloads/* requests from ever falling back to index.html
   app.get("/downloads/*", (req, res) => {
@@ -256,18 +289,49 @@ async function startServer() {
   });
 
   app.get("/api/download/desktop/status", (_req, res) => {
-    const installerPath = getInstallerBinaryPath();
-    const exists = Boolean(installerPath);
-    const size = exists && installerPath ? fs.statSync(installerPath).size : 0;
+    const winExe = resolveReleaseBinary("Orion-9-Setup.exe");
+    const winMsi = resolveReleaseBinary("Orion-9-Setup.msi");
+    const macUniv = resolveReleaseBinary("Orion-9-Universal.dmg");
+    const macArm = resolveReleaseBinary("Orion-9-aarch64.dmg");
+
     res.json({
-      available: exists,
-      url: exists ? "/downloads/Orion-9-Setup.exe" : null,
-      sizeBytes: size,
       version: "9.0.0",
-      platform: "windows-x64",
-      sha256: exists ? "e2dfeb480522b9da077bb58e0954d6d8e09f1023fb6af28b8b74b2a8dc23ee70" : null,
-      filename: "Orion-9-Setup.exe",
-      instruction: "Run 'npm run tauri:build' to generate the native Windows installer."
+      releases: {
+        windowsExe: {
+          available: Boolean(winExe),
+          url: winExe ? "/downloads/Orion-9-Setup.exe" : null,
+          sizeBytes: winExe ? fs.statSync(winExe.fullPath).size : 0,
+          filename: "Orion-9-Setup.exe",
+          sha256: winExe ? "e2dfeb480522b9da077bb58e0954d6d8e09f1023fb6af28b8b74b2a8dc23ee70" : null,
+          platform: "windows-x64",
+          format: "exe"
+        },
+        windowsMsi: {
+          available: Boolean(winMsi),
+          url: winMsi ? "/downloads/Orion-9-Setup.msi" : null,
+          sizeBytes: winMsi ? fs.statSync(winMsi.fullPath).size : 0,
+          filename: "Orion-9-Setup.msi",
+          sha256: winMsi ? "35d4855010fe340b9c4b23b1f576754eeec36ee0cbbce4fb448cb372e211b49c" : null,
+          platform: "windows-x64",
+          format: "msi"
+        },
+        macosUniversal: {
+          available: Boolean(macUniv),
+          url: macUniv ? "/downloads/Orion-9-Universal.dmg" : null,
+          sizeBytes: macUniv ? fs.statSync(macUniv.fullPath).size : 0,
+          filename: "Orion-9-Universal.dmg",
+          platform: "macos-universal",
+          format: "dmg"
+        },
+        macosArm64: {
+          available: Boolean(macArm),
+          url: macArm ? "/downloads/Orion-9-aarch64.dmg" : null,
+          sizeBytes: macArm ? fs.statSync(macArm.fullPath).size : 0,
+          filename: "Orion-9-aarch64.dmg",
+          platform: "macos-arm64",
+          format: "dmg"
+        }
+      }
     });
   });
 

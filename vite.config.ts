@@ -45,11 +45,11 @@ function generateBuildInfoPlugin(targetEnv: string = 'LIVE') {
       try {
         if (fs.existsSync(distAssetsIgnore)) {
           const content = fs.readFileSync(distAssetsIgnore, 'utf-8');
-          if (!content.includes('Orion-9-Setup.exe')) {
-            fs.appendFileSync(distAssetsIgnore, '\ndownloads/Orion-9-Setup.exe\n*.exe\n');
+          if (!content.includes('*.exe')) {
+            fs.appendFileSync(distAssetsIgnore, '\ndownloads/*\n*.exe\n*.msi\n*.dmg\n*.pkg\n');
           }
         } else {
-          fs.writeFileSync(distAssetsIgnore, 'wrangler.json\n.dev.vars\ndownloads/Orion-9-Setup.exe\n*.exe\n');
+          fs.writeFileSync(distAssetsIgnore, 'wrangler.json\n.dev.vars\ndownloads/*\n*.exe\n*.msi\n*.dmg\n*.pkg\n');
         }
       } catch (e) {
         console.warn('Could not update .assetsignore in dist/client:', e);
