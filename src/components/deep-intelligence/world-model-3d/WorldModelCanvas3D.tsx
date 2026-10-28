@@ -968,7 +968,7 @@ export const WorldModelCanvas3D: React.FC<WorldModelCanvas3DProps> = ({
       {/* TOP-RIGHT CONTROLS: 3 MODES + RESET + FULLSCREEN */}
       <div className="absolute top-4 right-4 z-20 flex items-center gap-2 font-mono text-[10px]">
         {/* Visual Mode Selector: WORLD (Default) | NETWORK | ENTITY */}
-        <div className="flex items-center bg-slate-950/90 border border-slate-800 p-1 rounded-lg backdrop-blur-md">
+        <div className="hidden sm:flex items-center bg-slate-950/90 border border-slate-800 p-1 rounded-lg backdrop-blur-md">
           <button
             onClick={() => onVisualizationModeChange('WORLD')}
             className={cn(

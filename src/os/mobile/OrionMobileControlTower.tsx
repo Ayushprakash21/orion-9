@@ -282,7 +282,7 @@ export const OrionMobileControlTower: React.FC = () => {
             </span>
             <span className="text-[10px] font-mono text-os-text-muted">Units</span>
           </div>
-          <div className="w-full h-36 -ml-2">
+          <div className="w-full h-36 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid stroke="#292C2F" strokeDasharray="3 3" vertical={false} opacity={0.3} />
@@ -304,7 +304,7 @@ export const OrionMobileControlTower: React.FC = () => {
             </span>
             <span className="text-[10px] font-mono text-os-text-muted">Units</span>
           </div>
-          <div className="w-full h-36 -ml-2">
+          <div className="w-full h-36 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid stroke="#292C2F" strokeDasharray="3 3" vertical={false} opacity={0.3} />
@@ -326,7 +326,7 @@ export const OrionMobileControlTower: React.FC = () => {
             </span>
             <span className="text-[10px] font-mono text-os-text-muted">Active</span>
           </div>
-          <div className="w-full h-36 -ml-2">
+          <div className="w-full h-36 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid stroke="#292C2F" strokeDasharray="3 3" vertical={false} opacity={0.3} />
@@ -348,7 +348,7 @@ export const OrionMobileControlTower: React.FC = () => {
             </span>
             <span className="text-[10px] font-mono text-os-text-muted">Count</span>
           </div>
-          <div className="w-full h-36 -ml-2">
+          <div className="w-full h-36 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={chartData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                 <CartesianGrid stroke="#292C2F" strokeDasharray="3 3" vertical={false} opacity={0.3} />
@@ -369,7 +369,7 @@ export const OrionMobileControlTower: React.FC = () => {
             </span>
             <span className="text-[10px] font-mono text-os-text-muted">USD</span>
           </div>
-          <div className="w-full h-40 -ml-2">
+          <div className="w-full h-40 overflow-hidden">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={riskDistData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
                 <CartesianGrid stroke="#292C2F" strokeDasharray="3 3" vertical={false} opacity={0.3} />

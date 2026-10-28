@@ -20,8 +20,8 @@ const OrionMobileContentRouter: React.FC = () => {
     <main
       className={`flex-1 min-h-0 w-full max-w-full flex flex-col ${
         isAppView || isAI ? 'overflow-hidden' : 'overflow-y-auto overflow-x-hidden'
-      } pb-[calc(var(--orion-mobile-nav-height,56px)+max(8px,env(safe-area-inset-bottom,8px)))] overscroll-contain ${
-        isAppView ? '' : isAI ? 'px-3 pt-2' : 'px-3.5 pt-3'
+      } overscroll-contain ${
+        isAppView ? '' : isAI ? 'px-3 pt-2' : 'px-3.5 pt-3 pb-4'
       }`}
     >
       {activeTab === 'home' && <OrionMobileHome />}
@@ -39,7 +39,11 @@ export const OrionMobileShell: React.FC = () => {
     <MobileNavigationProvider>
       <div 
         data-orion-mobile-shell="true"
-        className="relative h-[100dvh] min-h-[100dvh] max-h-[100dvh] w-full max-w-full bg-os-bg text-os-text-primary flex flex-col overflow-hidden pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)] select-none"
+        className="fixed inset-0 h-[100dvh] max-h-[100dvh] w-full max-w-full bg-os-bg text-os-text-primary flex flex-col overflow-hidden select-none"
+        style={{
+          paddingLeft: 'env(safe-area-inset-left, 0px)',
+          paddingRight: 'env(safe-area-inset-right, 0px)',
+        }}
       >
         {/* Subtle Atmospheric World Map Background (Reduced Opacity for Mobile Readability) */}
         <div 
@@ -49,15 +53,15 @@ export const OrionMobileShell: React.FC = () => {
           <OrionLiveWallpaper target="desktop" hasOpenWindows={false} showLogo={false} />
         </div>
 
-        {/* Mobile Header (Fixed/Sticky Top - Layer 30) */}
+        {/* Mobile Header (Fixed/In-flow Top - Layer 30) */}
         <OrionMobileHeader />
 
-        {/* Dynamic Mobile View Router (Layer 20) */}
+        {/* Dynamic Mobile View Router (Layer 20: Flex-1 Min-h-0 strictly bounded between header and bottom nav) */}
         <div className="relative z-20 flex-1 flex flex-col w-full max-w-full min-h-0 overflow-hidden">
           <OrionMobileContentRouter />
         </div>
 
-        {/* Mobile Bottom Navigation (Fixed Bottom - Layer 50) */}
+        {/* Mobile Bottom Navigation (In-flow Flex Bottom - Layer 50) */}
         <OrionMobileBottomNav />
 
         {/* Mobile Detail Sheet Drawer (Layer 60) */}

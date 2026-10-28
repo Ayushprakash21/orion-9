@@ -22,8 +22,8 @@ export const OrionMobileHeader: React.FC = () => {
   const isStaging = environment === 'STAGING';
 
   return (
-    <header className="sticky top-0 z-40 w-full bg-os-surface/95 backdrop-blur-md border-b border-os-border pt-[env(safe-area-inset-top,0px)] select-none">
-      <div className="h-13 px-3.5 flex items-center justify-between gap-2 max-w-full">
+    <header className="shrink-0 z-40 w-full bg-os-surface/95 backdrop-blur-md border-b border-os-border pt-[env(safe-area-inset-top,0px)] select-none">
+      <div className="h-13 px-3 flex items-center justify-between gap-2 max-w-full">
         {/* LEFT: Canonical Orion-9 Logo or Back Button */}
         <div className="flex items-center gap-2 min-w-0 shrink-0">
           {activeTab === 'app_view' ? (
@@ -119,7 +119,7 @@ export const OrionMobileHeader: React.FC = () => {
             onClick={() => setIsProfileMenuOpen(false)} 
             aria-hidden="true"
           />
-          <div className="absolute right-2 top-full mt-1 w-64 bg-os-surface border border-os-border rounded-xl shadow-2xl p-3 z-40 animate-in fade-in slide-in-from-top-2 font-mono text-xs space-y-2">
+          <div className="absolute right-2 top-full mt-1 w-64 max-w-[calc(100vw-16px)] bg-os-surface border border-os-border rounded-xl shadow-2xl p-3 z-40 animate-in fade-in slide-in-from-top-2 font-mono text-xs space-y-2">
             <div className="pb-2 border-b border-os-border">
               <div className="font-bold text-os-text-primary truncate">{currentUser?.fullName || currentUser?.username || 'Operator'}</div>
               <div className="text-[10px] text-os-text-muted truncate">{currentUser?.email}</div>

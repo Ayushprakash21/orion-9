@@ -80,6 +80,9 @@ export const MobileNavigationProvider: React.FC<{ children: ReactNode }> = ({ ch
     if (tab !== 'app_view') {
       setOpenedAppId(null);
     }
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     window.scrollTo({ top: 0, behavior: 'instant' });
 
     const targetRoute = tab === 'home' ? '/mobile/home' : `/mobile/${tab}`;
@@ -95,12 +98,18 @@ export const MobileNavigationProvider: React.FC<{ children: ReactNode }> = ({ ch
     setSelectedEntity(null);
     setOpenedAppId(appId);
     setActiveTabState('app_view');
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, []);
 
   const closeApp = useCallback(() => {
     setOpenedAppId(null);
     setActiveTabState('apps');
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     window.scrollTo({ top: 0, behavior: 'instant' });
     if (pathname !== '/mobile/apps') {
       try {
@@ -114,6 +123,9 @@ export const MobileNavigationProvider: React.FC<{ children: ReactNode }> = ({ ch
     setSelectedEntity(null);
     setOpenedAppId(null);
     setActiveTabState('ai');
+    if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     window.scrollTo({ top: 0, behavior: 'instant' });
     if (pathname !== '/mobile/ai') {
       try {

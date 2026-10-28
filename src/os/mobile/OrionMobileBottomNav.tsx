@@ -32,7 +32,7 @@ export const OrionMobileBottomNav: React.FC = () => {
 
   return (
     <nav 
-      className="fixed bottom-0 left-0 right-0 z-50 bg-os-surface/95 backdrop-blur-xl border-t border-os-border pb-[max(8px,env(safe-area-inset-bottom,8px))] select-none pointer-events-auto"
+      className="relative z-50 w-full bg-os-surface/95 backdrop-blur-xl border-t border-os-border pb-[max(8px,env(safe-area-inset-bottom,8px))] select-none pointer-events-auto shrink-0"
       aria-label="Mobile Navigation"
     >
       <div className="h-14 max-w-md mx-auto grid grid-cols-5 items-center px-1">

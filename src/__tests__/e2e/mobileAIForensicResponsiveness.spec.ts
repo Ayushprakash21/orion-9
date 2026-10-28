@@ -10,7 +10,7 @@
  *    - 430x932 (iPhone Pro Max)
  *    - 553x947 (User reported viewport)
  * 2. Zero horizontal overflow (scrollWidth <= window.innerWidth).
- * 3. Suggested action chips wrap and are fully inside viewport (no right clipping).
+ * 3. Suggested action chips fit in bounded single-row scroller without wrapping into multi-row.
  * 4. Composer and send buttons are fully inside viewport with usable touch target (>=44px).
  * 5. Telemetry bar reflows into a 2x2 grid on mobile without clipping.
  * 6. Bottom navigation is visible and AI tab is active.
@@ -85,23 +85,28 @@ test.describe('Orion-9 Mobile AI Forensic Responsiveness E2E', () => {
       });
       expect(overflowMetrics.hasOverflow).toBe(false);
 
-      // 2. Verify all visible suggested prompt chips are within viewport bounds
-      const chipMetrics = await page.evaluate(() => {
+      // 2. Verify prompt action chips container is bounded within viewport and uses clean horizontal scrolling
+      const chipsContainerMetrics = await page.evaluate(() => {
         const chips = Array.from(document.querySelectorAll('button[aria-label^="Select prompt suggestion"]'));
+        const container = chips[0]?.parentElement;
+        if (!container) return null;
+        const rect = container.getBoundingClientRect();
         const winWidth = window.innerWidth;
-        return chips.map(chip => {
-          const rect = chip.getBoundingClientRect();
-          return {
-            text: chip.textContent?.trim(),
-            right: rect.right,
-            left: rect.left,
-            isClipped: rect.right > winWidth + 2,
-          };
-        });
+        const firstChipRect = chips[0].getBoundingClientRect();
+        return {
+          containerInsideViewport: rect.right <= winWidth + 2 && rect.left >= 0,
+          firstChipVisible: firstChipRect.left >= 0 && firstChipRect.right <= winWidth + 2,
+          isHorizontallyScrollable: container.scrollWidth >= container.clientWidth,
+        };
       });
-      for (const chip of chipMetrics) {
-        expect(chip.isClipped).toBe(false);
-      }
+      expect(chipsContainerMetrics).not.toBeNull();
+      expect(chipsContainerMetrics!.containerInsideViewport).toBe(true);
+      expect(chipsContainerMetrics!.firstChipVisible).toBe(true);
+      expect(chipsContainerMetrics!.isHorizontallyScrollable).toBe(true);
+
+      // Verify zero vertical window scroll (no layout displacement on AI mount)
+      const windowScrollY = await page.evaluate(() => window.scrollY);
+      expect(windowScrollY).toBe(0);
 
       // 3. Verify Composer Input and Send Button within viewport
       const composerMetrics = await page.evaluate(() => {

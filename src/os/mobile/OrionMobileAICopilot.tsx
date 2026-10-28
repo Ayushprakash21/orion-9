@@ -105,6 +105,7 @@ export const OrionMobileAICopilot: React.FC = () => {
     return getContextualFollowUps(lastAiMsg.text, lastUserMsg?.text || '');
   }, [lastAiMsg, lastUserMsg]);
 
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -129,9 +130,11 @@ export const OrionMobileAICopilot: React.FC = () => {
     refreshStatus();
   }, []);
 
-  // Auto-scroll on message addition or state transition
+  // Auto-scroll on message addition or state transition — contained strictly to message list
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
+    }
   }, [messages, isProcessing, processingState]);
 
   // Build live grounded SCM data tools
@@ -417,7 +420,7 @@ export const OrionMobileAICopilot: React.FC = () => {
       </div>
 
       {/* 3. CONVERSATION MESSAGE LIST */}
-      <div className="flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-0.5 overscroll-contain w-full max-w-full">
+      <div ref={messagesContainerRef} className="flex-1 min-h-0 overflow-y-auto space-y-2.5 pr-0.5 overscroll-contain w-full max-w-full">
         {messages.map(msg => (
           <div 
             key={msg.id}
@@ -489,7 +492,7 @@ export const OrionMobileAICopilot: React.FC = () => {
       </div>
 
       {/* 4. PROMPT QUICK ACTIONS CHIPS & GALLERY BUTTON */}
-      <div className="flex flex-wrap items-center gap-1.5 py-1.5 shrink-0 w-full max-w-full">
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 shrink-0 w-full max-w-full whitespace-nowrap">
         <button
           type="button"
           onClick={() => setIsGalleryOpen(true)}
@@ -505,7 +508,7 @@ export const OrionMobileAICopilot: React.FC = () => {
             type="button"
             onClick={() => setInputMessage(promptText)}
             disabled={isProcessing}
-            className="px-2.5 py-1 rounded-full bg-os-surface border border-os-border hover:border-os-accent/50 active:bg-os-surface-active text-[9.5px] font-mono text-os-text-secondary hover:text-os-text-primary text-left active:scale-95 transition-all min-h-[30px] flex items-center cursor-pointer disabled:opacity-50 max-w-full"
+            className="px-2.5 py-1 rounded-full bg-os-surface border border-os-border hover:border-os-accent/50 active:bg-os-surface-active text-[9.5px] font-mono text-os-text-secondary hover:text-os-text-primary text-left active:scale-95 transition-all min-h-[32px] flex items-center cursor-pointer disabled:opacity-50 shrink-0 whitespace-nowrap"
             aria-label={`Select prompt suggestion: ${promptText}`}
           >
             <span className="line-clamp-1">{promptText}</span>

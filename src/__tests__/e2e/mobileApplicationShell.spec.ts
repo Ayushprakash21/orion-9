@@ -3,26 +3,30 @@ import { test, expect } from '@playwright/test';
 /**
  * ORION-9 MOBILE APPLICATION SHELL PLAYWRIGHT E2E SUITE
  * 
- * Verifies:
- * 1. Native mobile presentation shell at 375x812, 390x844, and 412x915.
- * 2. Zero desktop dock / zero desktop top navigation bar on mobile.
- * 3. Mobile Header with ORION-9 logo, active screen title, and LIVE/DEMO badge.
- * 4. 5-tab Mobile Bottom Navigation (Home, Control, AI, Alerts, Apps).
- * 5. Single-screen application container model (no floating desktop window frames).
- * 6. Live charts and metric display.
- * 7. Mobile entity detail sheet workflow.
- * 8. Zero horizontal page-level overflow across all mobile screens.
+ * Verifies across mobile viewports (360x800, 375x812, 390x844, 430x932):
+ * 1. Native mobile presentation shell (zero desktop dock, zero desktop top bar).
+ * 2. Mobile Header pinned at top without push/shift.
+ * 3. 5-tab Mobile Bottom Navigation pinned at bottom without gap/void.
+ * 4. Zero document/window scrolling (window.scrollY === 0) on all screens.
+ * 5. Zero horizontal page-level overflow across all screens (scrollWidth <= innerWidth + 2).
+ * 6. AI Copilot: internal messages scroll, prompt chips horizontally scrollable, no header push.
+ * 7. Control Tower: KPI metrics and charts render with zero horizontal overflow.
+ * 8. Apps Launcher: responsive multi-column grid and instant search input.
+ * 9. Digital Twin (World Model): responsive 3D canvas, horizontal controls, single-screen container.
  */
 
 const MOBILE_VIEWPORTS = [
+  { name: 'Samsung-360x800', width: 360, height: 800 },
   { name: 'iPhone-375x812', width: 375, height: 812 },
   { name: 'iPhone-390x844', width: 390, height: 844 },
-  { name: 'Android-412x915', width: 412, height: 915 },
+  { name: 'iPhoneProMax-430x932', width: 430, height: 932 },
 ];
+
+const ARTIFACT_DIR = 'C:/Users/Ayush/.gemini/antigravity/brain/5f06512e-da58-4a5d-be62-e2ac72ec78f8';
 
 test.describe('Orion-9 Native Mobile Application Shell Rebuild E2E', () => {
   for (const vp of MOBILE_VIEWPORTS) {
-    test(`Full mobile application shell verification on ${vp.name}`, async ({ page }) => {
+    test(`Comprehensive mobile OS verification on ${vp.name}`, async ({ page }) => {
       // 1. Initialize OS State and Set Viewport
       await page.addInitScript(() => {
         try {
@@ -46,21 +50,19 @@ test.describe('Orion-9 Native Mobile Application Shell Rebuild E2E', () => {
       const mobileShell = page.locator('[data-orion-mobile-shell="true"]');
       await expect(mobileShell).toBeVisible({ timeout: 15000 });
 
-      // 4. Invariant: Desktop Dock MUST NOT be rendered
-      const desktopDock = page.locator('[data-orion-dock="true"]');
-      await expect(desktopDock).toHaveCount(0);
+      // Invariants: Desktop Dock and horizontal nav MUST NOT be rendered
+      await expect(page.locator('[data-orion-dock="true"]')).toHaveCount(0);
+      await expect(page.locator('header nav:has-text("OPERATIONS")')).toHaveCount(0);
 
-      // 5. Invariant: Desktop horizontal nav MUST NOT be rendered
-      const desktopNav = page.locator('header nav:has-text("OPERATIONS")');
-      await expect(desktopNav).toHaveCount(0);
-
-      // 6. Verify Mobile Header
+      // Verify Mobile Header pinned at top
       const header = page.locator('header');
       await expect(header).toBeVisible();
       await expect(header.getByText(/ORION/i)).toBeVisible();
       await expect(header.getByText(/DEMO|LIVE/i)).toBeVisible();
+      const headerBox = await header.boundingBox();
+      expect(headerBox?.y).toBeLessThanOrEqual(2);
 
-      // 7. Verify 5-tab Mobile Bottom Navigation
+      // Verify 5-tab Mobile Bottom Navigation pinned at bottom
       const bottomNav = page.locator('nav[aria-label="Mobile Navigation"]');
       await expect(bottomNav).toBeVisible();
       await expect(bottomNav.getByText('Home')).toBeVisible();
@@ -69,60 +71,149 @@ test.describe('Orion-9 Native Mobile Application Shell Rebuild E2E', () => {
       await expect(bottomNav.getByText('Alerts')).toBeVisible();
       await expect(bottomNav.getByText('Apps')).toBeVisible();
 
-      // 8. Assert Zero Page-Level Horizontal Overflow
-      const hasNoHorizontalOverflow = await page.evaluate(() => {
+      // Invariant: Window vertical scroll MUST be 0
+      let scrollY = await page.evaluate(() => window.scrollY);
+      expect(scrollY).toBe(0);
+
+      // Assert Zero Page-Level Horizontal Overflow
+      let hasNoHorizontalOverflow = await page.evaluate(() => {
         return document.documentElement.scrollWidth <= window.innerWidth + 2;
       });
       expect(hasNoHorizontalOverflow).toBe(true);
 
-      // Capture Home Screen Screenshot to Artifacts Directory
-      const artifactDir = 'C:/Users/Ayush/.gemini/antigravity/brain/5f06512e-da58-4a5d-be62-e2ac72ec78f8';
-      await page.screenshot({ path: `${artifactDir}/mobile_launcher_${vp.name}_home.png` });
+      // Capture Home Screen Screenshot
+      await page.screenshot({ path: `${ARTIFACT_DIR}/mobile_${vp.name}_home.png` });
 
-      // 9. Navigate to Control Tower Tab
+      // 4. Test Control Tower Tab
       await bottomNav.getByText('Control').click();
       await expect(page.getByText(/Orion Control Tower/i)).toBeVisible();
       await expect(page.getByText(/Active Disruption Telemetry/i)).toBeVisible();
-      await page.screenshot({ path: `test-results/mobile-${vp.name}-control.png` });
 
-      // 10. Navigate to AI Copilot Tab via Bottom Nav AI button
+      scrollY = await page.evaluate(() => window.scrollY);
+      expect(scrollY).toBe(0);
+
+      hasNoHorizontalOverflow = await page.evaluate(() => {
+        return document.documentElement.scrollWidth <= window.innerWidth + 2;
+      });
+      expect(hasNoHorizontalOverflow).toBe(true);
+
+      await page.screenshot({ path: `${ARTIFACT_DIR}/mobile_${vp.name}_control.png` });
+
+      // 5. Test AI Copilot Tab
       const aiButton = page.locator('button[aria-label="Open ORION AI"]');
       await expect(aiButton).toBeVisible();
       await aiButton.click();
-      await expect(page.getByText(/ORION AI/i).first()).toBeVisible();
-      await expect(page.getByPlaceholder(/Ask Orion AI/i)).toBeVisible();
-      
-      // Verify quick actions are present
-      await expect(page.getByRole('button', { name: /Show critical inventory risks/i }).first()).toBeVisible();
-      await page.screenshot({ path: `test-results/mobile-${vp.name}-ai.png` });
 
-      // 11. Navigate to Alerts Tab
+      const aiSurface = page.locator('[data-orion-ai-surface="true"]');
+      await expect(aiSurface).toBeVisible({ timeout: 10000 });
+      await expect(page.getByPlaceholder(/Ask Orion AI/i)).toBeVisible();
+
+      // Strict Invariants for AI Layout:
+      // a) Window scroll MUST NOT have shifted (no displacement)
+      scrollY = await page.evaluate(() => window.scrollY);
+      expect(scrollY).toBe(0);
+
+      // b) Header MUST still be visible at top
+      const headerBoxAI = await header.boundingBox();
+      expect(headerBoxAI?.y).toBeLessThanOrEqual(2);
+
+      // c) Bottom nav MUST still be visible at bottom
+      const bottomNavBoxAI = await bottomNav.boundingBox();
+      expect(bottomNavBoxAI?.y).toBeLessThanOrEqual(vp.height);
+
+      // d) Prompt chips container must be bounded within viewport
+      const chipsContainerMetrics = await page.evaluate(() => {
+        const chips = Array.from(document.querySelectorAll('button[aria-label^="Select prompt suggestion"]'));
+        const container = chips[0]?.parentElement;
+        if (!container) return null;
+        const rect = container.getBoundingClientRect();
+        return {
+          insideWidth: rect.right <= window.innerWidth + 2,
+          scrollable: container.scrollWidth >= container.clientWidth,
+        };
+      });
+      expect(chipsContainerMetrics).not.toBeNull();
+      expect(chipsContainerMetrics!.insideWidth).toBe(true);
+
+      // e) Send a query to verify internal container scrolling
+      const textarea = page.locator('textarea');
+      await textarea.fill('Inventory summary');
+      const sendBtn = page.locator('button[aria-label="Send Message to Orion AI"]');
+      await sendBtn.click();
+
+      // Verify response appears and window.scrollY remains 0
+      await expect(page.getByText(/Deterministic SCM Core|Orion AI|Operating in/i).first()).toBeVisible({ timeout: 10000 });
+      scrollY = await page.evaluate(() => window.scrollY);
+      expect(scrollY).toBe(0);
+
+      await page.screenshot({ path: `${ARTIFACT_DIR}/mobile_${vp.name}_ai.png` });
+
+      // 6. Test Alerts Tab
       await bottomNav.getByText('Alerts').click();
       await expect(page.getByText(/Operational Alerts & Risks/i)).toBeVisible();
-      await page.screenshot({ path: `test-results/mobile-${vp.name}-alerts.png` });
+      scrollY = await page.evaluate(() => window.scrollY);
+      expect(scrollY).toBe(0);
 
-      // 12. Navigate to Apps Launcher Tab
+      hasNoHorizontalOverflow = await page.evaluate(() => {
+        return document.documentElement.scrollWidth <= window.innerWidth + 2;
+      });
+      expect(hasNoHorizontalOverflow).toBe(true);
+      await page.screenshot({ path: `${ARTIFACT_DIR}/mobile_${vp.name}_alerts.png` });
+
+      // 7. Test Apps Launcher Tab
       await bottomNav.getByText('Apps').click();
       const appSearch = page.getByPlaceholder(/Search enterprise apps/i);
       await expect(appSearch).toBeVisible();
-      await page.screenshot({ path: `test-results/mobile-${vp.name}-apps.png` });
 
-      // 13. Open an Application as Single-Screen View
-      const invApp = page.getByRole('button', { name: /Inventory/i }).first();
-      if (await invApp.isVisible()) {
-        await invApp.click();
-        await expect(page.locator('.orion-mobile-app-wrapper')).toBeVisible();
-        await page.screenshot({ path: `test-results/mobile-${vp.name}-app-view.png` });
+      // Strict Invariant: After switching from AI -> Alerts -> Apps, window.scrollY MUST be 0
+      scrollY = await page.evaluate(() => window.scrollY);
+      expect(scrollY).toBe(0);
 
-        // Click Back to return to launcher
-        const backBtn = page.getByLabel('Back to Applications');
-        if (await backBtn.isVisible()) {
-          await backBtn.click();
-        } else {
-          await bottomNav.getByText('Apps').click();
-        }
-        await expect(appSearch).toBeVisible();
+      // Verify search input is completely in view and not pushed off
+      const searchBox = await appSearch.boundingBox();
+      expect(searchBox?.y).toBeGreaterThan(0);
+      expect(searchBox?.y).toBeLessThan(120);
+
+      hasNoHorizontalOverflow = await page.evaluate(() => {
+        return document.documentElement.scrollWidth <= window.innerWidth + 2;
+      });
+      expect(hasNoHorizontalOverflow).toBe(true);
+      await page.screenshot({ path: `${ARTIFACT_DIR}/mobile_${vp.name}_apps.png` });
+
+      // 8. Test Digital Twin (World Model)
+      await appSearch.fill('World Model');
+      const worldModelCard = page.locator('button:has-text("World Model")').first();
+      await expect(worldModelCard).toBeVisible();
+      await worldModelCard.click();
+
+      // Verify single screen container mounts
+      const appWrapper = page.locator('.orion-mobile-app-wrapper');
+      await expect(appWrapper).toBeVisible({ timeout: 10000 });
+
+      // Verify 3D canvas element is mounted
+      const canvas = page.locator('canvas').first();
+      await expect(canvas).toBeVisible({ timeout: 10000 });
+
+      // Verify zero horizontal page-level overflow with 3D canvas
+      hasNoHorizontalOverflow = await page.evaluate(() => {
+        return document.documentElement.scrollWidth <= window.innerWidth + 2;
+      });
+      expect(hasNoHorizontalOverflow).toBe(true);
+
+      // Verify canvas container height does not exceed viewport bounds
+      const canvasBox = await canvas.boundingBox();
+      expect(canvasBox?.height).toBeLessThanOrEqual(vp.height * 0.7);
+
+      await page.screenshot({ path: `${ARTIFACT_DIR}/mobile_${vp.name}_world_model.png` });
+
+      // Return back to Apps launcher via Header back button
+      const backBtn = page.getByLabel('Back to Applications');
+      if (await backBtn.isVisible()) {
+        await backBtn.click();
+      } else {
+        await bottomNav.getByText('Apps').click();
       }
+      await expect(page.getByPlaceholder(/Search enterprise apps/i)).toBeVisible();
     });
   }
 });

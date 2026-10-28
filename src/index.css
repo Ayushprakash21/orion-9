@@ -802,7 +802,9 @@ html.reduced-motion * {
    48px shell row; application content is permanently confined below it. */
 html, body, #root {
   max-width: 100vw;
-  overflow-x: hidden;
+  max-height: 100dvh;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
 }
 
 .orion-authenticated-shell {

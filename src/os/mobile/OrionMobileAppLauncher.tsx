@@ -184,17 +184,17 @@ export const OrionMobileAppLauncher: React.FC = () => {
           </div>
 
           {filteredApps.length > 0 ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 sm:gap-3 w-full max-w-full box-border">
+            <div className="grid grid-cols-2 min-[420px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 sm:gap-3 w-full max-w-full box-border">
               {filteredApps.map(app => (
                 <button
                   key={app.id}
                   onClick={() => handleLaunchApp(app.id)}
-                  className="flex flex-col items-center justify-center p-2 rounded-2xl bg-os-surface/60 border border-os-border/60 hover:border-os-accent/40 active:scale-95 transition-all text-center group cursor-pointer min-h-[92px] w-full min-w-0 box-border"
+                  className="flex flex-col items-center justify-center p-3 rounded-2xl bg-os-surface/60 border border-os-border hover:border-os-accent/40 active:scale-95 transition-all text-center group cursor-pointer min-h-[98px] w-full min-w-0 box-border shadow-xs"
                 >
                   <div className="w-12 h-12 sm:w-13 sm:h-13 flex items-center justify-center shrink-0">
                     <OrionAppIcon app={app.id} size={46} active={false} />
                   </div>
-                  <span className="mt-1 text-[11px] font-medium text-os-text-primary line-clamp-2 px-0.5 leading-tight w-full">
+                  <span className="mt-1.5 text-xs font-semibold text-os-text-primary line-clamp-2 px-1 leading-snug w-full text-center group-hover:text-os-accent transition-colors">
                     {app.name}
                   </span>
                 </button>
@@ -238,17 +238,17 @@ export const OrionMobileAppLauncher: React.FC = () => {
                   <span className="truncate">{cat.name}</span>
                 </div>
 
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 sm:gap-3 w-full max-w-full box-border">
+                <div className="grid grid-cols-2 min-[420px]:grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2.5 sm:gap-3 w-full max-w-full box-border">
                   {validApps.map(app => (
                     <button
                       key={app.id}
                       onClick={() => handleLaunchApp(app.id)}
-                      className="flex flex-col items-center justify-center p-2 rounded-2xl bg-os-surface/40 hover:bg-os-surface border border-os-border hover:border-os-border-strong active:scale-95 transition-all text-center group cursor-pointer min-h-[92px] w-full min-w-0 box-border"
+                      className="flex flex-col items-center justify-center p-3 rounded-2xl bg-os-surface/50 hover:bg-os-surface border border-os-border hover:border-os-accent/40 active:scale-95 transition-all text-center group cursor-pointer min-h-[98px] w-full min-w-0 box-border shadow-xs"
                     >
                       <div className="w-12 h-12 sm:w-13 sm:h-13 flex items-center justify-center shrink-0">
                         <OrionAppIcon app={app.id} size={46} active={false} />
                       </div>
-                      <span className="mt-1 text-[11px] font-medium text-os-text-primary line-clamp-2 px-0.5 leading-tight w-full">
+                      <span className="mt-1.5 text-xs font-semibold text-os-text-primary line-clamp-2 px-1 leading-snug w-full text-center group-hover:text-os-accent transition-colors">
                         {app.name}
                       </span>
                     </button>

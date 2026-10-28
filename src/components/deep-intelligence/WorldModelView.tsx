@@ -255,12 +255,12 @@ export const WorldModelView: React.FC = () => {
   const isDataSyncing = isInitializing;
 
   return (
-    <div className="space-y-5 p-4 sm:p-6 lg:p-7 max-w-[1800px] mx-auto font-sans text-os-text-muted box-border">
+    <div className="space-y-4 sm:space-y-5 p-2 sm:p-4 lg:p-7 max-w-[1800px] mx-auto font-sans text-os-text-muted box-border w-full min-w-0">
       
       {/* 1. HEADER WITH ENGINE STATUS */}
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 border-b border-slate-900 pb-5">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <span className="px-2 py-0.5 text-[10px] font-mono uppercase bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 rounded font-bold">
               ORION WORLD MODEL
             </span>
@@ -330,7 +330,7 @@ export const WorldModelView: React.FC = () => {
             title="Toggle Relationship Inspector Panel"
           >
             {isInspectorOpen ? <PanelRightClose size={12} /> : <PanelRightOpen size={12} />}
-            <span>INSPECTOR: {isInspectorOpen ? 'OPEN' : 'COLLAPSED'}</span>
+            <span className="hidden sm:inline">INSPECTOR: </span><span>{isInspectorOpen ? 'OPEN' : 'COLLAPSED'}</span>
           </button>
 
           {/* Fullscreen World Toggle */}
@@ -345,10 +345,10 @@ export const WorldModelView: React.FC = () => {
       </div>
 
       {/* 2. CAMERA PRESETS & DOMAIN ZONE FILTERS BAR */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 font-mono text-[11px] bg-slate-950/70 border border-slate-900 p-3 rounded-xl">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-2.5 font-mono text-[11px] bg-slate-950/70 border border-slate-900 p-2.5 sm:p-3 rounded-xl w-full max-w-full overflow-hidden">
         {/* Domain Filters */}
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mr-1">DOMAIN:</span>
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 w-full md:w-auto shrink-0 whitespace-nowrap">
+          <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mr-1 shrink-0">DOMAIN:</span>
           {['ALL', 'SUPPLY', 'INVENTORY', 'PROCUREMENT', 'LOGISTICS', 'CONTROL'].map(g => (
             <button
               key={g}
@@ -374,8 +374,8 @@ export const WorldModelView: React.FC = () => {
         </div>
 
         {/* Camera Presets */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mr-1">CAMERA:</span>
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 w-full md:w-auto shrink-0 whitespace-nowrap">
+          <span className="text-[9px] text-slate-500 uppercase tracking-widest font-bold mr-1 shrink-0">CAMERA:</span>
           {['WORLD', 'SUPPLY', 'INVENTORY', 'PROCUREMENT', 'LOGISTICS', 'CONTROL'].map(p => (
             <button
               key={p}
@@ -486,7 +486,7 @@ export const WorldModelView: React.FC = () => {
               focusEntityTrigger={focusEntityTrigger}
               isFullscreen={isFullscreen}
               onToggleFullscreen={() => setIsFullscreen(!isFullscreen)}
-              className="w-full h-[620px]"
+              className="w-full h-[340px] sm:h-[480px] lg:h-[620px]"
             />
           )}
 
