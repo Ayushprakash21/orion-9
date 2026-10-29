@@ -202,6 +202,252 @@ async function startServer() {
     });
   });
 
+  // Mobile & Web Authentication Route (POST /api/auth/login)
+  app.post("/api/auth/login", async (req, res) => {
+    const identifier = String(req.body.identifier || req.body.email || '').trim().toLowerCase();
+    const password = String(req.body.password || '');
+    const activeEnv = (process.env.ORION_RUNTIME_ENVIRONMENT || 'DEMO').toUpperCase();
+
+    if (!identifier || !password) {
+      return res.status(400).json({ success: false, error: 'Identifier and password are required.' });
+    }
+
+    if (activeEnv === 'LIVE') {
+      const isDemoAdmin = (identifier === 'admin' || identifier === 'admin@orion.network') &&
+        (password === 'admin' || password === 'demo123' || password === 'OrionAdmin2026!');
+      const isDemoUser = (identifier === 'user' || identifier === 'user@orion.network') &&
+        (password === 'user' || password === 'demo123' || password === 'OrionUser2026!');
+
+      if (isDemoAdmin || isDemoUser) {
+        return res.status(403).json({ success: false, error: 'Demo credentials are strictly prohibited in the LIVE environment.' });
+      }
+
+      const apiKey = process.env.FIREBASE_API_KEY || process.env.VITE_FIREBASE_API_KEY;
+      if (!apiKey) {
+        return res.status(503).json({ success: false, error: 'LIVE authentication service requires configured FIREBASE_API_KEY on the server.' });
+      }
+
+      try {
+        const authUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;
+        const fbRes = await fetch(authUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: identifier, password, returnSecureToken: true }),
+        });
+        const authData: any = await fbRes.json();
+        if (!fbRes.ok) {
+          const fbError = authData?.error?.message || 'Authentication failed.';
+          let userMessage = 'Invalid email or password.';
+          if (fbError === 'TOO_MANY_ATTEMPTS_TRY_LATER') {
+            userMessage = 'Too many failed login attempts. Please try again later.';
+          } else if (fbError === 'USER_DISABLED') {
+            userMessage = 'This account has been disabled.';
+          }
+          return res.status(401).json({ success: false, error: userMessage });
+        }
+
+        const localId = authData.localId;
+        const email = authData.email || identifier;
+        const displayName = authData.displayName || identifier.split('@')[0];
+        const expiresInSeconds = parseInt(authData.expiresIn || '3600', 10);
+        const expiresAt = new Date(Date.now() + expiresInSeconds * 1000).toISOString();
+
+        const isAdminUser = email.startsWith('admin@') || email.includes('admin');
+        const userProfile = {
+          id: localId,
+          username: email.split('@')[0],
+          email,
+          fullName: displayName,
+          role: isAdminUser ? 'platform_admin' : 'user',
+          organizationId: 'org-live-primary',
+          organizationName: 'Orion Live Enterprise Network',
+          status: 'active' as const,
+        };
+
+        const session = {
+          token: authData.idToken,
+          refreshToken: authData.refreshToken,
+          user: userProfile,
+          environment: 'LIVE',
+          expiresAt,
+        };
+
+        return res.json({
+          success: true,
+          token: authData.idToken,
+          refreshToken: authData.refreshToken,
+          session,
+          user: userProfile,
+        });
+      } catch (e: any) {
+        return res.status(500).json({ success: false, error: e.message || 'Authentication error' });
+      }
+    }
+
+    // DEMO Environment
+    const isDemoAdmin = (identifier === 'admin' || identifier === 'admin@orion.network') &&
+      (password === 'admin' || password === 'demo123' || password === 'OrionAdmin2026!');
+    const isDemoUser = (identifier === 'user' || identifier === 'user@orion.network') &&
+      (password === 'user' || password === 'demo123' || password === 'OrionUser2026!');
+
+    if (isDemoAdmin) {
+      const expiresAt = new Date(Date.now() + 12 * 3600 * 1000).toISOString();
+      const token = `orion_sess:DEMO:admin:platform_admin:${Date.now() + 12 * 3600 * 1000}:sig_demo_admin`;
+      const profile = {
+        id: 'usr-admin-v2',
+        username: 'admin',
+        email: 'admin@orion.network',
+        fullName: 'Platform Admin',
+        role: 'platform_admin',
+        organizationId: 'org-global-corp',
+        organizationName: 'Global Autonomous Supply Chain Network',
+        jobTitle: 'Chief Supply Chain Technologist',
+        department: 'Autonomous Operations',
+        status: 'active',
+      };
+      return res.json({ success: true, token, session: { token, user: profile, environment: 'DEMO', expiresAt }, user: profile });
+    }
+
+    if (isDemoUser) {
+      const expiresAt = new Date(Date.now() + 12 * 3600 * 1000).toISOString();
+      const token = `orion_sess:DEMO:user:user:${Date.now() + 12 * 3600 * 1000}:sig_demo_user`;
+      const profile = {
+        id: 'usr-user-v2',
+        username: 'user',
+        email: 'user@orion.network',
+        fullName: 'Elena Rostova',
+        role: 'user',
+        organizationId: 'org-global-corp',
+        organizationName: 'Global Autonomous Supply Chain Network',
+        jobTitle: 'Supply Chain Operations Specialist',
+        department: 'Operations',
+        status: 'active',
+      };
+      return res.json({ success: true, token, session: { token, user: profile, environment: 'DEMO', expiresAt }, user: profile });
+    }
+
+    return res.status(401).json({ success: false, error: 'Invalid demo credentials' });
+  });
+
+  // SCM Telemetry & Control Tower Data (GET /api/control-tower/data or /api/control-tower/summary)
+  app.get(["/api/control-tower/data", "/api/control-tower/summary"], (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ success: false, error: "Authentication required." });
+    }
+
+    const exceptions = [
+      { id: 'EXC-2026-001', date: '2026-10-28T14:30:00Z', type: 'Stock-Out Risk', severity: 'Critical', entityId: 'SKU-1000', description: 'Quantum Neural Processing Unit inventory below critical 2-day safety threshold at Chicago DC-01.', estimatedImpact: 145000, status: 'Open', owner: 'Elena Rostova', recommendedAction: 'Expedite inbound shipment SHP-2026-0001 and trigger emergency buffer allocation from Dallas DC-03.' },
+      { id: 'EXC-2026-002', date: '2026-10-28T11:15:00Z', type: 'Shipment Delay', severity: 'Critical', entityId: 'SHP-2026-0001', description: 'Pacific maritime lane transshipment congestion in Long Beach. Expected delay: +4 days.', estimatedImpact: 88000, status: 'Investigating', owner: 'Marcus Vance', recommendedAction: 'Reroute remaining containers via intermodal rail priority corridor PAC-04.' },
+      { id: 'EXC-2026-003', date: '2026-10-28T09:45:00Z', type: 'PO Overdue', severity: 'High', entityId: 'PO-2026-0042', description: 'Supplier Titan Microelectronics failed to acknowledge delivery schedule for 1,200 optical sensors.', estimatedImpact: 62000, status: 'Action Required', owner: 'Sarah Chen', recommendedAction: 'Issue formal SLA non-compliance warning and activate secondary qualified supplier Apex Dynamics.' },
+      { id: 'EXC-2026-004', date: '2026-10-27T16:20:00Z', type: 'Supplier Quality', severity: 'High', entityId: 'SUP-002', description: 'Apex Dynamics lot batch #4409 defect rate spiked to 4.2% (threshold: 1.5%).', estimatedImpact: 34000, status: 'Investigating', owner: 'Elena Rostova', recommendedAction: 'Initiate quarantine inspection protocol on lot #4409 and pause open PO-2026-0048.' },
+      { id: 'EXC-2026-005', date: '2026-10-27T12:00:00Z', type: 'Forecast Variance', severity: 'Medium', entityId: 'SKU-1004', description: 'Automotive sensor demand exceeds rolling baseline by 28% in EMEA East region.', estimatedImpact: 21000, status: 'Open', owner: 'David K.', recommendedAction: 'Adjust dynamic safety buffer factor from 1.2 to 1.45 for next 30 days.' },
+    ];
+
+    const shipments = [
+      { id: 'SHP-2026-0001', poId: 'PO-2026-0038', supplierId: 'SUP-001', carrier: 'Maersk Line', origin: 'Port of Yokohama, JP', destination: 'Long Beach Terminal, US', shipDate: '2026-10-18T00:00:00Z', expectedArrival: '2026-11-01T00:00:00Z', actualArrival: null, status: 'Delayed', delayDays: 4, freightCost: 32500, trackingNumber: 'MSK-99201481' },
+      { id: 'SHP-2026-0002', poId: 'PO-2026-0040', supplierId: 'SUP-003', carrier: 'DHL Global Forwarding', origin: "Frankfurt Air Hub, DE", destination: "Chicago O'Hare Hub, US", shipDate: '2026-10-26T00:00:00Z', expectedArrival: '2026-10-29T00:00:00Z', actualArrival: null, status: 'In Transit', delayDays: 0, freightCost: 14200, trackingNumber: 'DHL-88102941' },
+      { id: 'SHP-2026-0003', poId: 'PO-2026-0041', supplierId: 'SUP-002', carrier: 'Kuehne + Nagel', origin: 'Rotterdam Gateway, NL', destination: 'New York Newark, US', shipDate: '2026-10-22T00:00:00Z', expectedArrival: '2026-10-31T00:00:00Z', actualArrival: null, status: 'In Transit', delayDays: 1, freightCost: 18900, trackingNumber: 'KN-5519201' },
+      { id: 'SHP-2026-0004', poId: 'PO-2026-0039', supplierId: 'SUP-004', carrier: 'Ocean Network Express', origin: 'Port of Kaohsiung, TW', destination: 'Oakland Port, US', shipDate: '2026-10-15T00:00:00Z', expectedArrival: '2026-10-28T00:00:00Z', actualArrival: '2026-10-28T18:00:00Z', status: 'Delivered', delayDays: 0, freightCost: 26400, trackingNumber: 'ONE-7721904' },
+    ];
+
+    const inventory = [
+      { id: 'INV-001', productId: 'SKU-1000', warehouseId: 'WH-CHI-01', onHand: 180, reserved: 120, inTransit: 500, safetyStock: 150, reorderPoint: 250, dailyDemand: 28, unitCost: 450, leadTime: 14, lastUpdated: new Date().toISOString() },
+      { id: 'INV-002', productId: 'SKU-1001', warehouseId: 'WH-DAL-02', onHand: 850, reserved: 200, inTransit: 800, safetyStock: 300, reorderPoint: 500, dailyDemand: 45, unitCost: 180, leadTime: 8, lastUpdated: new Date().toISOString() },
+      { id: 'INV-003', productId: 'SKU-1002', warehouseId: 'WH-FRA-01', onHand: 420, reserved: 380, inTransit: 120, safetyStock: 100, reorderPoint: 180, dailyDemand: 16, unitCost: 820, leadTime: 21, lastUpdated: new Date().toISOString() },
+      { id: 'INV-004', productId: 'SKU-1003', warehouseId: 'WH-NRT-01', onHand: 2680, reserved: 450, inTransit: 0, safetyStock: 600, reorderPoint: 1000, dailyDemand: 72, unitCost: 125, leadTime: 6, lastUpdated: new Date().toISOString() },
+    ];
+
+    const suppliers = [
+      { id: 'SUP-001', name: 'Titan Microelectronics', category: 'Semiconductors', region: 'Asia Pacific', country: 'Japan', contact: 'Kenji Takahashi (k.takahashi@titan-micro.jp)', otif: 78.4, qualityRate: 97.6, leadTime: 18, defectRate: 2.4, spend: 4850000, openPoValue: 720000, score: 76, riskLevel: 'High', status: 'Under Review' },
+      { id: 'SUP-002', name: 'Apex Dynamics', category: 'Precision Mechanical', region: 'North America', country: 'United States', contact: 'Rachel Adams (radams@apexdynamics.com)', otif: 91.8, qualityRate: 95.8, leadTime: 12, defectRate: 4.2, spend: 2900000, openPoValue: 340000, score: 88, riskLevel: 'Medium', status: 'Active' },
+      { id: 'SUP-003', name: 'Nordic Precision Assemblies', category: 'Precision Mechanical', region: 'Europe', country: 'Germany', contact: 'Hans Weber (h.weber@nordic-precision.de)', otif: 97.2, qualityRate: 99.8, leadTime: 8, defectRate: 0.2, spend: 3100000, openPoValue: 490000, score: 96, riskLevel: 'Low', status: 'Preferred' },
+      { id: 'SUP-004', name: 'Pacific Core Tech', category: 'Power Systems', region: 'East Asia', country: 'Taiwan', contact: 'Mei-Ling Chen (ml.chen@pct-power.tw)', otif: 84.1, qualityRate: 98.4, leadTime: 16, defectRate: 1.6, spend: 1450000, openPoValue: 180000, score: 85, riskLevel: 'Medium', status: 'Active' },
+    ];
+
+    const purchaseOrders = [
+      { id: 'PO-2026-0038', supplierId: 'SUP-001', orderDate: '2026-10-10T00:00:00Z', expectedDelivery: '2026-11-01T00:00:00Z', status: 'Delayed', totalValue: 225000, currency: 'USD', buyer: 'Sarah Chen', lines: [{ productId: 'SKU-1000', quantity: 500, receivedQuantity: 0, unitPrice: 450 }] },
+      { id: 'PO-2026-0040', supplierId: 'SUP-003', orderDate: '2026-10-20T00:00:00Z', expectedDelivery: '2026-10-29T00:00:00Z', status: 'In Transit', totalValue: 144000, currency: 'USD', buyer: 'Marcus Vance', lines: [{ productId: 'SKU-1001', quantity: 800, receivedQuantity: 0, unitPrice: 180 }] },
+      { id: 'PO-2026-0042', supplierId: 'SUP-001', orderDate: '2026-10-12T00:00:00Z', expectedDelivery: '2026-10-26T00:00:00Z', status: 'Overdue', totalValue: 98400, currency: 'USD', buyer: 'Sarah Chen', lines: [{ productId: 'SKU-1002', quantity: 120, receivedQuantity: 0, unitPrice: 820 }] },
+    ];
+
+    const recentEvents = [
+      { id: 'EVT-01', source: 'Event Fabric', entityType: 'INVENTORY_REBALANCE', entityId: 'SKU-1000', eventType: 'Buffer Calibration', timestamp: '12m ago', description: 'Autonomous rebalance policy calculated +45 unit buffer for Chicago DC.', badgeColor: '#10b981' },
+      { id: 'EVT-02', source: 'EDI Gateway', entityType: 'SHIPMENT_STATUS', entityId: 'SHP-2026-0001', eventType: 'Lane Congestion Detected', timestamp: '34m ago', description: 'Carrier Maersk updated transshipment ETA +4 days at Port of Long Beach.', badgeColor: '#ef4444' },
+      { id: 'EVT-03', source: 'ERP Synchronizer', entityType: 'PO_CONFIRMATION', entityId: 'PO-2026-0040', eventType: 'Ledger Reconciled', timestamp: '1h ago', description: 'PO-2026-0040 delivery milestone confirmed by DHL Global Forwarding.', badgeColor: '#06b6d4' },
+      { id: 'EVT-04', source: 'Cognitive Engine', entityType: 'RISK_PROPOSAL', entityId: 'EXC-2026-001', eventType: 'Decision Proposed', timestamp: '2h ago', description: 'Decision Copilot proposed priority intermodal expedite for SKU-1000.', badgeColor: '#f59e0b' },
+    ];
+
+    const metrics = {
+      networkHealthIndex: 87,
+      criticalExceptionsCount: exceptions.filter(e => e.severity === 'Critical').length,
+      delayedShipmentsCount: shipments.filter(s => s.delayDays > 0).length,
+      delayedShipmentsValue: shipments.filter(s => s.delayDays > 0).reduce((sum, s) => sum + s.freightCost, 0),
+      inventoryRiskCount: inventory.filter(i => (i.onHand - i.reserved) < i.safetyStock).length,
+      totalInventoryUnits: inventory.reduce((sum, i) => sum + i.onHand, 0),
+      totalInventoryValue: inventory.reduce((sum, i) => sum + i.onHand * i.unitCost, 0),
+      openPOCount: purchaseOrders.length,
+      overduePOCount: purchaseOrders.filter(po => po.status === 'Overdue' || po.status === 'Delayed').length,
+      totalSpendCommitment: purchaseOrders.reduce((sum, po) => sum + po.totalValue, 0),
+      averageSupplierOtif: Math.round((suppliers.reduce((sum, s) => sum + s.otif, 0) / suppliers.length) * 10) / 10,
+      lastRefreshedAt: new Date().toISOString(),
+      environment: 'DEMO',
+    };
+
+    res.json({
+      success: true,
+      metrics,
+      exceptions,
+      shipments,
+      inventory,
+      purchaseOrders,
+      suppliers,
+      recentEvents,
+      environment: 'DEMO',
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  // Action Execution Endpoint (POST /api/control/execute-action)
+  app.post("/api/control/execute-action", (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ success: false, error: "Authentication required." });
+    }
+
+    const { actionType, entityId, parameters } = req.body;
+    if (!actionType || !entityId) {
+      return res.status(400).json({ success: false, error: "Missing required parameters: actionType and entityId are required." });
+    }
+
+    const auditId = `AUD-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+    res.json({
+      success: true,
+      auditId,
+      actionType,
+      entityId,
+      parameters: parameters || {},
+      message: `Action '${actionType}' confirmed for ${entityId}.`,
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  // Operational Alerts Endpoint (GET /api/notifications/alerts)
+  app.get("/api/notifications/alerts", (req, res) => {
+    const alerts = [
+      { id: 'alt-1', title: 'Critical Inventory Risk: SKU-1000', message: 'Inventory coverage down to 2.1 days of demand at Chicago DC-01.', severity: 'Critical', timestamp: '15 mins ago', read: false, entityType: 'inventory', entityId: 'SKU-1000', actionRequired: true },
+      { id: 'alt-2', title: 'Maritime Congestion Delay: SHP-2026-0001', message: 'Maersk consignment delayed +4 days due to Port of Long Beach backlog.', severity: 'Critical', timestamp: '42 mins ago', read: false, entityType: 'shipment', entityId: 'SHP-2026-0001', actionRequired: true },
+      { id: 'alt-3', title: 'PO Overdue Warning: PO-2026-0042', message: 'Titan Microelectronics delivery overdue by 2 days.', severity: 'High', timestamp: '2 hours ago', read: false, entityType: 'po', entityId: 'PO-2026-0042', actionRequired: false },
+      { id: 'alt-4', title: 'ERP Ledger Telemetry Reconciled', message: 'Autonomous synchronization completed across all 4 distribution centers.', severity: 'Low', timestamp: '4 hours ago', read: true, actionRequired: false },
+    ];
+    res.json({ success: true, alerts });
+  });
+
+  // Device Registration Endpoint (POST /api/notifications/register-device)
+  app.post("/api/notifications/register-device", (req, res) => {
+    res.json({ success: true, registered: true });
+  });
+
   // Firebase Configuration & Database Health Check
   app.get("/api/firebase/health", (_req, res) => {
     res.json({

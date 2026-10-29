@@ -1,10 +1,14 @@
 import localforage from 'localforage';
 import { Product, Warehouse, Inventory, Supplier, PurchaseOrder, Shipment, Exception, ImportHistory } from '../../types';
 
-localforage.config({
-  name: 'SupplyChainControlTower',
-  storeName: 'sc_data',
-});
+if (localforage && typeof (localforage as any).config === 'function') {
+  try {
+    (localforage as any).config({
+      name: 'SupplyChainControlTower',
+      storeName: 'sc_data',
+    });
+  } catch {}
+}
 
 // Safe instance creation helper
 const createSafeInstance = (config: { name: string; storeName: string }) => {

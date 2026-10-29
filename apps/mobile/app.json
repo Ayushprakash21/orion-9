@@ -1,0 +1,67 @@
+{
+  "expo": {
+    "name": "Orion-9 Mobile",
+    "slug": "orion-9",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "orion9",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#070a10"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "tech.orion9.mobile",
+      "infoPlist": {
+        "UIBackgroundModes": [
+          "remote-notification",
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#070a10"
+      },
+      "package": "tech.orion9.mobile",
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "POST_NOTIFICATIONS"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#06b6d4"
+        }
+      ],
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "2b6fe5fe-b74b-4531-97ea-0fd6da419cc9"
+      },
+      "router": {
+        "origin": false
+      }
+    },
+    "owner": "ayushp0021"
+  }
+}

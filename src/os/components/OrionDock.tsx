@@ -711,7 +711,7 @@ export function OrionDock() {
             "orion-dock-shelf p-2.5 border transition-all duration-300 rounded-[20px] shadow-[0_24px_60px_rgba(0,0,0,0.55),inset_0_1px_1px_rgba(255,255,255,0.30)]",
             isVertical ? "flex flex-col items-center gap-2.5 overflow-y-auto max-h-[80vh]" : "flex items-center gap-2.5 overflow-x-auto max-w-[calc(100vw-24px)]"
           )}
-          style={{ 
+          style={({ 
             '--orion-dock-surface': 'var(--orion-dock-surface)',
             opacity: 'var(--orion-dock-opacity)',
             backgroundColor: 'var(--orion-dock-tint-bg)',
@@ -720,7 +720,7 @@ export function OrionDock() {
             borderColor: 'var(--orion-dock-border, rgba(255, 255, 255, 0.18))',
             boxShadow: 'inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.28), inset 0 0 0 0.5px rgba(255, 255, 255, 0.12), var(--orion-dock-shadow, 0 24px 60px rgba(0, 0, 0, 0.55))',
             scrollbarWidth: 'none' 
-          }}
+          }) as React.CSSProperties}
           onMouseLeave={() => { setHoveredApp(null); scheduleDockHide(); }}
         >
 

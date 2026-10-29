@@ -26,14 +26,24 @@ vi.mock('../data/db', () => ({
 }));
 
 // Mock localforage to suppress module-level initialization errors.
-vi.mock('localforage', () => ({
-  default: {
+vi.mock('localforage', () => {
+  const store = makeNoopStore();
+  const lf = {
     config: vi.fn(),
-    createInstance: vi.fn(() => makeNoopStore()),
+    createInstance: vi.fn(() => store),
     getItem: vi.fn().mockResolvedValue(null),
     setItem: vi.fn().mockResolvedValue(undefined),
-  },
-}));
+    removeItem: vi.fn().mockResolvedValue(undefined),
+    clear: vi.fn().mockResolvedValue(undefined),
+    keys: vi.fn().mockResolvedValue([]),
+    length: vi.fn().mockResolvedValue(0),
+    iterate: vi.fn().mockResolvedValue(undefined),
+  };
+  return {
+    ...lf,
+    default: lf,
+  };
+});
 
 // Suppress Firebase network calls — return mock instances in test mode with proper environment names
 vi.mock('../lib/firebaseClient', () => ({
@@ -62,6 +72,3 @@ vi.mock('../lib/firebaseClient', () => ({
     return 'DEMO';
   }),
 }));
-
-
-
