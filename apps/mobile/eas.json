@@ -1,0 +1,58 @@
+﻿{
+    "cli":  {
+                "version":  "\u003e= 12.0.0"
+            },
+    "build":  {
+                  "development":  {
+                                      "developmentClient":  true,
+                                      "distribution":  "internal",
+                                      "ios":  {
+                                                  "simulator":  false
+                                              },
+                                      "env":  {
+                                                  "EXPO_PUBLIC_ORION_API_URL":  "https://orion-9.ayushprakash0021.workers.dev",
+                                                  "EXPO_PUBLIC_FIREBASE_PROJECT_ID":  "orion9-dev-db-2026",
+                                                  "EXPO_PUBLIC_FIREBASE_APP_ID":  "1:1031466156269:web:44dd23cdcc883f809b8ce4"
+                                              }
+                                  },
+                  "preview":  {
+                                  "distribution":  "internal",
+                                  "android":  {
+                                                  "buildType":  "apk"
+                                              },
+                                  "ios":  {
+                                              "simulator":  false
+                                          },
+                                  "env":  {
+                                              "EXPO_PUBLIC_ORION_API_URL":  "https://orion-9.ayushprakash0021.workers.dev",
+                                              "EXPO_PUBLIC_FIREBASE_PROJECT_ID":  "orion9-dev-db-2026",
+                                              "EXPO_PUBLIC_FIREBASE_APP_ID":  "1:1031466156269:web:44dd23cdcc883f809b8ce4"
+                                          }
+                              },
+                  "production":  {
+                                     "distribution":  "store",
+                                     "android":  {
+                                                     "buildType":  "app-bundle"
+                                                 },
+                                     "ios":  {
+                                                 "simulator":  false
+                                             },
+                                     "env":  {
+                                                 "EXPO_PUBLIC_ORION_API_URL":  "https://orion-9.ayushprakash0021.workers.dev",
+                                                 "EXPO_PUBLIC_FIREBASE_PROJECT_ID":  "orion9-dev-db-2026",
+                                                 "EXPO_PUBLIC_FIREBASE_APP_ID":  "1:1031466156269:web:44dd23cdcc883f809b8ce4"
+                                             }
+                                 },
+                  "development-simulator":  {
+                                                "extends":  "development",
+                                                "ios":  {
+                                                            "simulator":  true
+                                                        }
+                                            }
+              },
+    "submit":  {
+                   "production":  {
+
+                                  }
+               }
+}

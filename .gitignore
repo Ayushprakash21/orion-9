@@ -27,3 +27,7 @@ public/downloads/
 scratch/
 *.exe
 *.msi
+
+*.apk
+release/
+apps/mobile/.env

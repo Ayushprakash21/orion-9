@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "2b6fe5fe-b74b-4531-97ea-0fd6da419cc9"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.ayushp0021.orion9",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}
