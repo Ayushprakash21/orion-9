@@ -4,6 +4,9 @@ import { ORION_REGISTRY } from '../OrionApplicationRegistry';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
 import { cn } from '../../lib/utils';
 import { X, Layers } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { useSupplyChain } from '../../store/SupplyChainContext';
+import { isReducedMotionPreferred, ORION_SPRING_SMOOTH, ORION_SPRING_SNAPPY } from '../motion/OrionMotion';
 
 interface OrionTaskSwitcherProps {
   isOpen: boolean;
@@ -12,6 +15,8 @@ interface OrionTaskSwitcherProps {
 
 export function OrionTaskSwitcher({ isOpen, onClose }: OrionTaskSwitcherProps) {
   const { windows, activeAppId, focusApplication, restoreApplication } = useWindowManager();
+  const supplyChain = useSupplyChain();
+  const prefersReduced = isReducedMotionPreferred(supplyChain?.settings?.reducedMotion);
   
   // Filter running/open windows
   const openWindows = Object.values(windows).filter(w => w.state !== 'closed');
@@ -50,7 +55,6 @@ export function OrionTaskSwitcher({ isOpen, onClose }: OrionTaskSwitcherProps) {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, selectedIndex, openWindows, onClose]);
 
-  if (!isOpen) return null;
 
   const handleSelectWindow = (id: string) => {
     const win = windows[id];
@@ -65,16 +69,26 @@ export function OrionTaskSwitcher({ isOpen, onClose }: OrionTaskSwitcherProps) {
   };
 
   return (
-    <div 
-      className="fixed inset-0 z-[2147483640] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-opacity duration-200 animate-in fade-in"
-      onClick={onClose}
-      role="dialog"
-      aria-label="Orion Task Switcher"
-    >
-      <div 
-        className="relative w-full max-w-2xl bg-[rgba(18,22,28,0.88)] backdrop-blur-[36px] backdrop-saturate-[160%] border border-white/[0.14] rounded-2xl shadow-[0_32px_80px_rgba(0,0,0,0.70),inset_0_1px_1px_rgba(255,255,255,0.22)] p-6 overflow-hidden flex flex-col gap-5 animate-in zoom-in-95 duration-150"
-        onClick={e => e.stopPropagation()}
-      >
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: prefersReduced ? 0.08 : 0.16 }}
+          className="fixed inset-0 z-[2147483640] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md"
+          onClick={onClose}
+          role="dialog"
+          aria-label="Orion Task Switcher"
+        >
+          <motion.div 
+            initial={{ scale: prefersReduced ? 1 : 0.94, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: prefersReduced ? 1 : 0.94, opacity: 0 }}
+            transition={prefersReduced ? { duration: 0.08 } : ORION_SPRING_SMOOTH}
+            className="relative w-full max-w-2xl bg-[rgba(18,22,28,0.88)] backdrop-blur-[36px] backdrop-saturate-[160%] border border-white/[0.14] rounded-2xl shadow-[0_32px_80px_rgba(0,0,0,0.70),inset_0_1px_1px_rgba(255,255,255,0.22)] p-6 overflow-hidden flex flex-col gap-5"
+            onClick={e => e.stopPropagation()}
+          >
         <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5">
           <div className="flex items-center gap-2.5">
             <Layers className="w-5 h-5 text-[var(--orion-accent,#D8DDE3)]" />
@@ -109,8 +123,11 @@ export function OrionTaskSwitcher({ isOpen, onClose }: OrionTaskSwitcherProps) {
               const isMinimized = win.state === 'minimized';
 
               return (
-                <button
+                <motion.button
                   key={win.id}
+                  whileHover={prefersReduced ? undefined : { scale: 1.02 }}
+                  whileTap={prefersReduced ? undefined : { scale: 0.98 }}
+                  transition={prefersReduced ? { duration: 0 } : ORION_SPRING_SNAPPY}
                   onClick={() => handleSelectWindow(win.id)}
                   onMouseEnter={() => setSelectedIndex(idx)}
                   className={cn(
@@ -142,7 +159,7 @@ export function OrionTaskSwitcher({ isOpen, onClose }: OrionTaskSwitcherProps) {
                       {app ? app.category : 'Application'}
                     </p>
                   </div>
-                </button>
+                </motion.button>
               );
             })}
           </div>
@@ -152,7 +169,9 @@ export function OrionTaskSwitcher({ isOpen, onClose }: OrionTaskSwitcherProps) {
           <span>Press <kbd className="px-1.5 py-0.5 bg-white/[0.08] rounded text-white border border-white/[0.1]">Tab</kbd> to cycle</span>
           <span>Press <kbd className="px-1.5 py-0.5 bg-white/[0.08] rounded text-white border border-white/[0.1]">Enter</kbd> to switch</span>
         </div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

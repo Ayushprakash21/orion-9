@@ -9,6 +9,10 @@ export interface SystemSettings {
   theme?: 'light' | 'dark' | 'system';
   brightness?: number; // 20 - 100
   reducedMotion?: boolean;
+  animationStyle?: 'premium' | 'balanced' | 'minimal' | 'reduced';
+  dockMagnification?: boolean;
+  dockBounceOnLaunch?: boolean;
+  genieEffectEnabled?: boolean;
   showDesktopIcons?: boolean;
   dockPosition?: 'bottom' | 'left' | 'right';
   displayScale?: number; // Windows-style UI scale: 100, 125, 150, 175, 200
@@ -67,6 +71,10 @@ export const DEFAULT_SETTINGS: SystemSettings = {
   theme: 'system',
   brightness: 100,
   reducedMotion: false,
+  animationStyle: 'premium',
+  dockMagnification: true,
+  dockBounceOnLaunch: true,
+  genieEffectEnabled: true,
   showDesktopIcons: true,
   dockPosition: 'bottom',
   displayScale: 100,

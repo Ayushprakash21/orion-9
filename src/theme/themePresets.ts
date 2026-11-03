@@ -139,6 +139,9 @@ export const DEFAULT_PERSONALIZATION_SETTINGS: PersonalizationSettings = {
   dockBlur: 80,
   dockTint: 'auto',
   dockMagnification: true,
+  animationStyle: 'premium',
+  dockBounceOnLaunch: true,
+  genieEffectEnabled: true,
 
   uiScale: 100,
   reducedMotion: false,

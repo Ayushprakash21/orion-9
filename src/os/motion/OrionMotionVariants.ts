@@ -1,10 +1,23 @@
 /**
- * ORION-9 OS MOTION VARIANTS
- * Standardized Framer Motion variants for all OS lifecycle transitions.
+ * ORION-9 OS MOTION VARIANTS — MOTION EXPERIENCE 2.0
+ * Standardized Framer Motion variants for all OS lifecycle transitions,
+ * windows, spaces, dock, launcher, command palette, and interactive sheets.
  */
 
 import { Variants } from 'motion/react';
-import { ORION_EASE, ORION_EASE_IN_OUT, ORION_MOTION_DURATIONS, ORION_BOOT_MOTION_SCALE } from './OrionMotion';
+import { 
+  ORION_EASE, 
+  ORION_EASE_IN_OUT, 
+  ORION_EASE_OUT,
+  ORION_MOTION_DURATIONS, 
+  ORION_BOOT_MOTION_SCALE,
+  ORION_SPRING_WINDOW,
+  ORION_SPRING_SMOOTH,
+  ORION_SPRING_MODAL,
+  ORION_SPRING_SNAPPY,
+  ORION_SPRING_BOUNCY,
+  ORION_SPRING_GENTLE
+} from './OrionMotion';
 
 /**
  * Global OS Lifecycle Screen Fade/Scale Variants
@@ -37,13 +50,12 @@ export const osLifecycleVariants: Variants = {
 
 /**
  * Power On & Boot Screen Animation Variants
- * Scaled by ORION_BOOT_MOTION_SCALE for measured, calm 80% visual pacing.
  */
 export const powerOnVariants: Variants = {
   hidden: {
     opacity: 0,
-    scale: 0.85,
-    filter: 'blur(12px)',
+    scale: 0.88,
+    filter: 'blur(16px)',
   },
   visible: {
     opacity: 1,
@@ -67,7 +79,6 @@ export const powerOnVariants: Variants = {
 
 /**
  * World Entry Sequence Motion Variants
- * Scaled by ORION_BOOT_MOTION_SCALE for measured, calm 80% visual pacing.
  */
 export const worldEntryContainerVariants: Variants = {
   hidden: {
@@ -151,7 +162,7 @@ export const shutdownVariants: Variants = {
   },
   closing: {
     opacity: 0,
-    scale: 0.65,
+    scale: 0.75,
     filter: 'blur(16px)',
     transition: {
       duration: ORION_MOTION_DURATIONS.cinematic,
@@ -161,29 +172,29 @@ export const shutdownVariants: Variants = {
 };
 
 /**
- * OS Window Open / Close / Minimize / Restore Variants
+ * macOS Sequoia-inspired Window Open / Close / Restore Variants
  */
 export const windowMotionVariants: Variants = {
   initial: {
     opacity: 0,
-    scale: 0.97,
-    y: 8,
+    scale: 0.94,
+    y: 14,
+    filter: 'blur(6px)',
   },
   animate: {
     opacity: 1,
     scale: 1,
     y: 0,
-    transition: {
-      duration: ORION_MOTION_DURATIONS.fast,
-      ease: ORION_EASE,
-    },
+    filter: 'blur(0px)',
+    transition: ORION_SPRING_WINDOW,
   },
   exit: {
     opacity: 0,
-    scale: 0.985,
-    y: 5,
+    scale: 0.95,
+    y: 8,
+    filter: 'blur(4px)',
     transition: {
-      duration: ORION_MOTION_DURATIONS.instant,
+      duration: 0.18,
       ease: ORION_EASE_IN_OUT,
     },
   },
@@ -210,29 +221,203 @@ export const desktopEntranceVariants: Variants = {
 };
 
 /**
- * Toast / Notification Motion Variants
+ * Dock Appearance & Exit Variants
  */
-export const toastNotificationVariants: Variants = {
-  initial: {
+export const dockEntranceVariants: Variants = {
+  hidden: (position: string) => ({
     opacity: 0,
-    y: -12,
+    y: position === 'bottom' ? 36 : position === 'top' ? -36 : 0,
+    x: position === 'left' ? -36 : position === 'right' ? 36 : 0,
     scale: 0.96,
-  },
-  animate: {
+  }),
+  visible: {
     opacity: 1,
     y: 0,
+    x: 0,
     scale: 1,
     transition: {
-      duration: ORION_MOTION_DURATIONS.fast,
+      ...ORION_SPRING_SMOOTH,
+      staggerChildren: 0.03,
+      delayChildren: 0.05,
+    },
+  },
+};
+
+export const dockItemEntranceVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    scale: 0.75,
+  },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: ORION_SPRING_SNAPPY,
+  },
+};
+
+/**
+ * Application Launcher Entrance / Exit Variants
+ */
+export const launcherMotionVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    scale: 0.95,
+    y: 16,
+    filter: 'blur(10px)',
+  },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: ORION_SPRING_MODAL,
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.96,
+    y: 12,
+    filter: 'blur(6px)',
+    transition: {
+      duration: 0.16,
+      ease: ORION_EASE_IN_OUT,
+    },
+  },
+};
+
+/**
+ * Command Palette Entrance / Exit Variants
+ */
+export const commandPaletteMotionVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    scale: 0.96,
+    y: -14,
+    filter: 'blur(8px)',
+  },
+  visible: {
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    filter: 'blur(0px)',
+    transition: ORION_SPRING_SNAPPY,
+  },
+  exit: {
+    opacity: 0,
+    scale: 0.97,
+    y: -8,
+    filter: 'blur(4px)',
+    transition: {
+      duration: 0.14,
+      ease: ORION_EASE_OUT,
+    },
+  },
+};
+
+/**
+ * Mission Control Spatial Overview Variants
+ */
+export const missionControlBackdropVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    backdropFilter: 'blur(0px)',
+  },
+  visible: {
+    opacity: 1,
+    backdropFilter: 'blur(20px)',
+    transition: {
+      duration: 0.32,
       ease: ORION_EASE,
     },
   },
   exit: {
     opacity: 0,
-    x: 24,
-    scale: 0.96,
+    backdropFilter: 'blur(0px)',
     transition: {
-      duration: ORION_MOTION_DURATIONS.instant,
+      duration: 0.22,
+      ease: ORION_EASE_IN_OUT,
+    },
+  },
+};
+
+export const missionControlWindowCardVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    scale: 0.88,
+    y: 20,
+  },
+  visible: (i: number = 0) => ({
+    opacity: 1,
+    scale: 1,
+    y: 0,
+    transition: {
+      ...ORION_SPRING_SMOOTH,
+      delay: i * 0.03,
+    },
+  }),
+  exit: {
+    opacity: 0,
+    scale: 0.92,
+    y: 12,
+    transition: {
+      duration: 0.16,
+      ease: ORION_EASE_IN_OUT,
+    },
+  },
+};
+
+/**
+ * Spatial Workspace Switching Variants (Horizontal pan)
+ */
+export const workspaceSwitchVariants: Variants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 120 : -120,
+    opacity: 0,
+    scale: 0.98,
+    filter: 'blur(4px)',
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+    scale: 1,
+    filter: 'blur(0px)',
+    transition: ORION_SPRING_SMOOTH,
+  },
+  exit: (direction: number) => ({
+    x: direction < 0 ? 120 : -120,
+    opacity: 0,
+    scale: 0.98,
+    filter: 'blur(4px)',
+    transition: {
+      duration: 0.22,
+      ease: ORION_EASE_IN_OUT,
+    },
+  }),
+};
+
+/**
+ * Toast / Notification Motion Variants
+ */
+export const toastNotificationVariants: Variants = {
+  initial: {
+    opacity: 0,
+    y: -14,
+    scale: 0.94,
+    filter: 'blur(4px)',
+  },
+  animate: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    filter: 'blur(0px)',
+    transition: ORION_SPRING_BOUNCY,
+  },
+  exit: {
+    opacity: 0,
+    x: 32,
+    scale: 0.95,
+    filter: 'blur(2px)',
+    transition: {
+      duration: 0.18,
       ease: ORION_EASE_IN_OUT,
     },
   },

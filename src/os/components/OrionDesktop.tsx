@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { OrionSystemBar } from './OrionSystemBar';
 import { OrionDock } from './OrionDock';
 import { OrionMobileNavBar } from './OrionMobileNavBar';
@@ -10,7 +10,8 @@ import { OrionWindow } from './OrionWindow';
 import { OrionTaskSwitcher } from './OrionTaskSwitcher';
 import { OrionMissionControl } from './OrionMissionControl';
 import { motion, AnimatePresence } from 'motion/react';
-import { desktopEntranceVariants } from '../motion/OrionMotionVariants';
+import { desktopEntranceVariants, workspaceSwitchVariants } from '../motion/OrionMotionVariants';
+import { isReducedMotionPreferred } from '../motion/OrionMotion';
 import { OrionContextMenu } from '../contextMenu/OrionContextMenu';
 import { useContextMenuTrigger, ContextMenuItem } from '../contextMenu/OrionContextMenuContext';
 import { EntityDrawer } from '../../components/drawers/EntityDrawer';
@@ -60,6 +61,18 @@ export function OrionDesktop() {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedDesktopApp, setSelectedDesktopApp] = useState<string | null>(null);
+  const prefersReduced = isReducedMotionPreferred(supplyChain?.settings?.reducedMotion);
+  const prevWorkspaceIdRef = useRef(activeWorkspaceId);
+  const [workspaceDirection, setWorkspaceDirection] = useState(0);
+
+  useEffect(() => {
+    if (activeWorkspaceId !== prevWorkspaceIdRef.current) {
+      const prevIdx = WORKSPACES.findIndex(w => w.id === prevWorkspaceIdRef.current);
+      const currIdx = WORKSPACES.findIndex(w => w.id === activeWorkspaceId);
+      setWorkspaceDirection(currIdx >= prevIdx ? 1 : -1);
+      prevWorkspaceIdRef.current = activeWorkspaceId;
+    }
+  }, [activeWorkspaceId]);
 
   // Invariant Guard: Shell MUST NOT render if unauthenticated
   if (!isAuthenticated || !currentUser) {
@@ -287,16 +300,28 @@ export function OrionDesktop() {
       </div>
 
       {/* OS Layer 2: Desktop Window Manager Stage (Workspace Below Top Bar) */}
-      <div data-orion-workspace="true" className="orion-app-viewport z-20 min-h-0 pointer-events-none">
-        {/* Render open windows in desktop multi-window mode */}
-        <AnimatePresence>
-          {currentWorkspaceWindows.map(win => (
-            <OrionWindow
-              key={win.id}
-              window={win}
-              isActive={win.id === activeAppId}
-            />
-          ))}
+      <div data-orion-workspace="true" className="orion-app-viewport z-20 min-h-0 pointer-events-none relative overflow-hidden">
+        {/* Render open windows with fluid horizontal macOS Spaces transitions */}
+        <AnimatePresence mode="popLayout" custom={workspaceDirection}>
+          <motion.div
+            key={activeWorkspaceId}
+            custom={workspaceDirection}
+            variants={prefersReduced ? undefined : workspaceSwitchVariants}
+            initial={prefersReduced ? undefined : "enter"}
+            animate={prefersReduced ? undefined : "center"}
+            exit={prefersReduced ? undefined : "exit"}
+            className="absolute inset-0 pointer-events-none"
+          >
+            <AnimatePresence>
+              {currentWorkspaceWindows.map(win => (
+                <OrionWindow
+                  key={win.id}
+                  window={win}
+                  isActive={win.id === activeAppId}
+                />
+              ))}
+            </AnimatePresence>
+          </motion.div>
         </AnimatePresence>
       </div>
 

@@ -179,8 +179,12 @@ export default {
         new Response(
           JSON.stringify({ success: true, summary }),
           { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }
+        ),
+        request
+      );
+    }
 
-// 0da. Native Mobile & Web Authentication Route (POST /api/auth/login)
+    // 0da. Native Mobile & Web Authentication Route (POST /api/auth/login)
     if (url.pathname === "/api/auth/login" && request.method === "POST") {
       const rateLimitErr = applyWorkerRateLimit(request, 'default');
       if (rateLimitErr) return rateLimitErr;

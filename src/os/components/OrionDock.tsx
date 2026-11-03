@@ -5,6 +5,8 @@ import { useOrionContextMenu, ContextMenuItem } from '../contextMenu/OrionContex
 import { useToast } from '../../store/ToastContext';
 import { useI18n } from '../../store/LanguageContext';
 import { cn } from '../../lib/utils';
+import { dockGeometryRegistry } from '../dock/DockGeometryRegistry';
+import { ORION_SPRING_DOCK, ORION_SPRING_BOUNCY, ORION_SPRING_SNAPPY, isReducedMotionPreferred } from '../motion/OrionMotion';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
 import { useOSGeometry } from '../dock/DockGeometry';
 import { 
@@ -50,6 +52,7 @@ export function OrionDock() {
   const [hoveredApp, setHoveredApp] = useState<string | null>(null);
   const [draggedApp, setDraggedApp] = useState<string | null>(null);
   const [dragOverApp, setDragOverApp] = useState<string | null>(null);
+  const [bouncingAppId, setBouncingAppId] = useState<string | null>(null);
 
   const isVertical = dock.orientation === 'vertical';
   const dockPosition = dock.position;
@@ -301,6 +304,9 @@ export function OrionDock() {
     if (!id || !ORION_REGISTRY[id]) return;
     const win = windows[id];
     if (!win || win.state === 'closed') {
+      // Trigger tactile launch bounce
+      setBouncingAppId(id);
+      setTimeout(() => setBouncingAppId(prev => prev === id ? null : prev), 850);
       openApplication(id);
     } else if (win.state === 'minimized') {
       restoreApplication(id);
@@ -815,17 +821,19 @@ export function OrionDock() {
             const isActive = isOpen && activeAppId === id && !isMinimized;
             const isPinned = dockPinnedApps.includes(id);
 
-            // Orientation-aware magnification
+            // Orientation-aware magnification with smooth physics
             const hoveredIndex = hoveredApp ? dockApps.indexOf(hoveredApp) : -1;
             const distance = hoveredIndex !== -1 ? Math.abs(hoveredIndex - index) : 100;
-            const scale = magnificationEnabled
-              ? (distance === 1.15 ? 1.15 : distance === 0 ? 1.15 : distance === 1 ? 1.08 : distance === 2 ? 1.03 : 1)
+            const targetScale = magnificationEnabled
+              ? (distance === 0 ? 1.25 : distance === 1 ? 1.14 : distance === 2 ? 1.05 : 1)
               : 1;
+            const isBouncing = bouncingAppId === id;
 
             return (
               <button
                 type="button"
                 key={id}
+                ref={(el) => dockGeometryRegistry.registerIcon(id, el)}
                 data-dock-item={id}
                 aria-label={app.name}
                 tabIndex={0}
@@ -854,11 +862,13 @@ export function OrionDock() {
                 )}
                 style={{
                   transformOrigin: dock.magnificationOrigin,
-                  transform: dragOverApp !== id && hoveredApp ? `scale(${scale})` : undefined,
-                  marginBottom: !isVertical && dragOverApp !== id && hoveredIndex !== -1 ? `${(scale - 1) * 14}px` : "0px",
-                  marginRight: isVertical && dragOverApp !== id && hoveredIndex !== -1 ? `${(scale - 1) * 14}px` : "0px",
+                  transform: dragOverApp !== id && hoveredApp ? `scale(${targetScale})` : undefined,
+                  marginBottom: !isVertical && dragOverApp !== id && hoveredIndex !== -1 ? `${(targetScale - 1) * 16}px` : "0px",
+                  marginRight: isVertical && dragOverApp !== id && hoveredIndex !== -1 ? `${(targetScale - 1) * 16}px` : "0px",
                   width: `${dock.iconContainerSize}px`,
-                  height: `${dock.iconContainerSize}px`
+                  height: `${dock.iconContainerSize}px`,
+                  animation: isBouncing ? 'orion-dock-launch-bounce 0.8s ease-in-out infinite' : undefined,
+                  transition: 'transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), margin 0.16s cubic-bezier(0.22, 1, 0.36, 1)'
                 }}
                 title={app.name}
               >

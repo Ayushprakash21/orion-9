@@ -66,6 +66,11 @@ export interface PersonalizationSettings {
   dockTint?: 'auto' | 'dark' | 'light' | 'accent';
   dockMagnification: boolean;
 
+  // Motion Experience 2.0 (macOS-inspired animation style)
+  animationStyle?: 'premium' | 'balanced' | 'minimal' | 'reduced';
+  dockBounceOnLaunch?: boolean;
+  genieEffectEnabled?: boolean;
+
   // Accessibility & Display
   uiScale: number; // 80 - 150%
   reducedMotion: boolean;

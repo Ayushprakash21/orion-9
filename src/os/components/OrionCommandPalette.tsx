@@ -1,4 +1,7 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { commandPaletteMotionVariants } from '../motion/OrionMotionVariants';
+import { isReducedMotionPreferred } from '../motion/OrionMotion';
 import { useWindowManager, WorkspaceId } from '../WindowManagerContext';
 import { ORION_REGISTRY } from '../OrionApplicationRegistry';
 import { useAuth } from '../../store/AuthContext';
@@ -37,8 +40,10 @@ export function OrionCommandPalette() {
   } = useWindowManager();
 
   const { triggerLock, triggerSleep, triggerRestart, logout } = useAuth();
-  const { suppliers, shipments, products, exceptions } = useSupplyChain();
+  const supplyChain = useSupplyChain();
+  const { suppliers, shipments, products, exceptions } = supplyChain;
   const { openEntity } = useEntityDrawer();
+  const prefersReduced = isReducedMotionPreferred(supplyChain?.settings?.reducedMotion);
 
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -392,21 +397,29 @@ export function OrionCommandPalette() {
     }
   };
 
-  if (!commandPaletteOpen) return null;
-
   return (
-    <div 
-      style={{
-        paddingTop: 'calc(var(--orion-dock-workspace-top, 0px) + 56px)',
-      }}
-      className="fixed inset-0 z-[2147483620] bg-black/60 backdrop-blur-md flex items-start justify-center p-2 sm:p-4 animate-in fade-in duration-150 select-none"
-      onClick={() => setCommandPaletteOpen(false)}
-    >
-      <div 
-        className="orion-command-palette w-full max-w-2xl bg-[rgba(18,22,28,0.85)] backdrop-blur-[36px] backdrop-saturate-[160%] border border-white/[0.14] rounded-2xl shadow-[0_32px_80px_rgba(0,0,0,0.70),inset_0_1px_1px_rgba(255,255,255,0.22)] overflow-hidden flex flex-col max-h-[82vh] sm:max-h-[75vh]"
-        onClick={e => e.stopPropagation()}
-        onKeyDown={handleKeyDown}
-      >
+    <AnimatePresence>
+      {commandPaletteOpen && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: prefersReduced ? 0.08 : 0.18 }}
+          style={{
+            paddingTop: 'calc(var(--orion-dock-workspace-top, 0px) + 56px)',
+          }}
+          className="fixed inset-0 z-[2147483620] bg-black/60 backdrop-blur-md flex items-start justify-center p-2 sm:p-4 select-none"
+          onClick={() => setCommandPaletteOpen(false)}
+        >
+          <motion.div 
+            variants={commandPaletteMotionVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            className="orion-command-palette w-full max-w-2xl bg-[rgba(18,22,28,0.85)] backdrop-blur-[36px] backdrop-saturate-[160%] border border-white/[0.14] rounded-2xl shadow-[0_32px_80px_rgba(0,0,0,0.70),inset_0_1px_1px_rgba(255,255,255,0.22)] overflow-hidden flex flex-col max-h-[82vh] sm:max-h-[75vh]"
+            onClick={e => e.stopPropagation()}
+            onKeyDown={handleKeyDown}
+          >
         {/* Search Header */}
         <div className="flex items-center px-4 py-3.5 border-b border-white/[0.07] bg-white/[0.02]">
           <Search className="w-5 h-5 text-os-accent mr-3.5 shrink-0 drop-shadow-sm" />
@@ -508,7 +521,9 @@ export function OrionCommandPalette() {
           </div>
           <span className="text-os-text-muted">ORION Supply Chain Intelligence</span>
         </div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }

@@ -64,25 +64,65 @@ export const AccessibilitySettingsPanel: React.FC<AccessibilitySettingsPanelProp
         </div>
       </div>
 
-      {/* 2. MOTION & TRANSPARENCY TOGGLES */}
+      {/* 2. MOTION & VISUAL EFFECTS CONTROLS */}
       <div className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-xl p-5 space-y-4">
         <label className="text-xs font-bold uppercase tracking-wider text-[var(--orion-text-muted)] flex items-center gap-1.5">
           <Zap className="w-4 h-4 text-[var(--orion-accent)]" />
-          Motion & Visual Effects Controls
+          Orion Motion Experience 2.0 (macOS Spring Physics)
         </label>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Animation Style Selector */}
+        <div className="space-y-2">
+          <span className="text-xs font-semibold text-[var(--orion-text)] block">OS Animation Profile</span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+            {[
+              { id: 'premium', label: 'Premium (macOS)', desc: 'Natural spring physics, spatial depth & fluid curves' },
+              { id: 'balanced', label: 'Balanced', desc: 'Smooth responsive transitions for high efficiency' },
+              { id: 'minimal', label: 'Minimal', desc: 'Rapid 100ms fade transitions with low inertia' },
+              { id: 'reduced', label: 'Reduced', desc: 'Instant zero-motion transitions for accessibility' },
+            ].map(profile => {
+              const isActive = (settings.animationStyle || 'premium') === profile.id;
+              return (
+                <button
+                  key={profile.id}
+                  type="button"
+                  onClick={() => onChange({ 
+                    animationStyle: profile.id as any,
+                    reducedMotion: profile.id === 'reduced' ? true : settings.reducedMotion
+                  })}
+                  className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all ${
+                    isActive
+                      ? 'border-[var(--orion-accent)] bg-[var(--orion-accent-subtle)] ring-1 ring-[var(--orion-accent)]'
+                      : 'border-[var(--orion-border)] bg-[var(--orion-surface-secondary)] hover:bg-[var(--orion-surface-hover)]'
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-xs font-bold text-[var(--orion-text)]">{profile.label}</span>
+                    {isActive && <CheckCircle2 className="w-3.5 h-3.5 text-[var(--orion-accent)] shrink-0" />}
+                  </div>
+                  <span className="text-[10px] text-[var(--orion-text-secondary)] mt-1.5 leading-tight">{profile.desc}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Feature Toggles */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
           <label className="flex items-start justify-between p-4 rounded-xl border border-[var(--orion-border)] bg-[var(--orion-surface-secondary)] cursor-pointer hover:bg-[var(--orion-surface-hover)] transition-colors">
             <div className="space-y-1">
               <span className="text-xs font-bold text-[var(--orion-text)] block">Reduced Motion</span>
               <span className="text-[11px] text-[var(--orion-text-secondary)] block">
-                Disables CSS transitions, window opening animations, and dock bounce effects.
+                Disables window spring animations, dock bounce, and spatial slides.
               </span>
             </div>
             <input
               type="checkbox"
               checked={settings.reducedMotion}
-              onChange={(e) => onChange({ reducedMotion: e.target.checked })}
+              onChange={(e) => onChange({ 
+                reducedMotion: e.target.checked,
+                animationStyle: e.target.checked ? 'reduced' : 'premium'
+              })}
               className="w-4 h-4 rounded accent-[var(--orion-accent)] mt-0.5"
             />
           </label>
@@ -98,6 +138,36 @@ export const AccessibilitySettingsPanel: React.FC<AccessibilitySettingsPanelProp
               type="checkbox"
               checked={settings.reducedTransparency}
               onChange={(e) => onChange({ reducedTransparency: e.target.checked })}
+              className="w-4 h-4 rounded accent-[var(--orion-accent)] mt-0.5"
+            />
+          </label>
+
+          <label className="flex items-start justify-between p-4 rounded-xl border border-[var(--orion-border)] bg-[var(--orion-surface-secondary)] cursor-pointer hover:bg-[var(--orion-surface-hover)] transition-colors">
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-[var(--orion-text)] block">macOS Genie Funnel Minimize</span>
+              <span className="text-[11px] text-[var(--orion-text-secondary)] block">
+                Fluidly contracts and funnels windows directly toward their icon in the dock.
+              </span>
+            </div>
+            <input
+              type="checkbox"
+              checked={settings.genieEffectEnabled ?? true}
+              onChange={(e) => onChange({ genieEffectEnabled: e.target.checked })}
+              className="w-4 h-4 rounded accent-[var(--orion-accent)] mt-0.5"
+            />
+          </label>
+
+          <label className="flex items-start justify-between p-4 rounded-xl border border-[var(--orion-border)] bg-[var(--orion-surface-secondary)] cursor-pointer hover:bg-[var(--orion-surface-hover)] transition-colors">
+            <div className="space-y-1">
+              <span className="text-xs font-bold text-[var(--orion-text)] block">Dock Launch Bounce</span>
+              <span className="text-[11px] text-[var(--orion-text-secondary)] block">
+                Tactile spring bounce feedback on the dock icon when opening applications.
+              </span>
+            </div>
+            <input
+              type="checkbox"
+              checked={settings.dockBounceOnLaunch ?? true}
+              onChange={(e) => onChange({ dockBounceOnLaunch: e.target.checked })}
               className="w-4 h-4 rounded accent-[var(--orion-accent)] mt-0.5"
             />
           </label>

@@ -17,6 +17,8 @@ import { ORION_REGISTRY } from '../OrionApplicationRegistry';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
 import { cn } from '../../lib/utils';
 import { useToast } from '../../store/ToastContext';
+import { useSupplyChain } from '../../store/SupplyChainContext';
+import { isReducedMotionPreferred, ORION_SPRING_SMOOTH } from '../motion/OrionMotion';
 
 export function OrionMissionControl() {
   const {
@@ -35,6 +37,8 @@ export function OrionMissionControl() {
   } = useWindowManager();
 
   const { showToast } = useToast();
+  const supplyChain = useSupplyChain();
+  const prefersReduced = isReducedMotionPreferred(supplyChain?.settings?.reducedMotion);
   const [editingSpaceId, setEditingSpaceId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
   const [isAddingSpace, setIsAddingSpace] = useState(false);
@@ -93,7 +97,6 @@ export function OrionMissionControl() {
     setMissionControlOpen(false);
   }, [focusApplication, setMissionControlOpen]);
 
-  if (!missionControlOpen) return null;
 
   // Windows in active space
   const activeSpaceWindows = Object.values(windows).filter(
@@ -102,12 +105,13 @@ export function OrionMissionControl() {
 
   const overlayContent = (
     <AnimatePresence>
-      <motion.div
-        data-testid="orion-mission-control-overlay"
-        initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-        animate={{ opacity: 1, backdropFilter: 'blur(28px)' }}
-        exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-        transition={{ duration: 0.22, ease: 'easeOut' }}
+      {missionControlOpen && (
+        <motion.div
+          data-testid="orion-mission-control-overlay"
+          initial={{ opacity: 0, backdropFilter: prefersReduced ? 'none' : 'blur(0px)' }}
+          animate={{ opacity: 1, backdropFilter: prefersReduced ? 'none' : 'blur(28px)' }}
+          exit={{ opacity: 0, backdropFilter: prefersReduced ? 'none' : 'blur(0px)' }}
+          transition={{ duration: prefersReduced ? 0.08 : 0.22, ease: 'easeOut' }}
         className="fixed inset-0 z-[10020] bg-black/75 flex flex-col select-none overflow-hidden"
         onClick={(e) => {
           if (e.target === e.currentTarget) {
@@ -306,8 +310,8 @@ export function OrionMissionControl() {
                   <motion.div
                     key={win.id}
                     layoutId={`mission-win-${win.id}`}
-                    whileHover={{ scale: 1.02, y: -4 }}
-                    transition={{ duration: 0.15 }}
+                    whileHover={prefersReduced ? undefined : { scale: 1.025, y: -4 }}
+                    transition={prefersReduced ? { duration: 0.08 } : ORION_SPRING_SMOOTH}
                     data-testid={`mission-control-window-${win.id}`}
                     onClick={() => handleSelectWindow(win.id)}
                     className="group relative flex flex-col rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 hover:border-white/35 backdrop-blur-xl shadow-xl shadow-black/40 overflow-hidden cursor-pointer transition-colors"
@@ -390,7 +394,8 @@ export function OrionMissionControl() {
             </div>
           )}
         </main>
-      </motion.div>
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 

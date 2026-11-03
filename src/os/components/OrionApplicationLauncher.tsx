@@ -1,4 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { launcherMotionVariants } from '../motion/OrionMotionVariants';
+import { isReducedMotionPreferred } from '../motion/OrionMotion';
 import { createPortal } from 'react-dom';
 import { useWindowManager } from '../WindowManagerContext';
 import { ORION_REGISTRY } from '../OrionApplicationRegistry';
@@ -245,7 +248,7 @@ export function OrionApplicationLauncher() {
     window.addEventListener('pointercancel', handlePointerCancel);
   }, [activeWorkspaceId, currentUser, setLauncherOpen, showToast]);
 
-  if (!launcherOpen) return null;
+  // Let AnimatePresence handle exit animation
 
   // User launcher exposes the User Manual only to standard users. Admins use the dedicated Admin Manual in the Admin Console.
   const apps = Object.values(ORION_REGISTRY).filter(app => !(app.id === 'user-manual' && isAdmin));
@@ -267,37 +270,49 @@ export function OrionApplicationLauncher() {
     setLauncherOpen(false);
   };
 
+  const prefersReduced = isReducedMotionPreferred(settings?.reducedMotion);
+
   return (
-    <div 
-      className={cn(
-        "fixed inset-0 z-[2147483620] flex items-end justify-center",
-        activeDrag?.isDragging ? "pointer-events-none" : "pointer-events-auto"
-      )}
-      onClick={() => {
-        if (!hasDraggedRef.current && !activeDrag?.isDragging) {
-          setLauncherOpen(false);
-        }
-      }}
-    >
-      <div 
-        className={cn(
-          "absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity duration-300 animate-in fade-in",
-          activeDrag?.isDragging ? "pointer-events-none opacity-20" : "pointer-events-auto"
-        )} 
-      />
-      
-      <div 
-        ref={containerRef}
-        style={{
-          marginBottom: 'calc(var(--orion-dock-workspace-bottom, 0px) + 24px)',
-          marginLeft: 'var(--orion-dock-workspace-left, 0px)',
-          marginRight: 'var(--orion-dock-workspace-right, 0px)',
-        }}
-        className="orion-launcher-surface relative w-[calc(100%-16px)] sm:w-full max-w-3xl max-h-[82vh] flex flex-col bg-[rgba(18,22,28,0.88)] backdrop-blur-[36px] backdrop-saturate-[160%] rounded-2xl border border-white/[0.14] shadow-[0_32px_80px_rgba(0,0,0,0.70),inset_0_1px_1px_0_rgba(255,255,255,0.22)] animate-in fade-in slide-in-from-bottom-6 duration-200 pointer-events-auto transition-all"
-        onClick={e => e.stopPropagation()}
-        role="dialog"
-        aria-label="Application Launcher"
-      >
+    <AnimatePresence>
+      {launcherOpen && (
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: prefersReduced ? 0.08 : 0.2 }}
+          className={cn(
+            "fixed inset-0 z-[2147483620] flex items-end justify-center",
+            activeDrag?.isDragging ? "pointer-events-none" : "pointer-events-auto"
+          )}
+          onClick={() => {
+            if (!hasDraggedRef.current && !activeDrag?.isDragging) {
+              setLauncherOpen(false);
+            }
+          }}
+        >
+          <div 
+            className={cn(
+              "absolute inset-0 bg-black/45 backdrop-blur-sm transition-opacity duration-300",
+              activeDrag?.isDragging ? "pointer-events-none opacity-20" : "pointer-events-auto"
+            )} 
+          />
+          
+          <motion.div 
+            ref={containerRef}
+            variants={launcherMotionVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+            style={{
+              marginBottom: 'calc(var(--orion-dock-workspace-bottom, 0px) + 24px)',
+              marginLeft: 'var(--orion-dock-workspace-left, 0px)',
+              marginRight: 'var(--orion-dock-workspace-right, 0px)',
+            }}
+            className="orion-launcher-surface relative w-[calc(100%-16px)] sm:w-full max-w-3xl max-h-[82vh] flex flex-col bg-[rgba(18,22,28,0.88)] backdrop-blur-[36px] backdrop-saturate-[160%] rounded-2xl border border-white/[0.14] shadow-[0_32px_80px_rgba(0,0,0,0.70),inset_0_1px_1px_0_rgba(255,255,255,0.22)] pointer-events-auto"
+            onClick={e => e.stopPropagation()}
+            role="dialog"
+            aria-label="Application Launcher"
+          >
         <div className="flex items-center gap-3 p-4 border-b border-white/[0.08] shrink-0">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -553,38 +568,40 @@ export function OrionApplicationLauncher() {
             </button>
           </div>
         </div>
-      </div>
+          </motion.div>
 
-      {/* Visual Drag Preview Portal */}
-      {activeDrag?.isDragging && typeof document !== 'undefined' && createPortal(
-        <div
-          data-testid="start-menu-drag-preview"
-          data-is-over-desktop={activeDrag.isOverDesktop ? "true" : "false"}
-          className={cn(
-            "fixed pointer-events-none z-[2147483647] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5 p-3 rounded-2xl border shadow-2xl backdrop-blur-xl transition-transform duration-75 select-none",
-            activeDrag.isOverDesktop
-              ? "bg-[#141820]/95 border-white/40 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_20px_rgba(255,255,255,0.12)] scale-110 ring-1 ring-white/20"
-              : "bg-[#12151a]/95 border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.9)] scale-100 opacity-80"
+          {/* Visual Drag Preview Portal */}
+          {activeDrag?.isDragging && typeof document !== 'undefined' && createPortal(
+            <div
+              data-testid="start-menu-drag-preview"
+              data-is-over-desktop={activeDrag.isOverDesktop ? "true" : "false"}
+              className={cn(
+                "fixed pointer-events-none z-[2147483647] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5 p-3 rounded-2xl border shadow-2xl backdrop-blur-xl transition-transform duration-75 select-none",
+                activeDrag.isOverDesktop
+                  ? "bg-[#141820]/95 border-white/40 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_20px_rgba(255,255,255,0.12)] scale-110 ring-1 ring-white/20"
+                  : "bg-[#12151a]/95 border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.9)] scale-100 opacity-80"
+              )}
+              style={{
+                left: `${activeDrag.currentX}px`,
+                top: `${activeDrag.currentY}px`,
+              }}
+            >
+              <OrionAppIcon app={activeDrag.app.id} size={48} />
+              <span className="text-xs font-semibold text-white drop-shadow whitespace-nowrap px-2 py-0.5 rounded bg-black/60 border border-white/10">
+                {activeDrag.app.name}
+              </span>
+              {activeDrag.isOverDesktop && (
+                <span className="text-[10px] font-medium text-white/90 uppercase tracking-wider bg-white/[0.12] px-2.5 py-0.5 rounded-full border border-white/20 flex items-center gap-1.5 shadow-sm">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  Drop on Desktop
+                </span>
+              )}
+            </div>,
+            document.body
           )}
-          style={{
-            left: `${activeDrag.currentX}px`,
-            top: `${activeDrag.currentY}px`,
-          }}
-        >
-          <OrionAppIcon app={activeDrag.app.id} size={48} />
-          <span className="text-xs font-semibold text-white drop-shadow whitespace-nowrap px-2 py-0.5 rounded bg-black/60 border border-white/10">
-            {activeDrag.app.name}
-          </span>
-          {activeDrag.isOverDesktop && (
-            <span className="text-[10px] font-medium text-white/90 uppercase tracking-wider bg-white/[0.12] px-2.5 py-0.5 rounded-full border border-white/20 flex items-center gap-1.5 shadow-sm">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              Drop on Desktop
-            </span>
-          )}
-        </div>,
-        document.body
+        </motion.div>
       )}
-    </div>
+    </AnimatePresence>
   );
 }
 

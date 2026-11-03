@@ -11,7 +11,10 @@ import { RotateCcw, AlertTriangle, Move, Maximize2, Minus, Square, X } from 'luc
 import { OrionWindowControls } from './OrionWindowControls';
 import { useOSGeometry } from '../dock/DockGeometry';
 import { cn } from '../../lib/utils';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
+import { dockGeometryRegistry } from '../dock/DockGeometryRegistry';
+import { ORION_SPRING_WINDOW, ORION_SPRING_SMOOTH, isReducedMotionPreferred } from '../motion/OrionMotion';
+import { useSupplyChain } from '../../store/SupplyChainContext';
 
 interface OrionWindowProps {
   window: AppWindow;
@@ -473,9 +476,15 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
   const isMaximized = win.state === 'maximized' || isMobile;
   const isMinimized = win.state === 'minimized';
 
+  const supplyChain = useSupplyChain();
+  const prefersReduced = isReducedMotionPreferred(supplyChain?.settings?.reducedMotion);
+  const animationStyle = supplyChain?.settings?.animationStyle || 'premium';
+  const genieEnabled = !prefersReduced && (supplyChain?.settings?.genieEffectEnabled ?? true);
+
+  // Compute source/target Dock icon geometry for macOS Genie minimize & restore
+  const dockGeom = dockGeometryRegistry.getIconGeometry(win.id) || dockGeometryRegistry.getFallbackGeometry();
+
   // Floating or maximized geometry styles inside the desktop workspace stage
-  // In true macOS fashion, the Dock is an overlay layer that floats above applications.
-  // Maximized windows occupy the entire workspace (100% width and 100% height) without being compressed or inset by the Dock.
   const windowStyles: React.CSSProperties = isMaximized
     ? {
         position: 'absolute',
@@ -486,6 +495,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
         width: '100%',
         height: '100%',
         zIndex: win.zIndex,
+        transformOrigin: dockGeom ? `${dockGeom.center.x}px ${dockGeom.center.y}px` : 'center bottom',
       }
     : {
         position: 'absolute',
@@ -494,6 +504,7 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
         width: `${win.size.width}px`,
         height: `${win.size.height}px`,
         zIndex: win.zIndex,
+        transformOrigin: dockGeom ? `${dockGeom.center.x - win.position.x}px ${dockGeom.center.y - win.position.y}px` : 'center bottom',
       };
 
   const Icon = app.icon;
@@ -501,14 +512,40 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, scale: 0.97, y: 8 }}
-      animate={{ 
-        opacity: isMinimized ? 0 : 1, 
-        scale: isMinimized ? 0.92 : 1, 
-        y: isMinimized ? 16 : 0,
+      initial={prefersReduced ? { opacity: 0 } : { 
+        opacity: 0, 
+        scale: 0.88, 
+        y: 18,
+        filter: 'blur(8px)',
       }}
-      exit={{ opacity: 0, scale: 0.985, y: 5 }}
-      transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+      animate={
+        prefersReduced
+          ? { opacity: isMinimized ? 0 : 1 }
+          : isMinimized
+          ? {
+              opacity: 0,
+              scale: genieEnabled ? 0.08 : 0.85,
+              y: genieEnabled ? (dockGeom ? dockGeom.center.y - (isMaximized ? 400 : win.position.y) : 100) : 24,
+              x: genieEnabled && dockGeom ? (dockGeom.center.x - (isMaximized ? (typeof window !== 'undefined' ? window.innerWidth / 2 : 600) : win.position.x + win.size.width / 2)) * 0.4 : 0,
+              filter: 'blur(10px)',
+              borderRadius: '24px',
+            }
+          : {
+              opacity: 1,
+              scale: 1,
+              x: 0,
+              y: 0,
+              filter: 'blur(0px)',
+              borderRadius: isMaximized ? '0px' : '18px',
+            }
+      }
+      exit={prefersReduced ? { opacity: 0 } : { 
+        opacity: 0, 
+        scale: 0.92, 
+        y: 12,
+        filter: 'blur(6px)',
+      }}
+      transition={prefersReduced ? { duration: 0.1 } : ORION_SPRING_WINDOW}
       data-window-id={win.id} data-orion-window
       onPointerDown={() => focusApplication(win.id)}
       style={windowStyles}
