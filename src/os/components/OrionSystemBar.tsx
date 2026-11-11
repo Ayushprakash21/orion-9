@@ -20,7 +20,75 @@ import { DatabaseEnvironmentMode } from '../../core/database/DatabaseEnvironment
 import { cn } from '../../lib/utils';
 import { DynamicIsland } from './dynamicIsland/DynamicIsland';
 
-export function OrionSystemBar() {
+const SystemBarClock = React.memo(function SystemBarClock({
+  onOpenTimeWorld,
+}: {
+  onOpenTimeWorld: () => void;
+}) {
+  const [currentTime, setCurrentTime] = useState(() => new Date());
+  const [hovered, setHovered] = useState(false);
+
+  useEffect(() => {
+    let timerId: number | null = null;
+    if (hovered) {
+      setCurrentTime(new Date());
+      timerId = window.setInterval(() => setCurrentTime(new Date()), 1000);
+      return () => {
+        if (timerId !== null) window.clearInterval(timerId);
+      };
+    }
+
+    const scheduleNextMinute = () => {
+      const now = new Date();
+      setCurrentTime(now);
+      const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds() + 50;
+      timerId = window.setTimeout(scheduleNextMinute, Math.max(1000, msUntilNextMinute));
+    };
+
+    const now = new Date();
+    const msFirst = (60 - now.getSeconds()) * 1000 - now.getMilliseconds() + 50;
+    timerId = window.setTimeout(scheduleNextMinute, Math.max(1000, msFirst));
+
+    const handleVisibility = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        setCurrentTime(new Date());
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      if (timerId !== null) window.clearTimeout(timerId);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [hovered]);
+
+  const timeZoneName = hovered
+    ? (new Intl.DateTimeFormat(undefined, { timeZoneName: 'long' }).formatToParts(currentTime).find(p => p.type === 'timeZoneName')?.value || 'Local Time')
+    : 'Local Time';
+
+  return (
+    <button
+      type="button"
+      onClick={onOpenTimeWorld}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="hidden sm:flex group relative items-center px-2 h-[28px] text-[12px] font-medium tabular-nums text-white/80 hover:text-white hover:bg-white/[0.08] rounded-lg transition-colors cursor-pointer"
+      aria-label="Open Time & World settings"
+      title="Open Time & World"
+    >
+      {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      <span className="pointer-events-none absolute right-0 top-[calc(100%+7px)] z-[2147483600] min-w-[190px] rounded-xl border border-white/[0.14] bg-[#161a22]/95 px-3.5 py-2.5 text-left opacity-0 translate-y-[-3px] group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 shadow-2xl">
+        <span className="block font-mono tabular-nums text-[12px] font-medium text-[var(--orion-text-primary)]">
+          {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+        </span>
+        <span className="block mt-1 text-[11px] text-[var(--orion-text-secondary)]">{timeZoneName}</span>
+        <span className="block mt-0.5 text-[10px] text-[var(--orion-accent)]">{Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
+      </span>
+    </button>
+  );
+});
+
+export const OrionSystemBar = React.memo(function OrionSystemBar() {
   const navigate = useNavigate();
   const { branding } = useBranding();
   const { isAdmin } = useAuth();
@@ -29,7 +97,6 @@ export function OrionSystemBar() {
   const { isOnline, statusLabel, isLocalMode } = useConnectivity();
   const { exceptions, settings, updateSettings } = useSupplyChain();
   
-  const [currentTime, setCurrentTime] = useState(new Date());
   const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [networkOpen, setNetworkOpen] = useState(false);
@@ -63,10 +130,6 @@ export function OrionSystemBar() {
     return () => window.removeEventListener('orion-database-environment-changed', handleEnvChanged);
   }, []);
 
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Keyboard shortcuts for workspaces: Alt+1, Alt+2, Alt+3
   useEffect(() => {
@@ -277,21 +340,8 @@ export function OrionSystemBar() {
           />
         </div>
 
-        {/* Clock */}
-        <button
-          type="button"
-          onClick={() => openApplication('time-world')}
-          className="hidden sm:flex group relative items-center px-2 h-[28px] text-[12px] font-medium tabular-nums text-white/80 hover:text-white hover:bg-white/[0.08] rounded-lg transition-colors cursor-pointer"
-          aria-label="Open Time & World settings"
-          title="Open Time & World"
-        >
-          {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-          <span className="pointer-events-none absolute right-0 top-[calc(100%+7px)] z-[2147483600] min-w-[190px] rounded-xl border border-white/[0.14] bg-[#161a22]/95 backdrop-blur-2xl px-3.5 py-2.5 text-left opacity-0 translate-y-[-3px] group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 shadow-2xl">
-            <span className="block font-mono tabular-nums text-[12px] font-medium text-[var(--orion-text-primary)]">{currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
-            <span className="block mt-1 text-[11px] text-[var(--orion-text-secondary)]">{new Intl.DateTimeFormat(undefined, { timeZoneName: 'long' }).formatToParts(currentTime).find(p => p.type === 'timeZoneName')?.value || 'Local Time'}</span>
-            <span className="block mt-0.5 text-[10px] text-[var(--orion-accent)]">{Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
-          </span>
-        </button>
+        {/* Clock (isolated minute-boundary component to avoid 1s topbar/DynamicIsland re-renders) */}
+        <SystemBarClock onOpenTimeWorld={() => openApplication('time-world')} />
 
         <div className="flex items-center h-full pl-1">
           <AccountMenu />
@@ -309,4 +359,4 @@ export function OrionSystemBar() {
       <SystemStatusModal isOpen={statusOpen} onClose={() => setStatusOpen(false)} />
     </header>
   );
-}
+});

@@ -49,6 +49,7 @@ export function OrionApplicationLauncher() {
 
   const [activeDrag, setActiveDrag] = useState<ActiveDragSession | null>(null);
   const dragSessionRef = useRef<ActiveDragSession | null>(null);
+  const dragRafRef = useRef<number | null>(null);
   const hasDraggedRef = useRef<boolean>(false);
 
   useEffect(() => {
@@ -133,9 +134,7 @@ export function OrionApplicationLauncher() {
       dragSessionRef.current.currentX = moveEvt.clientX;
       dragSessionRef.current.currentY = moveEvt.clientY;
 
-      // Hit-test desktop canvas:
-      // Must be within [data-desktop-canvas="true"] bounding rect
-      // and outside the launcher dialog container
+      // Hit-test desktop canvas cleanly
       const canvasEl = document.querySelector('[data-desktop-canvas="true"]') as HTMLElement | null;
       let overDesktop = false;
       if (canvasEl) {
@@ -159,11 +158,25 @@ export function OrionApplicationLauncher() {
         overDesktop = inCanvas && !insideLauncher;
       }
 
+      const prevOver = dragSessionRef.current.isOverDesktop;
       dragSessionRef.current.isOverDesktop = overDesktop;
-      setActiveDrag({ ...dragSessionRef.current });
+      if (!dragRafRef.current) {
+        dragRafRef.current = window.requestAnimationFrame(() => {
+          dragRafRef.current = null;
+          if (dragSessionRef.current) {
+            setActiveDrag({ ...dragSessionRef.current });
+          }
+        });
+      } else if (prevOver !== overDesktop) {
+        setActiveDrag({ ...dragSessionRef.current });
+      }
     };
 
     const cleanup = () => {
+      if (dragRafRef.current) {
+        window.cancelAnimationFrame(dragRafRef.current);
+        dragRafRef.current = null;
+      }
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
       window.removeEventListener('pointercancel', handlePointerCancel);

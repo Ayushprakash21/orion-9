@@ -100,7 +100,7 @@ class WindowErrorBoundary extends React.Component<
   }
 }
 
-export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({ window: win, isActive }, ref) => {
+export const OrionWindow = React.memo(React.forwardRef<HTMLDivElement, OrionWindowProps>(({ window: win, isActive }, ref) => {
   const {
     focusApplication,
     closeApplication,
@@ -315,6 +315,29 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
 
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
+  const windowElRef = useRef<HTMLDivElement | null>(null);
+  const setMergedWindowRef = useCallback((node: HTMLDivElement | null) => {
+    windowElRef.current = node;
+    if (typeof ref === 'function') {
+      ref(node);
+    } else if (ref) {
+      (ref as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    }
+  }, [ref]);
+
+  const snapCandidateRef = useRef<typeof snapCandidate>(null);
+  const dragRafRef = useRef<number | null>(null);
+  const pendingDragPosRef = useRef<{ x: number; y: number } | null>(null);
+  const resizeRafRef = useRef<number | null>(null);
+  const pendingResizeRef = useRef<{ width: number; height: number; x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (dragRafRef.current !== null) window.cancelAnimationFrame(dragRafRef.current);
+      if (resizeRafRef.current !== null) window.cancelAnimationFrame(resizeRafRef.current);
+    };
+  }, []);
+
   const dragStartRef = useRef<{ startX: number; startY: number; posX: number; posY: number }>({
     startX: 0,
     startY: 0,
@@ -370,52 +393,79 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
     if (!isDragging) return;
     const dx = e.clientX - dragStartRef.current.startX;
     const dy = e.clientY - dragStartRef.current.startY;
-    moveApplication(win.id, {
-      x: dragStartRef.current.posX + dx,
-      y: Math.max(4, dragStartRef.current.posY + dy)
-    });
-
     const screenW = typeof window !== 'undefined' ? window.innerWidth : 1440;
     const screenH = typeof window !== 'undefined' ? window.innerHeight : 900;
+    const nextX = Math.max(-win.size.width + 120, Math.min(screenW - 120, dragStartRef.current.posX + dx));
+    const nextY = Math.max(4, Math.min(Math.max(4, screenH - 80), dragStartRef.current.posY + dy));
 
+    pendingDragPosRef.current = { x: nextX, y: nextY };
+    if (dragRafRef.current === null) {
+      dragRafRef.current = window.requestAnimationFrame(() => {
+        dragRafRef.current = null;
+        const el = windowElRef.current;
+        const pending = pendingDragPosRef.current;
+        if (el && pending) {
+          const tx = pending.x - dragStartRef.current.posX;
+          const ty = pending.y - dragStartRef.current.posY;
+          el.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+        }
+      });
+    }
+
+    let nextSnap: typeof snapCandidate = null;
     if (e.clientY <= 14) {
-      setSnapCandidate('maximize');
+      nextSnap = 'maximize';
     } else if (e.clientX <= 20) {
       if (e.clientY < screenH * 0.3) {
-        setSnapCandidate('top-left');
+        nextSnap = 'top-left';
       } else if (e.clientY > screenH * 0.7) {
-        setSnapCandidate('bottom-left');
+        nextSnap = 'bottom-left';
       } else {
-        setSnapCandidate('left');
+        nextSnap = 'left';
       }
     } else if (e.clientX >= screenW - 20) {
       if (e.clientY < screenH * 0.3) {
-        setSnapCandidate('top-right');
+        nextSnap = 'top-right';
       } else if (e.clientY > screenH * 0.7) {
-        setSnapCandidate('bottom-right');
+        nextSnap = 'bottom-right';
       } else {
-        setSnapCandidate('right');
+        nextSnap = 'right';
       }
-    } else {
-      setSnapCandidate(null);
+    }
+
+    if (nextSnap !== snapCandidateRef.current) {
+      snapCandidateRef.current = nextSnap;
+      setSnapCandidate(nextSnap);
     }
   };
 
   const handleTitlePointerUp = (e: React.PointerEvent) => {
     if (isDragging) {
+      if (dragRafRef.current !== null) {
+        window.cancelAnimationFrame(dragRafRef.current);
+        dragRafRef.current = null;
+      }
+      if (windowElRef.current) {
+        windowElRef.current.style.transform = '';
+      }
       setIsDragging(false);
       try {
         (e.target as HTMLElement).releasePointerCapture(e.pointerId);
       } catch (err) {}
 
-      if (snapCandidate) {
-        if (snapCandidate === 'maximize') {
+      const activeSnap = snapCandidateRef.current;
+      snapCandidateRef.current = null;
+      if (activeSnap) {
+        if (activeSnap === 'maximize') {
           maximizeApplication(win.id);
         } else {
-          snapApplication(win.id, snapCandidate);
+          snapApplication(win.id, activeSnap);
         }
         setSnapCandidate(null);
+      } else if (pendingDragPosRef.current) {
+        moveApplication(win.id, pendingDragPosRef.current);
       }
+      pendingDragPosRef.current = null;
     }
   };
 
@@ -424,6 +474,12 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
     if (win.state === 'maximized' || isMobile) return;
     e.stopPropagation();
     focusApplication(win.id);
+    pendingResizeRef.current = {
+      width: win.size.width,
+      height: win.size.height,
+      x: win.position.x,
+      y: win.position.y,
+    };
     setIsResizing(true);
     resizeStartRef.current = {
       startX: e.clientX,
@@ -443,31 +499,60 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
     const dy = e.clientY - resizeStartRef.current.startY;
     const { width, height, posX, posY, direction } = resizeStartRef.current;
 
+    const screenW = typeof window !== 'undefined' ? window.innerWidth : 1440;
+    const screenH = typeof window !== 'undefined' ? window.innerHeight - 48 : 852;
+    const minW = Math.min(480, Math.max(320, Math.round(screenW * 0.55)));
+    const minH = Math.min(340, Math.max(240, Math.round(screenH * 0.45)));
+
     let newW = width;
     let newH = height;
     let newX = posX;
     let newY = posY;
 
-    if (direction.includes('e')) newW = width + dx;
-    if (direction.includes('s')) newH = height + dy;
+    if (direction.includes('e')) newW = Math.max(minW, Math.min(screenW - 8, width + dx));
+    if (direction.includes('s')) newH = Math.max(minH, Math.min(screenH - 8, height + dy));
     if (direction.includes('w')) {
-      newW = width - dx;
-      newX = posX + dx;
+      newW = Math.max(minW, Math.min(screenW - 8, width - dx));
+      newX = posX + (width - newW);
     }
     if (direction.includes('n')) {
-      newH = height - dy;
-      newY = posY + dy;
+      newH = Math.max(minH, Math.min(screenH - 8, height - dy));
+      newY = Math.max(4, posY + (height - newH));
     }
 
-    resizeApplication(win.id, { width: newW, height: newH }, { x: newX, y: newY });
+    pendingResizeRef.current = { width: newW, height: newH, x: newX, y: newY };
+    if (resizeRafRef.current === null) {
+      resizeRafRef.current = window.requestAnimationFrame(() => {
+        resizeRafRef.current = null;
+        const el = windowElRef.current;
+        const pending = pendingResizeRef.current;
+        if (el && pending) {
+          el.style.width = `${pending.width}px`;
+          el.style.height = `${pending.height}px`;
+          el.style.transform = `translate3d(${pending.x - posX}px, ${pending.y - posY}px, 0)`;
+        }
+      });
+    }
   };
 
   const handleResizePointerUp = (e: React.PointerEvent) => {
     if (isResizing) {
+      if (resizeRafRef.current !== null) {
+        window.cancelAnimationFrame(resizeRafRef.current);
+        resizeRafRef.current = null;
+      }
+      if (windowElRef.current) {
+        windowElRef.current.style.transform = '';
+      }
       setIsResizing(false);
       try {
         (e.target as HTMLElement).releasePointerCapture(e.pointerId);
       } catch (err) {}
+      if (pendingResizeRef.current) {
+        const { width, height, x, y } = pendingResizeRef.current;
+        resizeApplication(win.id, { width, height }, { x, y });
+        pendingResizeRef.current = null;
+      }
     }
   };
 
@@ -511,12 +596,11 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
 
   return (
     <motion.div
-      ref={ref}
+      ref={setMergedWindowRef}
       initial={prefersReduced ? { opacity: 0 } : { 
         opacity: 0, 
-        scale: 0.88, 
-        y: 18,
-        filter: 'blur(8px)',
+        scale: 0.94, 
+        y: 14,
       }}
       animate={
         prefersReduced
@@ -527,7 +611,6 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
               scale: genieEnabled ? 0.08 : 0.85,
               y: genieEnabled ? (dockGeom ? dockGeom.center.y - (isMaximized ? 400 : win.position.y) : 100) : 24,
               x: genieEnabled && dockGeom ? (dockGeom.center.x - (isMaximized ? (typeof window !== 'undefined' ? window.innerWidth / 2 : 600) : win.position.x + win.size.width / 2)) * 0.4 : 0,
-              filter: 'blur(10px)',
               borderRadius: '24px',
             }
           : {
@@ -535,26 +618,29 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
               scale: 1,
               x: 0,
               y: 0,
-              filter: 'blur(0px)',
               borderRadius: isMaximized ? '0px' : '18px',
             }
       }
       exit={prefersReduced ? { opacity: 0 } : { 
         opacity: 0, 
-        scale: 0.92, 
-        y: 12,
-        filter: 'blur(6px)',
+        scale: 0.94, 
+        y: 10,
       }}
-      transition={prefersReduced ? { duration: 0.1 } : ORION_SPRING_WINDOW}
+      transition={(isDragging || isResizing) ? { duration: 0 } : (prefersReduced ? { duration: 0.1 } : ORION_SPRING_WINDOW)}
       data-window-id={win.id} data-orion-window
       onPointerDown={() => focusApplication(win.id)}
-      style={windowStyles}
+      style={{
+        ...windowStyles,
+        contain: 'layout style paint',
+        willChange: (isDragging || isResizing) ? 'transform, width, height' : undefined,
+      }}
       className={cn(
-        "orion-window-surface flex flex-col text-os-text-primary overflow-hidden select-text pointer-events-auto transition-opacity duration-150",
+        "orion-window-surface flex flex-col text-os-text-primary overflow-hidden select-text pointer-events-auto",
+        !(isDragging || isResizing) && "transition-opacity duration-150",
         isMinimized && "pointer-events-none",
         isMaximized 
-          ? "rounded-none border-none shadow-none bg-[rgba(14,17,23,0.88)] backdrop-blur-[32px] backdrop-saturate-[160%]" 
-          : "rounded-[18px] border border-white/[0.14] bg-[rgba(16,19,26,0.80)] backdrop-blur-[36px] backdrop-saturate-[170%] shadow-[0_28px_80px_rgba(0,0,0,0.60),0_4px_20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.20)]",
+          ? "rounded-none border-none shadow-none bg-[rgba(14,17,23,0.96)]" 
+          : "rounded-[18px] border border-white/[0.14] bg-[rgba(16,19,26,0.94)] shadow-[0_28px_80px_rgba(0,0,0,0.60),0_4px_20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.20)]",
         isActive && !isMaximized && "border-white/[0.22] shadow-[0_32px_90px_rgba(0,0,0,0.70),0_6px_24px_rgba(0,0,0,0.40),inset_0_1px_0_rgba(255,255,255,0.28)] opacity-100",
         !isActive && !isMaximized && "opacity-95"
       )}
@@ -578,8 +664,8 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
         }}
         style={{
           backgroundColor: 'var(--orion-surface-elevated, rgba(20, 24, 30, 0.72))',
-          backdropFilter: 'blur(32px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(32px) saturate(160%)',
+          backdropFilter: 'blur(20px) saturate(145%)',
+          WebkitBackdropFilter: 'blur(20px) saturate(145%)',
           mixBlendMode: 'normal',
           isolation: 'isolate',
         }}
@@ -744,4 +830,4 @@ export const OrionWindow = React.forwardRef<HTMLDivElement, OrionWindowProps>(({
       )}
     </motion.div>
   );
-});
+}));

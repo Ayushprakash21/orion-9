@@ -76,19 +76,19 @@ export const AccessibilitySettingsPanel: React.FC<AccessibilitySettingsPanelProp
           <span className="text-xs font-semibold text-[var(--orion-text)] block">OS Animation Profile</span>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
             {[
-              { id: 'premium', label: 'Premium (macOS)', desc: 'Natural spring physics, spatial depth & fluid curves' },
-              { id: 'balanced', label: 'Balanced', desc: 'Smooth responsive transitions for high efficiency' },
-              { id: 'minimal', label: 'Minimal', desc: 'Rapid 100ms fade transitions with low inertia' },
-              { id: 'reduced', label: 'Reduced', desc: 'Instant zero-motion transitions for accessibility' },
+              { id: 'premium', label: 'Premium (macOS)', desc: 'Natural spring physics, spatial depth & glass translucency' },
+              { id: 'balanced', label: 'Balanced', desc: 'Crisp low-overshoot springs & moderate glass blur for speed' },
+              { id: 'minimal', label: 'Performance', desc: 'Fast 100ms transitions and opaque surfaces for low-end GPUs' },
+              { id: 'reduced', label: 'Reduced Motion', desc: 'Instant zero-motion transitions for accessibility' },
             ].map(profile => {
               const isActive = (settings.animationStyle || 'premium') === profile.id;
               return (
                 <button
                   key={profile.id}
                   type="button"
-                  onClick={() => onChange({ 
+                  onClick={() => onChange({
                     animationStyle: profile.id as any,
-                    reducedMotion: profile.id === 'reduced' ? true : settings.reducedMotion
+                    reducedMotion: profile.id === 'reduced',
                   })}
                   className={`p-3 rounded-xl border text-left flex flex-col justify-between transition-all ${
                     isActive

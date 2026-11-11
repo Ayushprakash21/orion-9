@@ -177,13 +177,32 @@ export function DesktopWidgetSystem({
   }, [onRemove, widget.id]);
 
   useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
+    // Only tick at minute boundaries so idle desktop causes zero per-second React re-renders
+    let timerId: number | null = null;
+    const scheduleNextMinuteTick = () => {
+      const now = new Date();
+      setCurrentTime(now);
+      const msUntilNextMinute = (60 - now.getSeconds()) * 1000 - now.getMilliseconds() + 50;
+      timerId = window.setTimeout(scheduleNextMinuteTick, Math.max(1000, msUntilNextMinute));
+    };
+    const msFirst = (60 - currentTime.getSeconds()) * 1000 - currentTime.getMilliseconds() + 50;
+    timerId = window.setTimeout(scheduleNextMinuteTick, Math.max(1000, msFirst));
+    const onVisibility = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        setCurrentTime(new Date());
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      if (timerId !== null) window.clearTimeout(timerId);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
   }, []);
 
   useEffect(() => {
     let mounted = true;
     const updateHealth = async () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       try {
         const env = dbManager.getEnvironment();
         const health = await HealthService.getInstance().runHealthCheck();

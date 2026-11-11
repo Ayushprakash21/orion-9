@@ -108,11 +108,14 @@ export function OrionMissionControl() {
       {missionControlOpen && (
         <motion.div
           data-testid="orion-mission-control-overlay"
-          initial={{ opacity: 0, backdropFilter: prefersReduced ? 'none' : 'blur(0px)' }}
-          animate={{ opacity: 1, backdropFilter: prefersReduced ? 'none' : 'blur(28px)' }}
-          exit={{ opacity: 0, backdropFilter: prefersReduced ? 'none' : 'blur(0px)' }}
-          transition={{ duration: prefersReduced ? 0.08 : 0.22, ease: 'easeOut' }}
-        className="fixed inset-0 z-[10020] bg-black/75 flex flex-col select-none overflow-hidden"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: prefersReduced ? 0.08 : 0.18, ease: 'easeOut' }}
+        className={cn(
+          "fixed inset-0 z-[10020] bg-black/78 flex flex-col select-none overflow-hidden",
+          !prefersReduced && "backdrop-blur-lg"
+        )}
         onClick={(e) => {
           if (e.target === e.currentTarget) {
             setMissionControlOpen(false);
@@ -120,7 +123,7 @@ export function OrionMissionControl() {
         }}
       >
         {/* Top Spaces Bar (macOS Style) */}
-        <header className="w-full bg-white/[0.04] border-b border-white/10 px-6 py-4 flex items-center justify-between gap-4 backdrop-blur-xl">
+        <header className="w-full bg-white/[0.05] border-b border-white/10 px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-white/10 border border-white/15 text-white shadow-sm">
               <Layers className="w-4 h-4 text-white/90" />
@@ -283,7 +286,7 @@ export function OrionMissionControl() {
         {/* Main Exposé Stage: Open Windows in Current Space */}
         <main className="flex-1 p-8 overflow-auto flex flex-col items-center justify-center">
           {activeSpaceWindows.length === 0 ? (
-            <div className="flex flex-col items-center justify-center text-center max-w-sm p-8 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-xl">
+            <div className="flex flex-col items-center justify-center text-center max-w-sm p-8 rounded-2xl bg-white/[0.05] border border-white/10">
               <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center mb-4">
                 <Monitor className="w-6 h-6 text-white/60" />
               </div>
@@ -309,12 +312,13 @@ export function OrionMissionControl() {
                 return (
                   <motion.div
                     key={win.id}
-                    layoutId={`mission-win-${win.id}`}
+                    initial={prefersReduced ? false : { opacity: 0, scale: 0.94, y: 10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
                     whileHover={prefersReduced ? undefined : { scale: 1.025, y: -4 }}
                     transition={prefersReduced ? { duration: 0.08 } : ORION_SPRING_SMOOTH}
                     data-testid={`mission-control-window-${win.id}`}
                     onClick={() => handleSelectWindow(win.id)}
-                    className="group relative flex flex-col rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 hover:border-white/35 backdrop-blur-xl shadow-xl shadow-black/40 overflow-hidden cursor-pointer transition-colors"
+                    className="group relative flex flex-col rounded-2xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 hover:border-white/35 shadow-xl shadow-black/40 overflow-hidden cursor-pointer transition-colors"
                   >
                     {/* Window Card Titlebar */}
                     <div className="px-4 py-3 flex items-center justify-between border-b border-white/10 bg-white/[0.05]">

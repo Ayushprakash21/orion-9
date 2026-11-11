@@ -1163,6 +1163,16 @@ export const ORION_REGISTRY: Record<string, OrionApp> = {
     description: 'End-to-end Order-to-Cash (O2C) and Procure-to-Pay (P2P) event tracking, stage SLA monitoring, and exception resolution.',
     dockDefault: true,
   },
+  'icon-gallery': {
+    id: 'icon-gallery',
+    name: 'Icon Gallery',
+    route: '/icons',
+    category: 'Platform',
+    icon: LayoutDashboard,
+    color: '#38BDF8',
+    description: 'macOS icon design system inventory inspecting all Orion application icons across sizes, themes, and states.',
+    dockDefault: false,
+  },
 };
 
 // Wire every registered application to its authoritative macOS-style vector icon component

@@ -244,11 +244,18 @@ export function applyThemeToDocument(settings: PersonalizationSettings): void {
   const root = document.documentElement;
 
   // Set non-conflicting peripheral layout data attributes
+  const animationStyle = settings.reducedMotion ? 'reduced' : (settings.animationStyle || 'premium');
+  const isReducedMotion = Boolean(settings.reducedMotion || animationStyle === 'reduced');
+  const isReducedTransparency = Boolean(settings.reducedTransparency || animationStyle === 'minimal');
+
   root.setAttribute('data-theme', canonicalTheme.appearance.mode);
   root.setAttribute('data-window-style', settings.windowStyle || activePrefs.windowStyle);
   root.setAttribute('data-corner-style', settings.cornerStyle || 'rounded');
   root.setAttribute('data-density', settings.density || 'comfortable');
   root.setAttribute('data-color-filter', settings.colorFilter || 'none');
+  root.setAttribute('data-animation-style', animationStyle);
+  root.setAttribute('data-reduced-motion', String(isReducedMotion));
+  root.setAttribute('data-reduced-transparency', String(isReducedTransparency));
 
   // Apply UI Scale transform variable if specified
   if (settings.uiScale && settings.uiScale !== 100) {

@@ -1,279 +1,345 @@
 /**
- * ORION-9 DYNAMIC ISLAND HOOK
- * Provides unified state management, live telemetry subscriptions, and interaction controllers
- * for both Web OS and Native Tauri Desktop environments.
+ * ORION-9 DYNAMIC ISLAND STATE ENGINE
+ * Event-driven telemetry & deduplicated activity queue with zero idle polling.
+ * Inspired by Astraeus (https://github.com/Icetist/Astraeus) interaction efficiency:
+ * - Zero idle 1s clock intervals when collapsed
+ * - Condenses cleanly over maximized windows
+ * - Suppresses heavy surfaces during OS fullscreen
+ * - Single nearest-expiration timer instead of background loops
  */
 
-import React, { useState, useEffect, useRef, useCallback, useMemo, useContext } from 'react';
-import { useOptionalSupplyChain, useSupplyChain } from '../../../store/SupplyChainContext';
-import { NotificationContext, useNotifications } from '../../../store/NotificationContext';
-import { useOptionalWindowManager, useWindowManager } from '../../WindowManagerContext';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ORION_REGISTRY } from '../../OrionApplicationRegistry';
+import { useOptionalWindowManager } from '../../WindowManagerContext';
+import { useOptionalSupplyChain } from '../../../store/SupplyChainContext';
+import { useOptionalNotifications } from '../../../store/NotificationContext';
 import { useIntegrationFabric } from '../../../integration/useIntegrationFabric';
-import { 
-  DynamicIslandMode, 
-  DynamicIslandActivity, 
-  DynamicIslandCopilotStatus, 
-  DynamicIslandMetrics, 
-  DynamicIslandState 
+import {
+  DynamicIslandActivity,
+  DynamicIslandCopilotStatus,
+  DynamicIslandEventItem,
+  DynamicIslandMetrics,
+  DynamicIslandState,
+  DynamicIslandSurfaceState,
 } from './DynamicIslandTypes';
 
+const PINNED_STORAGE_KEY = 'orion_dynamic_island_pinned';
+const MAX_TRANSIENT_EVENTS = 6;
+const RETURNING_TRANSITION_MS = 220;
+
 export function getAuthoritativeRuntime(): { runtimeMode: 'TAURI DESKTOP' | 'WEB OS'; isNativeDesktop: boolean } {
-  if (typeof window === 'undefined') {
-    return { runtimeMode: 'WEB OS', isNativeDesktop: false };
-  }
-  const win = window as any;
-  const isTauri = Boolean(
-    (win.__TAURI__?.core?.invoke && typeof win.__TAURI__.core.invoke === 'function') ||
-    (win.__TAURI__?.invoke && typeof win.__TAURI__.invoke === 'function') ||
-    (win.__TAURI_INTERNALS__?.invoke && typeof win.__TAURI_INTERNALS__.invoke === 'function')
-  );
+  const win = typeof window !== 'undefined' ? (window as any) : null;
+  const isNativeDesktop = Boolean(win?.__TAURI__?.core?.invoke || win?.__TAURI_INTERNALS__);
   return {
-    runtimeMode: isTauri ? 'TAURI DESKTOP' : 'WEB OS',
-    isNativeDesktop: isTauri
+    runtimeMode: isNativeDesktop ? 'TAURI DESKTOP' : 'WEB OS',
+    isNativeDesktop,
   };
 }
 
-const PINNED_STORAGE_KEY = 'orion_dynamic_island_pinned';
+export function emitDynamicIslandEvent(item: DynamicIslandEventItem): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('orion:dynamic-island-event', { detail: item }));
+}
 
 export function useDynamicIslandState(): DynamicIslandState {
-  // Safe hook access with graceful fallbacks
-  let supplyChain: any = null;
-  try {
-    if (typeof useOptionalSupplyChain === 'function') {
-      supplyChain = useOptionalSupplyChain();
-    }
-  } catch {}
-  if (!supplyChain) {
-    try {
-      if (typeof useSupplyChain === 'function') {
-        supplyChain = useSupplyChain();
-      }
-    } catch {}
-  }
+  const windowManager = useOptionalWindowManager();
+  const supplyChain = useOptionalSupplyChain();
+  const notifications = useOptionalNotifications();
+  const integration = useIntegrationFabric();
 
-  let notificationCtx: any = null;
-  try {
-    if (NotificationContext) {
-      notificationCtx = useContext(NotificationContext);
-    }
-  } catch {}
-  if (!notificationCtx) {
-    try {
-      if (typeof useNotifications === 'function') {
-        notificationCtx = useNotifications();
-      }
-    } catch {}
-  }
-
-  let windowManager: any = null;
-  try {
-    if (typeof useOptionalWindowManager === 'function') {
-      windowManager = useOptionalWindowManager();
-    }
-  } catch {}
-  if (!windowManager) {
-    try {
-      if (typeof useWindowManager === 'function') {
-        windowManager = useWindowManager();
-      }
-    } catch {}
-  }
-
-  let fabric: { connectors?: any[]; syncJobs?: any[] } = {};
-  try {
-    fabric = useIntegrationFabric();
-  } catch {}
-  const connectors = fabric.connectors || [];
-  const syncJobs = fabric.syncJobs || [];
-
-  // Expansion and Pinning State
-  const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isReturning, setIsReturning] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isFullscreenHidden, setIsFullscreenHidden] = useState(false);
   const [isPinned, setIsPinned] = useState<boolean>(() => {
-    if (typeof localStorage !== 'undefined') {
-      return localStorage.getItem(PINNED_STORAGE_KEY) === 'true';
-    }
-    return false;
+    if (typeof localStorage === 'undefined') return false;
+    return localStorage.getItem(PINNED_STORAGE_KEY) === 'true';
   });
-  const [isHovered, setIsHovered] = useState<boolean>(false);
 
-  // Copilot Live State
-  const [copilotStatus, setCopilotStatus] = useState<DynamicIslandCopilotStatus>('ready');
+  const [copilotStatus, setCopilotStatus] = useState<DynamicIslandCopilotStatus>('idle');
+  const [simulationRunning, setSimulationRunning] = useState(false);
+  const [customEvents, setCustomEvents] = useState<DynamicIslandEventItem[]>([]);
 
-  // Simulation Live State
-  const [isSimulationRunning, setIsSimulationRunning] = useState<boolean>(false);
+  const autoCollapseTimeoutRef = useRef<number | null>(null);
+  const returningTimeoutRef = useRef<number | null>(null);
 
-  // Clock state
-  const [currentDateObj, setCurrentDateObj] = useState<Date>(() => new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentDateObj(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
+  const pushActivity = useCallback((incoming: DynamicIslandEventItem) => {
+    setCustomEvents(prev => {
+      const idx = prev.findIndex(e => e.id === incoming.id);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = { ...updated[idx], ...incoming };
+        return updated;
+      }
+      return [incoming, ...prev].slice(0, MAX_TRANSIENT_EVENTS);
+    });
   }, []);
 
-  // Listen to Copilot and Simulation state events
+  const dismissActivity = useCallback((id: string) => {
+    setCustomEvents(prev => prev.filter(e => e.id !== id));
+  }, []);
+
+  // Single nearest-expiration cleanup timer (zero polling loops)
+  useEffect(() => {
+    const now = Date.now();
+    const withExpiry = customEvents.filter(e => typeof e.expiresAt === 'number');
+    if (withExpiry.length === 0) return;
+
+    const expiredNow = withExpiry.some(e => (e.expiresAt as number) <= now);
+    if (expiredNow) {
+      setCustomEvents(prev => prev.filter(e => !e.expiresAt || e.expiresAt > now));
+      return;
+    }
+
+    const nextExpiry = Math.min(...withExpiry.map(e => e.expiresAt as number));
+    const delayMs = Math.max(50, nextExpiry - now + 10);
+    const timerId = globalThis.setTimeout(() => {
+      const ts = Date.now();
+      setCustomEvents(prev => prev.filter(e => !e.expiresAt || e.expiresAt > ts));
+    }, delayMs);
+
+    return () => globalThis.clearTimeout(timerId);
+  }, [customEvents]);
+
+  // Listen for fullscreen changes (Astraeus-inspired fullscreen media/game yield)
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const updateFullscreen = () => {
+      const active = Boolean(document.fullscreenElement);
+      setIsFullscreenHidden(active);
+      if (active) setIsExpanded(false);
+    };
+    updateFullscreen();
+    document.addEventListener('fullscreenchange', updateFullscreen);
+    return () => document.removeEventListener('fullscreenchange', updateFullscreen);
+  }, []);
+
+  // Event-driven listeners for AI Copilot, Simulation & Custom Activity Queue
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const handleCopilotState = (e: CustomEvent<{ state?: DynamicIslandCopilotStatus; isThinking?: boolean }>) => {
-      if (e.detail?.state) {
-        setCopilotStatus(e.detail.state);
+    const handleCopilotState = (e: CustomEvent<{ status?: DynamicIslandCopilotStatus; detail?: string }>) => {
+      const next = e.detail?.status || 'idle';
+      setCopilotStatus(next);
+      if (next === 'thinking' || next === 'analyzing') {
+        pushActivity({
+          id: 'sys-copilot-active',
+          source: 'copilot',
+          title: next === 'analyzing' ? 'Copilot Analyzing Graph' : 'Orion Copilot Reasoning',
+          subtitle: e.detail?.detail || 'Synthesizing supply chain telemetry',
+          severity: 'active',
+          timestamp: Date.now(),
+          actionLabel: 'Open Copilot',
+          actionAppId: 'ai-copilot',
+        });
+      } else {
+        dismissActivity('sys-copilot-active');
       }
     };
 
-    const handleSimulationState = (e: any) => {
-      if (e.detail?.state?.isRunning !== undefined) {
-        setIsSimulationRunning(Boolean(e.detail.state.isRunning));
+    const handleSimulationState = (e: CustomEvent<{ running?: boolean; name?: string }>) => {
+      const running = Boolean(e.detail?.running);
+      setSimulationRunning(running);
+      if (running) {
+        pushActivity({
+          id: 'sys-simulation-active',
+          source: 'simulation',
+          title: 'Scenario Simulation Active',
+          subtitle: e.detail?.name || 'Evaluating demand shock propagation',
+          severity: 'active',
+          timestamp: Date.now(),
+          actionLabel: 'Inspect',
+          actionAppId: 'scenarios',
+        });
+      } else {
+        dismissActivity('sys-simulation-active');
       }
     };
 
-    window.addEventListener('orion:copilot-state' as any, handleCopilotState);
-    window.addEventListener('orion:demo-simulation-state-changed' as any, handleSimulationState);
+    const handleDynamicEvent = (e: CustomEvent<DynamicIslandEventItem>) => {
+      if (e.detail && e.detail.id && e.detail.title) {
+        pushActivity(e.detail);
+      }
+    };
+
+    window.addEventListener('orion:copilot-state' as any, handleCopilotState as EventListener);
+    window.addEventListener('orion:demo-simulation-state-changed' as any, handleSimulationState as EventListener);
+    window.addEventListener('orion:dynamic-island-event' as any, handleDynamicEvent as EventListener);
+
     return () => {
-      window.removeEventListener('orion:copilot-state' as any, handleCopilotState);
-      window.removeEventListener('orion:demo-simulation-state-changed' as any, handleSimulationState);
+      window.removeEventListener('orion:copilot-state' as any, handleCopilotState as EventListener);
+      window.removeEventListener('orion:demo-simulation-state-changed' as any, handleSimulationState as EventListener);
+      window.removeEventListener('orion:dynamic-island-event' as any, handleDynamicEvent as EventListener);
     };
-  }, []);
+  }, [pushActivity, dismissActivity]);
 
-  // Runtime detection
-  const { runtimeMode, isNativeDesktop } = useMemo(() => getAuthoritativeRuntime(), []);
+  const activeExceptions = supplyChain?.exceptions || [];
+  const inventory = supplyChain?.inventory || [];
+  const shipments = supplyChain?.shipments || [];
+  const purchaseOrders = supplyChain?.purchaseOrders || [];
+  const connectors = integration?.connectors || [];
+  const syncJobs = integration?.syncJobs || [];
 
-  // Compute live supply chain metrics
-  const activeExceptionsCount = useMemo(() => {
-    if (!supplyChain?.exceptions || !Array.isArray(supplyChain.exceptions)) return 0;
-    return supplyChain.exceptions.filter((e: any) => e.status !== 'Dismissed').length;
-  }, [supplyChain?.exceptions]);
+  const activeAppId = windowManager?.activeAppId ?? null;
+  const activeWorkspaceId = windowManager?.activeWorkspaceId;
+  const windowsRecord = windowManager?.windows || {};
 
-  const criticalExceptionsCount = useMemo(() => {
-    if (!supplyChain?.exceptions || !Array.isArray(supplyChain.exceptions)) return 0;
-    return supplyChain.exceptions.filter(
-      (e: any) => (e.severity === 'Critical' || e.severity === 'High') && e.status !== 'Dismissed'
-    ).length;
-  }, [supplyChain?.exceptions]);
-
-  const stockoutRisksCount = useMemo(() => {
-    if (!supplyChain?.inventory || !Array.isArray(supplyChain.inventory)) return 0;
-    return supplyChain.inventory.filter((i: any) => i.onHand <= (i.safetyStock || i.reorderPoint || 10)).length;
-  }, [supplyChain?.inventory]);
-
-  const delayedShipmentsCount = useMemo(() => {
-    if (!supplyChain?.shipments || !Array.isArray(supplyChain.shipments)) return 0;
-    return supplyChain.shipments.filter((s: any) => s.status === 'Delayed').length;
-  }, [supplyChain?.shipments]);
-
-  const openPurchaseOrdersCount = useMemo(() => {
-    if (!supplyChain?.purchaseOrders || !Array.isArray(supplyChain.purchaseOrders)) return 0;
-    return supplyChain.purchaseOrders.filter((p: any) => p.status !== 'Received' && p.status !== 'Cancelled').length;
-  }, [supplyChain?.purchaseOrders]);
-
-  // Integration fabric metrics
-  const connectedConnectorsCount = useMemo(() => {
-    if (!connectors || connectors.length === 0) return 0;
-    const connected = connectors.filter((c: any) => 
-      c.status === 'CONNECTED' || c.status === 'ACTIVE' || c.status === 'CONFIGURED' || c.status === 'REGISTERED'
+  const isCompactOverMaximized = useMemo(() => {
+    if (!windowsRecord || typeof windowsRecord !== 'object') return false;
+    return Object.values(windowsRecord).some(
+      w => w && w.state === 'maximized' && (!activeWorkspaceId || w.workspace === activeWorkspaceId)
     );
-    return connected.length > 0 ? connected.length : connectors.length;
-  }, [connectors]);
+  }, [windowsRecord, activeWorkspaceId]);
 
-  const activeSyncJobsCount = useMemo(() => {
-    if (!syncJobs || syncJobs.length === 0) return 0;
-    return syncJobs.filter((j: any) => j.status === 'RUNNING' || j.status === 'QUEUED').length;
-  }, [syncJobs]);
+  const metrics: DynamicIslandMetrics = useMemo(() => {
+    const activeExceptionsCount = activeExceptions.filter((e: any) => e.status !== 'Resolved').length;
+    const criticalExceptionsCount = activeExceptions.filter(
+      (e: any) => e.severity === 'Critical' && e.status !== 'Resolved'
+    ).length;
 
-  const lastSyncTimestamp = useMemo(() => {
-    if (!syncJobs || syncJobs.length === 0) return null;
-    const completed = syncJobs
-      .filter((j: any) => j.completedAt)
-      .sort((a: any, b: any) => new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime());
-    if (completed.length > 0 && completed[0].completedAt) {
-      const diffMins = Math.floor((Date.now() - new Date(completed[0].completedAt).getTime()) / 60000);
-      if (diffMins < 1) return 'Just now';
-      if (diffMins === 1) return '1 min ago';
-      return `${diffMins} mins ago`;
+    const stockoutRisksCount = inventory.filter(
+      (i: any) => i.onHand <= (i.safetyStock || i.reorderPoint || 10)
+    ).length;
+
+    const delayedShipmentsCount = shipments.filter((s: any) => s.status === 'Delayed').length;
+    const openPurchaseOrdersCount = purchaseOrders.filter(
+      (po: any) => po.status === 'Pending' || po.status === 'Approved'
+    ).length;
+
+    const connectedConnectorsCount = connectors.filter((c: any) => c.status === 'CONNECTED').length;
+    const activeSyncJobsCount = syncJobs.filter((j: any) => j.status === 'RUNNING').length;
+    const unreadNotificationsCount = notifications?.unreadCount || 0;
+
+    const runtime = getAuthoritativeRuntime();
+    const activeAppName = activeAppId ? ORION_REGISTRY[activeAppId]?.name || activeAppId : null;
+
+    return {
+      activeExceptionsCount,
+      criticalExceptionsCount,
+      stockoutRisksCount,
+      delayedShipmentsCount,
+      openPurchaseOrdersCount,
+      connectedConnectorsCount,
+      activeSyncJobsCount,
+      unreadNotificationsCount,
+      runtimeMode: runtime.runtimeMode,
+      isNativeDesktop: runtime.isNativeDesktop,
+      activeAppName,
+      copilotStatus,
+      simulationRunning,
+    };
+  }, [
+    activeExceptions,
+    inventory,
+    shipments,
+    purchaseOrders,
+    connectors,
+    syncJobs,
+    notifications?.unreadCount,
+    activeAppId,
+    copilotStatus,
+    simulationRunning,
+  ]);
+
+  // Unified Priority Activity State
+  const activity: DynamicIslandActivity = useMemo(() => {
+    if (metrics.criticalExceptionsCount > 0) return 'critical-alert';
+    if (metrics.copilotStatus === 'thinking' || metrics.copilotStatus === 'analyzing') return 'copilot-thinking';
+    if (metrics.activeSyncJobsCount > 0) return 'connector-sync';
+    if (metrics.simulationRunning) return 'simulation-running';
+    if (metrics.unreadNotificationsCount > 0) return 'unread-notifications';
+    return 'system-ready';
+  }, [
+    metrics.criticalExceptionsCount,
+    metrics.copilotStatus,
+    metrics.activeSyncJobsCount,
+    metrics.simulationRunning,
+    metrics.unreadNotificationsCount,
+  ]);
+
+  // Unified Deduplicated Event Queue (derived + custom events)
+  const activities: DynamicIslandEventItem[] = useMemo(() => {
+    const derived: DynamicIslandEventItem[] = [];
+
+    if (metrics.criticalExceptionsCount > 0) {
+      derived.push({
+        id: 'sys-critical-exceptions',
+        source: 'exception',
+        title: `Shipment exception detected • ${metrics.criticalExceptionsCount} ${metrics.criticalExceptionsCount === 1 ? 'Alert' : 'Alerts'}`,
+        subtitle: 'Immediate supply chain review recommended',
+        severity: 'critical',
+        timestamp: 0,
+        actionLabel: 'Inspect Exceptions',
+        actionAppId: 'exceptions',
+      });
     }
-    return '5 mins ago';
-  }, [syncJobs]);
 
-  // Notifications
-  const unreadNotificationsCount = notificationCtx?.unreadCount ?? 0;
+    if (metrics.activeSyncJobsCount > 0) {
+      derived.push({
+        id: 'sys-connector-sync',
+        source: 'connector',
+        title: `Syncing ${metrics.connectedConnectorsCount} connectors`,
+        subtitle: `${metrics.activeSyncJobsCount} live ERP data pipeline${metrics.activeSyncJobsCount > 1 ? 's' : ''} active`,
+        severity: 'active',
+        timestamp: 0,
+        actionLabel: 'Sync Monitor',
+        actionAppId: 'sync',
+      });
+    }
 
-  // Active App Name
-  const activeAppId = windowManager?.activeAppId || null;
-  const activeAppName = useMemo(() => {
-    if (!activeAppId) return null;
-    return ORION_REGISTRY[activeAppId]?.name || activeAppId;
-  }, [activeAppId]);
+    const combined = [...derived];
+    for (const item of customEvents) {
+      if (!combined.some(existing => existing.id === item.id)) {
+        combined.push(item);
+      }
+    }
+    return combined.slice(0, MAX_TRANSIENT_EVENTS);
+  }, [metrics.criticalExceptionsCount, metrics.activeSyncJobsCount, metrics.connectedConnectorsCount, customEvents]);
 
-  // Determine system health
-  const systemHealth = useMemo<'OPTIMAL' | 'DEGRADED' | 'CRITICAL'>(() => {
-    if (criticalExceptionsCount > 0) return 'CRITICAL';
-    if (stockoutRisksCount > 0 || delayedShipmentsCount > 0) return 'DEGRADED';
-    return 'OPTIMAL';
-  }, [criticalExceptionsCount, stockoutRisksCount, delayedShipmentsCount]);
+  const primaryEvent = activities[0] || null;
 
-  // Determine active Activity State
-  const activity = useMemo<DynamicIslandActivity>(() => {
-    if (copilotStatus === 'thinking' || copilotStatus === 'analyzing') {
-      return 'copilot-thinking';
-    }
-    if (criticalExceptionsCount > 0) {
-      return 'critical-alerts';
-    }
-    if (isSimulationRunning) {
-      return 'simulation-running';
-    }
-    if (activeSyncJobsCount > 0) {
-      return 'syncing';
-    }
-    if (unreadNotificationsCount > 0) {
-      return 'notification';
+  // 5-state surface model
+  const surfaceState: DynamicIslandSurfaceState = useMemo(() => {
+    if (isExpanded) return 'expanded';
+    if (isReturning) return 'returning';
+    if (activity === 'critical-alert' || primaryEvent?.severity === 'critical') return 'critical';
+    if (activity === 'copilot-thinking' || activity === 'connector-sync' || activity === 'simulation-running' || customEvents.length > 0) {
+      return 'activity';
     }
     return 'idle';
-  }, [copilotStatus, criticalExceptionsCount, isSimulationRunning, activeSyncJobsCount, unreadNotificationsCount]);
+  }, [isExpanded, isReturning, activity, primaryEvent, customEvents.length]);
 
-  // Formatted Clock
-  const currentTime = useMemo(() => {
-    return currentDateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-  }, [currentDateObj]);
-
-  const currentDate = useMemo(() => {
-    return currentDateObj.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
-  }, [currentDateObj]);
-
-  const metrics: DynamicIslandMetrics = {
-    activeExceptionsCount,
-    criticalExceptionsCount,
-    stockoutRisksCount,
-    delayedShipmentsCount,
-    openPurchaseOrdersCount,
-    connectedConnectorsCount,
-    activeSyncJobsCount,
-    lastSyncTimestamp,
-    unreadNotificationsCount,
-    copilotStatus,
-    activeAppName,
-    runtimeMode,
-    isNativeDesktop,
-    systemHealth,
-    isSimulationRunning,
-    currentTime,
-    currentDate
-  };
-
-  // Toggle & Persistence
-  const toggleExpanded = useCallback(() => {
-    setIsExpanded(prev => !prev);
+  const triggerReturningTransition = useCallback(() => {
+    if (returningTimeoutRef.current !== null) {
+      globalThis.clearTimeout(returningTimeoutRef.current);
+    }
+    setIsReturning(true);
+    returningTimeoutRef.current = globalThis.setTimeout(() => {
+      setIsReturning(false);
+      returningTimeoutRef.current = null;
+    }, RETURNING_TRANSITION_MS) as unknown as number;
   }, []);
 
   const expand = useCallback(() => {
+    setIsReturning(false);
     setIsExpanded(true);
   }, []);
 
   const collapse = useCallback(() => {
     setIsExpanded(false);
-  }, []);
+    triggerReturningTransition();
+  }, [triggerReturningTransition]);
+
+  const toggleExpanded = useCallback(() => {
+    setIsExpanded(prev => {
+      if (prev) {
+        triggerReturningTransition();
+        return false;
+      }
+      setIsReturning(false);
+      return true;
+    });
+  }, [triggerReturningTransition]);
 
   const togglePin = useCallback(() => {
     setIsPinned(prev => {
@@ -285,40 +351,49 @@ export function useDynamicIslandState(): DynamicIslandState {
     });
   }, []);
 
-  // Auto-collapse after inactivity when not pinned and not hovered
-  const autoCollapseTimeoutRef = useRef<any>(null);
-
+  // Auto-collapse after 8s inactivity when expanded and unpinned
   useEffect(() => {
-    if (autoCollapseTimeoutRef.current) {
-      clearTimeout(autoCollapseTimeoutRef.current);
+    if (autoCollapseTimeoutRef.current !== null) {
+      globalThis.clearTimeout(autoCollapseTimeoutRef.current);
       autoCollapseTimeoutRef.current = null;
     }
 
     if (isExpanded && !isPinned && !isHovered) {
-      autoCollapseTimeoutRef.current = setTimeout(() => {
+      autoCollapseTimeoutRef.current = globalThis.setTimeout(() => {
         setIsExpanded(false);
-      }, 8000);
+        triggerReturningTransition();
+      }, 8000) as unknown as number;
     }
 
     return () => {
-      if (autoCollapseTimeoutRef.current) {
-        clearTimeout(autoCollapseTimeoutRef.current);
+      if (autoCollapseTimeoutRef.current !== null) {
+        globalThis.clearTimeout(autoCollapseTimeoutRef.current);
+        autoCollapseTimeoutRef.current = null;
       }
     };
-  }, [isExpanded, isPinned, isHovered]);
+  }, [isExpanded, isPinned, isHovered, triggerReturningTransition]);
 
-  // Escape key listener to close
   useEffect(() => {
+    return () => {
+      if (returningTimeoutRef.current !== null) {
+        globalThis.clearTimeout(returningTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Escape closes expanded card
+  useEffect(() => {
+    if (!isExpanded) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isExpanded) {
+      if (e.key === 'Escape') {
         setIsExpanded(false);
+        triggerReturningTransition();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isExpanded]);
+  }, [isExpanded, triggerReturningTransition]);
 
-  // Quick Action Handler
   const handleAction = useCallback((appId: string) => {
     if (appId === 'search') {
       windowManager?.setCommandPaletteOpen?.(true);
@@ -327,21 +402,47 @@ export function useDynamicIslandState(): DynamicIslandState {
     }
     if (!isPinned) {
       setIsExpanded(false);
+      triggerReturningTransition();
     }
-  }, [windowManager, isPinned]);
+  }, [windowManager, isPinned, triggerReturningTransition]);
 
-  return {
+  return useMemo(() => ({
     mode: isExpanded ? 'expanded' : 'compact',
+    surfaceState,
     isExpanded,
     isPinned,
     isHovered,
+    isCompactOverMaximized,
+    isFullscreenHidden,
     activity,
+    activities,
+    primaryEvent,
     metrics,
     toggleExpanded,
     expand,
     collapse,
     togglePin,
     setIsHovered,
-    handleAction
-  };
+    handleAction,
+    pushActivity,
+    dismissActivity,
+  }), [
+    isExpanded,
+    surfaceState,
+    isPinned,
+    isHovered,
+    isCompactOverMaximized,
+    isFullscreenHidden,
+    activity,
+    activities,
+    primaryEvent,
+    metrics,
+    toggleExpanded,
+    expand,
+    collapse,
+    togglePin,
+    handleAction,
+    pushActivity,
+    dismissActivity,
+  ]);
 }

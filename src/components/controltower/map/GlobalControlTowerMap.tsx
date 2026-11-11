@@ -104,9 +104,10 @@ export const GlobalControlTowerMap: React.FC<GlobalControlTowerMapProps> = ({
     ];
   }, [vessels.length, aircraft.length, trucks.length, rail.length]);
 
-  // Periodic smooth position tick
+  // Periodic smooth position tick (paused when tab/window is backgrounded)
   useEffect(() => {
     const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       demoSimulationEngine.advanceSimulationStep();
       setVessels([...demoSimulationEngine.getVessels()]);
       setAircraft([...demoSimulationEngine.getAircraft()]);

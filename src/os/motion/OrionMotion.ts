@@ -193,16 +193,19 @@ export function isReducedMotionPreferred(settingReducedMotion?: boolean): boolea
 export function useOrionMotionConfig(): MotionConfigState {
   const supplyChain = useOptionalSupplyChain();
   const settings = supplyChain?.settings;
-  const isReduced = isReducedMotionPreferred(settings?.reducedMotion);
-  const style: OSAnimationStyle = isReduced ? 'reduced' : (settings?.animationStyle || 'premium');
+  const effectiveReduced = settings?.reducedMotion ?? settings?.personalization?.reducedMotion;
+  const effectiveStyle = settings?.animationStyle ?? settings?.personalization?.animationStyle;
+  const isReduced = isReducedMotionPreferred(effectiveReduced);
+  const style: OSAnimationStyle = isReduced ? 'reduced' : (effectiveStyle || 'premium');
+  const isMinimal = style === 'minimal';
 
   return {
     style,
     isReduced,
-    dockMagnification: isReduced ? false : (settings?.dockMagnification ?? true),
-    dockBounceOnLaunch: isReduced ? false : (settings?.dockBounceOnLaunch ?? true),
-    genieEnabled: isReduced ? false : (settings?.genieEffectEnabled ?? true),
-    scaleDuration: isReduced ? 0.2 : style === 'minimal' ? 0.6 : style === 'balanced' ? 0.85 : 1.0,
+    dockMagnification: (isReduced || isMinimal) ? false : ((settings?.dockMagnification ?? settings?.personalization?.dockMagnification) ?? true),
+    dockBounceOnLaunch: (isReduced || isMinimal) ? false : ((settings?.dockBounceOnLaunch ?? settings?.personalization?.dockBounceOnLaunch) ?? true),
+    genieEnabled: (isReduced || isMinimal) ? false : ((settings?.genieEffectEnabled ?? settings?.personalization?.genieEffectEnabled) ?? true),
+    scaleDuration: isReduced ? 0.2 : isMinimal ? 0.6 : style === 'balanced' ? 0.85 : 1.0,
   };
 }
 
@@ -211,7 +214,7 @@ export function useOrionMotionConfig(): MotionConfigState {
  */
 export function useIsReducedMotion(overrideSetting?: boolean): boolean {
   const supplyChain = useOptionalSupplyChain();
-  const setting = overrideSetting ?? supplyChain?.settings?.reducedMotion;
+  const setting = overrideSetting ?? supplyChain?.settings?.reducedMotion ?? supplyChain?.settings?.personalization?.reducedMotion;
   return isReducedMotionPreferred(setting);
 }
 

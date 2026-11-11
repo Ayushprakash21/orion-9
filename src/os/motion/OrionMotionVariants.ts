@@ -26,12 +26,10 @@ export const osLifecycleVariants: Variants = {
   initial: {
     opacity: 0,
     scale: 0.985,
-    filter: 'blur(8px)',
   },
   animate: {
     opacity: 1,
     scale: 1,
-    filter: 'blur(0px)',
     transition: {
       duration: ORION_MOTION_DURATIONS.smooth,
       ease: ORION_EASE,
@@ -40,7 +38,6 @@ export const osLifecycleVariants: Variants = {
   exit: {
     opacity: 0,
     scale: 1.015,
-    filter: 'blur(10px)',
     transition: {
       duration: ORION_MOTION_DURATIONS.fast,
       ease: ORION_EASE_IN_OUT,
@@ -54,13 +51,11 @@ export const osLifecycleVariants: Variants = {
 export const powerOnVariants: Variants = {
   hidden: {
     opacity: 0,
-    scale: 0.88,
-    filter: 'blur(16px)',
+    scale: 0.92,
   },
   visible: {
     opacity: 1,
     scale: 1,
-    filter: 'blur(0px)',
     transition: {
       duration: ORION_MOTION_DURATIONS.cinematic * ORION_BOOT_MOTION_SCALE,
       ease: ORION_EASE,
@@ -68,8 +63,7 @@ export const powerOnVariants: Variants = {
   },
   exit: {
     opacity: 0,
-    scale: 1.05,
-    filter: 'blur(14px)',
+    scale: 1.04,
     transition: {
       duration: ORION_MOTION_DURATIONS.smooth * ORION_BOOT_MOTION_SCALE,
       ease: ORION_EASE_IN_OUT,
@@ -84,12 +78,10 @@ export const worldEntryContainerVariants: Variants = {
   hidden: {
     opacity: 0,
     scale: 1.02,
-    filter: 'blur(12px)',
   },
   show: {
     opacity: 1,
     scale: 1,
-    filter: 'blur(0px)',
     transition: {
       duration: ORION_MOTION_DURATIONS.smooth * ORION_BOOT_MOTION_SCALE,
       ease: ORION_EASE,
@@ -99,7 +91,6 @@ export const worldEntryContainerVariants: Variants = {
   exit: {
     opacity: 0,
     scale: 0.98,
-    filter: 'blur(8px)',
     transition: {
       duration: ORION_MOTION_DURATIONS.normal * ORION_BOOT_MOTION_SCALE,
       ease: ORION_EASE_IN_OUT,
@@ -128,13 +119,11 @@ export const worldEntryItemVariants: Variants = {
 export const logoutCoreVariants: Variants = {
   hidden: {
     opacity: 0,
-    scale: 1.2,
-    filter: 'blur(20px)',
+    scale: 1.12,
   },
   visible: {
     opacity: 1,
     scale: 1,
-    filter: 'blur(0px)',
     transition: {
       duration: ORION_MOTION_DURATIONS.smooth,
       ease: ORION_EASE,
@@ -142,8 +131,7 @@ export const logoutCoreVariants: Variants = {
   },
   exit: {
     opacity: 0,
-    scale: 0.2,
-    filter: 'blur(24px)',
+    scale: 0.35,
     transition: {
       duration: ORION_MOTION_DURATIONS.cinematic,
       ease: ORION_EASE_IN_OUT,
@@ -158,12 +146,10 @@ export const shutdownVariants: Variants = {
   initial: {
     opacity: 1,
     scale: 1,
-    filter: 'blur(0px)',
   },
   closing: {
     opacity: 0,
-    scale: 0.75,
-    filter: 'blur(16px)',
+    scale: 0.8,
     transition: {
       duration: ORION_MOTION_DURATIONS.cinematic,
       ease: ORION_EASE_IN_OUT,
@@ -179,22 +165,19 @@ export const windowMotionVariants: Variants = {
     opacity: 0,
     scale: 0.94,
     y: 14,
-    filter: 'blur(6px)',
   },
   animate: {
     opacity: 1,
     scale: 1,
     y: 0,
-    filter: 'blur(0px)',
     transition: ORION_SPRING_WINDOW,
   },
   exit: {
     opacity: 0,
     scale: 0.95,
     y: 8,
-    filter: 'blur(4px)',
     transition: {
-      duration: 0.18,
+      duration: 0.16,
       ease: ORION_EASE_IN_OUT,
     },
   },
@@ -207,12 +190,10 @@ export const desktopEntranceVariants: Variants = {
   hidden: {
     opacity: 0,
     scale: 0.985,
-    filter: 'blur(6px)',
   },
   visible: {
     opacity: 1,
     scale: 1,
-    filter: 'blur(0px)',
     transition: {
       duration: ORION_MOTION_DURATIONS.smooth,
       ease: ORION_EASE,
@@ -263,20 +244,17 @@ export const launcherMotionVariants: Variants = {
     opacity: 0,
     scale: 0.95,
     y: 16,
-    filter: 'blur(10px)',
   },
   visible: {
     opacity: 1,
     scale: 1,
     y: 0,
-    filter: 'blur(0px)',
     transition: ORION_SPRING_MODAL,
   },
   exit: {
     opacity: 0,
     scale: 0.96,
     y: 12,
-    filter: 'blur(6px)',
     transition: {
       duration: 0.16,
       ease: ORION_EASE_IN_OUT,
@@ -292,20 +270,17 @@ export const commandPaletteMotionVariants: Variants = {
     opacity: 0,
     scale: 0.96,
     y: -14,
-    filter: 'blur(8px)',
   },
   visible: {
     opacity: 1,
     scale: 1,
     y: 0,
-    filter: 'blur(0px)',
     transition: ORION_SPRING_SNAPPY,
   },
   exit: {
     opacity: 0,
     scale: 0.97,
     y: -8,
-    filter: 'blur(4px)',
     transition: {
       duration: 0.14,
       ease: ORION_EASE_OUT,
@@ -315,25 +290,23 @@ export const commandPaletteMotionVariants: Variants = {
 
 /**
  * Mission Control Spatial Overview Variants
+ * Animates only opacity on backdrop (blur stays GPU-static on container)
  */
 export const missionControlBackdropVariants: Variants = {
   hidden: {
     opacity: 0,
-    backdropFilter: 'blur(0px)',
   },
   visible: {
     opacity: 1,
-    backdropFilter: 'blur(20px)',
     transition: {
-      duration: 0.32,
+      duration: 0.24,
       ease: ORION_EASE,
     },
   },
   exit: {
     opacity: 0,
-    backdropFilter: 'blur(0px)',
     transition: {
-      duration: 0.22,
+      duration: 0.18,
       ease: ORION_EASE_IN_OUT,
     },
   },
@@ -372,23 +345,20 @@ export const workspaceSwitchVariants: Variants = {
   enter: (direction: number) => ({
     x: direction > 0 ? 120 : -120,
     opacity: 0,
-    scale: 0.98,
-    filter: 'blur(4px)',
+    scale: 0.985,
   }),
   center: {
     x: 0,
     opacity: 1,
     scale: 1,
-    filter: 'blur(0px)',
     transition: ORION_SPRING_SMOOTH,
   },
   exit: (direction: number) => ({
     x: direction < 0 ? 120 : -120,
     opacity: 0,
-    scale: 0.98,
-    filter: 'blur(4px)',
+    scale: 0.985,
     transition: {
-      duration: 0.22,
+      duration: 0.2,
       ease: ORION_EASE_IN_OUT,
     },
   }),
@@ -402,22 +372,19 @@ export const toastNotificationVariants: Variants = {
     opacity: 0,
     y: -14,
     scale: 0.94,
-    filter: 'blur(4px)',
   },
   animate: {
     opacity: 1,
     y: 0,
     scale: 1,
-    filter: 'blur(0px)',
     transition: ORION_SPRING_BOUNCY,
   },
   exit: {
     opacity: 0,
     x: 32,
     scale: 0.95,
-    filter: 'blur(2px)',
     transition: {
-      duration: 0.18,
+      duration: 0.16,
       ease: ORION_EASE_IN_OUT,
     },
   },
@@ -430,12 +397,10 @@ export const lockScreenVariants: Variants = {
   initial: {
     opacity: 0,
     scale: 0.96,
-    filter: 'blur(12px)',
   },
   animate: {
     opacity: 1,
     scale: 1,
-    filter: 'blur(0px)',
     transition: {
       duration: ORION_MOTION_DURATIONS.normal,
       ease: ORION_EASE,
@@ -444,7 +409,6 @@ export const lockScreenVariants: Variants = {
   exit: {
     opacity: 0,
     scale: 1.04,
-    filter: 'blur(16px)',
     transition: {
       duration: ORION_MOTION_DURATIONS.fast,
       ease: ORION_EASE_IN_OUT,

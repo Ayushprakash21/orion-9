@@ -760,13 +760,13 @@ export function OrionDock() {
             }}
             title={`${t('desktop.startMenu')} (All Applications)`}
           >
-            <div className="flex items-center justify-center w-full h-full rounded-[16px] bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/[0.18] border border-white/[0.12] hover:border-white/[0.22] text-[var(--orion-text-primary)] hover:text-white transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-md">
+            <div className="flex items-center justify-center w-full h-full rounded-[16px] bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/[0.18] border border-white/[0.12] hover:border-white/[0.22] text-[var(--orion-text-primary)] hover:text-white transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]">
               <Grid className="w-5 h-5 transition-transform duration-300 group-hover:scale-105" />
             </div>
 
             <div className={cn(
               tooltipClasses,
-              "px-3 py-1 bg-[#14171d]/90 backdrop-blur-2xl text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-[0_12px_24px_rgba(0,0,0,0.6)] z-50"
+              "px-3 py-1 bg-[#14171d]/95 text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-[0_12px_24px_rgba(0,0,0,0.6)] z-50"
             )}>
               {t('desktop.startMenu')}
             </div>
@@ -794,13 +794,13 @@ export function OrionDock() {
             }}
             title={`${t('common.search')} (Ctrl+Space / ⌘K)`}
           >
-            <div className="flex items-center justify-center w-full h-full rounded-[16px] bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/[0.18] border border-white/[0.12] hover:border-white/[0.22] text-[var(--orion-text-secondary)] hover:text-white transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-md">
+            <div className="flex items-center justify-center w-full h-full rounded-[16px] bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/[0.18] border border-white/[0.12] hover:border-white/[0.22] text-[var(--orion-text-secondary)] hover:text-white transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]">
               <Search className="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-105" />
             </div>
 
             <div className={cn(
               tooltipClasses,
-              "px-3 py-1 bg-[#14171d]/90 backdrop-blur-2xl text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-[0_12px_24px_rgba(0,0,0,0.6)] z-50"
+              "px-3 py-1 bg-[#14171d]/95 text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-[0_12px_24px_rgba(0,0,0,0.6)] z-50"
             )}>
               {t('common.search')} (Ctrl+Space)
             </div>
@@ -862,9 +862,9 @@ export function OrionDock() {
                 )}
                 style={{
                   transformOrigin: dock.magnificationOrigin,
-                  transform: dragOverApp !== id && hoveredApp ? `scale(${targetScale})` : undefined,
-                  marginBottom: !isVertical && dragOverApp !== id && hoveredIndex !== -1 ? `${(targetScale - 1) * 16}px` : "0px",
-                  marginRight: isVertical && dragOverApp !== id && hoveredIndex !== -1 ? `${(targetScale - 1) * 16}px` : "0px",
+                  transform: dragOverApp !== id && hoveredApp
+                    ? `translate3d(${isVertical ? -(targetScale - 1) * 14 : 0}px, ${!isVertical ? -(targetScale - 1) * 14 : 0}px, 0) scale(${targetScale})`
+                    : undefined,
                   width: `${dock.iconContainerSize}px`,
                   height: `${dock.iconContainerSize}px`,
                   animation: isBouncing ? 'orion-dock-launch-bounce 0.8s ease-in-out infinite' : undefined,
@@ -905,7 +905,7 @@ export function OrionDock() {
                 {/* Tooltip */}
                 <div className={cn(
                   tooltipClasses,
-                  "px-3 py-1 bg-[#14171d]/90 backdrop-blur-2xl text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-[0_12px_24px_rgba(0,0,0,0.6)] z-50"
+                  "px-3 py-1 bg-[#14171d]/95 text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-[0_12px_24px_rgba(0,0,0,0.6)] z-50"
                 )}>
                   {app.name}
                   {isMinimized && <span className="text-[var(--orion-text-muted)] ml-1.5 text-[10px]">(Minimized)</span>}
@@ -941,13 +941,13 @@ export function OrionDock() {
             }}
             title="Task Switcher (Alt+Tab)"
           >
-            <div className="flex items-center justify-center w-full h-full rounded-[16px] bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/[0.18] border border-white/[0.12] hover:border-white/[0.22] text-[var(--orion-text-secondary)] hover:text-white transition-all shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-md">
+            <div className="flex items-center justify-center w-full h-full rounded-[16px] bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/[0.18] border border-white/[0.12] hover:border-white/[0.22] text-[var(--orion-text-secondary)] hover:text-white transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]">
               <Layers className="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-105" />
             </div>
 
             <div className={cn(
               tooltipClasses,
-              "px-3 py-1 bg-[#14171d]/90 backdrop-blur-2xl text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-[0_12px_24px_rgba(0,0,0,0.6)] z-50"
+              "px-3 py-1 bg-[#14171d]/95 text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-[0_12px_24px_rgba(0,0,0,0.6)] z-50"
             )}>
               Task Switcher (Alt+Tab)
             </div>

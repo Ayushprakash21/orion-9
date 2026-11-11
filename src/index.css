@@ -1509,12 +1509,30 @@ body, button, input, textarea, select {
   scroll-behavior: auto !important;
 }
 
-/* Reduced Transparency Override */
+/* Reduced Transparency Override (Explicit or Performance / Minimal mode) */
 [data-reduced-transparency="true"] *,
 [data-reduced-transparency="true"] *::before,
-[data-reduced-transparency="true"] *::after {
+[data-reduced-transparency="true"] *::after,
+[data-animation-style="minimal"] *,
+[data-animation-style="minimal"] *::before,
+[data-animation-style="minimal"] *::after {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+
+/* Balanced mode caps extreme multi-layer GPU blurs without stripping glass character */
+[data-animation-style="balanced"] .orion-window-titlebar,
+[data-animation-style="balanced"] .orion-launcher-surface,
+[data-animation-style="balanced"] .orion-command-palette {
+  backdrop-filter: blur(12px) saturate(135%) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(135%) !important;
+}
+
+/* Performance (Minimal) mode fast 100ms UI transitions */
+[data-animation-style="minimal"] *,
+[data-animation-style="minimal"] *::before,
+[data-animation-style="minimal"] *::after {
+  transition-duration: 100ms !important;
 }
 
 /* Color Filters */

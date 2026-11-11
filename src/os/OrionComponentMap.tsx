@@ -141,6 +141,7 @@ const MultiPartyNetworkPortal = createLazyApp(() => import('../network/MultiPart
 const GuidedBuyWorkflow = createLazyApp(() => import('../components/guided/GuidedBuyWorkflow'), 'GuidedBuyWorkflow');
 const ProjectManagementCenter = createLazyApp(() => import('../components/projects/ProjectManagementCenter'), 'ProjectManagementCenter');
 const FlowTracker = createLazyApp(() => import('../components/flow/FlowTracker'), 'FlowTracker');
+const OrionIconGallery = createLazyApp(() => import('./icons/OrionIconGallery'), 'OrionIconGallery');
 
 // Lazy-loaded heavy components (Office suite & Three.js 3D engines)
 const DigitalTwin = createLazyApp(() => import('../components/DigitalTwin'), 'DigitalTwin');
@@ -278,6 +279,7 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'browser': OrionBrowser,
   'project-management': ProjectManagementCenter,
   'flow-tracker': FlowTracker,
+  'icon-gallery': OrionIconGallery,
 };
 
 export function getAppComponent(appId: string): React.ComponentType<any> | null {
