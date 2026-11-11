@@ -368,8 +368,11 @@ async function startServer() {
   // SCM Telemetry & Control Tower Data (GET /api/control-tower/data or /api/control-tower/summary)
   app.get(["/api/control-tower/data", "/api/control-tower/summary"], (req, res) => {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ success: false, error: "Authentication required." });
+    const token = (authHeader && authHeader.startsWith("Bearer ")) ? authHeader.slice(7).trim() : null;
+    const activeEnv = ((process.env.ORION_RUNTIME_ENVIRONMENT || 'DEMO').toUpperCase() === 'LIVE' ? 'LIVE' : 'DEMO') as 'LIVE' | 'DEMO';
+    const auth = verifyWorkerAuthToken(token, activeEnv);
+    if (!auth.authorized || !auth.user) {
+      return res.status(auth.statusCode || 401).json({ success: false, error: auth.error || "Authentication required." });
     }
 
     const exceptions = [
@@ -447,8 +450,14 @@ async function startServer() {
   // Action Execution Endpoint (POST /api/control/execute-action)
   app.post("/api/control/execute-action", (req, res) => {
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ success: false, error: "Authentication required." });
+    const token = (authHeader && authHeader.startsWith("Bearer ")) ? authHeader.slice(7).trim() : null;
+    const activeEnv = ((process.env.ORION_RUNTIME_ENVIRONMENT || 'DEMO').toUpperCase() === 'LIVE' ? 'LIVE' : 'DEMO') as 'LIVE' | 'DEMO';
+    const auth = verifyWorkerAuthToken(token, activeEnv);
+    if (!auth.authorized || !auth.user) {
+      return res.status(auth.statusCode || 401).json({ success: false, error: auth.error || "Authentication required." });
+    }
+    if (auth.user.role === 'viewer') {
+      return res.status(403).json({ success: false, error: "Forbidden: Viewers are not authorized to execute operational actions." });
     }
 
     const { actionType, entityId, parameters } = req.body;
@@ -470,6 +479,13 @@ async function startServer() {
 
   // Operational Alerts Endpoint (GET /api/notifications/alerts)
   app.get("/api/notifications/alerts", (req, res) => {
+    const authHeader = req.headers.authorization;
+    const token = (authHeader && authHeader.startsWith("Bearer ")) ? authHeader.slice(7).trim() : null;
+    const activeEnv = ((process.env.ORION_RUNTIME_ENVIRONMENT || 'DEMO').toUpperCase() === 'LIVE' ? 'LIVE' : 'DEMO') as 'LIVE' | 'DEMO';
+    const auth = verifyWorkerAuthToken(token, activeEnv);
+    if (!auth.authorized || !auth.user) {
+      return res.status(auth.statusCode || 401).json({ success: false, error: auth.error || "Authentication required." });
+    }
     const alerts = [
       { id: 'alt-1', title: 'Critical Inventory Risk: SKU-1000', message: 'Inventory coverage down to 2.1 days of demand at Chicago DC-01.', severity: 'Critical', timestamp: '15 mins ago', read: false, entityType: 'inventory', entityId: 'SKU-1000', actionRequired: true },
       { id: 'alt-2', title: 'Maritime Congestion Delay: SHP-2026-0001', message: 'Maersk consignment delayed +4 days due to Port of Long Beach backlog.', severity: 'Critical', timestamp: '42 mins ago', read: false, entityType: 'shipment', entityId: 'SHP-2026-0001', actionRequired: true },
@@ -865,12 +881,39 @@ async function startServer() {
     }
   });
 
+  const serverAiToolRouteCache = new Map<string, { toolsToCall: string[]; fallback: boolean; expiresAt: number }>();
+  const SERVER_AI_ROUTE_CACHE_MAX = 256;
+  const chooseServerToolsDeterministic = (promptText: string): string[] => {
+    const p = promptText.toLowerCase();
+    const tools: string[] = ['getDashboardMetrics'];
+    if (p.includes('inventory') || p.includes('stock') || p.includes('sku')) tools.push('getInventory', 'getInventoryRisks');
+    if (p.includes('supplier') || p.includes('vendor') || p.includes('otif')) tools.push('getSuppliers', 'getSupplierPerformance');
+    if (p.includes('po') || p.includes('purchase') || p.includes('order')) tools.push('getPurchaseOrders', 'getOverduePOs');
+    if (p.includes('shipment') || p.includes('delay') || p.includes('carrier')) tools.push('getShipments', 'getDelayedShipments');
+    if (p.includes('exception') || p.includes('alert') || p.includes('risk')) tools.push('getExceptions');
+    if (p.includes('decision') || p.includes('approve')) tools.push('getDecisions', 'getPendingDecisions');
+    return Array.from(new Set(tools));
+  };
+  const withServerDeadline = async <T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        promise,
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => reject(new Error(`${label} exceeded ${timeoutMs}ms deadline`)), timeoutMs);
+        }),
+      ]);
+    } finally {
+      if (timer !== undefined) clearTimeout(timer);
+    }
+  };
+
   // AI Status Route - Gemini Enterprise Native
   app.get("/api/ai/status", (req, res) => {
     const hasGemini = !!process.env.GEMINI_API_KEY;
     
     if (hasGemini) {
-      res.json({ configured: true, provider: "gemini", model: "gemini-3.8-flash" });
+      res.json({ configured: true, provider: "gemini", model: "gemini-2.5-flash" });
     } else {
       res.json({ configured: false, provider: "none", model: "none" });
     }
@@ -951,23 +994,15 @@ async function startServer() {
       return res.json({ toolsToCall: [] });
     }
 
+    const cachedRoute = serverAiToolRouteCache.get(p);
+    if (cachedRoute && cachedRoute.expiresAt > Date.now()) {
+      return res.json({ toolsToCall: cachedRoute.toolsToCall, fallback: cachedRoute.fallback, cached: true });
+    }
+
     const gemini = getGemini();
     
     if (!gemini) {
-      const tools: string[] = ['getDashboardMetrics'];
-      if (p.includes('inventory') || p.includes('stock') || p.includes('sku')) {
-        tools.push('getInventory', 'getInventoryRisks');
-      }
-      if (p.includes('supplier') || p.includes('vendor') || p.includes('otif')) {
-        tools.push('getSuppliers', 'getSupplierPerformance');
-      }
-      if (p.includes('po') || p.includes('purchase') || p.includes('order')) {
-        tools.push('getPurchaseOrders', 'getOverduePOs');
-      }
-      if (p.includes('shipment') || p.includes('delay') || p.includes('carrier')) {
-        tools.push('getShipments', 'getDelayedShipments');
-      }
-      return res.json({ toolsToCall: Array.from(new Set(tools)), fallback: true });
+      return res.json({ toolsToCall: chooseServerToolsDeterministic(rawPrompt), fallback: true });
     }
 
     try {
@@ -982,29 +1017,44 @@ If unsure for operational queries, include 'getDashboardMetrics'.`;
 
       let responseText = "";
       
-      const response = await gemini.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: `${systemPrompt}\n\nUser Prompt: ${prompt}`,
-        config: { temperature: 0.1 }
-      });
+      const response: any = await withServerDeadline(
+        gemini.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: `${systemPrompt}\n\nUser Prompt: ${prompt}`,
+          config: { temperature: 0.1 }
+        }),
+        2500,
+        'Server AI tool router'
+      );
       responseText = response.text || "[]";
 
-      let tools = [];
+      let tools: string[] = [];
       try {
         let cleanText = responseText.replace(/\s*```json\s*/g, '').replace(/\s*```\s*/g, '').trim();
         const parsed = JSON.parse(cleanText);
         const list = Array.isArray(parsed) ? parsed : (parsed.tools || parsed.toolsToCall || Object.values(parsed).flat());
         if (Array.isArray(list)) {
-          tools = list.filter(t => typeof t === 'string' && allowlist.includes(t));
+          tools = list.filter((t: any) => typeof t === 'string' && allowlist.includes(t));
         }
       } catch (e) {
-        tools = ["getDashboardMetrics"];
+        tools = chooseServerToolsDeterministic(rawPrompt);
       }
-      
+
+      if (serverAiToolRouteCache.size >= SERVER_AI_ROUTE_CACHE_MAX) {
+        const oldest = serverAiToolRouteCache.keys().next().value;
+        if (oldest !== undefined) serverAiToolRouteCache.delete(oldest);
+      }
+      serverAiToolRouteCache.set(p, { toolsToCall: tools, fallback: false, expiresAt: Date.now() + 60000 });
       res.json({ toolsToCall: tools });
     } catch (error: any) {
-      console.warn("AI choose-tools error, falling back to default tools:", error?.message || error);
-      res.json({ toolsToCall: ["getDashboardMetrics", "getInventoryRisks", "getExceptions", "getPendingDecisions"], fallback: true });
+      console.warn("AI choose-tools error, falling back to deterministic tools:", error?.message || error);
+      const deterministicTools = chooseServerToolsDeterministic(rawPrompt);
+      if (serverAiToolRouteCache.size >= SERVER_AI_ROUTE_CACHE_MAX) {
+        const oldest = serverAiToolRouteCache.keys().next().value;
+        if (oldest !== undefined) serverAiToolRouteCache.delete(oldest);
+      }
+      serverAiToolRouteCache.set(p, { toolsToCall: deterministicTools, fallback: true, expiresAt: Date.now() + 15000 });
+      res.json({ toolsToCall: deterministicTools, fallback: true });
     }
   });
 
@@ -1046,12 +1096,16 @@ SPECIALIZED COGNITIVE MODE: ${specializedMode || 'General Copilot'}
 USER PROMPT:
 ${prompt}`;
 
-      const usedModel = "gemini-3.8-flash";
-      const response = await gemini.models.generateContent({
-        model: usedModel,
-        contents: `${systemInstruction}\n\n${userContent}`,
-        config: { temperature: 0.2 }
-      });
+      const usedModel = "gemini-2.5-flash";
+      const response: any = await withServerDeadline(
+        gemini.models.generateContent({
+          model: usedModel,
+          contents: `${systemInstruction}\n\n${userContent}`,
+          config: { temperature: 0.2 }
+        }),
+        4500,
+        'Server AI insight'
+      );
       const responseText = response.text || "No response generated.";
 
       res.json({ response: responseText, provider: "gemini", model: usedModel });
@@ -1151,14 +1205,18 @@ Custom Strategic Query: ${customPrompt || 'Execute end-to-end strategic platform
 LIVE SUPPLY CHAIN TELEMETRY & DETERMINISTIC AGGREGATIONS:
 ${JSON.stringify(dataContext, null, 2)}`;
 
-      const response = await gemini.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: `${systemInstruction}\n\n${userContent}`,
-        config: {
-          temperature: 0.15,
-          responseMimeType: "application/json"
-        }
-      });
+      const response: any = await withServerDeadline(
+        gemini.models.generateContent({
+          model: 'gemini-2.5-flash',
+          contents: `${systemInstruction}\n\n${userContent}`,
+          config: {
+            temperature: 0.15,
+            responseMimeType: "application/json"
+          }
+        }),
+        6000,
+        'Server AI platform intelligence'
+      );
 
       const responseText = response.text || "{}";
       let parsed: any = {};
@@ -1184,7 +1242,7 @@ ${JSON.stringify(dataContext, null, 2)}`;
         success: true,
         data: parsed,
         provider: "gemini",
-        model: "gemini-3.8-flash",
+        model: "gemini-2.5-flash",
         timestamp: new Date().toISOString()
       });
     } catch (error: any) {
@@ -1276,11 +1334,15 @@ Analyze the supplied document and return a strict JSON object with:
         contents = `${systemInstruction}\n\nFile Name: ${fileName}\nType hint: ${documentType || mimeType}\n\nDocument Content:\n${rawText}`;
       }
 
-      const response = await gemini.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents,
-        config: { temperature: 0.1, responseMimeType: "application/json" }
-      });
+      const response: any = await withServerDeadline(
+        gemini.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents,
+          config: { temperature: 0.1, responseMimeType: "application/json" }
+        }),
+        6000,
+        'Server AI document intelligence'
+      );
       
       let parsed = {};
       try {

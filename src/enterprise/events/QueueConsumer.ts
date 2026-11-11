@@ -146,17 +146,33 @@ export class QueueConsumer {
   ): Promise<ConsumerProcessingResult> {
     const envelope = message.body;
 
-    // 0. Validate required envelope properties
-    if (!envelope || !envelope.idempotencyKey || !envelope.tenantId) {
-      console.error(`[QUEUE-CONSUMER] Invalid message envelope received:`, envelope);
+    // 0. Validate required envelope properties with actionable diagnostics
+    const missingFields: string[] = [];
+    if (!envelope || typeof envelope !== 'object') {
+      missingFields.push('envelope');
+    } else {
+      if (!envelope.idempotencyKey || typeof envelope.idempotencyKey !== 'string' || !envelope.idempotencyKey.trim()) {
+        missingFields.push('idempotencyKey');
+      }
+      if (!envelope.tenantId || typeof envelope.tenantId !== 'string' || !envelope.tenantId.trim()) {
+        missingFields.push('tenantId');
+      }
+      if (!envelope.eventType || typeof envelope.eventType !== 'string' || !envelope.eventType.trim()) {
+        missingFields.push('eventType');
+      }
+    }
+
+    if (missingFields.length > 0) {
+      const diagnosticReason = `Malformed event envelope: missing ${missingFields.join(', ')}`;
+      console.error(`[QUEUE-CONSUMER] Invalid message envelope received (${diagnosticReason}):`, envelope);
 
       // Durably quarantine malformed poison pill BEFORE acknowledging
       try {
         await DeadLetterQueueManager.getInstance().quarantineMessage({
-          tenantId: envelope?.tenantId || 'unknown_tenant',
+          tenantId: (envelope as any)?.tenantId || 'unknown_tenant',
           originalTopic: 'orion-scm-events',
           envelope: envelope || ({} as any),
-          failureReason: 'Malformed event envelope: missing idempotencyKey or tenantId',
+          failureReason: diagnosticReason,
           attemptCount: message.attempts || 1,
           maxAttempts: 1,
           isPoisonPill: true
@@ -166,7 +182,7 @@ export class QueueConsumer {
         message.retry({ delaySeconds: 30 });
         return {
           messageId: message.id,
-          idempotencyKey: envelope?.idempotencyKey || 'missing',
+          idempotencyKey: (envelope as any)?.idempotencyKey || 'missing',
           status: 'RETRIED',
           error: 'Failed to persist quarantine record'
         };
@@ -175,9 +191,9 @@ export class QueueConsumer {
       message.ack();
       return {
         messageId: message.id,
-        idempotencyKey: envelope?.idempotencyKey || 'missing',
+        idempotencyKey: (envelope as any)?.idempotencyKey || 'missing',
         status: 'INVALID',
-        error: 'Missing required envelope properties (idempotencyKey, tenantId)'
+        error: diagnosticReason
       };
     }
 
@@ -375,7 +391,7 @@ export class QueueConsumer {
    * Execute the actual business mutation triggered by the event.
    */
   private async executeEventMutation(envelope: DistributedEventEnvelope, _transaction?: any): Promise<void> {
-    if (envelope.eventType.startsWith('scm.inventory.')) {
+    if (envelope.eventType.startsWith('scm.inventory.') || envelope.eventType.startsWith('edi.')) {
       return;
     }
   }

@@ -55,9 +55,11 @@ export const Inventory = () => {
   }, [searchParams]);
 
   const enrichedInventory = useMemo(() => {
+    const productById = new Map(products.map(p => [p.id, p]));
+    const warehouseById = new Map(warehouses.map(w => [w.id, w]));
     return inventory.map(inv => {
-      const product = products.find(p => p.id === inv.productId);
-      const warehouse = warehouses.find(w => w.id === inv.warehouseId);
+      const product = productById.get(inv.productId);
+      const warehouse = warehouseById.get(inv.warehouseId);
       const available = inv.onHand - inv.reserved;
       const value = inv.onHand * inv.unitCost;
       

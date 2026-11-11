@@ -1,0 +1,220 @@
+{
+    "root_group": {
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "Logistics_Track_Shipments_And_Alerts": {
+                "name": "Logistics_Track_Shipments_And_Alerts",
+                "path": "::Logistics_Track_Shipments_And_Alerts",
+                "id": "efdb61bd93e0ef535176dea9bdfcd336",
+                "groups": {},
+                "checks": {
+                        "shipments array returned": {
+                            "id": "f3fc07e0c85f65aff3281fa157ff3303",
+                            "passes": 1790,
+                            "fails": 0,
+                            "name": "shipments array returned",
+                            "path": "::Logistics_Track_Shipments_And_Alerts::shipments array returned"
+                        }
+                    }
+            },
+            "Logistics_EDI_214_And_Reroute": {
+                "checks": {
+                    "shipment reroute confirmed": {
+                        "name": "shipment reroute confirmed",
+                        "path": "::Logistics_EDI_214_And_Reroute::shipment reroute confirmed",
+                        "id": "9d121a2f4455bd171e26ba1e2fe6885a",
+                        "passes": 1700,
+                        "fails": 0
+                    }
+                },
+                "name": "Logistics_EDI_214_And_Reroute",
+                "path": "::Logistics_EDI_214_And_Reroute",
+                "id": "f240bcc87b44e60c32b3e1b2350cff23",
+                "groups": {}
+            }
+        },
+        "checks": {
+            "viewer blocked from rerouting shipments": {
+                "path": "::viewer blocked from rerouting shipments",
+                "id": "2a025dc3f115852798c6355d345f1b19",
+                "passes": 90,
+                "fails": 0,
+                "name": "viewer blocked from rerouting shipments"
+            }
+        },
+        "name": ""
+    },
+    "metrics": {
+        "data_sent": {
+            "count": 6032018,
+            "rate": 118652.35964769922
+        },
+        "orion_security_isolation_violations": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 629.0840297421184,
+            "min": 7.78,
+            "med": 515.1976,
+            "max": 2940.897,
+            "p(90)": 1162.1849,
+            "p(95)": 1840.1048199999987
+        },
+        "orion_api_success_rate": {
+            "passes": 6980,
+            "fails": 0,
+            "thresholds": {
+                "rate>=0.99": false
+            },
+            "value": 1
+        },
+        "checks": {
+            "passes": 3580,
+            "fails": 0,
+            "value": 1
+        },
+        "http_req_duration{expected_status:2xx}": {
+            "p(95)": 1840.1048199999987,
+            "avg": 629.0840297421184,
+            "min": 7.78,
+            "med": 515.1976,
+            "max": 2940.897,
+            "p(90)": 1162.1849,
+            "thresholds": {
+                "p(95)<2000": false,
+                "p(99)<5000": false
+            }
+        },
+        "http_req_blocked": {
+            "p(90)": 0,
+            "p(95)": 0.4693449999999972,
+            "avg": 0.04243031117397457,
+            "min": 0,
+            "med": 0,
+            "max": 2.0187
+        },
+        "http_req_waiting": {
+            "p(95)": 1838.888555,
+            "avg": 627.4866697878339,
+            "min": 6.0604,
+            "med": 514.1966,
+            "max": 2940.897,
+            "p(90)": 1154.7700200000024
+        },
+        "http_reqs": {
+            "count": 7070,
+            "rate": 139.06990707077358
+        },
+        "iterations": {
+            "rate": 35.21006133757916,
+            "count": 1790
+        },
+        "http_req_failed{expected_status:2xx}": {
+            "passes": 0,
+            "fails": 6980,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_failed": {
+            "passes": 90,
+            "fails": 6980,
+            "value": 0.01272984441301273
+        },
+        "http_req_connecting": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.028048076379066478,
+            "min": 0,
+            "med": 0,
+            "max": 1.7571
+        },
+        "http_req_sending": {
+            "avg": 0.033777157001414426,
+            "min": 0,
+            "med": 0,
+            "max": 27.4437,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "iteration_duration": {
+            "avg": 2594.9540167039054,
+            "min": 989.5869,
+            "med": 2591.3795,
+            "max": 4978.6582,
+            "p(90)": 3646.17945,
+            "p(95)": 3978.0067
+        },
+        "vus": {
+            "value": 3,
+            "min": 2,
+            "max": 150
+        },
+        "data_received": {
+            "count": 21062331,
+            "rate": 414305.0091745224
+        },
+        "orion_unexpected_auth_failures": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "http_req_duration": {
+            "avg": 627.7002064356416,
+            "min": 7.78,
+            "med": 514.2855,
+            "max": 2940.897,
+            "p(90)": 1154.7700200000024,
+            "p(95)": 1838.888555
+        },
+        "http_req_receiving": {
+            "avg": 0.17975949080622342,
+            "min": 0,
+            "med": 0,
+            "max": 8.0389,
+            "p(90)": 0.5605,
+            "p(95)": 0.6502849999999994
+        },
+        "group_duration": {
+            "avg": 906.8921571060171,
+            "min": 10.3739,
+            "med": 766.8102,
+            "max": 3439.6408,
+            "p(90)": 1616.8076699999997,
+            "p(95)": 2156.7945799999998
+        },
+        "orion_shipment_duration": {
+            "p(90)": 1162.1849,
+            "p(95)": 1840.1048199999987,
+            "avg": 629.0840297421184,
+            "min": 7.78,
+            "med": 515.1976,
+            "max": 2940.897,
+            "thresholds": {
+                "p(95)<2000": false,
+                "p(99)<5000": false
+            }
+        },
+        "http_req_tls_handshaking": {
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0
+        },
+        "vus_max": {
+            "value": 150,
+            "min": 150,
+            "max": 150
+        }
+    }
+}

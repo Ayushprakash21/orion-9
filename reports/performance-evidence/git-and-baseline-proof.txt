@@ -1,0 +1,23 @@
+﻿Verified At (Local): 2026-11-12T02:18+05:30
+Branch HEAD: perf/150-user-load-audit -> e1c953f6f43219a1975b239da9cf6a9a51843113
+Baseline main: e1c953f6f43219a1975b239da9cf6a9a51843113
+
+=== Uncommitted Working Tree Status ===
+ M public/build-info.json
+ M server.ts
+ M src/components/Inventory.tsx
+ M src/components/Procurement.tsx
+ M src/components/controltower/ControlTowerWorkspace.tsx
+ M src/core/visualization/LiveMetricsEngine.ts
+ M src/core/visualization/TimeSeriesEngine.ts
+ M src/core/visualization/useLiveChartSeries.ts
+ M src/os/OrionComponentMap.tsx
+ M src/server/workerSecurity.ts
+ M src/worker.ts
+?? reports/
+?? src/__tests__/performance/realtimeAndFirestoreAudit.test.ts
+?? tests/performance/
+
+=== Vitest Clean Baseline (main e1c953f via detached worktree, task-16142) ===
+Command: npx vitest run mobileAIForensicResponsiveness.test.tsx masterDesktopArchitecture.test.tsx windowControlsLayout.test.ts windowControlsMacStyle.test.tsx windowTitlebarAndControlsChrome.test.tsx windowControlPosition.test.tsx
+Result: Test Files 6 failed (6) | Tests 16 failed | 22 passed (38)

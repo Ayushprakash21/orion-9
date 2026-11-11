@@ -1,0 +1,199 @@
+{
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "Stress_Core_API_Burst": {
+                "name": "Stress_Core_API_Burst",
+                "path": "::Stress_Core_API_Burst",
+                "id": "3493559eabc2cf89a9abebea6dc6b265",
+                "groups": {},
+                "checks": {}
+            },
+            "Stress_Security_And_404_Guards": {
+                "name": "Stress_Security_And_404_Guards",
+                "path": "::Stress_Security_And_404_Guards",
+                "id": "ab1a9c94db925708598219465a6b2772",
+                "groups": {},
+                "checks": {
+                        "SSRF proxy blocked 403": {
+                            "id": "f141255d54a3b4ca29249cd371a65d75",
+                            "passes": 769,
+                            "fails": 0,
+                            "name": "SSRF proxy blocked 403",
+                            "path": "::Stress_Security_And_404_Guards::SSRF proxy blocked 403"
+                        },
+                        "unknown /api returns 404 JSON not HTML": {
+                            "fails": 0,
+                            "name": "unknown /api returns 404 JSON not HTML",
+                            "path": "::Stress_Security_And_404_Guards::unknown /api returns 404 JSON not HTML",
+                            "id": "25d927a57ab004839570cee568f7c999",
+                            "passes": 769
+                        }
+                    }
+            }
+        },
+        "checks": {}
+    },
+    "metrics": {
+        "http_req_failed": {
+            "passes": 1538,
+            "fails": 39556,
+            "value": 0.03742638828052757
+        },
+        "http_req_sending": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.02083191950163039,
+            "min": 0,
+            "med": 0,
+            "max": 3.5037
+        },
+        "iterations": {
+            "rate": 93.91384164867593,
+            "count": 9889
+        },
+        "http_req_blocked": {
+            "avg": 0.025662413004331558,
+            "min": 0,
+            "med": 0,
+            "max": 4.8306,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "http_req_waiting": {
+            "med": 985.6152500000001,
+            "max": 3966.2483,
+            "p(90)": 1481.0984,
+            "p(95)": 1716.8373,
+            "avg": 973.9763548669002,
+            "min": 1.8223
+        },
+        "http_req_connecting": {
+            "med": 0,
+            "max": 4.8306,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.01384059960091501,
+            "min": 0
+        },
+        "http_req_duration": {
+            "p(95)": 1716.8644,
+            "avg": 974.1057259016052,
+            "min": 3.5344,
+            "med": 985.625,
+            "max": 3967.2373,
+            "p(90)": 1481.418070000001
+        },
+        "data_received": {
+            "count": 107075563,
+            "rate": 1016875.0599681286
+        },
+        "data_sent": {
+            "count": 30306526,
+            "rate": 287814.97458645765
+        },
+        "orion_api_success_rate": {
+            "passes": 39556,
+            "fails": 0,
+            "thresholds": {
+                "rate>=0.99": false
+            },
+            "value": 1
+        },
+        "vus": {
+            "value": 13,
+            "min": 2,
+            "max": 200
+        },
+        "orion_security_isolation_violations": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "http_reqs": {
+            "count": 41094,
+            "rate": 390.26144288711583
+        },
+        "http_req_tls_handshaking": {
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0
+        },
+        "http_req_failed{expected_status:2xx}": {
+            "passes": 0,
+            "fails": 39556,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 978.2593281626199,
+            "min": 3.5344,
+            "med": 993.2145,
+            "max": 3967.2373,
+            "p(90)": 1478.2501,
+            "p(95)": 1717.9365
+        },
+        "http_req_duration{expected_status:2xx}": {
+            "avg": 978.2593281626199,
+            "min": 3.5344,
+            "med": 993.2145,
+            "max": 3967.2373,
+            "p(90)": 1478.2501,
+            "p(95)": 1717.9365,
+            "thresholds": {
+                "p(95)<2000": false,
+                "p(99)<5000": false
+            }
+        },
+        "http_req_receiving": {
+            "med": 0,
+            "max": 15.0731,
+            "p(90)": 0.5439,
+            "p(95)": 0.5676,
+            "avg": 0.10853911519929889,
+            "min": 0
+        },
+        "group_duration": {
+            "med": 1017.7021500000001,
+            "max": 4001.9762,
+            "p(90)": 1607.6071800000002,
+            "p(95)": 2054.10809,
+            "avg": 1037.6822876712304,
+            "min": 17.346
+        },
+        "iteration_duration": {
+            "med": 1343.3748,
+            "max": 5829.3176,
+            "p(90)": 2104.0306,
+            "p(95)": 2996.9025600000004,
+            "avg": 1418.936879128321,
+            "min": 318.0981
+        },
+        "checks": {
+            "passes": 1538,
+            "fails": 0,
+            "value": 1
+        },
+        "vus_max": {
+            "value": 200,
+            "min": 200,
+            "max": 200
+        },
+        "orion_unexpected_auth_failures": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        }
+    }
+}

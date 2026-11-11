@@ -1,0 +1,219 @@
+{
+    "metrics": {
+        "iterations": {
+            "count": 3463,
+            "rate": 67.57799149556638
+        },
+        "http_req_connecting": {
+            "avg": 0.015036702281259022,
+            "min": 0,
+            "med": 0,
+            "max": 3.1422,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "vus_max": {
+            "value": 150,
+            "min": 150,
+            "max": 150
+        },
+        "http_req_failed{expected_status:2xx}": {
+            "fails": 6808,
+            "passes": 1,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0.000146864444118079
+        },
+        "http_req_duration{expected_status:2xx}": {
+            "avg": 254.70635980320122,
+            "min": 0.9013,
+            "med": 199.9365,
+            "max": 1987.2081,
+            "p(90)": 408.856,
+            "p(95)": 590.7788199999986,
+            "thresholds": {
+                "p(95)<2000": false,
+                "p(99)<5000": false
+            }
+        },
+        "http_req_duration": {
+            "p(90)": 412.2664,
+            "p(95)": 592.734875,
+            "avg": 255.85999548079627,
+            "min": 0.9013,
+            "med": 200.66289999999998,
+            "max": 1987.2081
+        },
+        "http_req_sending": {
+            "avg": 0.03438193762633554,
+            "min": 0,
+            "med": 0,
+            "max": 4.9741,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "http_req_duration{expected_response:true}": {
+            "max": 1987.2081,
+            "p(90)": 408.6606300000001,
+            "p(95)": 589.235655,
+            "avg": 254.58705972385388,
+            "min": 0.9013,
+            "med": 199.9005
+        },
+        "checks": {
+            "passes": 10388,
+            "fails": 1,
+            "value": 0.9999037443449803
+        },
+        "iteration_duration": {
+            "avg": 1313.9605654634704,
+            "min": 830.5134,
+            "med": 1232.4465,
+            "max": 3140.6623,
+            "p(90)": 1621.0684,
+            "p(95)": 2373.1202
+        },
+        "vus": {
+            "value": 8,
+            "min": 2,
+            "max": 150
+        },
+        "orion_inventory_duration": {
+            "max": 1987.2081,
+            "p(90)": 412.2664,
+            "p(95)": 592.734875,
+            "avg": 255.85999548079627,
+            "min": 0.9013,
+            "med": 200.66289999999998,
+            "thresholds": {
+                "p(99)<5000": false,
+                "p(95)<2000": false
+            }
+        },
+        "http_reqs": {
+            "count": 6926,
+            "rate": 135.15598299113276
+        },
+        "http_req_blocked": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.022168827606121853,
+            "min": 0,
+            "med": 0,
+            "max": 3.1422
+        },
+        "orion_security_isolation_violations": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "http_req_tls_handshaking": {
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0
+        },
+        "data_sent": {
+            "count": 5883455,
+            "rate": 114811.45594991265
+        },
+        "http_req_waiting": {
+            "p(90)": 412.2664,
+            "p(95)": 592.218425,
+            "avg": 255.54947574357487,
+            "min": 0.5399,
+            "med": 200.39825000000002,
+            "max": 1987.2081
+        },
+        "http_req_receiving": {
+            "p(95)": 1.0226,
+            "avg": 0.27613779959572676,
+            "min": 0,
+            "med": 0,
+            "max": 26.1018,
+            "p(90)": 0.5845
+        },
+        "group_duration": {
+            "min": 5.7797,
+            "med": 201.6092,
+            "max": 1987.9235,
+            "p(90)": 414.3293,
+            "p(95)": 593.990575,
+            "avg": 256.7078964048511
+        },
+        "http_req_failed": {
+            "passes": 118,
+            "fails": 6808,
+            "value": 0.017037250938492638
+        },
+        "orion_unexpected_auth_failures": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "orion_api_success_rate": {
+            "passes": 6925,
+            "fails": 1,
+            "thresholds": {
+                "rate>=0.99": false
+            },
+            "value": 0.9998556165174703
+        },
+        "data_received": {
+            "count": 32887756,
+            "rate": 641781.2576599083
+        }
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "Inventory_Read_And_Risk_Evaluation": {
+                "groups": {},
+                "checks": {
+                        "inventory data 200 OK": {
+                            "path": "::Inventory_Read_And_Risk_Evaluation::inventory data 200 OK",
+                            "id": "5f419c8e19c4506cbe47414c0be285fe",
+                            "passes": 3463,
+                            "fails": 0,
+                            "name": "inventory data 200 OK"
+                        },
+                        "inventory records array returned": {
+                            "name": "inventory records array returned",
+                            "path": "::Inventory_Read_And_Risk_Evaluation::inventory records array returned",
+                            "id": "98347a3ffce22a109d4e99072af1447b",
+                            "passes": 3463,
+                            "fails": 0
+                        }
+                    },
+                "name": "Inventory_Read_And_Risk_Evaluation",
+                "path": "::Inventory_Read_And_Risk_Evaluation",
+                "id": "161a8def89dc635f23a664c8dfa1a9cd"
+            },
+            "Inventory_Permitted_Update_And_RBAC": {
+                "name": "Inventory_Permitted_Update_And_RBAC",
+                "path": "::Inventory_Permitted_Update_And_RBAC",
+                "id": "ee62ad0c84f092446210b2dea883c0dd",
+                "groups": {},
+                "checks": {
+                        "inventory action respects RBAC": {
+                            "fails": 1,
+                            "name": "inventory action respects RBAC",
+                            "path": "::Inventory_Permitted_Update_And_RBAC::inventory action respects RBAC",
+                            "id": "68215f44bee3512f702f40f277427556",
+                            "passes": 3462
+                        }
+                    }
+            }
+        },
+        "checks": {}
+    }
+}

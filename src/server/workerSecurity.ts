@@ -41,6 +41,7 @@ interface RateLimitBucket {
 class WorkerRateLimiter {
   private buckets: Map<string, RateLimitBucket> = new Map();
   private lastCleanup: number = Date.now();
+  private readonly MAX_BUCKETS = 25000;
 
   /**
    * Checks if an IP or identifier has exceeded rate limits.
@@ -52,13 +53,20 @@ class WorkerRateLimiter {
   ): { allowed: boolean; remaining: number; resetSeconds: number } {
     const now = Date.now();
 
-    // Clean up expired buckets every 60 seconds
-    if (now - this.lastCleanup > 60000) {
+    // Clean up expired buckets every 60 seconds or when approaching memory bound
+    if (now - this.lastCleanup > 60000 || this.buckets.size >= this.MAX_BUCKETS) {
       this.cleanup(now);
     }
 
     let bucket = this.buckets.get(key);
     if (!bucket || now >= bucket.resetAt) {
+      // Bound map growth under high unique-key churn (LRU/FIFO eviction of oldest bucket)
+      if (!bucket && this.buckets.size >= this.MAX_BUCKETS) {
+        const oldestKey = this.buckets.keys().next().value;
+        if (oldestKey !== undefined) {
+          this.buckets.delete(oldestKey);
+        }
+      }
       bucket = {
         count: 1,
         resetAt: now + config.windowMs,
@@ -886,8 +894,33 @@ export function createSecurityErrorResponse(message: string, status: number, hea
   );
 }
 
+function extractRateLimitIdentity(request: Request): string | null {
+  const token = extractBearerToken(request);
+  if (!token) return null;
+  if (token.startsWith('orion_sess:')) {
+    const parts = token.split(':');
+    if (parts[2]) return parts[2];
+  }
+  if (token.includes('.') && token.split('.').length === 3) {
+    try {
+      const payloadBase64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      const jsonStr = (typeof atob !== 'undefined')
+        ? atob(payloadBase64)
+        : Buffer.from(payloadBase64, 'base64').toString('utf8');
+      const payload = JSON.parse(jsonStr);
+      return String(payload.user_id || payload.sub || payload.uid || '').trim() || null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 /**
- * Applies rate limiting to a request based on client IP or fallback identifier.
+ * Applies rate limiting to a request based on authenticated user/tenant + client IP.
+ * Scoping authenticated tiers (ai/edi) per user prevents 150 concurrent corporate users
+ * behind one shared NAT gateway from colliding on a single IP bucket, while keeping
+ * strict per-IP ceilings on sensitive admin/wallpaper/login endpoints.
  */
 export function applyWorkerRateLimit(
   request: Request,
@@ -896,17 +929,21 @@ export function applyWorkerRateLimit(
   const clientIp = request.headers.get('CF-Connecting-IP') || 
                    request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 
                    'edge-client';
+  const authIdentity = extractRateLimitIdentity(request);
   
   const configs: Record<string, RateLimitConfig> = {
-    ai: { maxRequests: 60, windowMs: 60000 },       // 60 req/min
+    ai: { maxRequests: 60, windowMs: 60000 },       // 60 req/min per user (or 300/min shared NAT IP)
     wallpaper: { maxRequests: 10, windowMs: 60000 },// 10 req/min
     admin: { maxRequests: 15, windowMs: 60000 },    // 15 req/min
-    edi: { maxRequests: 60, windowMs: 60000 },      // 60 req/min
-    default: { maxRequests: 100, windowMs: 60000 }, // 100 req/min
+    edi: { maxRequests: 120, windowMs: 60000 },     // 120 req/min per user/partner
+    default: { maxRequests: 400, windowMs: 60000 }, // 400 req/min per NAT IP (supports 150-200 concurrent logins)
   };
 
   const config = configs[tier] || configs.default;
-  const key = `${tier}:${clientIp}`;
+  const scopedSubject = (tier === 'ai' || tier === 'edi') && authIdentity
+    ? `${authIdentity}:${clientIp}`
+    : clientIp;
+  const key = `${tier}:${scopedSubject}`;
   const result = workerRateLimiter.check(key, config);
 
   if (!result.allowed) {

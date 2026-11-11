@@ -23,10 +23,104 @@ import {
 import { outboxDispatcher } from "./enterprise/events/OutboxDispatcher";
 import { queueConsumer } from "./enterprise/events/QueueConsumer";
 import { deadLetterQueueManager } from "./enterprise/events/DeadLetterQueueManager";
+import { createDistributedEventEnvelope } from "./enterprise/events/EventEnvelope";
+import { queueProducer } from "./enterprise/events/QueueProducer";
 import { scmPersistenceService } from "./services/scm/ScmPersistenceService";
 import { ediFabric } from "./integration/edi/EDIFabric";
+import {
+  resolveAuthorizedTenantId,
+  getOrBuildControlTowerSnapshotJson,
+  invalidateControlTowerCache,
+} from "./server/controlTowerSnapshot";
+import {
+  checkAndRecordEdiIdempotency,
+  rollbackEdiIdempotencyKey,
+} from "./server/ediIdempotencyStore";
 
-const seenInterchangeControlNumbers = new Set<string>();
+const aiToolRouteCache = new Map<string, { toolsToCall: string[]; fallback: boolean; expiresAt: number }>();
+const MAX_AI_ROUTE_CACHE = 256;
+
+const BASELINE_ALERTS_JSON = JSON.stringify({
+  success: true,
+  alerts: [
+    {
+      id: 'alt-1',
+      title: 'Critical Inventory Risk: SKU-1000',
+      message: 'Inventory coverage down to 2.1 days of demand at Chicago DC-01.',
+      severity: 'Critical',
+      timestamp: '15 mins ago',
+      read: false,
+      entityType: 'inventory',
+      entityId: 'SKU-1000',
+      actionRequired: true,
+    },
+    {
+      id: 'alt-2',
+      title: 'Maritime Congestion Delay: SHP-2026-0001',
+      message: 'Maersk consignment delayed +4 days due to Port of Long Beach backlog.',
+      severity: 'Critical',
+      timestamp: '42 mins ago',
+      read: false,
+      entityType: 'shipment',
+      entityId: 'SHP-2026-0001',
+      actionRequired: true,
+    },
+    {
+      id: 'alt-3',
+      title: 'PO Overdue Warning: PO-2026-0042',
+      message: 'Titan Microelectronics delivery overdue by 2 days.',
+      severity: 'High',
+      timestamp: '2 hours ago',
+      read: false,
+      entityType: 'po',
+      entityId: 'PO-2026-0042',
+      actionRequired: false,
+    },
+    {
+      id: 'alt-4',
+      title: 'ERP Ledger Telemetry Reconciled',
+      message: 'Autonomous synchronization completed across all 4 distribution centers.',
+      severity: 'Low',
+      timestamp: '4 hours ago',
+      read: true,
+      entityType: 'system',
+      entityId: 'SYS-SYNC',
+      actionRequired: false,
+    },
+  ],
+});
+
+let brandingEdgeCache: { data: any; expiresAt: number } | null = null;
+const BRANDING_EDGE_CACHE_TTL_MS = 30000;
+
+function chooseToolsDeterministic(promptText: string): string[] {
+  const p = promptText.toLowerCase();
+  if (p === 'hello' || p === 'hi' || p === 'hey' || p === 'good morning' || p === 'help' || p === 'what can you do') {
+    return [];
+  }
+  const tools: string[] = ['getDashboardMetrics'];
+  if (p.includes('inventory') || p.includes('stock') || p.includes('sku')) tools.push('getInventory', 'getInventoryRisks');
+  if (p.includes('supplier') || p.includes('vendor') || p.includes('otif')) tools.push('getSuppliers', 'getSupplierPerformance');
+  if (p.includes('po') || p.includes('purchase') || p.includes('order')) tools.push('getPurchaseOrders', 'getOverduePOs');
+  if (p.includes('shipment') || p.includes('carrier') || p.includes('delay')) tools.push('getShipments', 'getDelayedShipments');
+  if (p.includes('exception') || p.includes('alert') || p.includes('risk')) tools.push('getExceptions');
+  if (p.includes('decision') || p.includes('approve')) tools.push('getDecisions', 'getPendingDecisions');
+  return Array.from(new Set(tools));
+}
+
+async function withWorkerDeadline<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} exceeded ${timeoutMs}ms deadline`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
 import {
   getDurableBranding,
   saveDurableBranding,
@@ -49,6 +143,7 @@ export interface Env {
   AI?: any; // Cloudflare Workers AI Binding
   SCM_EVENTS?: any;
   SCM_EVENTS_DLQ?: any;
+  ORION_EDI_DEDUP?: any;
   CLOUDFLARE_API_TOKEN?: string;
   CLOUDFLARE_ACCOUNT_ID?: string;
   GEMINI_API_KEY?: string;
@@ -356,383 +451,21 @@ export default {
         return createSecurityErrorResponse(auth.error || 'Authentication required.', auth.statusCode || 401);
       }
 
-      const exceptions = [
-        {
-          id: 'EXC-2026-001',
-          date: '2026-10-28T14:30:00Z',
-          type: 'Stock-Out Risk',
-          severity: 'Critical',
-          entityId: 'SKU-1000',
-          description: 'Quantum Neural Processing Unit inventory below critical 2-day safety threshold at Chicago DC-01.',
-          estimatedImpact: 145000,
-          status: 'Open',
-          owner: 'Elena Rostova',
-          recommendedAction: 'Expedite inbound shipment SHP-2026-0001 and trigger emergency buffer allocation from Dallas DC-03.',
-        },
-        {
-          id: 'EXC-2026-002',
-          date: '2026-10-28T11:15:00Z',
-          type: 'Shipment Delay',
-          severity: 'Critical',
-          entityId: 'SHP-2026-0001',
-          description: 'Pacific maritime lane transshipment congestion in Long Beach. Expected delay: +4 days.',
-          estimatedImpact: 88000,
-          status: 'Investigating',
-          owner: 'Marcus Vance',
-          recommendedAction: 'Reroute remaining containers via intermodal rail priority corridor PAC-04.',
-        },
-        {
-          id: 'EXC-2026-003',
-          date: '2026-10-28T09:45:00Z',
-          type: 'PO Overdue',
-          severity: 'High',
-          entityId: 'PO-2026-0042',
-          description: 'Supplier Titan Microelectronics failed to acknowledge delivery schedule for 1,200 optical sensors.',
-          estimatedImpact: 62000,
-          status: 'Action Required',
-          owner: 'Sarah Chen',
-          recommendedAction: 'Issue formal SLA non-compliance warning and activate secondary qualified supplier Apex Dynamics.',
-        },
-        {
-          id: 'EXC-2026-004',
-          date: '2026-10-27T16:20:00Z',
-          type: 'Supplier Quality',
-          severity: 'High',
-          entityId: 'SUP-002',
-          description: 'Apex Dynamics lot batch #4409 defect rate spiked to 4.2% (threshold: 1.5%).',
-          estimatedImpact: 34000,
-          status: 'Investigating',
-          owner: 'Elena Rostova',
-          recommendedAction: 'Initiate quarantine inspection protocol on lot #4409 and pause open PO-2026-0048.',
-        },
-        {
-          id: 'EXC-2026-005',
-          date: '2026-10-27T12:00:00Z',
-          type: 'Forecast Variance',
-          severity: 'Medium',
-          entityId: 'SKU-1004',
-          description: 'Automotive sensor demand exceeds rolling baseline by 28% in EMEA East region.',
-          estimatedImpact: 21000,
-          status: 'Open',
-          owner: 'David K.',
-          recommendedAction: 'Adjust dynamic safety buffer factor from 1.2 to 1.45 for next 30 days.',
-        },
-      ];
+      const tenantRes = resolveAuthorizedTenantId(auth.user, request.headers.get('X-Orion-Tenant-Id'));
+      if (!tenantRes.allowed || !tenantRes.tenantId) {
+        return createSecurityErrorResponse(tenantRes.error || 'Forbidden: Cross-tenant access denied.', tenantRes.statusCode || 403);
+      }
 
-      const shipments = [
-        {
-          id: 'SHP-2026-0001',
-          poId: 'PO-2026-0038',
-          supplierId: 'SUP-001',
-          carrier: 'Maersk Line',
-          origin: 'Port of Yokohama, JP',
-          destination: 'Long Beach Terminal, US',
-          shipDate: '2026-10-18T00:00:00Z',
-          expectedArrival: '2026-11-01T00:00:00Z',
-          actualArrival: null,
-          status: 'Delayed',
-          delayDays: 4,
-          freightCost: 32500,
-          trackingNumber: 'MSK-99201481',
-        },
-        {
-          id: 'SHP-2026-0002',
-          poId: 'PO-2026-0040',
-          supplierId: 'SUP-003',
-          carrier: 'DHL Global Forwarding',
-          origin: "Frankfurt Air Hub, DE",
-          destination: "Chicago O'Hare Hub, US",
-          shipDate: '2026-10-26T00:00:00Z',
-          expectedArrival: '2026-10-29T00:00:00Z',
-          actualArrival: null,
-          status: 'In Transit',
-          delayDays: 0,
-          freightCost: 14200,
-          trackingNumber: 'DHL-88102941',
-        },
-        {
-          id: 'SHP-2026-0003',
-          poId: 'PO-2026-0041',
-          supplierId: 'SUP-002',
-          carrier: 'Kuehne + Nagel',
-          origin: 'Rotterdam Gateway, NL',
-          destination: 'New York Newark, US',
-          shipDate: '2026-10-22T00:00:00Z',
-          expectedArrival: '2026-10-31T00:00:00Z',
-          actualArrival: null,
-          status: 'In Transit',
-          delayDays: 1,
-          freightCost: 18900,
-          trackingNumber: 'KN-5519201',
-        },
-        {
-          id: 'SHP-2026-0004',
-          poId: 'PO-2026-0039',
-          supplierId: 'SUP-004',
-          carrier: 'Ocean Network Express',
-          origin: 'Port of Kaohsiung, TW',
-          destination: 'Oakland Port, US',
-          shipDate: '2026-10-15T00:00:00Z',
-          expectedArrival: '2026-10-28T00:00:00Z',
-          actualArrival: '2026-10-28T18:00:00Z',
-          status: 'Delivered',
-          delayDays: 0,
-          freightCost: 26400,
-          trackingNumber: 'ONE-7721904',
-        },
-      ];
-
-      const inventory = [
-        {
-          id: 'INV-001',
-          productId: 'SKU-1000',
-          warehouseId: 'WH-CHI-01',
-          onHand: 180,
-          reserved: 120,
-          inTransit: 500,
-          safetyStock: 150,
-          reorderPoint: 250,
-          dailyDemand: 28,
-          averageDailyDemand: 28,
-          unitCost: 450,
-          leadTime: 14,
-          lastUpdated: new Date().toISOString(),
-        },
-        {
-          id: 'INV-002',
-          productId: 'SKU-1001',
-          warehouseId: 'WH-DAL-02',
-          onHand: 850,
-          reserved: 200,
-          inTransit: 800,
-          safetyStock: 300,
-          reorderPoint: 500,
-          dailyDemand: 45,
-          averageDailyDemand: 45,
-          unitCost: 180,
-          leadTime: 8,
-          lastUpdated: new Date().toISOString(),
-        },
-        {
-          id: 'INV-003',
-          productId: 'SKU-1002',
-          warehouseId: 'WH-FRA-01',
-          onHand: 420,
-          reserved: 380,
-          inTransit: 120,
-          safetyStock: 100,
-          reorderPoint: 180,
-          dailyDemand: 16,
-          averageDailyDemand: 16,
-          unitCost: 820,
-          leadTime: 21,
-          lastUpdated: new Date().toISOString(),
-        },
-        {
-          id: 'INV-004',
-          productId: 'SKU-1003',
-          warehouseId: 'WH-NRT-01',
-          onHand: 2680,
-          reserved: 450,
-          inTransit: 0,
-          safetyStock: 600,
-          reorderPoint: 1000,
-          dailyDemand: 72,
-          averageDailyDemand: 72,
-          unitCost: 125,
-          leadTime: 6,
-          lastUpdated: new Date().toISOString(),
-        },
-      ];
-
-      const suppliers = [
-        {
-          id: 'SUP-001',
-          name: 'Titan Microelectronics',
-          category: 'Semiconductors',
-          region: 'Asia Pacific',
-          country: 'Japan',
-          contact: 'Kenji Takahashi (k.takahashi@titan-micro.jp)',
-          otif: 78.4,
-          qualityRate: 97.6,
-          leadTime: 18,
-          defectRate: 2.4,
-          spend: 4850000,
-          openPoValue: 720000,
-          score: 76,
-          riskLevel: 'High' as const,
-          status: 'Under Review',
-        },
-        {
-          id: 'SUP-002',
-          name: 'Apex Dynamics',
-          category: 'Precision Mechanical',
-          region: 'North America',
-          country: 'United States',
-          contact: 'Rachel Adams (radams@apexdynamics.com)',
-          otif: 91.8,
-          qualityRate: 95.8,
-          leadTime: 12,
-          defectRate: 4.2,
-          spend: 2900000,
-          openPoValue: 340000,
-          score: 88,
-          riskLevel: 'Medium' as const,
-          status: 'Active',
-        },
-        {
-          id: 'SUP-003',
-          name: 'Nordic Precision Assemblies',
-          category: 'Precision Mechanical',
-          region: 'Europe',
-          country: 'Germany',
-          contact: 'Hans Weber (h.weber@nordic-precision.de)',
-          otif: 97.2,
-          qualityRate: 99.8,
-          leadTime: 8,
-          defectRate: 0.2,
-          spend: 3100000,
-          openPoValue: 490000,
-          score: 96,
-          riskLevel: 'Low' as const,
-          status: 'Preferred',
-        },
-        {
-          id: 'SUP-004',
-          name: 'Pacific Core Tech',
-          category: 'Power Systems',
-          region: 'East Asia',
-          country: 'Taiwan',
-          contact: 'Mei-Ling Chen (ml.chen@pct-power.tw)',
-          otif: 84.1,
-          qualityRate: 98.4,
-          leadTime: 16,
-          defectRate: 1.6,
-          spend: 1450000,
-          openPoValue: 180000,
-          score: 85,
-          riskLevel: 'Medium' as const,
-          status: 'Active',
-        },
-      ];
-
-      const purchaseOrders = [
-        {
-          id: 'PO-2026-0038',
-          supplierId: 'SUP-001',
-          orderDate: '2026-10-10T00:00:00Z',
-          expectedDelivery: '2026-11-01T00:00:00Z',
-          status: 'Delayed' as const,
-          totalValue: 225000,
-          currency: 'USD',
-          buyer: 'Sarah Chen',
-          lines: [
-            { productId: 'SKU-1000', quantity: 500, receivedQuantity: 0, unitPrice: 450 },
-          ],
-        },
-        {
-          id: 'PO-2026-0040',
-          supplierId: 'SUP-003',
-          orderDate: '2026-10-20T00:00:00Z',
-          expectedDelivery: '2026-10-29T00:00:00Z',
-          status: 'In Transit' as const,
-          totalValue: 144000,
-          currency: 'USD',
-          buyer: 'Marcus Vance',
-          lines: [
-            { productId: 'SKU-1001', quantity: 800, receivedQuantity: 0, unitPrice: 180 },
-          ],
-        },
-        {
-          id: 'PO-2026-0042',
-          supplierId: 'SUP-001',
-          orderDate: '2026-10-12T00:00:00Z',
-          expectedDelivery: '2026-10-26T00:00:00Z',
-          status: 'Overdue' as const,
-          totalValue: 98400,
-          currency: 'USD',
-          buyer: 'Sarah Chen',
-          lines: [
-            { productId: 'SKU-1002', quantity: 120, receivedQuantity: 0, unitPrice: 820 },
-          ],
-        },
-      ];
-
-      const recentEvents = [
-        {
-          id: 'EVT-01',
-          source: 'Event Fabric',
-          entityType: 'INVENTORY_REBALANCE',
-          entityId: 'SKU-1000',
-          eventType: 'Buffer Calibration',
-          timestamp: '12m ago',
-          description: 'Autonomous rebalance policy calculated +45 unit buffer for Chicago DC.',
-          badgeColor: '#10b981',
-        },
-        {
-          id: 'EVT-02',
-          source: 'EDI Gateway',
-          entityType: 'SHIPMENT_STATUS',
-          entityId: 'SHP-2026-0001',
-          eventType: 'Lane Congestion Detected',
-          timestamp: '34m ago',
-          description: 'Carrier Maersk updated transshipment ETA +4 days at Port of Long Beach.',
-          badgeColor: '#ef4444',
-        },
-        {
-          id: 'EVT-03',
-          source: 'ERP Synchronizer',
-          entityType: 'PO_CONFIRMATION',
-          entityId: 'PO-2026-0040',
-          eventType: 'Ledger Reconciled',
-          timestamp: '1h ago',
-          description: 'PO-2026-0040 delivery milestone confirmed by DHL Global Forwarding.',
-          badgeColor: '#06b6d4',
-        },
-        {
-          id: 'EVT-04',
-          source: 'Cognitive Engine',
-          entityType: 'RISK_PROPOSAL',
-          entityId: 'EXC-2026-001',
-          eventType: 'Decision Proposed',
-          timestamp: '2h ago',
-          description: 'Decision Copilot proposed priority intermodal expedite for SKU-1000.',
-          badgeColor: '#f59e0b',
-        },
-      ];
-
-      const metrics = {
-        networkHealthIndex: 87,
-        criticalExceptionsCount: exceptions.filter(e => e.severity === 'Critical').length,
-        delayedShipmentsCount: shipments.filter(s => s.delayDays > 0).length,
-        delayedShipmentsValue: shipments.filter(s => s.delayDays > 0).reduce((sum, s) => sum + s.freightCost, 0),
-        inventoryRiskCount: inventory.filter(i => (i.onHand - i.reserved) < i.safetyStock).length,
-        totalInventoryUnits: inventory.reduce((sum, i) => sum + i.onHand, 0),
-        totalInventoryValue: inventory.reduce((sum, i) => sum + i.onHand * i.unitCost, 0),
-        openPOCount: purchaseOrders.length,
-        overduePOCount: purchaseOrders.filter(po => po.status === 'Overdue' || po.status === 'Delayed').length,
-        totalSpendCommitment: purchaseOrders.reduce((sum, po) => sum + po.totalValue, 0),
-        averageSupplierOtif: Math.round((suppliers.reduce((sum, s) => sum + s.otif, 0) / suppliers.length) * 10) / 10,
-        lastRefreshedAt: new Date().toISOString(),
-        environment: activeEnv,
-      };
+      const snapshot = getOrBuildControlTowerSnapshotJson({
+        activeEnv,
+        tenantId: tenantRes.tenantId,
+        role: auth.user.role,
+        pathname: url.pathname,
+        domain: url.searchParams.get('domain'),
+      });
 
       return applySecurityHeaders(
-        new Response(
-          JSON.stringify({
-            success: true,
-            metrics,
-            exceptions,
-            shipments,
-            inventory,
-            purchaseOrders,
-            suppliers,
-            recentEvents,
-            environment: activeEnv,
-            timestamp: new Date().toISOString(),
-          }),
-          { status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } }
-        ),
+        new Response(snapshot.body, { status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } }),
         request
       );
     }
@@ -749,6 +482,11 @@ export default {
         return createSecurityErrorResponse('Forbidden: Viewers are not authorized to execute operational actions.', 403);
       }
 
+      const tenantRes = resolveAuthorizedTenantId(auth.user, request.headers.get('X-Orion-Tenant-Id'));
+      if (!tenantRes.allowed || !tenantRes.tenantId) {
+        return createSecurityErrorResponse(tenantRes.error || 'Forbidden: Cross-tenant access denied.', tenantRes.statusCode || 403);
+      }
+
       let body: any = {};
       try {
         body = await request.json();
@@ -761,6 +499,7 @@ export default {
         return createSecurityErrorResponse('Missing required parameters: actionType and entityId are required.', 400);
       }
 
+      invalidateControlTowerCache(activeEnv, tenantRes.tenantId);
       const auditId = `AUD-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
 
       return applySecurityHeaders(
@@ -768,6 +507,7 @@ export default {
           JSON.stringify({
             success: true,
             auditId,
+            tenantId: tenantRes.tenantId,
             actionType,
             entityId,
             parameters: parameters || {},
@@ -793,54 +533,14 @@ export default {
         return createSecurityErrorResponse(auth.error || 'Authentication required.', auth.statusCode || 401);
       }
 
-      const alerts = [
-        {
-          id: 'alt-1',
-          title: 'Critical Inventory Risk: SKU-1000',
-          message: 'Inventory coverage down to 2.1 days of demand at Chicago DC-01.',
-          severity: 'Critical',
-          timestamp: '15 mins ago',
-          read: false,
-          entityType: 'inventory',
-          entityId: 'SKU-1000',
-          actionRequired: true,
-        },
-        {
-          id: 'alt-2',
-          title: 'Maritime Congestion Delay: SHP-2026-0001',
-          message: 'Maersk consignment delayed +4 days due to Port of Long Beach backlog.',
-          severity: 'Critical',
-          timestamp: '42 mins ago',
-          read: false,
-          entityType: 'shipment',
-          entityId: 'SHP-2026-0001',
-          actionRequired: true,
-        },
-        {
-          id: 'alt-3',
-          title: 'PO Overdue Warning: PO-2026-0042',
-          message: 'Titan Microelectronics delivery overdue by 2 days.',
-          severity: 'High',
-          timestamp: '2 hours ago',
-          read: false,
-          entityType: 'po',
-          entityId: 'PO-2026-0042',
-          actionRequired: false,
-        },
-        {
-          id: 'alt-4',
-          title: 'ERP Ledger Telemetry Reconciled',
-          message: 'Autonomous synchronization completed across all 4 distribution centers.',
-          severity: 'Low',
-          timestamp: '4 hours ago',
-          read: true,
-          actionRequired: false,
-        },
-      ];
+      const tenantRes = resolveAuthorizedTenantId(auth.user, request.headers.get('X-Orion-Tenant-Id'));
+      if (!tenantRes.allowed || !tenantRes.tenantId) {
+        return createSecurityErrorResponse(tenantRes.error || 'Forbidden: Cross-tenant access denied.', tenantRes.statusCode || 403);
+      }
 
       return applySecurityHeaders(
         new Response(
-          JSON.stringify({ success: true, alerts }),
+          BASELINE_ALERTS_JSON,
           { status: 200, headers: { 'Content-Type': 'application/json' } }
         ),
         request
@@ -869,7 +569,18 @@ export default {
     if (url.pathname === "/api/branding") {
       if (request.method === "GET") {
         try {
+          const now = Date.now();
+          if (brandingEdgeCache && brandingEdgeCache.expiresAt > now) {
+            return applySecurityHeaders(
+              new Response(
+                JSON.stringify({ success: true, data: brandingEdgeCache.data, cached: true }),
+                { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=60" } }
+              ),
+              request
+            );
+          }
           const branding = await getDurableBranding(env.FIREBASE_API_KEY, env.FIREBASE_PROJECT_ID);
+          brandingEdgeCache = { data: branding, expiresAt: now + BRANDING_EDGE_CACHE_TTL_MS };
           return applySecurityHeaders(
             new Response(
               JSON.stringify({ success: true, data: branding }),
@@ -905,6 +616,7 @@ export default {
         }
         try {
           const savedBranding = await saveDurableBranding(updated, env.FIREBASE_API_KEY, env.FIREBASE_PROJECT_ID);
+          brandingEdgeCache = { data: savedBranding, expiresAt: Date.now() + BRANDING_EDGE_CACHE_TTL_MS };
           return applySecurityHeaders(
             new Response(JSON.stringify({ success: true, data: savedBranding }), {
               status: 200,
@@ -934,6 +646,7 @@ export default {
         }
         try {
           const resetConfig = await resetDurableBranding(env.FIREBASE_API_KEY, env.FIREBASE_PROJECT_ID);
+          brandingEdgeCache = { data: resetConfig, expiresAt: Date.now() + BRANDING_EDGE_CACHE_TTL_MS };
           return applySecurityHeaders(
             new Response(JSON.stringify({ success: true, data: resetConfig, message: "Branding reset to defaults." }), {
               status: 200,
@@ -1037,7 +750,7 @@ export default {
         JSON.stringify({
           configured: !!apiKey,
           provider: apiKey ? "gemini" : "deterministic_engine",
-          model: apiKey ? "gemini-3.8-flash" : "local_scm_rules",
+          model: apiKey ? "gemini-2.5-flash" : "local_scm_rules",
         }),
         { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }
       );
@@ -1072,18 +785,19 @@ export default {
         });
       }
 
+      const cachedRoute = aiToolRouteCache.get(p);
+      if (cachedRoute && cachedRoute.expiresAt > Date.now()) {
+        return new Response(JSON.stringify({ toolsToCall: cachedRoute.toolsToCall, fallback: cachedRoute.fallback, cached: true }), {
+          status: 200, headers: { "Content-Type": "application/json" }
+        });
+      }
+
       const apiKey = env.GEMINI_API_KEY || (typeof process !== "undefined" ? process.env?.GEMINI_API_KEY : undefined);
       const gemini = getWorkerGeminiClient(apiKey);
 
       if (!gemini) {
-        const tools: string[] = ['getDashboardMetrics'];
-        if (p.includes('inventory') || p.includes('stock') || p.includes('sku')) tools.push('getInventory', 'getInventoryRisks');
-        if (p.includes('supplier') || p.includes('vendor')) tools.push('getSuppliers', 'getSupplierPerformance');
-        if (p.includes('po') || p.includes('purchase') || p.includes('order')) tools.push('getPurchaseOrders', 'getOverduePOs');
-        if (p.includes('shipment') || p.includes('carrier') || p.includes('delay')) tools.push('getShipments', 'getDelayedShipments');
-        if (p.includes('exception') || p.includes('alert')) tools.push('getExceptions');
-        if (p.includes('decision') || p.includes('approve')) tools.push('getDecisions', 'getPendingDecisions');
-        return new Response(JSON.stringify({ toolsToCall: Array.from(new Set(tools)), fallback: true }), {
+        const deterministicTools = chooseToolsDeterministic(rawPrompt);
+        return new Response(JSON.stringify({ toolsToCall: deterministicTools, fallback: true }), {
           status: 200, headers: { "Content-Type": "application/json" }
         });
       }
@@ -1097,11 +811,15 @@ Return ONLY a valid JSON array of string tool names. Only include tools that are
 If the query is a simple greeting (e.g. "hello", "hi") or general capability query (e.g. "what can you do"), return an empty array [].
 If unsure for operational queries, include 'getDashboardMetrics'.`;
 
-        const response = await gemini.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: `${systemPrompt}\n\nUser Prompt: ${rawPrompt}`,
-          config: { temperature: 0.1 }
-        });
+        const response: any = await withWorkerDeadline(
+          gemini.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `${systemPrompt}\n\nUser Prompt: ${rawPrompt}`,
+            config: { temperature: 0.1 }
+          }),
+          2500,
+          'AI tool router'
+        );
         const responseText = response.text || "[]";
         let tools: string[] = [];
         try {
@@ -1112,13 +830,24 @@ If unsure for operational queries, include 'getDashboardMetrics'.`;
             tools = list.filter((t: any) => typeof t === 'string' && allowlist.includes(t));
           }
         } catch (e) {
-          tools = ["getDashboardMetrics"];
+          tools = chooseToolsDeterministic(rawPrompt);
         }
+        if (aiToolRouteCache.size >= MAX_AI_ROUTE_CACHE) {
+          const oldest = aiToolRouteCache.keys().next().value;
+          if (oldest !== undefined) aiToolRouteCache.delete(oldest);
+        }
+        aiToolRouteCache.set(p, { toolsToCall: tools, fallback: false, expiresAt: Date.now() + 60000 });
         return new Response(JSON.stringify({ toolsToCall: tools }), {
           status: 200, headers: { "Content-Type": "application/json" }
         });
       } catch (err: any) {
-        return new Response(JSON.stringify({ toolsToCall: ["getDashboardMetrics", "getInventoryRisks", "getExceptions", "getPendingDecisions"], fallback: true }), {
+        const deterministicTools = chooseToolsDeterministic(rawPrompt);
+        if (aiToolRouteCache.size >= MAX_AI_ROUTE_CACHE) {
+          const oldest = aiToolRouteCache.keys().next().value;
+          if (oldest !== undefined) aiToolRouteCache.delete(oldest);
+        }
+        aiToolRouteCache.set(p, { toolsToCall: deterministicTools, fallback: true, expiresAt: Date.now() + 15000 });
+        return new Response(JSON.stringify({ toolsToCall: deterministicTools, fallback: true }), {
           status: 200, headers: { "Content-Type": "application/json" }
         });
       }
@@ -1178,14 +907,18 @@ SPECIALIZED COGNITIVE MODE: ${specializedMode || 'General Copilot'}
 USER PROMPT:
 ${prompt || ''}`;
 
-        const response = await gemini.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: `${systemInstruction}\n\n${userContent}`,
-          config: { temperature: 0.2 }
-        });
+        const response: any = await withWorkerDeadline(
+          gemini.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `${systemInstruction}\n\n${userContent}`,
+            config: { temperature: 0.2 }
+          }),
+          4500,
+          'AI insight generation'
+        );
 
         return new Response(
-          JSON.stringify({ response: response.text || "No response generated.", provider: "gemini", model: "gemini-3.8-flash" }),
+          JSON.stringify({ response: response.text || "No response generated.", provider: "gemini", model: "gemini-2.5-flash" }),
           { status: 200, headers: { "Content-Type": "application/json" } }
         );
       } catch (err: any) {
@@ -1252,11 +985,15 @@ Custom Query: ${customPrompt || 'Execute end-to-end strategic platform intellige
 LIVE SUPPLY CHAIN TELEMETRY:
 ${JSON.stringify(dataContext || {}, null, 2)}`;
 
-        const response = await gemini.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: `${systemInstruction}\n\n${userContent}`,
-          config: { temperature: 0.15, responseMimeType: "application/json" }
-        });
+        const response: any = await withWorkerDeadline(
+          gemini.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `${systemInstruction}\n\n${userContent}`,
+            config: { temperature: 0.15, responseMimeType: "application/json" }
+          }),
+          6000,
+          'AI platform intelligence'
+        );
 
         const responseText = response.text || "{}";
         let parsed: any = {};
@@ -1546,11 +1283,15 @@ Analyze the supplied document and return a strict JSON object with:
 
         const promptText = `${systemInstruction}\n\nDocument File Name: ${fileName}\n\nDocument Content Snippet:\n${typeof fileContent === 'string' ? fileContent.slice(0, 5000) : ''}`;
 
-        const response = await gemini.models.generateContent({
-          model: 'gemini-3.8-flash',
-          contents: promptText,
-          config: { temperature: 0.1, responseMimeType: 'application/json' }
-        });
+        const response: any = await withWorkerDeadline(
+          gemini.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: promptText,
+            config: { temperature: 0.1, responseMimeType: 'application/json' }
+          }),
+          6000,
+          'AI document intelligence'
+        );
 
         const responseText = response.text || "{}";
         let parsedResult: any = {};
@@ -1594,7 +1335,7 @@ Analyze the supplied document and return a strict JSON object with:
       }
 
       const partnerKey = request.headers.get("X-Orion-Partner-Key");
-      let authenticatedTenantId = request.headers.get("X-Orion-Tenant-Id") || "";
+      let authenticatedTenantId = (request.headers.get("X-Orion-Tenant-Id") || "").trim();
 
       if (partnerKey) {
         if (!partnerKey.trim() || partnerKey.length < 8) {
@@ -1606,15 +1347,18 @@ Analyze the supplied document and return a strict JSON object with:
             return createSecurityErrorResponse("Unauthorized: Partner key not recognized.", 401);
           }
         }
+        authenticatedTenantId = authenticatedTenantId || "default-tenant";
       } else {
         const token = extractBearerToken(request);
         const auth = verifyWorkerAuthToken(token, activeEnv);
-        if (!auth.authorized) {
-          return createSecurityErrorResponse(`Unauthorized: ${auth.error || 'Valid Bearer JWT or X-Orion-Partner-Key required.'}`, 401);
+        if (!auth.authorized || !auth.user) {
+          return createSecurityErrorResponse(`Unauthorized: ${auth.error || 'Valid Bearer JWT or X-Orion-Partner-Key required.'}`, auth.statusCode || 401);
         }
-        if (!authenticatedTenantId && auth.user?.organizationId) {
-          authenticatedTenantId = auth.user.organizationId;
+        const tenantRes = resolveAuthorizedTenantId(auth.user, authenticatedTenantId || null);
+        if (!tenantRes.allowed || !tenantRes.tenantId) {
+          return createSecurityErrorResponse(tenantRes.error || 'Forbidden: Cross-tenant access denied.', tenantRes.statusCode || 403);
         }
+        authenticatedTenantId = tenantRes.tenantId;
       }
 
       const rawPayload = await request.text();
@@ -1666,45 +1410,93 @@ Analyze the supplied document and return a strict JSON object with:
       }
 
       const envelope = parsingResult.envelope;
-      const dedupeKey = `${envelope.senderId}:${envelope.interchangeControlNumber}`;
+      const effectiveTenantId = authenticatedTenantId || "default-tenant";
+      const dedupeKey = `${effectiveTenantId}:${envelope.senderId}:${envelope.interchangeControlNumber}`;
 
-      if (seenInterchangeControlNumbers.has(dedupeKey)) {
+      const dedupeResult = await checkAndRecordEdiIdempotency(
+        dedupeKey,
+        {
+          tenantId: effectiveTenantId,
+          senderId: envelope.senderId,
+          interchangeControlNumber: envelope.interchangeControlNumber,
+          transactionType: envelope.transactionType,
+          activeEnv,
+        },
+        env
+      );
+
+      if (dedupeResult.duplicate) {
         return new Response(
           JSON.stringify({
             success: false,
             error: "DUPLICATE_TRANSMISSION",
+            dedupeTier: dedupeResult.tier,
             message: `EDI interchange control number ${envelope.interchangeControlNumber} from ${envelope.senderId} has already been processed.`
           }),
           { status: 409, headers: { "Content-Type": "application/json" } }
         );
       }
-      seenInterchangeControlNumbers.add(dedupeKey);
 
       const ack997 = ediFabric.generate997(envelope, "A");
 
+      const canonicalEvent = createDistributedEventEnvelope({
+        tenantId: effectiveTenantId,
+        eventType: `edi.${envelope.transactionType}.received`,
+        producer: "orion-edi-gateway",
+        partitionKey: `${effectiveTenantId}:${envelope.senderId}`,
+        idempotencyKey: dedupeKey,
+        correlationId: `corr-edi-${envelope.interchangeControlNumber}`,
+        payload: {
+          envelope,
+          parsedData: envelope.parsedData,
+          receivedAt: new Date().toISOString()
+        },
+        headers: {
+          interchangeControlNumber: String(envelope.interchangeControlNumber),
+          senderId: String(envelope.senderId),
+          transactionType: String(envelope.transactionType),
+          dedupeTier: dedupeResult.tier,
+        }
+      });
+      const validation = queueProducer.validateEnvelope(canonicalEvent);
+      if (!validation.valid) {
+        await rollbackEdiIdempotencyKey(dedupeKey, env);
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: "QUEUE_CONTRACT_INVALID",
+            message: `EDI queue envelope failed validation: ${validation.errors.join(', ')}`
+          }),
+          { status: 500, headers: { "Content-Type": "application/json" } }
+        );
+      }
+
+      const queueMessage = {
+        ...canonicalEvent,
+        timestamp: canonicalEvent.occurredAt,
+      };
+
       if (env.SCM_EVENTS && typeof env.SCM_EVENTS.send === "function") {
         try {
-          await env.SCM_EVENTS.send({
-            eventType: `edi.${envelope.transactionType}.received`,
-            eventId: `edi-${envelope.interchangeControlNumber}-${Date.now()}`,
-            tenantId: authenticatedTenantId || "default-tenant",
-            payload: {
-              envelope,
-              parsedData: envelope.parsedData,
-              receivedAt: new Date().toISOString()
-            },
-            timestamp: new Date().toISOString()
-          });
+          await env.SCM_EVENTS.send(queueMessage);
+          invalidateControlTowerCache(activeEnv, effectiveTenantId);
         } catch (queueErr: any) {
-          seenInterchangeControlNumbers.delete(dedupeKey);
+          await rollbackEdiIdempotencyKey(dedupeKey, env);
           if (env.SCM_EVENTS_DLQ && typeof env.SCM_EVENTS_DLQ.send === "function") {
             try {
-              await env.SCM_EVENTS_DLQ.send({
+              const failedDlqEnvelope = createDistributedEventEnvelope({
+                tenantId: effectiveTenantId,
                 eventType: `edi.${envelope.transactionType}.failed`,
-                error: queueErr?.message || "Queue delivery failure",
-                dedupeKey,
-                payload: envelope
+                producer: "orion-edi-gateway",
+                partitionKey: `${effectiveTenantId}:${envelope.senderId}`,
+                idempotencyKey: `${dedupeKey}:failed`,
+                payload: {
+                  error: queueErr?.message || "Queue delivery failure",
+                  dedupeKey,
+                  envelope,
+                },
               });
+              await env.SCM_EVENTS_DLQ.send(failedDlqEnvelope);
             } catch {}
           }
           return new Response(
@@ -1722,9 +1514,12 @@ Analyze the supplied document and return a strict JSON object with:
         new Response(
           JSON.stringify({
             success: true,
+            tenantId: effectiveTenantId,
             transactionType: envelope.transactionType,
             interchangeControlNumber: envelope.interchangeControlNumber,
             senderId: envelope.senderId,
+            idempotencyKey: dedupeKey,
+            dedupeTier: dedupeResult.tier,
             parsedData: envelope.parsedData,
             ack997: ack997.raw997
           }),

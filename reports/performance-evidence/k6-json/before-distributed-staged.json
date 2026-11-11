@@ -1,0 +1,408 @@
+{
+    "root_group": {
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "Step_1_Session_Login": {
+                "name": "Step_1_Session_Login",
+                "path": "::Step_1_Session_Login",
+                "id": "d9ab69ddeb2a0b516c900e7ab22836cc",
+                "groups": {},
+                "checks": {
+                        "initial session login 200 OK": {
+                            "passes": 150,
+                            "fails": 0,
+                            "name": "initial session login 200 OK",
+                            "path": "::Step_1_Session_Login::initial session login 200 OK",
+                            "id": "55e6c66c54ad7f21f8fa92f385917c6f"
+                        }
+                    }
+            },
+            "Step_2_Dashboard_And_Control_Tower": {
+                "name": "Step_2_Dashboard_And_Control_Tower",
+                "path": "::Step_2_Dashboard_And_Control_Tower",
+                "id": "f0958800d466c75c8af8dfd39c7fdd79",
+                "groups": {},
+                "checks": {
+                        "full load control tower data 200 OK": {
+                            "passes": 4852,
+                            "fails": 0,
+                            "name": "full load control tower data 200 OK",
+                            "path": "::Step_2_Dashboard_And_Control_Tower::full load control tower data 200 OK",
+                            "id": "fedb0d02ba7f327d8414ed50dcdc2a93"
+                        }
+                    }
+            },
+            "Step_3_Role_Workflow_admin": {
+                "path": "::Step_3_Role_Workflow_admin",
+                "id": "de028f4c7c912b0150f6a5feac3d8a47",
+                "groups": {},
+                "checks": {
+                        "permitted action succeeded": {
+                            "passes": 1031,
+                            "fails": 0,
+                            "name": "permitted action succeeded",
+                            "path": "::Step_3_Role_Workflow_admin::permitted action succeeded",
+                            "id": "c4b81783dbf7dd7c7ca2b26a2d0558b3"
+                        }
+                    },
+                "name": "Step_3_Role_Workflow_admin"
+            },
+            "Step_3_Role_Workflow_scm_manager": {
+                "name": "Step_3_Role_Workflow_scm_manager",
+                "path": "::Step_3_Role_Workflow_scm_manager",
+                "id": "81a16c68a83181f588adcf4576452740",
+                "groups": {},
+                "checks": {
+                        "permitted action succeeded": {
+                            "fails": 0,
+                            "name": "permitted action succeeded",
+                            "path": "::Step_3_Role_Workflow_scm_manager::permitted action succeeded",
+                            "id": "277908eeddfaa7c28f5dd27739ec4ff8",
+                            "passes": 1753
+                        }
+                    }
+            },
+            "Step_3_Role_Workflow_procurement": {
+                "groups": {},
+                "checks": {
+                        "permitted action succeeded": {
+                            "name": "permitted action succeeded",
+                            "path": "::Step_3_Role_Workflow_procurement::permitted action succeeded",
+                            "id": "39634276c1cb7be80b81c14d5e92ef2e",
+                            "passes": 929,
+                            "fails": 0
+                        }
+                    },
+                "name": "Step_3_Role_Workflow_procurement",
+                "path": "::Step_3_Role_Workflow_procurement",
+                "id": "47a4b5f34185d49f9d38de115a517b5f"
+            },
+            "Step_4_AI_Copilot_Sampled": {
+                "name": "Step_4_AI_Copilot_Sampled",
+                "path": "::Step_4_AI_Copilot_Sampled",
+                "id": "9ab24c7ef82503b19e4678f47348e184",
+                "groups": {},
+                "checks": {}
+            },
+            "Step_3_Role_Workflow_inventory": {
+                "name": "Step_3_Role_Workflow_inventory",
+                "path": "::Step_3_Role_Workflow_inventory",
+                "id": "17f88a2d9209f6788ef3ffc40f7a8b2b",
+                "groups": {},
+                "checks": {
+                        "permitted action succeeded": {
+                            "name": "permitted action succeeded",
+                            "path": "::Step_3_Role_Workflow_inventory::permitted action succeeded",
+                            "id": "5c51e929806cdd0f80e49e0d24e9d8dc",
+                            "passes": 636,
+                            "fails": 0
+                        }
+                    }
+            },
+            "Step_3_Role_Workflow_logistics": {
+                "checks": {
+                    "permitted action succeeded": {
+                        "path": "::Step_3_Role_Workflow_logistics::permitted action succeeded",
+                        "id": "959eb0b5a9c2ef5de992786486c9c2fc",
+                        "passes": 309,
+                        "fails": 0,
+                        "name": "permitted action succeeded"
+                    }
+                },
+                "name": "Step_3_Role_Workflow_logistics",
+                "path": "::Step_3_Role_Workflow_logistics",
+                "id": "17a773338e6a99688885c1b420fb82bd",
+                "groups": {}
+            },
+            "Step_3_Role_Workflow_customer_service": {
+                "name": "Step_3_Role_Workflow_customer_service",
+                "path": "::Step_3_Role_Workflow_customer_service",
+                "id": "342b3594cbdfda3d929fb5edf52a7e96",
+                "groups": {},
+                "checks": {
+                        "permitted action succeeded": {
+                            "fails": 0,
+                            "name": "permitted action succeeded",
+                            "path": "::Step_3_Role_Workflow_customer_service::permitted action succeeded",
+                            "id": "d4a5a9fb8323003f7f13414d4d364987",
+                            "passes": 164
+                        }
+                    }
+            },
+            "Step_3_Role_Workflow_analyst": {
+                "id": "db12fe0d1af07cf52d5a7971f3df7bfb",
+                "groups": {},
+                "checks": {
+                        "analyst mutation blocked 403": {
+                            "fails": 0,
+                            "name": "analyst mutation blocked 403",
+                            "path": "::Step_3_Role_Workflow_analyst::analyst mutation blocked 403",
+                            "id": "1fcd292c856fa7f119358867b390d80a",
+                            "passes": 30
+                        }
+                    },
+                "name": "Step_3_Role_Workflow_analyst",
+                "path": "::Step_3_Role_Workflow_analyst"
+            }
+        },
+        "checks": {},
+        "name": "",
+        "path": ""
+    },
+    "metrics": {
+        "orion_shipment_duration": {
+            "min": 23.3877,
+            "med": 452.9975,
+            "max": 2561.1289,
+            "p(90)": 897.8968900000001,
+            "p(95)": 1207.556805,
+            "avg": 542.9646338187705,
+            "thresholds": {
+                "p(95)<2000": false,
+                "p(99)<5000": false
+            }
+        },
+        "iterations": {
+            "rate": 33.13988707444145,
+            "count": 4852
+        },
+        "orion_realtime_duration": {
+            "p(90)": 1016.3944200000001,
+            "p(95)": 1312.1705,
+            "avg": 474.06323719008253,
+            "min": 1.4309,
+            "med": 359.0615,
+            "max": 3198.9256,
+            "thresholds": {
+                "p(99)<5000": false,
+                "p(95)<2000": false
+            }
+        },
+        "data_sent": {
+            "count": 16892770,
+            "rate": 115380.15048938834
+        },
+        "http_req_failed{expected_status:2xx}": {
+            "passes": 38,
+            "fails": 21161,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0.0017925373838388603
+        },
+        "http_req_duration{expected_response:true}": {
+            "p(95)": 1255.6276,
+            "avg": 473.5731992202613,
+            "min": 1.4309,
+            "med": 369.16,
+            "max": 3198.9256,
+            "p(90)": 968.744
+        },
+        "orion_inventory_duration": {
+            "avg": 594.6202600628934,
+            "min": 23.1741,
+            "med": 561.34655,
+            "max": 2955.8064,
+            "p(90)": 964.91755,
+            "p(95)": 1215.6193,
+            "thresholds": {
+                "p(95)<2000": false,
+                "p(99)<5000": false
+            }
+        },
+        "orion_dashboard_duration": {
+            "med": 373.42665,
+            "max": 3186.356,
+            "p(90)": 1028.8975800000005,
+            "p(95)": 1312.7045,
+            "avg": 484.14304509480905,
+            "min": 2.5275,
+            "thresholds": {
+                "p(95)<2000": false,
+                "p(99)<5000": false
+            }
+        },
+        "http_req_waiting": {
+            "med": 369.5676,
+            "max": 12001.0062,
+            "p(90)": 969.4446,
+            "p(95)": 1273.6051599999992,
+            "avg": 481.89817094069167,
+            "min": 0.5112
+        },
+        "orion_duplicate_transaction_errors": {
+            "count": 23,
+            "rate": 0.15709344656062516
+        },
+        "http_req_receiving": {
+            "avg": 0.2458151679306596,
+            "min": 0,
+            "med": 0,
+            "max": 19.9706,
+            "p(90)": 0.56142,
+            "p(95)": 0.8044
+        },
+        "http_req_duration": {
+            "med": 369.599,
+            "max": 12001.0062,
+            "p(90)": 969.4616800000001,
+            "p(95)": 1273.6051599999992,
+            "avg": 482.1759028121884,
+            "min": 1.4309
+        },
+        "http_req_connecting": {
+            "avg": 0.015191954401997268,
+            "min": 0,
+            "med": 0,
+            "max": 10.4157,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "data_received": {
+            "count": 96343725,
+            "rate": 658042.0789016985
+        },
+        "orion_control_tower_duration": {
+            "p(95)": 1174.719174999993,
+            "avg": 447.02257830769156,
+            "min": 5.8278,
+            "med": 342.27635,
+            "max": 3198.9256,
+            "p(90)": 946.4248500000001,
+            "thresholds": {
+                "p(95)<2000": false,
+                "p(99)<5000": false
+            }
+        },
+        "orion_security_isolation_violations": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "orion_api_success_rate": {
+            "passes": 21161,
+            "fails": 38,
+            "thresholds": {
+                "rate>=0.99": false
+            },
+            "value": 0.9982074626161611
+        },
+        "checks": {
+            "passes": 9854,
+            "fails": 0,
+            "value": 1
+        },
+        "http_req_tls_handshaking": {
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0
+        },
+        "orion_auth_duration": {
+            "med": 201.19400000000002,
+            "max": 2775.7054,
+            "p(90)": 1045.23534,
+            "p(95)": 1260.5546349999995,
+            "avg": 388.4784979999999,
+            "min": 4.574,
+            "thresholds": {
+                "p(99)<5000": false,
+                "p(95)<2000": false
+            }
+        },
+        "vus_max": {
+            "max": 150,
+            "value": 150,
+            "min": 150
+        },
+        "http_req_failed": {
+            "passes": 68,
+            "fails": 21161,
+            "value": 0.003203165481181403
+        },
+        "orion_procurement_duration": {
+            "avg": 472.6036409041972,
+            "min": 17.6733,
+            "med": 379.40375,
+            "max": 2562.8412,
+            "p(90)": 896.23879,
+            "p(95)": 1147.194494999999,
+            "thresholds": {
+                "p(95)<2000": false,
+                "p(99)<5000": false
+            }
+        },
+        "http_req_duration{expected_status:2xx}": {
+            "avg": 481.88184933723056,
+            "min": 1.4309,
+            "med": 369.4355,
+            "max": 12001.0062,
+            "p(90)": 969.4616800000001,
+            "p(95)": 1273.3191099999992,
+            "thresholds": {
+                "p(95)<2000": false,
+                "p(99)<5000": false
+            }
+        },
+        "vus": {
+            "max": 150,
+            "value": 2,
+            "min": 1
+        },
+        "iteration_duration": {
+            "p(95)": 3691.6776099999984,
+            "avg": 2335.412425185482,
+            "min": 1044.4828,
+            "med": 2255.4562,
+            "max": 15096.7969,
+            "p(90)": 3340.519880000001
+        },
+        "orion_unexpected_auth_failures": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "http_reqs": {
+            "count": 21229,
+            "rate": 144.99725117545702
+        },
+        "http_req_sending": {
+            "med": 0,
+            "max": 2.2568,
+            "p(90)": 0,
+            "p(95)": 0.4426,
+            "avg": 0.031916703565876864,
+            "min": 0
+        },
+        "group_duration": {
+            "avg": 559.1382130032206,
+            "min": 5.4407,
+            "med": 428.50475,
+            "max": 12001.8266,
+            "p(90)": 1124.5814500000001,
+            "p(95)": 1455.4849
+        },
+        "http_req_blocked": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.025821220971312814,
+            "min": 0,
+            "med": 0,
+            "max": 10.4157
+        },
+        "orion_ai_duration": {
+            "med": 1166.03715,
+            "max": 12001.0062,
+            "p(90)": 12000.282780000001,
+            "p(95)": 12000.482970000001,
+            "avg": 3206.3922780487796,
+            "min": 421.9514
+        }
+    }
+}

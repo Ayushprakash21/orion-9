@@ -1,0 +1,242 @@
+{
+    "metrics": {
+        "data_received": {
+            "count": 19886200,
+            "rate": 375288.5289345838
+        },
+        "iteration_duration": {
+            "max": 11402.0139,
+            "p(90)": 6529.6539,
+            "p(95)": 8111.563739999998,
+            "avg": 4729.990813789686,
+            "min": 890.8027,
+            "med": 4853.1131
+        },
+        "http_req_blocked": {
+            "avg": 0.08770285996055228,
+            "min": 0,
+            "med": 0,
+            "max": 4.8986,
+            "p(90)": 0.50627,
+            "p(95)": 0.6303699999999978
+        },
+        "group_duration": {
+            "p(90)": 3525.80451,
+            "p(95)": 4673.330465,
+            "avg": 1947.355904228117,
+            "min": 23.9212,
+            "med": 1861.9438,
+            "max": 7402.924
+        },
+        "orion_ai_duration": {
+            "p(90)": 2710.92725,
+            "p(95)": 2784.826055,
+            "avg": 880.9871849065875,
+            "min": 13.5531,
+            "med": 385.1114,
+            "max": 4811.6995
+        },
+        "http_req_failed": {
+            "fails": 6066,
+            "passes": 18,
+            "value": 0.0029585798816568047
+        },
+        "vus_max": {
+            "min": 150,
+            "max": 150,
+            "value": 150
+        },
+        "http_req_duration{expected_status:2xx}": {
+            "avg": 1672.7342727002895,
+            "min": 6.9101,
+            "med": 1776.5298,
+            "max": 7401.2666,
+            "p(90)": 3147.6927,
+            "p(95)": 4946.554325,
+            "thresholds": {
+                "p(95)<2000": true,
+                "p(99)<5000": true
+            }
+        },
+        "orion_control_tower_duration": {
+            "avg": 2072.1424018105176,
+            "min": 6.9101,
+            "med": 1863.6483,
+            "max": 7401.2666,
+            "p(90)": 3971.2681,
+            "p(95)": 5300.291195,
+            "thresholds": {
+                "p(99)<5000": true,
+                "p(95)<2000": true
+            }
+        },
+        "http_req_failed{expected_status:2xx}": {
+            "passes": 0,
+            "fails": 6066,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "orion_api_success_rate": {
+            "passes": 6066,
+            "fails": 0,
+            "thresholds": {
+                "rate>=0.99": false
+            },
+            "value": 1
+        },
+        "http_req_connecting": {
+            "p(90)": 0,
+            "p(95)": 0.556,
+            "avg": 0.06315641025641022,
+            "min": 0,
+            "med": 0,
+            "max": 4.8986
+        },
+        "http_req_tls_handshaking": {
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "http_req_sending": {
+            "max": 2.26,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.023338954635108492,
+            "min": 0,
+            "med": 0
+        },
+        "http_req_receiving": {
+            "min": 0,
+            "med": 0,
+            "max": 14.5268,
+            "p(90)": 0.5449,
+            "p(95)": 0.57417,
+            "avg": 0.15716619000657459
+        },
+        "data_sent": {
+            "count": 4526390,
+            "rate": 85421.1586167398
+        },
+        "http_reqs": {
+            "count": 6084,
+            "rate": 114.81607396274845
+        },
+        "iterations": {
+            "count": 1008,
+            "rate": 19.022781484952404
+        },
+        "orion_security_isolation_violations": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "checks": {
+            "passes": 2052,
+            "fails": 0,
+            "value": 1
+        },
+        "orion_unexpected_auth_failures": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "http_req_duration": {
+            "p(90)": 3147.6927,
+            "p(95)": 4893.3809299999475,
+            "avg": 1670.9720822978231,
+            "min": 6.9101,
+            "med": 1775.8578,
+            "max": 7401.2666
+        },
+        "http_req_duration{expected_response:true}": {
+            "min": 6.9101,
+            "med": 1776.5298,
+            "max": 7401.2666,
+            "p(90)": 3147.6927,
+            "p(95)": 4946.554325,
+            "avg": 1672.7342727002895
+        },
+        "vus": {
+            "value": 5,
+            "min": 2,
+            "max": 150
+        },
+        "http_req_waiting": {
+            "p(90)": 3147.6927,
+            "p(95)": 4892.818229999948,
+            "avg": 1670.7915771531812,
+            "min": 1.4105,
+            "med": 1775.8578,
+            "max": 7401.2666
+        }
+    },
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "ControlTower_Summary_Exceptions_And_Scheduler": {
+                "path": "::ControlTower_Summary_Exceptions_And_Scheduler",
+                "id": "1330954cc6be3615f4ebd2a829765c9f",
+                "groups": {},
+                "checks": {
+                        "control tower exceptions loaded": {
+                            "fails": 0,
+                            "name": "control tower exceptions loaded",
+                            "path": "::ControlTower_Summary_Exceptions_And_Scheduler::control tower exceptions loaded",
+                            "id": "2c1b384a808ee9395aa3e6a0f2b50822",
+                            "passes": 1008
+                        }
+                    },
+                "name": "ControlTower_Summary_Exceptions_And_Scheduler"
+            },
+            "AI_Copilot_Status_And_FastPath": {
+                "checks": {
+                    "fastpath greeting choose-tools 200 OK": {
+                        "name": "fastpath greeting choose-tools 200 OK",
+                        "path": "::AI_Copilot_Status_And_FastPath::fastpath greeting choose-tools 200 OK",
+                        "id": "e2aa58061399f2c5b0d398eb04560849",
+                        "passes": 1008,
+                        "fails": 0
+                    }
+                },
+                "name": "AI_Copilot_Status_And_FastPath",
+                "path": "::AI_Copilot_Status_And_FastPath",
+                "id": "d6866e64db00804e6534e3d741488bef",
+                "groups": {}
+            },
+            "AI_Copilot_Sampled_Inference_And_RBAC": {
+                "name": "AI_Copilot_Sampled_Inference_And_RBAC",
+                "path": "::AI_Copilot_Sampled_Inference_And_RBAC",
+                "id": "c0f32966f198dce1347650b0285d9390",
+                "groups": {},
+                "checks": {
+                        "sampled choose-tools returns valid array": {
+                            "passes": 18,
+                            "fails": 0,
+                            "name": "sampled choose-tools returns valid array",
+                            "path": "::AI_Copilot_Sampled_Inference_And_RBAC::sampled choose-tools returns valid array",
+                            "id": "f2c187bfbb845209665992b7070399dc"
+                        },
+                        "non-admin blocked from /api/ai/platform-intelligence (403)": {
+                            "name": "non-admin blocked from /api/ai/platform-intelligence (403)",
+                            "path": "::AI_Copilot_Sampled_Inference_And_RBAC::non-admin blocked from /api/ai/platform-intelligence (403)",
+                            "id": "07207fa85879a5ea43e5d189538cbb7e",
+                            "passes": 18,
+                            "fails": 0
+                        }
+                    }
+            }
+        },
+        "checks": {}
+    }
+}

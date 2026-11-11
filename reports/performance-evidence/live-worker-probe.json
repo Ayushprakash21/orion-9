@@ -1,0 +1,32 @@
+﻿{
+    "health":  {
+                   "status":  "ok",
+                   "service":  "orion-9",
+                   "environment":  "DEMO",
+                   "firestoreStatus":  "CONFIGURED",
+                   "queueBindingStatus":  "CONFIGURED",
+                   "queueConfigured":  true,
+                   "queueDeliveryVerified":  false,
+                   "deliveryVerificationStatus":  "NOT_VERIFIED",
+                   "outbox":  {
+                                  "pendingCount":  0,
+                                  "claimedCount":  0,
+                                  "publishedCount":  0,
+                                  "deadLetterCount":  0,
+                                  "oldestPendingAgeSeconds":  null
+                              },
+                   "deadLetterQuarantine":  {
+                                                "quarantinedCount":  1
+                                            },
+                   "consumer":  {
+                                    "lastProcessedAt":  null
+                                },
+                   "note":  "queueDeliveryVerified is false until an actual message round-trip is verified on Cloudflare runtime network"
+               },
+    "aiStatus":  {
+                     "configured":  true,
+                     "provider":  "gemini",
+                     "model":  "gemini-3.8-flash"
+                 },
+    "probedAtUtc":  "2026-11-11T20:48:29.2905582Z"
+}

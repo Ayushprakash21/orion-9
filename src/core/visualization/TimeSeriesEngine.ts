@@ -69,9 +69,12 @@ export class TimeSeriesEngine {
   /**
    * Retrieve authoritative time series series for a metric over requested window.
    */
-  public async getMetricSeries(query: TimeSeriesQuery): Promise<TimeSeriesPoint[]> {
+  public async getMetricSeries(
+    query: TimeSeriesQuery,
+    precomputedMetric?: import('./LiveMetricsEngine').GovernedMetricValue
+  ): Promise<TimeSeriesPoint[]> {
     const { metricId, tenantId, environment, days = 14 } = query;
-    const currentMetric = await liveMetricsEngine.computeMetric(metricId, tenantId, environment);
+    const currentMetric = precomputedMetric || await liveMetricsEngine.computeMetric(metricId, tenantId, environment);
 
     const points: TimeSeriesPoint[] = [];
     const now = new Date();

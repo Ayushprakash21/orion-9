@@ -45,6 +45,9 @@ export function useLiveChartSeries(metricIds: string[], days: number = 14, custo
   const effectiveTenantId = customTenantId || currentUser?.organizationId || 'default-tenant';
   const environment = dbManager.getEnvironment();
 
+  const metricIdsKey = metricIds.join('|');
+  const stableMetricIds = useMemo(() => metricIds, [metricIdsKey]);
+
   const [chartData, setChartData] = useState<any[]>([]);
   const [metricValues, setMetricValues] = useState<Record<string, GovernedMetricValue>>({});
   const [loading, setLoading] = useState<boolean>(true);
@@ -56,16 +59,17 @@ export function useLiveChartSeries(metricIds: string[], days: number = 14, custo
       const valuesMap: Record<string, GovernedMetricValue> = {};
 
       await Promise.all(
-        metricIds.map(async (metricId) => {
-          const [series, metricVal] = await Promise.all([
-            timeSeriesEngine.getMetricSeries({
+        stableMetricIds.map(async (metricId) => {
+          const metricVal = await liveMetricsEngine.computeMetric(metricId, effectiveTenantId, environment);
+          const series = await timeSeriesEngine.getMetricSeries(
+            {
               metricId,
               tenantId: effectiveTenantId,
               environment,
               days,
-            }),
-            liveMetricsEngine.computeMetric(metricId, effectiveTenantId, environment),
-          ]);
+            },
+            metricVal
+          );
           seriesMap[metricId] = series;
           valuesMap[metricId] = metricVal;
         })
@@ -79,12 +83,12 @@ export function useLiveChartSeries(metricIds: string[], days: number = 14, custo
     } finally {
       setLoading(false);
     }
-  }, [metricIds, days, effectiveTenantId, environment]);
+  }, [stableMetricIds, days, effectiveTenantId, environment]);
 
   // Determine unique domains affected by these metrics
   const affectedDomains = useMemo(() => {
     const domains = new Set<RealtimeDomain>();
-    metricIds.forEach(id => {
+    stableMetricIds.forEach(id => {
       const d = METRIC_DOMAIN_LOOKUP[id];
       if (d) {
         domains.add(d);
@@ -97,12 +101,12 @@ export function useLiveChartSeries(metricIds: string[], days: number = 14, custo
       }
     });
     return Array.from(domains);
-  }, [metricIds]);
+  }, [stableMetricIds]);
 
   useEffect(() => {
     loadData();
 
-    // 1. Subscribe to each affected domain in RealtimeSubscriptionManager
+    // 1. Subscribe once to each affected domain in RealtimeSubscriptionManager
     const unsubs: Array<() => void> = [];
     affectedDomains.forEach(domain => {
       const unsub = realtimeSubscriptionManager.subscribeDomain(
@@ -116,12 +120,11 @@ export function useLiveChartSeries(metricIds: string[], days: number = 14, custo
       unsubs.push(unsub);
     });
 
-    // 2. Also listen for window events
+    // 2. Listen for external OS-wide invalidations (domain snapshot broadcasts already notify via subscribeDomain)
     const handleUpdate = () => {
       loadData();
     };
 
-    window.addEventListener('orion:realtime-domain-updated', handleUpdate);
     window.addEventListener('orion:synthetic-batch-generated', handleUpdate);
     window.addEventListener('orion:data-imported', handleUpdate);
     window.addEventListener('orion:desktop-refresh', handleUpdate);
@@ -131,7 +134,6 @@ export function useLiveChartSeries(metricIds: string[], days: number = 14, custo
       unsubs.forEach(u => {
         try { u(); } catch (e) {}
       });
-      window.removeEventListener('orion:realtime-domain-updated', handleUpdate);
       window.removeEventListener('orion:synthetic-batch-generated', handleUpdate);
       window.removeEventListener('orion:data-imported', handleUpdate);
       window.removeEventListener('orion:desktop-refresh', handleUpdate);

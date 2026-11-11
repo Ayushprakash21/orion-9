@@ -356,7 +356,7 @@ export const ControlTowerWorkspace: React.FC = () => {
         window.removeEventListener('orion:synthetic-batch-generated', handleRealtimeUpdate);
       }
     };
-  }, [tenantId, exceptions, shipments, purchaseOrders]);
+  }, [tenantId]);
 
   // Contextual Copilot launch
   const handleAskCopilot = (target?: MissionControlCardItem | string) => {

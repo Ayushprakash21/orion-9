@@ -81,18 +81,15 @@ export class LiveMetricsEngine {
     const now = new Date().toISOString();
     const baseStatus: MetricValueStatus = env === 'LIVE' ? 'LIVE' : 'DEMO';
 
-    try {
-      // 1. Check real-time subscription manager in-memory cache first
-      const rtPos = realtimeSubscriptionManager.getDomainData('purchase_orders', tenantId, env);
-      const rtShipments = realtimeSubscriptionManager.getDomainData('shipments', tenantId, env);
-      const rtInventory = realtimeSubscriptionManager.getDomainData('inventory', tenantId, env);
-      const rtSuppliers = realtimeSubscriptionManager.getDomainData('suppliers', tenantId, env);
-      const rtInspections = realtimeSubscriptionManager.getDomainData('quality_inspections', tenantId, env);
-      const rtInvoices = realtimeSubscriptionManager.getDomainData('invoices', tenantId, env);
-      const rtCustomerOrders = realtimeSubscriptionManager.getDomainData('customer_orders', tenantId, env);
-      const rtExceptions = realtimeSubscriptionManager.getDomainData('exceptions', tenantId, env);
+    const requiredCollections = this.getRequiredCollectionsForMetric(metricId);
+    const loadDomain = async (domain: any): Promise<any[]> => {
+      if (!requiredCollections.has(domain)) return [];
+      const rt = realtimeSubscriptionManager.getDomainData(domain, tenantId, env);
+      return rt.length > 0 ? rt : this.persistence.listRecords<any>(domain, tenantId);
+    };
 
-      // 2. Fetch transactional data for this tenant if not yet in real-time store
+    try {
+      // 1-2. Read ONLY collections required by this metricId (eliminates 8x collection fan-out)
       const [
         pos,
         shipments,
@@ -103,14 +100,14 @@ export class LiveMetricsEngine {
         customerOrders,
         exceptions
       ] = await Promise.all([
-        rtPos.length > 0 ? rtPos : this.persistence.listRecords<any>('purchase_orders', tenantId),
-        rtShipments.length > 0 ? rtShipments : this.persistence.listRecords<any>('shipments', tenantId),
-        rtInventory.length > 0 ? rtInventory : this.persistence.listRecords<any>('inventory', tenantId),
-        rtSuppliers.length > 0 ? rtSuppliers : this.persistence.listRecords<any>('suppliers', tenantId),
-        rtInspections.length > 0 ? rtInspections : this.persistence.listRecords<any>('quality_inspections', tenantId),
-        rtInvoices.length > 0 ? rtInvoices : this.persistence.listRecords<any>('invoices', tenantId),
-        rtCustomerOrders.length > 0 ? rtCustomerOrders : this.persistence.listRecords<any>('customer_orders', tenantId),
-        rtExceptions.length > 0 ? rtExceptions : this.persistence.listRecords<any>('exceptions', tenantId),
+        loadDomain('purchase_orders'),
+        loadDomain('shipments'),
+        loadDomain('inventory'),
+        loadDomain('suppliers'),
+        loadDomain('quality_inspections'),
+        loadDomain('invoices'),
+        loadDomain('customer_orders'),
+        loadDomain('exceptions'),
       ]);
 
       // Fallback to in-memory DataEngine in DEMO ONLY for default/demo test tenants
@@ -547,6 +544,46 @@ export class LiveMetricsEngine {
         source: def.source,
         sampleCount: 0,
       };
+    }
+  }
+
+  private getRequiredCollectionsForMetric(metricId: string): ReadonlySet<string> {
+    switch (metricId) {
+      case 'PO_SPEND':
+      case 'PO_CYCLE_TIME':
+        return new Set(['purchase_orders']);
+      case 'SUPPLIER_OTIF':
+        return new Set(['suppliers']);
+      case 'INVENTORY_ON_HAND':
+      case 'INVENTORY_VALUE':
+      case 'STOCKOUT_RATE':
+      case 'SAFETY_STOCK':
+      case 'ATP_AVAILABLE':
+      case 'WORKING_CAPITAL':
+        return new Set(['inventory']);
+      case 'SHIPMENT_VOLUME':
+      case 'IN_TRANSIT_VALUE':
+      case 'ON_TIME_TRANSIT_RATE':
+      case 'SHIPMENT_OTIF':
+      case 'DELIVERY_OTIF':
+      case 'TRANSIT_TIME':
+        return new Set(['shipments']);
+      case 'ORDER_FILL_RATE':
+        return new Set(['customer_orders', 'purchase_orders']);
+      case 'AR_OUTSTANDING':
+      case 'AP_OUTSTANDING':
+        return new Set(['invoices']);
+      case 'CONTROL_TOWER_EXCEPTIONS':
+      case 'CRITICAL_RISKS':
+        return new Set(['exceptions']);
+      default:
+        return new Set([
+          'purchase_orders',
+          'shipments',
+          'inventory',
+          'suppliers',
+          'exceptions',
+        ]);
     }
   }
 

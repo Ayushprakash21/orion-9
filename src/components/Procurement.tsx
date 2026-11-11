@@ -42,8 +42,9 @@ export const Procurement: React.FC = () => {
   }, [searchParams]);
 
   const enrichedPOs = useMemo(() => {
+    const supplierById = new Map(suppliers.map(s => [s.id, s]));
     return purchaseOrders.map(po => {
-      const supplier = suppliers.find(s => s.id === po.supplierId);
+      const supplier = supplierById.get(po.supplierId);
       const valPair = formatCurrencyPair(po.totalValue, currency);
       return {
         ...po,

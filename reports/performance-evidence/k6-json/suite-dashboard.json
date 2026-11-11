@@ -1,0 +1,211 @@
+{
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "Dashboard_Initial_Load_And_Refresh": {
+                "name": "Dashboard_Initial_Load_And_Refresh",
+                "path": "::Dashboard_Initial_Load_And_Refresh",
+                "id": "93641b1f5e51b4254f79e3cb4e0ef160",
+                "groups": {},
+                "checks": {
+                        "dashboard control-tower 200 OK": {
+                            "fails": 0,
+                            "name": "dashboard control-tower 200 OK",
+                            "path": "::Dashboard_Initial_Load_And_Refresh::dashboard control-tower 200 OK",
+                            "id": "a00fcddbc0b89c97ef427a6e2fabc550",
+                            "passes": 2792
+                        },
+                        "KPIs metrics present": {
+                            "name": "KPIs metrics present",
+                            "path": "::Dashboard_Initial_Load_And_Refresh::KPIs metrics present",
+                            "id": "7469c7935bb0088bf781f0178a674cc9",
+                            "passes": 2792,
+                            "fails": 0
+                        },
+                        "alerts returned": {
+                            "name": "alerts returned",
+                            "path": "::Dashboard_Initial_Load_And_Refresh::alerts returned",
+                            "id": "27993b70c291cca2b0b0492b001b9da0",
+                            "passes": 2792,
+                            "fails": 0
+                        }
+                    }
+            }
+        },
+        "checks": {}
+    },
+    "metrics": {
+        "orion_unexpected_auth_failures": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "http_req_sending": {
+            "avg": 0.024391681590257893,
+            "min": 0,
+            "med": 0,
+            "max": 2.9946,
+            "p(90)": 0,
+            "p(95)": 0
+        },
+        "http_req_receiving": {
+            "avg": 0.1475626969914039,
+            "min": 0,
+            "med": 0,
+            "max": 10.7379,
+            "p(90)": 0.553,
+            "p(95)": 0.5842
+        },
+        "http_req_failed": {
+            "passes": 0,
+            "fails": 11168,
+            "value": 0
+        },
+        "group_duration": {
+            "max": 5558.7539,
+            "p(90)": 1143.0888,
+            "p(95)": 1844.2604099999999,
+            "avg": 641.8335433381085,
+            "min": 15.1453,
+            "med": 542.35755
+        },
+        "data_received": {
+            "count": 35506486,
+            "rate": 702877.3235326819
+        },
+        "orion_api_success_rate": {
+            "passes": 11168,
+            "fails": 0,
+            "thresholds": {
+                "rate>=0.99": false
+            },
+            "value": 1
+        },
+        "http_req_waiting": {
+            "p(90)": 936.9880600000001,
+            "p(95)": 1255.8865549999998,
+            "avg": 545.3980505641109,
+            "min": 1.007,
+            "med": 532.6076,
+            "max": 5557.4239
+        },
+        "http_req_blocked": {
+            "avg": 0.052445415472779346,
+            "min": 0,
+            "med": 0,
+            "max": 2.8048,
+            "p(90)": 0,
+            "p(95)": 0.5381949999999999
+        },
+        "vus": {
+            "value": 17,
+            "min": 2,
+            "max": 150
+        },
+        "data_sent": {
+            "count": 8194100,
+            "rate": 162208.30968063552
+        },
+        "http_req_failed{expected_status:2xx}": {
+            "passes": 0,
+            "fails": 11168,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_duration{expected_status:2xx}": {
+            "avg": 545.5700049426925,
+            "min": 5.0927,
+            "med": 532.7209,
+            "max": 5558.2032,
+            "p(90)": 937.7275200000005,
+            "p(95)": 1255.8865549999998,
+            "thresholds": {
+                "p(95)<2000": false,
+                "p(99)<5000": false
+            }
+        },
+        "http_req_duration{expected_response:true}": {
+            "avg": 545.5700049426925,
+            "min": 5.0927,
+            "med": 532.7209,
+            "max": 5558.2032,
+            "p(90)": 937.7275200000005,
+            "p(95)": 1255.8865549999998
+        },
+        "iterations": {
+            "count": 2792,
+            "rate": 55.26971853264353
+        },
+        "http_req_tls_handshaking": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0
+        },
+        "orion_dashboard_duration": {
+            "min": 5.0927,
+            "med": 532.7209,
+            "max": 5558.2032,
+            "p(90)": 937.7275200000005,
+            "p(95)": 1255.8865549999998,
+            "avg": 545.5700049426924,
+            "thresholds": {
+                "p(95)<2000": false,
+                "p(99)<5000": false
+            }
+        },
+        "http_reqs": {
+            "count": 11168,
+            "rate": 221.07887413057412
+        },
+        "orion_security_isolation_violations": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "http_req_duration": {
+            "max": 5558.2032,
+            "p(90)": 937.7275200000005,
+            "p(95)": 1255.8865549999998,
+            "avg": 545.5700049426925,
+            "min": 5.0927,
+            "med": 532.7209
+        },
+        "http_req_connecting": {
+            "max": 2.0619,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.03623440186246417,
+            "min": 0,
+            "med": 0
+        },
+        "vus_max": {
+            "value": 150,
+            "min": 150,
+            "max": 150
+        },
+        "checks": {
+            "passes": 8376,
+            "fails": 0,
+            "value": 1
+        },
+        "iteration_duration": {
+            "max": 6559.0383,
+            "p(90)": 2143.6715,
+            "p(95)": 2844.98017,
+            "avg": 1642.3184441977073,
+            "min": 1015.4232,
+            "med": 1542.8485999999998
+        }
+    }
+}

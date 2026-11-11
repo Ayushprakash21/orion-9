@@ -1,0 +1,233 @@
+{
+    "root_group": {
+        "name": "",
+        "path": "",
+        "id": "d41d8cd98f00b204e9800998ecf8427e",
+        "groups": {
+            "Realtime_Telemetry_Sync_And_Push_Registration": {
+                "groups": {},
+                "checks": {
+                        "realtime snapshot 200 OK": {
+                            "name": "realtime snapshot 200 OK",
+                            "path": "::Realtime_Telemetry_Sync_And_Push_Registration::realtime snapshot 200 OK",
+                            "id": "b709e85ae8396a4e041bcb82c439de65",
+                            "passes": 1316,
+                            "fails": 0
+                        },
+                        "device registration 200 OK": {
+                            "name": "device registration 200 OK",
+                            "path": "::Realtime_Telemetry_Sync_And_Push_Registration::device registration 200 OK",
+                            "id": "072222f931b3508c955126fbd9af3cb6",
+                            "passes": 1316,
+                            "fails": 0
+                        }
+                    },
+                "name": "Realtime_Telemetry_Sync_And_Push_Registration",
+                "path": "::Realtime_Telemetry_Sync_And_Push_Registration",
+                "id": "6d21a735091d698f2175568da52807d8"
+            },
+            "Realtime_Event_Ingestion_And_Outbox_Dispatch": {
+                "id": "57cf9c6ad2c464a69008eca694e22d08",
+                "groups": {},
+                "checks": {
+                        "realtime event ingestion succeeded without unintended duplicate rejection": {
+                            "name": "realtime event ingestion succeeded without unintended duplicate rejection",
+                            "path": "::Realtime_Event_Ingestion_And_Outbox_Dispatch::realtime event ingestion succeeded without unintended duplicate rejection",
+                            "id": "bb0dc6630407182e53c6c0b38df4eace",
+                            "passes": 1316,
+                            "fails": 0
+                        },
+                        "admin outbox dispatch 200 OK": {
+                            "fails": 0,
+                            "name": "admin outbox dispatch 200 OK",
+                            "path": "::Realtime_Event_Ingestion_And_Outbox_Dispatch::admin outbox dispatch 200 OK",
+                            "id": "7d50d609250985ebb78f5e06870dc644",
+                            "passes": 275
+                        },
+                        "non-admin outbox dispatch rejected 403": {
+                            "fails": 0,
+                            "name": "non-admin outbox dispatch rejected 403",
+                            "path": "::Realtime_Event_Ingestion_And_Outbox_Dispatch::non-admin outbox dispatch rejected 403",
+                            "id": "fd672d358550847d31ede7fbed98ea1b",
+                            "passes": 253
+                        }
+                    },
+                "name": "Realtime_Event_Ingestion_And_Outbox_Dispatch",
+                "path": "::Realtime_Event_Ingestion_And_Outbox_Dispatch"
+            }
+        },
+        "checks": {}
+    },
+    "metrics": {
+        "iterations": {
+            "count": 1316,
+            "rate": 25.74536066644456
+        },
+        "checks": {
+            "passes": 4476,
+            "fails": 0,
+            "value": 1
+        },
+        "orion_security_isolation_violations": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "orion_unexpected_auth_failures": {
+            "count": 0,
+            "rate": 0,
+            "thresholds": {
+                "count==0": false
+            }
+        },
+        "http_req_connecting": {
+            "p(95)": 0.5507649999999997,
+            "avg": 0.056945908149171304,
+            "min": 0,
+            "med": 0,
+            "max": 5.9954,
+            "p(90)": 0
+        },
+        "http_req_sending": {
+            "med": 0,
+            "max": 12.4708,
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0.028088777624309412,
+            "min": 0
+        },
+        "vus_max": {
+            "value": 150,
+            "min": 150,
+            "max": 150
+        },
+        "http_req_blocked": {
+            "avg": 0.07699977555248615,
+            "min": 0,
+            "med": 0,
+            "max": 5.9954,
+            "p(90)": 0,
+            "p(95)": 0.6018549999999993
+        },
+        "vus": {
+            "value": 13,
+            "min": 2,
+            "max": 150
+        },
+        "http_req_tls_handshaking": {
+            "p(90)": 0,
+            "p(95)": 0,
+            "avg": 0,
+            "min": 0,
+            "med": 0,
+            "max": 0
+        },
+        "http_req_receiving": {
+            "med": 0,
+            "max": 11.0412,
+            "p(90)": 0.5539700000000002,
+            "p(95)": 0.5951499999999998,
+            "avg": 0.17149480317679555,
+            "min": 0
+        },
+        "data_sent": {
+            "count": 4801387,
+            "rate": 93931.1854211081
+        },
+        "http_req_duration": {
+            "p(90)": 3340.286740000001,
+            "p(95)": 3690.5953799999997,
+            "avg": 1487.0974712707148,
+            "min": 0.9275,
+            "med": 803.7887,
+            "max": 5222.1015
+        },
+        "group_duration": {
+            "min": 17.2354,
+            "med": 681.6569,
+            "max": 5224.2632,
+            "p(90)": 3674.03344,
+            "p(95)": 3857.90008,
+            "avg": 1508.6904495820672
+        },
+        "data_received": {
+            "count": 15324369,
+            "rate": 299795.9018926158
+        },
+        "http_req_failed{expected_status:2xx}": {
+            "fails": 5539,
+            "passes": 0,
+            "thresholds": {
+                "rate<0.01": false
+            },
+            "value": 0
+        },
+        "http_req_duration{expected_status:2xx}": {
+            "med": 749.0249,
+            "max": 5222.1015,
+            "p(90)": 3311.2627,
+            "p(95)": 3672.5980499999996,
+            "avg": 1470.0800510019844,
+            "min": 0.9275,
+            "thresholds": {
+                "p(95)<2000": true,
+                "p(99)<5000": false
+            }
+        },
+        "http_req_failed": {
+            "passes": 253,
+            "fails": 5539,
+            "value": 0.04368093922651934
+        },
+        "http_reqs": {
+            "count": 5792,
+            "rate": 113.31088828271041
+        },
+        "http_req_duration{expected_response:true}": {
+            "p(95)": 3672.5980499999996,
+            "avg": 1470.0800510019844,
+            "min": 0.9275,
+            "med": 749.0249,
+            "max": 5222.1015,
+            "p(90)": 3311.2627
+        },
+        "iteration_duration": {
+            "max": 9922.6519,
+            "p(90)": 7046.7075,
+            "p(95)": 7525.051725,
+            "avg": 3517.804720972647,
+            "min": 582.9561,
+            "med": 3406.7306
+        },
+        "orion_api_success_rate": {
+            "passes": 5539,
+            "fails": 0,
+            "thresholds": {
+                "rate>=0.99": false
+            },
+            "value": 1
+        },
+        "orion_realtime_duration": {
+            "p(90)": 3311.2627,
+            "p(95)": 3672.5980499999996,
+            "avg": 1470.0800510019844,
+            "min": 0.9275,
+            "med": 749.0249,
+            "max": 5222.1015,
+            "thresholds": {
+                "p(99)<5000": false,
+                "p(95)<2000": true
+            }
+        },
+        "http_req_waiting": {
+            "avg": 1486.8978876899127,
+            "min": 0.4606,
+            "med": 803.7887,
+            "max": 5222.1015,
+            "p(90)": 3339.82306,
+            "p(95)": 3690.5953799999997
+        }
+    }
+}
