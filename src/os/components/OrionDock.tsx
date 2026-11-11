@@ -9,6 +9,7 @@ import { dockGeometryRegistry } from '../dock/DockGeometryRegistry';
 import { ORION_SPRING_DOCK, ORION_SPRING_BOUNCY, ORION_SPRING_SNAPPY, isReducedMotionPreferred } from '../motion/OrionMotion';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
 import { useOSGeometry } from '../dock/DockGeometry';
+import { useOrionTheme } from '../theme/useOrionTheme';
 import { 
   Grid, 
   Pin, 
@@ -27,6 +28,8 @@ export type DockVisibilityState = 'visible' | 'hidden' | 'revealing' | 'hiding';
 
 export function OrionDock() {
   const { t } = useI18n();
+  const { isDark } = useOrionTheme();
+  const iconTheme = isDark ? 'dark' : 'light';
   const { 
     windows, 
     activeAppId, 
@@ -760,13 +763,13 @@ export function OrionDock() {
             }}
             title={`${t('desktop.startMenu')} (All Applications)`}
           >
-            <div className="flex items-center justify-center w-full h-full rounded-[16px] bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/[0.18] border border-white/[0.12] hover:border-white/[0.22] text-[var(--orion-text-primary)] hover:text-white transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]">
+            <div className="flex items-center justify-center w-full h-full rounded-[16px] bg-[var(--orion-surface-hover)] hover:bg-[var(--orion-surface-active)] border border-[var(--orion-border)] hover:border-[var(--orion-border-strong)] text-[var(--orion-text-primary)] transition-colors">
               <Grid className="w-5 h-5 transition-transform duration-300 group-hover:scale-105" />
             </div>
 
             <div className={cn(
               tooltipClasses,
-              "px-3 py-1 bg-[#14171d]/95 text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-[0_12px_24px_rgba(0,0,0,0.6)] z-50"
+              "px-3 py-1 bg-[var(--orion-surface)]/95 text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-[var(--orion-border-strong)] shadow-xl z-50"
             )}>
               {t('desktop.startMenu')}
             </div>
@@ -794,20 +797,20 @@ export function OrionDock() {
             }}
             title={`${t('common.search')} (Ctrl+Space / ⌘K)`}
           >
-            <div className="flex items-center justify-center w-full h-full rounded-[16px] bg-white/[0.06] hover:bg-white/[0.12] active:bg-white/[0.18] border border-white/[0.12] hover:border-white/[0.22] text-[var(--orion-text-secondary)] hover:text-white transition-colors shadow-[inset_0_1px_0_rgba(255,255,255,0.18)]">
+            <div className="flex items-center justify-center w-full h-full rounded-[16px] bg-[var(--orion-surface-hover)] hover:bg-[var(--orion-surface-active)] border border-[var(--orion-border)] hover:border-[var(--orion-border-strong)] text-[var(--orion-text-secondary)] hover:text-[var(--orion-text-primary)] transition-colors">
               <Search className="w-4.5 h-4.5 transition-transform duration-300 group-hover:scale-105" />
             </div>
 
             <div className={cn(
               tooltipClasses,
-              "px-3 py-1 bg-[#14171d]/95 text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-[0_12px_24px_rgba(0,0,0,0.6)] z-50"
+              "px-3 py-1 bg-[var(--orion-surface)]/95 text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-[var(--orion-border-strong)] shadow-xl z-50"
             )}>
               {t('common.search')} (Ctrl+Space)
             </div>
           </button>
 
           <div className={cn(
-            "bg-white/[0.12] shrink-0",
+            "bg-[var(--orion-border-strong)] shrink-0",
             isVertical ? "w-7 h-px my-0.5" : "w-px h-7 mx-0.5"
           )} />
 
@@ -880,6 +883,7 @@ export function OrionDock() {
                   <OrionAppIcon
                     app={id}
                     size={dock.iconSize}
+                    theme={iconTheme}
                     active={isActive}
                     showContainer={true}
                   />
@@ -896,8 +900,8 @@ export function OrionDock() {
                       isActive 
                         ? (isVertical ? "h-3 w-1 rounded-full bg-[var(--orion-accent)] shadow-[0_0_6px_var(--orion-accent)]" : "w-3 h-1 rounded-full bg-[var(--orion-accent)] shadow-[0_0_6px_var(--orion-accent)]")
                         : isMinimized
-                        ? (isVertical ? "h-1 w-1 rounded-full bg-white/30" : "w-1 h-1 rounded-full bg-white/30")
-                        : (isVertical ? "h-1.5 w-1.5 rounded-full bg-white/70 shadow-[0_0_4px_rgba(255,255,255,0.4)]" : "w-1.5 h-1.5 rounded-full bg-white/70 shadow-[0_0_4px_rgba(255,255,255,0.4)]")
+                        ? (isVertical ? "h-1 w-1 rounded-full bg-[var(--orion-text-muted)]" : "w-1 h-1 rounded-full bg-[var(--orion-text-muted)]")
+                        : (isVertical ? "h-1.5 w-1.5 rounded-full bg-[var(--orion-text-secondary)]" : "w-1.5 h-1.5 rounded-full bg-[var(--orion-text-secondary)]")
                     )}
                   />
                 )}
@@ -905,7 +909,7 @@ export function OrionDock() {
                 {/* Tooltip */}
                 <div className={cn(
                   tooltipClasses,
-                  "px-3 py-1 bg-[#14171d]/95 text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-white/10 shadow-[0_12px_24px_rgba(0,0,0,0.6)] z-50"
+                  "px-3 py-1 bg-[var(--orion-surface)]/95 text-[var(--orion-text-primary)] text-[11px] font-medium tracking-normal whitespace-nowrap rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity border border-[var(--orion-border-strong)] shadow-xl z-50"
                 )}>
                   {app.name}
                   {isMinimized && <span className="text-[var(--orion-text-muted)] ml-1.5 text-[10px]">(Minimized)</span>}

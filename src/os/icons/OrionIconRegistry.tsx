@@ -1,9 +1,19 @@
-import React, { useId } from 'react';
+import React from 'react';
+import { OrionIconArtworkProps } from './OrionIconTheme';
 import {
-  ORION_SQUIRCLE_INNER_PATH,
-  ORION_SQUIRCLE_PATH,
-  sanitizeSvgToken,
-} from './OrionIconTheme';
+  OrionSquircleBase,
+  OrionIconPaletteContext,
+  useOrionIconDetail,
+  useOrionIconIds,
+} from './OrionSquircleBase';
+import { ORION_REGISTRY } from '../OrionApplicationRegistry';
+
+export {
+  OrionSquircleBase,
+  OrionIconPaletteContext,
+  useOrionIconDetail,
+  useOrionIconIds,
+};
 import {
   IconCommandCenter,
   IconInventory,
@@ -143,177 +153,119 @@ export interface OrionIconDefinition {
     accent: string;
     surface: string;
   };
-  component: React.FC<{ size?: number; className?: string; active?: boolean }>;
+  component: React.FC<OrionIconArtworkProps>;
+  isFallback?: boolean;
 }
 
 // ---------------------------------------------------------------------------
-// Base Icon Container Helper Component
+// Fallback & Core Shell Bespoke Artwork
 // ---------------------------------------------------------------------------
-interface IconBaseProps {
-  size?: number;
-  className?: string;
-  active?: boolean;
-  theme?: 'light' | 'dark' | 'auto';
-  gradientId: string;
-  from: string;
-  to: string;
-  accent?: string;
-  children: React.ReactNode;
-}
-
-export const OrionSquircleBase: React.FC<IconBaseProps> = ({
-  size = 48,
-  className = '',
-  active = false,
-  theme = 'dark',
-  gradientId,
-  from,
-  to,
-  accent,
-  children,
-}) => {
-  const reactId = useId();
-  const uid = `${sanitizeSvgToken(gradientId)}-${sanitizeSvgToken(reactId)}`;
-  const isCompact = size <= 24;
-  const isLight = theme === 'light';
-
+export const IconOrionGeneric: React.FC<OrionIconArtworkProps> = (props) => {
+  const id = useOrionIconIds('gen-fb');
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 128 128"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      preserveAspectRatio="xMidYMid meet"
-      className={`select-none overflow-visible transition-transform duration-150 ${className}`}
-      role="img"
-    >
+    <OrionSquircleBase gradientId="icon-generic" from="#334155" to="#0F172A" accent="#38BDF8" {...props}>
       <defs>
-        {/* Multi-stop macOS dimensional surface gradient */}
-        <linearGradient id={`${uid}-bg`} x1="20" y1="8" x2="108" y2="122" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor={from} />
-          <stop offset="100%" stopColor={to} />
-        </linearGradient>
-
-        {/* Top-down ambient glass sheen bloom */}
-        <radialGradient id={`${uid}-bloom`} cx="50%" cy="18%" r="65%">
-          <stop offset="0%" stopColor={accent || '#FFFFFF'} stopOpacity={active ? '0.26' : '0.16'} />
-          <stop offset="55%" stopColor="#FFFFFF" stopOpacity="0.04" />
-          <stop offset="100%" stopColor="#000000" stopOpacity="0" />
-        </radialGradient>
-
-        {/* Beveled specular inner catchlight */}
-        <linearGradient id={`${uid}-rim`} x1="64" y1="8" x2="64" y2="120" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#FFFFFF" stopOpacity={isLight ? '0.68' : '0.42'} />
-          <stop offset="35%" stopColor="#FFFFFF" stopOpacity="0.12" />
-          <stop offset="100%" stopColor="#000000" stopOpacity={isLight ? '0.16' : '0.32'} />
+        <linearGradient id={`${id}-ring`} x1="28" y1="28" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#F8FAFC" />
+          <stop offset="100%" stopColor="#94A3B8" />
         </linearGradient>
       </defs>
-
-      {/* Active ring accent halo */}
-      {active && (
-        <path
-          d={ORION_SQUIRCLE_PATH}
-          stroke={accent || '#38BDF8'}
-          strokeWidth={isCompact ? 5 : 3.5}
-          strokeOpacity="0.45"
-          fill="none"
-        />
-      )}
-
-      {/* Primary continuous squircle silhouette */}
-      <path d={ORION_SQUIRCLE_PATH} fill={`url(#${uid}-bg)`} />
-
-      {/* Top optical material bloom */}
-      {!isCompact && <path d={ORION_SQUIRCLE_PATH} fill={`url(#${uid}-bloom)`} />}
-
-      {/* Subtle light-mode boundary ring so dark tiles sit crisply on pale cards */}
-      {isLight && (
-        <path
-          d={ORION_SQUIRCLE_PATH}
-          stroke="rgba(15, 23, 42, 0.14)"
-          strokeWidth="1.5"
-          fill="none"
-        />
-      )}
-
-      {/* Tactile inner specular edge bevel */}
-      <path
-        d={ORION_SQUIRCLE_INNER_PATH}
-        stroke={`url(#${uid}-rim)`}
-        strokeWidth={isCompact ? 1.8 : 1.3}
-        fill="none"
-      />
-
-      {/* Top meniscus highlight arc */}
-      {!isCompact && (
-        <path
-          d="M 28 11 C 42 8.5 86 8.5 100 11"
-          stroke="#FFFFFF"
-          strokeOpacity="0.28"
-          strokeWidth="1.2"
-          strokeLinecap="round"
-        />
-      )}
-
-      {/* Central Artwork Foreground */}
-      <g>{children}</g>
-    </svg>
+      <circle cx="64" cy="64" r="31" fill="#0F172A" fillOpacity="0.55" stroke={`url(#${id}-ring)`} strokeWidth="2.5" />
+      <circle cx="64" cy="64" r="20" stroke="#38BDF8" strokeOpacity="0.45" strokeWidth="1.6" strokeDasharray="4 4" />
+      <polygon points="64,38 82,76 64,69 46,76" fill="#38BDF8" stroke="#E0F2FE" strokeWidth="1.8" strokeLinejoin="round" />
+    </OrionSquircleBase>
   );
 };
 
-// ---------------------------------------------------------------------------
-// Fallback Sovereign Icon for unknown IDs
-// ---------------------------------------------------------------------------
-export const IconOrionGeneric: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
-  <OrionSquircleBase gradientId="icon-generic" from="#334155" to="#0F172A" accent="#38BDF8" {...props}>
-    <circle cx="64" cy="64" r="30" fill="#0F172A" fillOpacity="0.45" stroke="#94A3B8" strokeWidth="2.5" />
-    <circle cx="64" cy="64" r="20" stroke="#38BDF8" strokeOpacity="0.45" strokeWidth="1.5" strokeDasharray="4 4" />
-    <polygon points="64,40 82,76 64,69 46,76" fill="#38BDF8" stroke="#E0F2FE" strokeWidth="1.8" strokeLinejoin="round" />
-  </OrionSquircleBase>
-);
+export const IconOrionBrowser: React.FC<OrionIconArtworkProps> = (props) => {
+  const id = useOrionIconIds('browser');
+  const { detailTier } = useOrionIconDetail();
+  const isMicro = detailTier === 'micro';
+  return (
+    <OrionSquircleBase gradientId="icon-browser-sq" from="#0284C7" to="#0369A1" accent="#38BDF8" {...props}>
+      <defs>
+        <linearGradient id={`${id}-bezel`} x1="26" y1="26" x2="102" y2="102" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="100%" stopColor="#BAE6FD" />
+        </linearGradient>
+        <radialGradient id={`${id}-sea`} cx="45%" cy="35%" r="65%">
+          <stop offset="0%" stopColor="#38BDF8" />
+          <stop offset="55%" stopColor="#0284C7" />
+          <stop offset="100%" stopColor="#082F49" />
+        </radialGradient>
+      </defs>
+      <circle cx="64" cy="64" r="36" fill={`url(#${id}-bezel)`} />
+      <circle cx="64" cy="64" r="31" fill={`url(#${id}-sea)`} />
+      {!isMicro && [0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
+        <rect key={a} x="-1.2" y="-29" width="2.4" height="5" rx="1" fill="#E0F2FE" fillOpacity="0.7" transform={`translate(64,64) rotate(${a})`} />
+      ))}
+      <polygon points="86,42 70,70 58,58" fill="#EF4444" stroke="#FFFFFF" strokeWidth="1.4" strokeLinejoin="round" />
+      <polygon points="42,86 58,58 70,70" fill="#FFFFFF" stroke="#BAE6FD" strokeWidth="1.2" strokeLinejoin="round" />
+      <circle cx="64" cy="64" r="5" fill="#FBBF24" stroke="#FFFFFF" strokeWidth="1.6" />
+    </OrionSquircleBase>
+  );
+};
 
-export const IconOrionBrowser: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
-  <OrionSquircleBase gradientId="icon-browser-sq" from="#0284C7" to="#0C4A6E" accent="#7DD3FC" {...props}>
-    {/* Safari-inspired macOS precision globe compass */}
-    <circle cx="64" cy="64" r="34" fill="#082F49" fillOpacity="0.5" stroke="#E0F2FE" strokeWidth="3" />
-    <ellipse cx="64" cy="64" rx="16" ry="34" stroke="#38BDF8" strokeWidth="2.2" />
-    <line x1="30" y1="64" x2="98" y2="64" stroke="#7DD3FC" strokeWidth="2.2" />
-    <polygon points="82,42 68,68 56,56" fill="#F87171" stroke="#FFFFFF" strokeWidth="1.5" strokeLinejoin="round" />
-    <polygon points="46,86 60,60 72,72" fill="#E0F2FE" stroke="#FFFFFF" strokeWidth="1.2" strokeLinejoin="round" />
-    <circle cx="64" cy="64" r="4.5" fill="#FFFFFF" />
-  </OrionSquircleBase>
-);
+export const IconAutonomousCommandCenter: React.FC<OrionIconArtworkProps> = (props) => {
+  const id = useOrionIconIds('auto-cc');
+  return (
+    <OrionSquircleBase gradientId="icon-autonomous-cc" from="#4F46E5" to="#1E1B4B" accent="#818CF8" {...props}>
+      <defs>
+        <linearGradient id={`${id}-top`} x1="30" y1="24" x2="98" y2="62" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="100%" stopColor="#A5B4FC" />
+        </linearGradient>
+      </defs>
+      <polyline points="28,82 64,100 100,82" stroke="#6366F1" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <polyline points="28,64 64,82 100,64" stroke="#A5B4FC" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <polygon points="64,24 100,44 64,64 28,44" fill={`url(#${id}-top)`} stroke="#FFFFFF" strokeWidth="1.6" strokeLinejoin="round" />
+      <circle cx="64" cy="44" r="8.5" fill="#1E1B4B" stroke="#FFFFFF" strokeWidth="2.4" />
+      <circle cx="64" cy="44" r="3.5" fill="#00F2FE" />
+    </OrionSquircleBase>
+  );
+};
 
-export const IconAutonomousCommandCenter: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
-  <OrionSquircleBase gradientId="icon-autonomous-cc" from="#4F46E5" to="#1E1B4B" accent="#818CF8" {...props}>
-    <polygon points="64,26 98,44 64,62 30,44" fill="#A5B4FC" fillOpacity="0.88" stroke="#E0E7FF" strokeWidth="2" strokeLinejoin="round" />
-    <polyline points="30,64 64,82 98,64" stroke="#818CF8" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-    <polyline points="30,82 64,100 98,82" stroke="#6366F1" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-    <circle cx="64" cy="44" r="8" fill="#1E1B4B" stroke="#FFFFFF" strokeWidth="2.5" />
-    <circle cx="64" cy="44" r="3" fill="#38BDF8" />
-  </OrionSquircleBase>
-);
+export const IconMultiPartyNetwork: React.FC<OrionIconArtworkProps> = (props) => {
+  const id = useOrionIconIds('mpn');
+  return (
+    <OrionSquircleBase gradientId="icon-multi-party" from="#059669" to="#064E3B" accent="#34D399" {...props}>
+      <defs>
+        <linearGradient id={`${id}-node`} x1="26" y1="26" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="100%" stopColor="#A7F3D0" />
+        </linearGradient>
+      </defs>
+      <line x1="38" y1="64" x2="88" y2="38" stroke="#6EE7B7" strokeWidth="4.5" strokeLinecap="round" />
+      <line x1="38" y1="64" x2="88" y2="90" stroke="#6EE7B7" strokeWidth="4.5" strokeLinecap="round" />
+      <line x1="88" y1="38" x2="88" y2="90" stroke="#34D399" strokeOpacity="0.6" strokeWidth="3" strokeDasharray="4 4" />
+      <circle cx="38" cy="64" r="13.5" fill={`url(#${id}-node)`} stroke="#047857" strokeWidth="2.4" />
+      <circle cx="88" cy="38" r="11" fill="#34D399" stroke="#FFFFFF" strokeWidth="2.2" />
+      <circle cx="88" cy="90" r="11" fill="#FBBF24" stroke="#FFFFFF" strokeWidth="2.2" />
+    </OrionSquircleBase>
+  );
+};
 
-export const IconMultiPartyNetwork: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
-  <OrionSquircleBase gradientId="icon-multi-party" from="#059669" to="#064E3B" accent="#34D399" {...props}>
-    <line x1="40" y1="64" x2="86" y2="40" stroke="#6EE7B7" strokeWidth="4.5" strokeLinecap="round" />
-    <line x1="40" y1="64" x2="86" y2="88" stroke="#6EE7B7" strokeWidth="4.5" strokeLinecap="round" />
-    <line x1="86" y1="40" x2="86" y2="88" stroke="#34D399" strokeOpacity="0.55" strokeWidth="2.5" strokeDasharray="4 4" />
-    <circle cx="38" cy="64" r="12" fill="#ECFDF5" stroke="#10B981" strokeWidth="3" />
-    <circle cx="88" cy="40" r="11" fill="#A7F3D0" stroke="#FFFFFF" strokeWidth="2.5" />
-    <circle cx="88" cy="88" r="11" fill="#34D399" stroke="#FFFFFF" strokeWidth="2.5" />
-  </OrionSquircleBase>
-);
-
-export const IconOrionIconGallery: React.FC<{ size?: number; className?: string; active?: boolean }> = (props) => (
-  <OrionSquircleBase gradientId="icon-gallery-sq" from="#0284C7" to="#312E81" accent="#38BDF8" {...props}>
-    <rect x="28" y="28" width="32" height="32" rx="9" fill="#38BDF8" stroke="#E0F2FE" strokeWidth="2" />
-    <rect x="68" y="28" width="32" height="32" rx="9" fill="#A78BFA" stroke="#EDE9FE" strokeWidth="2" />
-    <rect x="28" y="68" width="32" height="32" rx="9" fill="#34D399" stroke="#D1FAE5" strokeWidth="2" />
-    <rect x="68" y="68" width="32" height="32" rx="9" fill="#FBBF24" stroke="#FEF3C7" strokeWidth="2" />
-  </OrionSquircleBase>
-);
+export const IconOrionIconGallery: React.FC<OrionIconArtworkProps> = (props) => {
+  const id = useOrionIconIds('gal');
+  return (
+    <OrionSquircleBase gradientId="icon-gallery-sq" from="#0284C7" to="#312E81" accent="#38BDF8" {...props}>
+      <defs>
+        <linearGradient id={`${id}-frame`} x1="26" y1="26" x2="102" y2="102" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="#FFFFFF" />
+          <stop offset="100%" stopColor="#E0F2FE" />
+        </linearGradient>
+      </defs>
+      <rect x="27" y="27" width="33" height="33" rx="10" fill="#38BDF8" stroke={`url(#${id}-frame)`} strokeWidth="2" />
+      <circle cx="43.5" cy="43.5" r="7.5" fill="#FFFFFF" />
+      <rect x="68" y="27" width="33" height="33" rx="10" fill="#A78BFA" stroke={`url(#${id}-frame)`} strokeWidth="2" />
+      <polygon points="84.5,35 92,43.5 84.5,52 77,43.5" fill="#FFFFFF" />
+      <rect x="27" y="68" width="33" height="33" rx="10" fill="#34D399" stroke={`url(#${id}-frame)`} strokeWidth="2" />
+      <rect x="37" y="78" width="13" height="13" rx="3" fill="#FFFFFF" />
+      <rect x="68" y="68" width="33" height="33" rx="10" fill="#FBBF24" stroke={`url(#${id}-frame)`} strokeWidth="2" />
+      <path d="M 78 85 L 83 90 L 92 79" stroke="#451A03" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </OrionSquircleBase>
+  );
+};
 
 // ---------------------------------------------------------------------------
 // Authoritative 103-Application Icon Registry
@@ -533,7 +485,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'ATP & Order Promising',
     category: 'Operations',
     description: 'Deterministic Available-to-Promise order netting.',
-    palette: { from: '#00F2FE', to: '#0369A1', accent: '#00F2FE', surface: '#00F2FE15' },
+    palette: { from: '#0284C7', to: '#0369A1', accent: '#00F2FE', surface: '#00F2FE15' },
     component: IconAtpCenter
   },
   'outbound-execution': {
@@ -1268,7 +1220,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'Integration Gateway',
     category: 'Platform',
     description: 'Perimeter gateway, rate limiters, and DLQ quarantine.',
-    palette: { from: '#00F2FE', to: '#0369A1', accent: '#00F2FE', surface: '#00F2FE15' },
+    palette: { from: '#0284C7', to: '#0369A1', accent: '#00F2FE', surface: '#00F2FE15' },
     component: IconIntegrationGateway
   },
   'scale-performance': {
@@ -1304,7 +1256,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'Notepad',
     category: 'Platform',
     description: 'Full-featured desktop text editor and supply chain memo pad.',
-    palette: { from: '#00F2FE', to: '#0E7490', accent: '#00F2FE', surface: '#00F2FE15' },
+    palette: { from: '#0284C7', to: '#0E7490', accent: '#00F2FE', surface: '#00F2FE15' },
     component: IconNotepad
   },
   'orion-computer': {
@@ -1385,7 +1337,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'Orion Browser',
     category: 'System',
     description: 'First-class web workstation, multi-tab browsing, bookmarking, and native OS navigation.',
-    palette: { from: '#0284C7', to: '#0C4A6E', accent: '#38BDF8', surface: '#38BDF815' },
+    palette: { from: '#0284C7', to: '#0369A1', accent: '#38BDF8', surface: '#38BDF815' },
     component: IconOrionBrowser
   },
   'icon-gallery': {
@@ -1400,29 +1352,147 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
 };
 
 /**
- * Returns the authoritative icon definition for any application ID.
- * Falls back safely to Orion generic squircle if ID is unrecognized.
+ * Explicit alias mappings for legacy, admin navigation, desktop shortcut, and quick-action IDs.
+ */
+export const ORION_ICON_ALIASES: Record<string, string> = {
+  'control-tower': 'command-center',
+  'dashboard': 'executive-overview',
+  'executive': 'executive-overview',
+  'ai-copilot': 'orion-ai',
+  'orion-copilot': 'orion-ai',
+  'copilot': 'orion-ai',
+  'ai': 'orion-ai',
+  'supplier-communication': 'supplier-comms',
+  'comms': 'supplier-comms',
+  'supplier': 'suppliers',
+  'po': 'procurement',
+  'purchase-orders': 'procurement',
+  'datacenter': 'data',
+  'admin': 'control-center',
+  'admin-operations': 'operations-center',
+  'admin-incidents': 'incident-center',
+  'admin-control': 'control-center',
+  'admin-global-ops': 'global-operations',
+  'admin-regional-ops': 'regional-operations',
+  'reconciliation': 'reconciliation-center',
+  'file-explorer': 'file-manager',
+  'files': 'file-manager',
+  'docs': 'orion-documents',
+  'sheets': 'orion-sheets',
+  'slides': 'orion-slides',
+  'pdf': 'orion-pdf',
+  'analytics': 'intelligence-center',
+  'terminal': 'command-center',
+};
+
+const UNRESOLVED_ICON_DIAGNOSTICS = new Set<string>();
+
+export interface IconLookupResult {
+  definition: OrionIconDefinition;
+  requestedId: string;
+  resolvedId: string;
+  isAlias: boolean;
+  isFallback: boolean;
+}
+
+export function resolveAppIconLookup(appId: string): IconLookupResult {
+  const norm = (appId || '').toLowerCase().trim();
+  const direct = ORION_ICON_REGISTRY[norm];
+  if (direct) {
+    return {
+      definition: direct,
+      requestedId: norm,
+      resolvedId: norm,
+      isAlias: false,
+      isFallback: false,
+    };
+  }
+
+  const aliasTarget = ORION_ICON_ALIASES[norm];
+  if (aliasTarget && ORION_ICON_REGISTRY[aliasTarget]) {
+    return {
+      definition: ORION_ICON_REGISTRY[aliasTarget],
+      requestedId: norm,
+      resolvedId: aliasTarget,
+      isAlias: true,
+      isFallback: false,
+    };
+  }
+
+  if (norm && !UNRESOLVED_ICON_DIAGNOSTICS.has(norm)) {
+    UNRESOLVED_ICON_DIAGNOSTICS.add(norm);
+    const isDev =
+      (typeof import.meta !== 'undefined' && (import.meta as any).env?.DEV) ||
+      (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development');
+    if (isDev) {
+      console.warn(`[ORION:ICON] Unknown application ID "${norm}" resolved to fallback IconOrionGeneric.`);
+    }
+  }
+
+  return {
+    definition: {
+      appId: norm,
+      iconId: `icon-${norm || 'unknown'}`,
+      name: norm ? norm.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) : 'Unknown Application',
+      category: 'Platform',
+      description: 'Unmapped Orion OS Application (Fallback)',
+      palette: { from: '#334155', to: '#0F172A', accent: '#38BDF8', surface: '#38BDF815' },
+      component: IconOrionGeneric,
+      isFallback: true,
+    },
+    requestedId: norm,
+    resolvedId: norm,
+    isAlias: false,
+    isFallback: true,
+  };
+}
+
+/**
+ * Returns the authoritative icon definition for any application ID or registered alias.
+ * Logs and marks unmapped IDs as fallback for diagnostics rather than failing silently.
  */
 export function getAppIconDefinition(appId: string): OrionIconDefinition {
-  const norm = appId.toLowerCase().trim();
-  return (
-    ORION_ICON_REGISTRY[norm] || {
-      appId: norm,
-      iconId: `icon-${norm}`,
-      name: norm.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
-      category: 'Platform',
-      description: 'Orion OS Application',
-      palette: { from: '#334155', to: '#0F172A', accent: '#00F2FE', surface: '#00F2FE15' },
-      component: IconOrionGeneric
-    }
-  );
+  return resolveAppIconLookup(appId).definition;
 }
 
 /**
  * Returns the React component that renders the icon.
  */
-export function getAppIconComponent(appId: string): React.FC<{ size?: number; className?: string; active?: boolean }> {
+export function getAppIconComponent(appId: string): React.FC<OrionIconArtworkProps> {
   return getAppIconDefinition(appId).component;
+}
+
+export function getUnresolvedIconDiagnostics(): string[] {
+  return Array.from(UNRESOLVED_ICON_DIAGNOSTICS);
+}
+
+export function clearUnresolvedIconDiagnostics(): void {
+  UNRESOLVED_ICON_DIAGNOSTICS.clear();
+}
+
+export interface IconCoverageReport {
+  totalAppRegistryCount: number;
+  totalIconRegistryCount: number;
+  coveredCount: number;
+  missingFromIconRegistry: string[];
+  aliasCount: number;
+  unresolvedFallbackHits: string[];
+  coveragePercent: number;
+}
+
+export function getIconCoverageReport(appIds?: string[]): IconCoverageReport {
+  const required = appIds || Object.keys(ORION_REGISTRY);
+  const missingFromIconRegistry = required.filter((id) => !ORION_ICON_REGISTRY[id] && !ORION_ICON_ALIASES[id]);
+  const coveredCount = required.length - missingFromIconRegistry.length;
+  return {
+    totalAppRegistryCount: required.length,
+    totalIconRegistryCount: Object.keys(ORION_ICON_REGISTRY).length,
+    coveredCount,
+    missingFromIconRegistry,
+    aliasCount: Object.keys(ORION_ICON_ALIASES).length,
+    unresolvedFallbackHits: getUnresolvedIconDiagnostics(),
+    coveragePercent: required.length > 0 ? Math.round((coveredCount / required.length) * 100) : 100,
+  };
 }
 
 /**

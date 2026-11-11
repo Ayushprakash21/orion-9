@@ -57,7 +57,8 @@ test.describe('Orion-9 macOS Icon System, Astraeus Dynamic Island & OS Performan
 
     const gallery = page.getByTestId('orion-icon-gallery');
     await expect(gallery).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText('100% Unique')).toBeVisible();
+    await expect(page.getByTestId('icon-gallery-coverage-badge')).toBeVisible();
+    await expect(page.getByTestId('icon-gallery-zero-fallbacks')).toBeVisible();
 
     await page.screenshot({
       path: path.join(ARTIFACTS_DIR, 'upgrade_icon_gallery_desktop.png'),

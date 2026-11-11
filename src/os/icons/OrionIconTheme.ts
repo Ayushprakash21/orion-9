@@ -1,7 +1,7 @@
 /**
- * ORION-9 macOS-INSPIRED ICON DESIGN SYSTEM TOKENS
+ * ORION-9 macOS-INSPIRED ICON DESIGN SYSTEM TOKENS (ICON EXPERIENCE 3.0)
  * Cohesive squircle geometry, tonal material surfaces, light/dark contrast rules,
- * and size-adaptive detail tiers for all 118+ Orion Supply Chain OS applications.
+ * palette blending utilities, and size-adaptive LOD detail tiers for all 119 apps.
  */
 
 export type OrionIconCategory =
@@ -12,6 +12,21 @@ export type OrionIconCategory =
   | 'Platform'
   | 'Administration'
   | 'System';
+
+export interface OrionIconPalette {
+  from: string;
+  to: string;
+  accent: string;
+  surface: string;
+}
+
+export interface OrionIconArtworkProps {
+  size?: number;
+  className?: string;
+  active?: boolean;
+  theme?: 'light' | 'dark' | 'auto';
+  palette?: Partial<OrionIconPalette>;
+}
 
 export interface CategoryMaterialSpec {
   from: string;
@@ -98,4 +113,37 @@ export function getIconDetailTier(size: number): 'micro' | 'compact' | 'standard
 
 export function sanitizeSvgToken(value: string): string {
   return value.replace(/[^a-zA-Z0-9_-]/g, '-');
+}
+
+function parseHexRgb(hex: string): [number, number, number] | null {
+  const clean = hex.trim().replace(/^#/, '');
+  if (/^[0-9a-fA-F]{6}$/.test(clean)) {
+    return [
+      parseInt(clean.slice(0, 2), 16),
+      parseInt(clean.slice(2, 4), 16),
+      parseInt(clean.slice(4, 6), 16),
+    ];
+  }
+  if (/^[0-9a-fA-F]{3}$/.test(clean)) {
+    return [
+      parseInt(clean[0] + clean[0], 16),
+      parseInt(clean[1] + clean[1], 16),
+      parseInt(clean[2] + clean[2], 16),
+    ];
+  }
+  return null;
+}
+
+/**
+ * Mixes two #RRGGBB colors (weight 0 = colorA, 1 = colorB) for rich multi-stop stops.
+ */
+export function mixHexColor(colorA: string, colorB: string, weight = 0.5): string {
+  const a = parseHexRgb(colorA);
+  const b = parseHexRgb(colorB);
+  if (!a || !b) return colorA;
+  const t = Math.min(1, Math.max(0, weight));
+  const r = Math.round(a[0] + (b[0] - a[0]) * t);
+  const g = Math.round(a[1] + (b[1] - a[1]) * t);
+  const bl = Math.round(a[2] + (b[2] - a[2]) * t);
+  return `#${((1 << 24) | (r << 16) | (g << 8) | bl).toString(16).slice(1)}`.toUpperCase();
 }
