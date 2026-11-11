@@ -23,6 +23,7 @@ import {
   OrganizationLanguagePolicy,
   DEFAULT_ORG_LANGUAGE_POLICY,
 } from '../i18n';
+import { userPersistenceService } from '../services/userPersistenceService';
 
 export type {
   SupportedLocale,
@@ -154,6 +155,9 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
         localStorage.setItem('orion_user_has_explicit_language', 'true');
       } catch (e) {}
+    }
+    if (userId) {
+      void userPersistenceService.saveUserPreferences(userId, { preferredLanguage: newLocale });
     }
     setLocale(newLocale);
   }, [setLocale]);

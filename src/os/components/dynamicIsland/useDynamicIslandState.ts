@@ -19,13 +19,24 @@ import {
   DynamicIslandCopilotStatus,
   DynamicIslandEventItem,
   DynamicIslandMetrics,
+  DynamicIslandPresentationMode,
   DynamicIslandState,
   DynamicIslandSurfaceState,
 } from './DynamicIslandTypes';
 
 const PINNED_STORAGE_KEY = 'orion_dynamic_island_pinned';
+const MODE_STORAGE_KEY = 'orion_dynamic_island_mode';
 const MAX_TRANSIENT_EVENTS = 6;
 const RETURNING_TRANSITION_MS = 220;
+
+function readStoredPresentationMode(): DynamicIslandPresentationMode {
+  if (typeof localStorage === 'undefined') return 'compact';
+  const raw = localStorage.getItem(MODE_STORAGE_KEY);
+  if (raw === 'compact' || raw === 'expanded' || raw === 'minimal' || raw === 'disabled') {
+    return raw;
+  }
+  return 'compact';
+}
 
 export function getAuthoritativeRuntime(): { runtimeMode: 'TAURI DESKTOP' | 'WEB OS'; isNativeDesktop: boolean } {
   const win = typeof window !== 'undefined' ? (window as any) : null;
@@ -47,7 +58,8 @@ export function useDynamicIslandState(): DynamicIslandState {
   const notifications = useOptionalNotifications();
   const integration = useIntegrationFabric();
 
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [presentationMode, setPresentationMode] = useState<DynamicIslandPresentationMode>(() => readStoredPresentationMode());
+  const [isExpanded, setIsExpanded] = useState(() => readStoredPresentationMode() === 'expanded');
   const [isReturning, setIsReturning] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isFullscreenHidden, setIsFullscreenHidden] = useState(false);
@@ -162,14 +174,31 @@ export function useDynamicIslandState(): DynamicIslandState {
       }
     };
 
+    const handleDynamicConfig = (e: CustomEvent<{ mode?: DynamicIslandPresentationMode; pinned?: boolean }>) => {
+      const nextMode = e.detail?.mode || readStoredPresentationMode();
+      setPresentationMode(nextMode);
+      if (typeof e.detail?.pinned === 'boolean') {
+        setIsPinned(e.detail.pinned);
+      }
+      if (nextMode === 'disabled') {
+        setIsExpanded(false);
+      } else if (nextMode === 'expanded') {
+        setIsExpanded(true);
+      } else if (nextMode === 'compact' || nextMode === 'minimal') {
+        setIsExpanded(false);
+      }
+    };
+
     window.addEventListener('orion:copilot-state' as any, handleCopilotState as EventListener);
     window.addEventListener('orion:demo-simulation-state-changed' as any, handleSimulationState as EventListener);
     window.addEventListener('orion:dynamic-island-event' as any, handleDynamicEvent as EventListener);
+    window.addEventListener('orion:dynamic-island-config-changed' as any, handleDynamicConfig as EventListener);
 
     return () => {
       window.removeEventListener('orion:copilot-state' as any, handleCopilotState as EventListener);
       window.removeEventListener('orion:demo-simulation-state-changed' as any, handleSimulationState as EventListener);
       window.removeEventListener('orion:dynamic-island-event' as any, handleDynamicEvent as EventListener);
+      window.removeEventListener('orion:dynamic-island-config-changed' as any, handleDynamicConfig as EventListener);
     };
   }, [pushActivity, dismissActivity]);
 
@@ -408,6 +437,7 @@ export function useDynamicIslandState(): DynamicIslandState {
 
   return useMemo(() => ({
     mode: isExpanded ? 'expanded' : 'compact',
+    presentationMode,
     surfaceState,
     isExpanded,
     isPinned,
@@ -427,6 +457,7 @@ export function useDynamicIslandState(): DynamicIslandState {
     pushActivity,
     dismissActivity,
   }), [
+    presentationMode,
     isExpanded,
     surfaceState,
     isPinned,

@@ -7,6 +7,7 @@
  */
 
 export type DynamicIslandMode = 'compact' | 'expanded';
+export type DynamicIslandPresentationMode = 'compact' | 'expanded' | 'minimal' | 'disabled';
 
 /**
  * 5-state visual lifecycle surface model:
@@ -67,6 +68,7 @@ export interface DynamicIslandMetrics {
 
 export interface DynamicIslandState {
   mode: DynamicIslandMode;
+  presentationMode: DynamicIslandPresentationMode;
   surfaceState: DynamicIslandSurfaceState;
   isExpanded: boolean;
   isPinned: boolean;

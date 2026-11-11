@@ -15,6 +15,7 @@ import { DynamicIslandExpanded } from './DynamicIslandExpanded';
 
 export const DynamicIsland: React.FC = React.memo(() => {
   const {
+    presentationMode,
     surfaceState,
     isExpanded,
     isPinned,
@@ -50,7 +51,7 @@ export const DynamicIsland: React.FC = React.memo(() => {
     return () => document.removeEventListener('mousedown', handlePointerDown);
   }, [isExpanded, isPinned, collapse]);
 
-  if (isFullscreenHidden) {
+  if (isFullscreenHidden || presentationMode === 'disabled') {
     return null;
   }
 
@@ -60,6 +61,7 @@ export const DynamicIsland: React.FC = React.memo(() => {
       role="region"
       aria-label="Orion-9 Dynamic Island System Telemetry"
       data-surface-state={surfaceState}
+      data-presentation-mode={presentationMode}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className="relative z-40 flex flex-col items-center pointer-events-auto"
@@ -67,6 +69,7 @@ export const DynamicIsland: React.FC = React.memo(() => {
       <DynamicIslandCapsule
         activity={activity}
         surfaceState={surfaceState}
+        presentationMode={presentationMode}
         metrics={metrics}
         primaryEvent={primaryEvent}
         isExpanded={isExpanded}

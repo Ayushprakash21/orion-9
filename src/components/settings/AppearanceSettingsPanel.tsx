@@ -4,14 +4,85 @@ import {
   Layers, ShieldCheck, Download, Upload, Sliders, Monitor, AppWindow
 } from 'lucide-react';
 import { useOrionTheme } from '../../os/theme/useOrionTheme';
-import { ORION_THEMES, getThemeList } from '../../os/theme/OrionThemeRegistry';
-import { OrionThemeId, OrionAppearanceMode, OrionCornerRadius, OrionWindowStyle, OrionMorphismMode } from '../../os/theme/OrionThemeTypes';
+import { ORION_THEMES, getThemeList, getTheme } from '../../os/theme/OrionThemeRegistry';
+import { OrionThemeId, OrionAppearanceMode, OrionCornerRadius, OrionWindowStyle, OrionMorphismMode, OrionAppearancePreferences } from '../../os/theme/OrionThemeTypes';
 import { OrionWindowControls } from '../../os/components/OrionWindowControls';
 import { useToast } from '../../store/ToastContext';
+import { useAuth } from '../../store/AuthContext';
+import { userPersistenceService } from '../../services/userPersistenceService';
 
 export const AppearanceSettingsPanel: React.FC = () => {
-  const { theme, preferences, resolvedAccent, setTheme, setPreference, resetAppearance, isDark } = useOrionTheme();
+  const { theme, preferences, resolvedAccent, setTheme: setEngineTheme, setPreference: setEnginePreference, resetAppearance: resetEngineAppearance, isDark } = useOrionTheme();
+  const { currentUser } = useAuth();
   const { showToast } = useToast();
+
+  const syncUserPref = React.useCallback((patch: Record<string, unknown>) => {
+    if (currentUser?.id) {
+      void userPersistenceService.saveUserPreferences(
+        currentUser.id,
+        {
+          ...(patch as any),
+          organizationId: currentUser.organizationId,
+        }
+      );
+    }
+  }, [currentUser?.id, currentUser?.organizationId]);
+
+  const setTheme = React.useCallback((id: OrionThemeId) => {
+    setEngineTheme(id);
+    const resolved = getTheme(id);
+    const mode = resolved.appearance.mode;
+    syncUserPref({
+      themeId: id,
+      appearanceMode: mode,
+      theme: mode === 'light' ? 'light' : 'dark',
+    });
+  }, [setEngineTheme, syncUserPref]);
+
+  const setPreference = React.useCallback(<K extends keyof OrionAppearancePreferences>(
+    key: K,
+    value: OrionAppearancePreferences[K]
+  ) => {
+    setEnginePreference(key, value);
+    if (key === 'appearanceMode') {
+      const m = value as OrionAppearanceMode;
+      syncUserPref({
+        appearanceMode: m,
+        theme: m === 'light' ? 'light' : m === 'dark' ? 'dark' : 'system',
+      });
+    } else if (key === 'reduceMotion') {
+      syncUserPref({ reducedMotion: Boolean(value) });
+    } else if (key === 'transparencyEnabled') {
+      syncUserPref({ reducedTransparency: !Boolean(value) });
+    } else if (
+      key === 'dockPosition' ||
+      key === 'dockSize' ||
+      key === 'dockAutoHide' ||
+      key === 'dockMagnification' ||
+      key === 'dockTint' ||
+      key === 'windowStyle' ||
+      key === 'cornerRadius' ||
+      key === 'windowControlPosition'
+    ) {
+      syncUserPref({ [key]: value });
+    }
+  }, [setEnginePreference, syncUserPref]);
+
+  const resetAppearance = React.useCallback(() => {
+    resetEngineAppearance();
+    syncUserPref({
+      themeId: 'graphite',
+      appearanceMode: 'dark',
+      theme: 'dark',
+      reducedMotion: false,
+      dockPosition: 'bottom',
+      dockSize: 'medium',
+      dockAutoHide: true,
+      dockMagnification: true,
+      windowStyle: 'glass',
+      cornerRadius: 'medium',
+    });
+  }, [resetEngineAppearance, syncUserPref]);
   const [customHex, setCustomHex] = useState(preferences.customAccent || '#D8DDE3');
   const [importError, setImportError] = useState('');
 

@@ -11,12 +11,14 @@ import {
   DynamicIslandActivity,
   DynamicIslandEventItem,
   DynamicIslandMetrics,
+  DynamicIslandPresentationMode,
   DynamicIslandSurfaceState,
 } from './DynamicIslandTypes';
 
 interface DynamicIslandCapsuleProps {
   activity: DynamicIslandActivity;
   surfaceState: DynamicIslandSurfaceState;
+  presentationMode?: DynamicIslandPresentationMode;
   metrics: DynamicIslandMetrics;
   primaryEvent: DynamicIslandEventItem | null;
   isExpanded: boolean;
@@ -27,15 +29,19 @@ interface DynamicIslandCapsuleProps {
 export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.memo(({
   activity,
   surfaceState,
+  presentationMode = 'compact',
   metrics,
   primaryEvent,
   isExpanded,
   isCompactOverMaximized,
   onToggleExpand,
 }) => {
-  const pillHeightClass = isCompactOverMaximized && !isExpanded && surfaceState !== 'critical'
-    ? 'h-[30px]'
-    : 'h-[34px]';
+  const pillHeightClass =
+    presentationMode === 'minimal'
+      ? 'h-[26px] px-2.5'
+      : isCompactOverMaximized && !isExpanded && surfaceState !== 'critical'
+        ? 'h-[30px]'
+        : 'h-[34px]';
 
   const statusToneClass =
     activity === 'critical-alert'

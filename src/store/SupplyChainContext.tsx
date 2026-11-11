@@ -66,6 +66,26 @@ import {
 } from '../kernel';
 import { realtimeSubscriptionManager, RealtimeSubscriptionState } from '../core/visualization';
 import { dbManager } from '../core/database/DatabaseConnectionManager';
+import { userPersistenceService } from '../services/userPersistenceService';
+import { reconcileSystemSettingsSnapshots } from '../services/preferences/PreferenceResolutionEngine';
+import { extractPatchFromSystemSettings } from '../services/preferences/PreferenceRuntimeApplier';
+
+function getActiveSettingsSessionScope(): { userId: string | null; tenantId: string; env: 'LIVE' | 'DEMO' | 'STAGING' } {
+  const env = dbManager.getEnvironment();
+  let userId: string | null = null;
+  let tenantId = 'ORION_PLATFORM';
+  if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('orion_auth_session');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        userId = parsed?.user?.id || parsed?.profile?.id || null;
+        tenantId = parsed?.organization?.id || parsed?.profile?.organizationId || 'ORION_PLATFORM';
+      }
+    } catch {}
+  }
+  return { userId, tenantId, env };
+}
 
 interface SupplyChainState {
   products: Product[];
@@ -210,10 +230,14 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [settings, setSettings] = useState<SystemSettings>(() => {
     try {
       const activePrefs = loadPreferences();
-      const cached = localStorage.getItem('orion_settings');
+      const scope = getActiveSettingsSessionScope();
+      const scopedLsKey = scope.userId ? `orion_settings:${scope.env}:${scope.tenantId}:${scope.userId}` : null;
+      const scopedRaw = scopedLsKey ? localStorage.getItem(scopedLsKey) : null;
+      const fallbackRaw = !scopedRaw ? localStorage.getItem('orion_settings') : null;
       let base: any = DEFAULT_SYSTEM_SETTINGS;
-      if (cached) {
-        base = JSON.parse(cached);
+      const parsedCandidate = scopedRaw ? JSON.parse(scopedRaw) : fallbackRaw ? JSON.parse(fallbackRaw) : null;
+      if (parsedCandidate && (!parsedCandidate._ownerUserId || !scope.userId || parsedCandidate._ownerUserId === scope.userId)) {
+        base = parsedCandidate;
       }
       const normalized = normalizeSettings(base);
       if (activePrefs && activePrefs.dockAutoHide !== undefined) {
@@ -332,14 +356,30 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const loadSettings = async () => {
     try {
-      const storedSettings = await db.settings.getItem<any>('config').catch(() => null);
+      const scope = getActiveSettingsSessionScope();
+      const idbScopedKey = scope.userId ? `config_${scope.env}_${scope.tenantId}_${scope.userId}` : 'config';
+      const idbScoped = await db.settings.getItem<any>(idbScopedKey).catch(() => null);
+      const idbLegacy = !idbScoped ? await db.settings.getItem<any>('config').catch(() => null) : null;
+      const storedSettings = idbScoped || idbLegacy;
+
+      let localCached: any = null;
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        const scopedLsKey = scope.userId ? `orion_settings:${scope.env}:${scope.tenantId}:${scope.userId}` : 'orion_settings';
+        const lsRaw = localStorage.getItem(scopedLsKey) || localStorage.getItem('orion_settings');
+        if (lsRaw) {
+          try {
+            localCached = JSON.parse(lsRaw);
+          } catch {}
+        }
+      }
+
+      const reconciled = reconcileSystemSettingsSnapshots(localCached, storedSettings, scope.userId, scope.tenantId);
+      const raw = reconciled || settings;
       
-      const raw = storedSettings || settings;
-      
-      // Implement a normalization layer in the loadSettings function
+      // Normalize reconciled settings consistently across all operational and OS fields
+      const baseNorm = normalizeSettings(raw);
       const normalized: SystemSettings = {
-        ...DEFAULT_SYSTEM_SETTINGS,
-        ...raw,
+        ...baseNorm,
         criticalStockOutDays: !isNaN(Number(raw.criticalStockOutDays)) && Number(raw.criticalStockOutDays) > 0 ? Number(raw.criticalStockOutDays) : DEFAULT_SYSTEM_SETTINGS.criticalStockOutDays,
         lowStockDays: !isNaN(Number(raw.lowStockDays)) && Number(raw.lowStockDays) > 0 ? Number(raw.lowStockDays) : DEFAULT_SYSTEM_SETTINGS.lowStockDays,
         excessInventoryDays: !isNaN(Number(raw.excessInventoryDays)) && Number(raw.excessInventoryDays) > 0 ? Number(raw.excessInventoryDays) : DEFAULT_SYSTEM_SETTINGS.excessInventoryDays,
@@ -413,7 +453,7 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
   }, []);
 
 
-  // Keep SupplyChainContext synchronized with authoritative theme engine events
+  // Keep SupplyChainContext synchronized with authoritative theme & preference hydration events
   useEffect(() => {
     const handleThemeChange = (e: Event) => {
       const customEvent = e as CustomEvent;
@@ -431,10 +471,22 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
     };
 
+    const handleHydratedSettings = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (detail && typeof detail === 'object') {
+        const nextNorm = normalizeSettings(detail);
+        setSettings(nextNorm);
+        rulesEngine.setSettings(nextNorm);
+        kpiEngine.setSettings(nextNorm);
+      }
+    };
+
     if (typeof window !== 'undefined') {
       window.addEventListener('orion-appearance-preferences-changed', handleThemeChange);
+      window.addEventListener('orion-hydrated-settings', handleHydratedSettings);
       return () => {
         window.removeEventListener('orion-appearance-preferences-changed', handleThemeChange);
+        window.removeEventListener('orion-hydrated-settings', handleHydratedSettings);
       };
     }
   }, []);
@@ -706,8 +758,21 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (normalized.currency) setCurrency(normalized.currency);
     if (normalized.timezone) setTimezone(normalized.timezone);
 
+    const scope = getActiveSettingsSessionScope();
+    const nowIso = new Date().toISOString();
+    const stamped = {
+      ...normalized,
+      _ownerUserId: scope.userId,
+      _ownerTenantId: scope.tenantId,
+      _updatedAt: nowIso,
+      _revision: ((settings as any)?._revision || 0) + 1,
+    };
+
     try {
-      localStorage.setItem('orion_settings', JSON.stringify(normalized));
+      if (scope.userId) {
+        localStorage.setItem(`orion_settings:${scope.env}:${scope.tenantId}:${scope.userId}`, JSON.stringify(stamped));
+      }
+      localStorage.setItem('orion_settings', JSON.stringify(stamped));
       if (normalized.personalization) {
         const activePrefs = loadPreferences();
         const explicitThemeId = (newSettings?.personalization?.themeId && isValidThemeId(newSettings.personalization.themeId))
@@ -732,7 +797,22 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
     } catch (e) {
       console.warn('Could not save settings to localStorage', e);
     }
-    await db.settings.setItem('config', normalized);
+
+    const idbKey = scope.userId ? `config_${scope.env}_${scope.tenantId}_${scope.userId}` : 'config';
+    await db.settings.setItem(idbKey, stamped);
+    await db.settings.setItem('config', stamped);
+
+    // Sync user-scoped UI preferences cleanly to Firestore user_preferences/{userId}
+    if (scope.userId) {
+      const uiPatch = extractPatchFromSystemSettings(newSettings);
+      if (Object.keys(uiPatch).length > 0) {
+        void userPersistenceService.saveUserPreferences(scope.userId, {
+          ...uiPatch,
+          organizationId: scope.tenantId,
+          environment: scope.env,
+        }, scope.env).catch(() => {});
+      }
+    }
     
     // Propagate to core system engines
     rulesEngine.setSettings(normalized);

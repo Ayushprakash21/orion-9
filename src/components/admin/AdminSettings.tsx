@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Loader2, Key, User, Database, Sparkles, Monitor, Globe } from 'lucide-react';
+import { Save, Loader2, Key, User, Database, Sparkles, Monitor, Globe, ShieldCheck, Lock } from 'lucide-react';
 import { useToast } from '../../store/ToastContext';
 import { useAuth } from '../../store/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -10,6 +10,17 @@ import { DatabaseControlCenter } from './DatabaseControlCenter';
 import { AdminDemoData } from './AdminDemoData';
 import { cn } from '../../lib/utils';
 import { useI18n } from '../../store/LanguageContext';
+import { dbManager } from '../../core/database/DatabaseConnectionManager';
+import {
+  userPersistenceService,
+  OrganizationSettingsPolicy,
+} from '../../services/userPersistenceService';
+import {
+  DISPLAY_SCALE_VALUES,
+  DOCK_POSITION_VALUES,
+  FONT_FAMILY_VALUES,
+  TEXT_SIZE_VALUES,
+} from '../../services/preferences/PreferenceResolutionEngine';
 
 export const AdminSettings: React.FC = () => {
   const { hasRole, currentUser, signOut } = useAuth();
@@ -21,6 +32,61 @@ export const AdminSettings: React.FC = () => {
   const [adminId, setAdminId] = useState('');
   const [password, setPassword] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  const orgId = currentUser?.organizationId || 'ORION_PLATFORM';
+  const activeEnv = dbManager.getEnvironment();
+  const [orgPolicy, setOrgPolicy] = useState<OrganizationSettingsPolicy>(() =>
+    userPersistenceService.getOrganizationPolicyLocalSync(orgId, activeEnv) || {
+      organizationId: orgId,
+      tenantId: orgId,
+      schemaVersion: 3,
+      revision: 0,
+      updatedAt: new Date().toISOString(),
+      defaultTheme: 'system',
+      defaultFontFamily: 'ROBOTO',
+      defaultDisplayScale: 100,
+      defaultTextSize: 100,
+      defaultDockPosition: 'bottom',
+      defaultLanguage: locale || 'en',
+      enforceTheme: false,
+      enforceFont: false,
+      enforceScale: false,
+      enforceDock: false,
+      enforceLanguage: false,
+    }
+  );
+  const [orgPolicyStatus, setOrgPolicyStatus] = useState<string>('');
+
+  useEffect(() => {
+    let mounted = true;
+    userPersistenceService.getOrganizationPolicy(orgId, activeEnv, { forceCloud: activeEnv !== 'DEMO' }).then((pol) => {
+      if (mounted && pol) setOrgPolicy(pol);
+    }).catch(() => {});
+    const unsub = userPersistenceService.onOrganizationPolicyChange((pol) => {
+      if (pol.organizationId === orgId) setOrgPolicy(pol);
+    });
+    return () => {
+      mounted = false;
+      unsub();
+    };
+  }, [orgId, activeEnv]);
+
+  const handleSaveOrgPolicy = async (patch: Partial<OrganizationSettingsPolicy>) => {
+    setOrgPolicyStatus('Saving organization policy...');
+    const saved = await userPersistenceService.saveOrganizationPolicy(
+      orgId,
+      { ...patch, updatedBy: currentUser?.id || 'admin' },
+      activeEnv
+    );
+    setOrgPolicy(saved);
+    setOrgPolicyStatus(
+      saved.cloudSynced
+        ? `Organization policy synced to cloud (${orgId})`
+        : saved.syncStatus === 'FAILED'
+          ? `Saved locally — cloud sync failed: ${saved.syncError || 'Check permissions'}`
+          : `Saved to ${orgId} (${activeEnv} mode)`
+    );
+  };
 
   useEffect(() => {
     if (currentUser) {
@@ -188,35 +254,234 @@ export const AdminSettings: React.FC = () => {
           )}
 
           {activeTab === 'display' && (
-            <section className="p-6 rounded-xl border border-os-border bg-os-surface/40 space-y-4">
-              <div className="mb-4">
-                <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-white">
-                  Display & Accessibility Preferences
-                </h2>
-                <p className="text-xs text-os-text-secondary mt-1">
-                  Configure visual densities, scaling, high-contrast themes, and motion reductions for your administrator session.
-                </p>
-              </div>
-              <DisplayPreferencesControls userId={currentUser?.id} compact={false} />
-            </section>
+            <div className="space-y-6">
+              <section className="p-6 rounded-xl border border-os-border bg-os-surface/40 space-y-4">
+                <div className="mb-4">
+                  <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-white">
+                    Personal Administrator Display & Accessibility Preferences
+                  </h2>
+                  <p className="text-xs text-os-text-secondary mt-1">
+                    Stored on your user account (`user_preferences/{currentUser?.id || 'guest'}`) — follows your login across browsers and devices without affecting other users.
+                  </p>
+                </div>
+                <DisplayPreferencesControls userId={currentUser?.id} compact={false} />
+              </section>
+
+              <section className="p-6 rounded-xl border border-os-border bg-os-surface/40 space-y-5" data-testid="org-policy-defaults-section">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-white flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                      Organization Display Defaults & Enforced Policies ({orgId})
+                    </h2>
+                    <p className="text-xs text-os-text-secondary mt-1">
+                      Applies as organization defaults when users have not set a personal override. Checking Enforce locks the policy across all accounts in {orgId}.
+                    </p>
+                  </div>
+                  {orgPolicyStatus && (
+                    <span data-testid="org-policy-sync-status" className="text-[11px] font-mono px-2.5 py-1 rounded-md bg-white/[0.06] border border-white/10 text-cyan-300">
+                      {orgPolicyStatus}
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                  {/* Org Default Theme + Enforce */}
+                  <div className="p-4 rounded-xl bg-os-input-bg border border-os-border space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-white">Default Org Theme</span>
+                      <label className="inline-flex items-center gap-1.5 text-[11px] text-amber-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          data-testid="org-enforce-theme"
+                          checked={Boolean(orgPolicy.enforceTheme)}
+                          onChange={(e) => void handleSaveOrgPolicy({ enforceTheme: e.target.checked })}
+                          className="accent-amber-400"
+                        />
+                        <Lock className="w-3 h-3" />
+                        Enforce
+                      </label>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['light', 'dark', 'system'] as const).map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          data-testid={`org-default-theme-${t}`}
+                          onClick={() =>
+                            void handleSaveOrgPolicy({
+                              defaultTheme: t,
+                              defaultAppearanceMode: t === 'light' ? 'light' : t === 'dark' ? 'dark' : 'auto',
+                              defaultThemeId: t === 'light' ? 'silver' : 'graphite',
+                            })
+                          }
+                          className={cn(
+                            'py-2 rounded-lg border capitalize cursor-pointer',
+                            orgPolicy.defaultTheme === t
+                              ? 'border-cyan-400 bg-cyan-500/15 text-cyan-300 font-semibold'
+                              : 'border-os-border bg-os-surface text-os-text-secondary'
+                          )}
+                        >
+                          {t}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Org Default Font + Enforce */}
+                  <div className="p-4 rounded-xl bg-os-input-bg border border-os-border space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-white">Default Org Font</span>
+                      <label className="inline-flex items-center gap-1.5 text-[11px] text-amber-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          data-testid="org-enforce-font"
+                          checked={Boolean(orgPolicy.enforceFont)}
+                          onChange={(e) => void handleSaveOrgPolicy({ enforceFont: e.target.checked })}
+                          className="accent-amber-400"
+                        />
+                        <Lock className="w-3 h-3" />
+                        Enforce
+                      </label>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {FONT_FAMILY_VALUES.map((f) => (
+                        <button
+                          key={f}
+                          type="button"
+                          data-testid={`org-default-font-${f}`}
+                          onClick={() => void handleSaveOrgPolicy({ defaultFontFamily: f })}
+                          className={cn(
+                            'py-2 rounded-lg border cursor-pointer',
+                            orgPolicy.defaultFontFamily === f
+                              ? 'border-cyan-400 bg-cyan-500/15 text-cyan-300 font-semibold'
+                              : 'border-os-border bg-os-surface text-os-text-secondary'
+                          )}
+                        >
+                          {f}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Org Default Display Scale & Text Size + Enforce */}
+                  <div className="p-4 rounded-xl bg-os-input-bg border border-os-border space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-white">Default Org Display Scale</span>
+                      <label className="inline-flex items-center gap-1.5 text-[11px] text-amber-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          data-testid="org-enforce-scale"
+                          checked={Boolean(orgPolicy.enforceScale)}
+                          onChange={(e) => void handleSaveOrgPolicy({ enforceScale: e.target.checked })}
+                          className="accent-amber-400"
+                        />
+                        <Lock className="w-3 h-3" />
+                        Enforce
+                      </label>
+                    </div>
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {DISPLAY_SCALE_VALUES.map((sc) => (
+                        <button
+                          key={sc}
+                          type="button"
+                          data-testid={`org-default-scale-${sc}`}
+                          onClick={() => void handleSaveOrgPolicy({ defaultDisplayScale: sc })}
+                          className={cn(
+                            'py-1.5 rounded-lg border cursor-pointer',
+                            orgPolicy.defaultDisplayScale === sc
+                              ? 'border-cyan-400 bg-cyan-500/15 text-cyan-300 font-semibold'
+                              : 'border-os-border bg-os-surface text-os-text-secondary'
+                          )}
+                        >
+                          {sc}%
+                        </button>
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-os-text-muted">Default Text Size</span>
+                      <select
+                        aria-label="Default Organization Text Size"
+                        value={orgPolicy.defaultTextSize ?? 100}
+                        onChange={(e) => void handleSaveOrgPolicy({ defaultTextSize: Number(e.target.value) as any })}
+                        className="bg-os-surface border border-os-border rounded px-2 py-1 text-white"
+                      >
+                        {TEXT_SIZE_VALUES.map((ts) => (
+                          <option key={ts} value={ts}>{ts}%</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Org Default Dock + Enforce */}
+                  <div className="p-4 rounded-xl bg-os-input-bg border border-os-border space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-white">Default Org Dock Position</span>
+                      <label className="inline-flex items-center gap-1.5 text-[11px] text-amber-300 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          data-testid="org-enforce-dock"
+                          checked={Boolean(orgPolicy.enforceDock)}
+                          onChange={(e) => void handleSaveOrgPolicy({ enforceDock: e.target.checked })}
+                          className="accent-amber-400"
+                        />
+                        <Lock className="w-3 h-3" />
+                        Enforce
+                      </label>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2">
+                      {DOCK_POSITION_VALUES.map((pos) => (
+                        <button
+                          key={pos}
+                          type="button"
+                          data-testid={`org-default-dock-${pos}`}
+                          onClick={() => void handleSaveOrgPolicy({ defaultDockPosition: pos })}
+                          className={cn(
+                            'py-2 rounded-lg border capitalize cursor-pointer',
+                            orgPolicy.defaultDockPosition === pos
+                              ? 'border-cyan-400 bg-cyan-500/15 text-cyan-300 font-semibold'
+                              : 'border-os-border bg-os-surface text-os-text-secondary'
+                          )}
+                        >
+                          {pos}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </section>
+            </div>
           )}
 
           {activeTab === 'localization' && (
             <div className="p-6 rounded-xl border border-os-border bg-os-surface/40 space-y-6">
               <div>
-                <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-white mb-2">
-                  Organization Default Language
-                </h2>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                  <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-white">
+                    Organization Default Language ({orgId})
+                  </h2>
+                  <label className="inline-flex items-center gap-1.5 text-xs text-amber-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(orgPolicy.enforceLanguage)}
+                      onChange={(e) => void handleSaveOrgPolicy({ enforceLanguage: e.target.checked })}
+                      className="accent-amber-400"
+                    />
+                    <Lock className="w-3.5 h-3.5" />
+                    Enforce across organization
+                  </label>
+                </div>
                 <p className="text-xs text-os-text-secondary mb-4">
-                  New operators and workstations without explicit personal language preferences will default to this language across the entire ORION-9 platform.
+                  Persisted to Firestore policy (`policies/org_os_policy_{orgId}`). Operators without an explicit personal language override inherit this default across sessions.
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
                   {languages.map(lang => (
                     <button
                       key={lang.code}
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         setOrganizationDefaultLanguage(lang.code);
+                        await handleSaveOrgPolicy({ defaultLanguage: lang.code });
                         showToast(`Default organization language set to ${lang.name} (${lang.nativeName}).`, 'success');
                       }}
                       className={cn(

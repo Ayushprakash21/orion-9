@@ -66,6 +66,7 @@ import { OrionLockScreen } from './os/components/OrionLockScreen';
 import { OrionSleepScreen } from './os/components/OrionSleepScreen';
 import { OrionShutdownScreen } from './os/components/OrionShutdownScreen';
 import { OrionDisplayPreferencesProvider } from './os/DisplayPreferences';
+import { usePreferenceHydration } from './services/preferences/usePreferenceHydration';
 
 import { OrionResponsiveShell } from './os/OrionResponsiveShell';
 
@@ -237,6 +238,12 @@ function AppBootstrap() {
   const brightness = supplyChain?.settings?.brightness ?? 100;
   const isSupplyChainInitializing = supplyChain?.isInitializing ?? false;
 
+  const { isHydratingPreferences } = usePreferenceHydration({
+    isAuthenticated,
+    userId: currentUser?.id,
+    organizationId: currentUser?.organizationId,
+  });
+
   // Failsafe timeout: only for transient loading states, NEVER to bypass login
   const [initTimedOut, setInitTimedOut] = React.useState(false);
   React.useEffect(() => {
@@ -370,13 +377,17 @@ function AppBootstrap() {
       );
     }
   
-    // 6. SUPPLY CHAIN DATA INITIALIZATION (post-login / app data load):
-    if (isSupplyChainInitializing && !initTimedOut) {
+    // 6. SUPPLY CHAIN DATA & PREFERENCE HYDRATION (post-login / before presenting desktop):
+    if ((isSupplyChainInitializing && !initTimedOut) || isHydratingPreferences) {
       return (
         <LoadingScreen 
           key="scm-loading"
           isFadingOut={isFadingOut}
-          message="CONNECTING SUPPLY CHAIN KERNEL..."
+          message={
+            isHydratingPreferences
+              ? "HYDRATING OS DISPLAY & POLICY PREFERENCES..."
+              : "CONNECTING SUPPLY CHAIN KERNEL..."
+          }
         />
       );
     }

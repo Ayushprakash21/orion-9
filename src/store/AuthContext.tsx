@@ -3,6 +3,7 @@ import { SessionState, PermissionCode, RoleCode, UserProfile, Organization, Auth
 import { authService, AuthSessionDetails } from '../services/authService';
 import { userService } from '../services/userService';
 import { userPersistenceService } from '../services/userPersistenceService';
+import { clearActiveRuntimeSessionCaches } from '../services/preferences/PreferenceRuntimeApplier';
 import { organizationService } from '../services/organizationService';
 import { privilegedSessionManager } from '../kernel/security/privilegedSession';
 import { dbManager } from '../core/database/DatabaseConnectionManager';
@@ -433,6 +434,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       await authService.logout();
       realtimeSubscriptionManager.cleanupUserSubscriptions();
     } finally {
+      clearActiveRuntimeSessionCaches();
       clearSessionState();
       setBootState('SIGNING_OUT');
     }

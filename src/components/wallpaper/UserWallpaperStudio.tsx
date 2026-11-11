@@ -29,6 +29,7 @@ import { cn } from '../../lib/utils';
 import { OrionSettingsSplitLayout } from '../settings/OrionSettingsSplitLayout';
 import { OrionDialog } from '../ui/OrionDialog';
 import { useI18n } from '../../store/LanguageContext';
+import { userPersistenceService } from '../../services/userPersistenceService';
 
 export type StudioLifecycleState = 'LOADING' | 'READY' | 'GENERATING' | 'GENERATED' | 'ERROR';
 export type AiEngineStatus = 'READY' | 'GENERATING' | 'UNAVAILABLE' | 'RATE_LIMITED' | 'ERROR';
@@ -377,6 +378,16 @@ export const UserWallpaperStudio: React.FC<UserWallpaperStudioProps> = ({
       setSelectedAssetUrl(appliedWallpaper.assetUrl);
       setSelectedWallpaperId(appliedWallpaper.wallpaperId);
       setSelectedName(appliedWallpaper.name);
+
+      if (targetAtStart === 'desktop' && userId) {
+        void userPersistenceService.saveUserPreferences(
+          userId,
+          {
+            wallpaperId: appliedWallpaper.wallpaperId,
+            organizationId: tenantId,
+          }
+        );
+      }
 
       // PHASE 6: Update local gallery state locally - NO unnecessary getAvailableWallpapers() collection read
       setGalleryWallpapers(prev => {
