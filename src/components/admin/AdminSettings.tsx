@@ -155,7 +155,7 @@ export const AdminSettings: React.FC = () => {
   return (
     <div className="w-full max-w-[1440px] mx-auto space-y-6 animate-in fade-in duration-300">
       <div>
-        <h1 className="text-2xl font-bold font-mono tracking-tight text-white mb-1">
+        <h1 className="text-2xl font-bold font-mono tracking-tight text-os-text-primary mb-1">
           Administration Settings & Environment
         </h1>
         <p className="text-xs text-os-text-secondary">
@@ -176,11 +176,11 @@ export const AdminSettings: React.FC = () => {
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2.5 text-xs font-mono font-medium rounded-lg transition-colors text-left cursor-pointer",
                   isActive
-                    ? "bg-os-surface text-cyan-400 border border-os-border font-bold shadow-xs"
-                    : "text-os-text-secondary hover:text-white hover:bg-os-surface/50"
+                    ? "bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))] border border-[var(--orion-border-strong)] font-bold shadow-xs"
+                    : "text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-hover"
                 )}
               >
-                <Icon size={16} className={cn(isActive ? "text-cyan-400" : "text-os-text-muted")} />
+                <Icon size={16} className={cn(isActive ? "text-current" : "text-os-text-muted")} />
                 {item.name}
               </button>
             );
@@ -190,9 +190,9 @@ export const AdminSettings: React.FC = () => {
         {/* Settings Content */}
         <div className="lg:col-span-3 space-y-6">
           {activeTab === 'credentials' && (
-            <form onSubmit={handleSave} className="p-6 rounded-xl border border-os-border bg-os-surface/40 space-y-6">
+            <form onSubmit={handleSave} className="p-6 rounded-xl border border-os-border bg-os-surface space-y-6">
               <div>
-                <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-white mb-2">
+                <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-os-text-primary mb-2">
                   Admin Account Credentials
                 </h2>
                 <p className="text-xs text-os-text-secondary mb-4">
@@ -209,7 +209,7 @@ export const AdminSettings: React.FC = () => {
                       required
                       value={adminId}
                       onChange={(e) => setAdminId(e.target.value)}
-                      className="w-full bg-os-surface border border-os-border rounded-lg p-2.5 text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
+                      className="w-full bg-os-input-bg border border-os-border rounded-lg p-2.5 text-xs font-mono text-os-text-primary focus:outline-none focus:border-[var(--orion-focus-ring)]"
                     />
                   </div>
                   
@@ -222,7 +222,7 @@ export const AdminSettings: React.FC = () => {
                       placeholder="Enter new password (min. 8 characters)"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-os-surface border border-os-border rounded-lg p-2.5 text-xs font-mono text-white focus:outline-none focus:border-cyan-500"
+                      className="w-full bg-os-input-bg border border-os-border rounded-lg p-2.5 text-xs font-mono text-os-text-primary focus:outline-none focus:border-[var(--orion-focus-ring)]"
                     />
                   </div>
                 </div>
@@ -232,7 +232,7 @@ export const AdminSettings: React.FC = () => {
                 <button 
                   type="submit"
                   disabled={isSaving}
-                  className="flex items-center gap-2 px-5 py-2 bg-cyan-600 text-white rounded-lg font-mono text-xs font-bold hover:bg-cyan-500 transition-colors disabled:opacity-50 cursor-pointer shadow-md shadow-cyan-950"
+                  className="flex items-center gap-2 px-5 py-2 bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))] border border-[var(--orion-border-strong)] rounded-lg font-mono text-xs font-bold hover:bg-[var(--orion-accent-hover)] transition-colors disabled:opacity-50 cursor-pointer shadow-sm"
                 >
                   {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save size={16} />}
                   {isSaving ? 'Saving...' : 'Update & Log Out'}
@@ -255,9 +255,9 @@ export const AdminSettings: React.FC = () => {
 
           {activeTab === 'display' && (
             <div className="space-y-6">
-              <section className="p-6 rounded-xl border border-os-border bg-os-surface/40 space-y-4">
+              <section className="p-6 rounded-xl border border-os-border bg-os-surface space-y-4">
                 <div className="mb-4">
-                  <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-white">
+                  <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-os-text-primary">
                     Personal Administrator Display & Accessibility Preferences
                   </h2>
                   <p className="text-xs text-os-text-secondary mt-1">
@@ -267,11 +267,11 @@ export const AdminSettings: React.FC = () => {
                 <DisplayPreferencesControls userId={currentUser?.id} compact={false} />
               </section>
 
-              <section className="p-6 rounded-xl border border-os-border bg-os-surface/40 space-y-5" data-testid="org-policy-defaults-section">
+              <section className="p-6 rounded-xl border border-os-border bg-os-surface space-y-5" data-testid="org-policy-defaults-section">
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
-                    <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-white flex items-center gap-2">
-                      <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                    <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-os-text-primary flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-[var(--orion-accent)]" />
                       Organization Display Defaults & Enforced Policies ({orgId})
                     </h2>
                     <p className="text-xs text-os-text-secondary mt-1">
@@ -279,7 +279,7 @@ export const AdminSettings: React.FC = () => {
                     </p>
                   </div>
                   {orgPolicyStatus && (
-                    <span data-testid="org-policy-sync-status" className="text-[11px] font-mono px-2.5 py-1 rounded-md bg-white/[0.06] border border-white/10 text-cyan-300">
+                    <span data-testid="org-policy-sync-status" className="text-[11px] font-mono px-2.5 py-1 rounded-md bg-[var(--orion-surface-hover)] border border-[var(--orion-border)] text-[var(--orion-text-primary)]">
                       {orgPolicyStatus}
                     </span>
                   )}
@@ -287,10 +287,10 @@ export const AdminSettings: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                   {/* Org Default Theme + Enforce */}
-                  <div className="p-4 rounded-xl bg-os-input-bg border border-os-border space-y-3">
+                  <div className="p-4 rounded-xl bg-os-surface-elevated border border-os-border space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-white">Default Org Theme</span>
-                      <label className="inline-flex items-center gap-1.5 text-[11px] text-amber-300 cursor-pointer">
+                      <span className="font-semibold text-os-text-primary">Default Org Theme</span>
+                      <label className="inline-flex items-center gap-1.5 text-[11px] text-[var(--orion-warning)] font-semibold cursor-pointer">
                         <input
                           type="checkbox"
                           data-testid="org-enforce-theme"
@@ -318,8 +318,8 @@ export const AdminSettings: React.FC = () => {
                           className={cn(
                             'py-2 rounded-lg border capitalize cursor-pointer',
                             orgPolicy.defaultTheme === t
-                              ? 'border-cyan-400 bg-cyan-500/15 text-cyan-300 font-semibold'
-                              : 'border-os-border bg-os-surface text-os-text-secondary'
+                              ? 'border-[var(--orion-border-strong)] bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))] font-semibold'
+                              : 'border-os-border bg-os-surface text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-hover'
                           )}
                         >
                           {t}
@@ -329,10 +329,10 @@ export const AdminSettings: React.FC = () => {
                   </div>
 
                   {/* Org Default Font + Enforce */}
-                  <div className="p-4 rounded-xl bg-os-input-bg border border-os-border space-y-3">
+                  <div className="p-4 rounded-xl bg-os-surface-elevated border border-os-border space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-white">Default Org Font</span>
-                      <label className="inline-flex items-center gap-1.5 text-[11px] text-amber-300 cursor-pointer">
+                      <span className="font-semibold text-os-text-primary">Default Org Font</span>
+                      <label className="inline-flex items-center gap-1.5 text-[11px] text-[var(--orion-warning)] font-semibold cursor-pointer">
                         <input
                           type="checkbox"
                           data-testid="org-enforce-font"
@@ -354,8 +354,8 @@ export const AdminSettings: React.FC = () => {
                           className={cn(
                             'py-2 rounded-lg border cursor-pointer',
                             orgPolicy.defaultFontFamily === f
-                              ? 'border-cyan-400 bg-cyan-500/15 text-cyan-300 font-semibold'
-                              : 'border-os-border bg-os-surface text-os-text-secondary'
+                              ? 'border-[var(--orion-border-strong)] bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))] font-semibold'
+                              : 'border-os-border bg-os-surface text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-hover'
                           )}
                         >
                           {f}
@@ -365,10 +365,10 @@ export const AdminSettings: React.FC = () => {
                   </div>
 
                   {/* Org Default Display Scale & Text Size + Enforce */}
-                  <div className="p-4 rounded-xl bg-os-input-bg border border-os-border space-y-3">
+                  <div className="p-4 rounded-xl bg-os-surface-elevated border border-os-border space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-white">Default Org Display Scale</span>
-                      <label className="inline-flex items-center gap-1.5 text-[11px] text-amber-300 cursor-pointer">
+                      <span className="font-semibold text-os-text-primary">Default Org Display Scale</span>
+                      <label className="inline-flex items-center gap-1.5 text-[11px] text-[var(--orion-warning)] font-semibold cursor-pointer">
                         <input
                           type="checkbox"
                           data-testid="org-enforce-scale"
@@ -390,8 +390,8 @@ export const AdminSettings: React.FC = () => {
                           className={cn(
                             'py-1.5 rounded-lg border cursor-pointer',
                             orgPolicy.defaultDisplayScale === sc
-                              ? 'border-cyan-400 bg-cyan-500/15 text-cyan-300 font-semibold'
-                              : 'border-os-border bg-os-surface text-os-text-secondary'
+                              ? 'border-[var(--orion-border-strong)] bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))] font-semibold'
+                              : 'border-os-border bg-os-surface text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-hover'
                           )}
                         >
                           {sc}%
@@ -404,7 +404,7 @@ export const AdminSettings: React.FC = () => {
                         aria-label="Default Organization Text Size"
                         value={orgPolicy.defaultTextSize ?? 100}
                         onChange={(e) => void handleSaveOrgPolicy({ defaultTextSize: Number(e.target.value) as any })}
-                        className="bg-os-surface border border-os-border rounded px-2 py-1 text-white"
+                        className="bg-os-surface border border-os-border rounded px-2 py-1 text-os-text-primary"
                       >
                         {TEXT_SIZE_VALUES.map((ts) => (
                           <option key={ts} value={ts}>{ts}%</option>
@@ -414,10 +414,10 @@ export const AdminSettings: React.FC = () => {
                   </div>
 
                   {/* Org Default Dock + Enforce */}
-                  <div className="p-4 rounded-xl bg-os-input-bg border border-os-border space-y-3">
+                  <div className="p-4 rounded-xl bg-os-surface-elevated border border-os-border space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-white">Default Org Dock Position</span>
-                      <label className="inline-flex items-center gap-1.5 text-[11px] text-amber-300 cursor-pointer">
+                      <span className="font-semibold text-os-text-primary">Default Org Dock Position</span>
+                      <label className="inline-flex items-center gap-1.5 text-[11px] text-[var(--orion-warning)] font-semibold cursor-pointer">
                         <input
                           type="checkbox"
                           data-testid="org-enforce-dock"
@@ -439,8 +439,8 @@ export const AdminSettings: React.FC = () => {
                           className={cn(
                             'py-2 rounded-lg border capitalize cursor-pointer',
                             orgPolicy.defaultDockPosition === pos
-                              ? 'border-cyan-400 bg-cyan-500/15 text-cyan-300 font-semibold'
-                              : 'border-os-border bg-os-surface text-os-text-secondary'
+                              ? 'border-[var(--orion-border-strong)] bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))] font-semibold'
+                              : 'border-os-border bg-os-surface text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-hover'
                           )}
                         >
                           {pos}
@@ -454,18 +454,18 @@ export const AdminSettings: React.FC = () => {
           )}
 
           {activeTab === 'localization' && (
-            <div className="p-6 rounded-xl border border-os-border bg-os-surface/40 space-y-6">
+            <div className="p-6 rounded-xl border border-os-border bg-os-surface space-y-6">
               <div>
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                  <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-white">
+                  <h2 className="text-sm font-mono font-bold uppercase tracking-wider text-os-text-primary">
                     Organization Default Language ({orgId})
                   </h2>
-                  <label className="inline-flex items-center gap-1.5 text-xs text-amber-300 cursor-pointer">
+                  <label className="inline-flex items-center gap-1.5 text-xs text-[var(--orion-warning)] font-semibold cursor-pointer">
                     <input
                       type="checkbox"
                       checked={Boolean(orgPolicy.enforceLanguage)}
                       onChange={(e) => void handleSaveOrgPolicy({ enforceLanguage: e.target.checked })}
-                      className="accent-amber-400"
+                      className="accent-[var(--orion-accent)]"
                     />
                     <Lock className="w-3.5 h-3.5" />
                     Enforce across organization
@@ -487,15 +487,15 @@ export const AdminSettings: React.FC = () => {
                       className={cn(
                         "p-4 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer",
                         locale === lang.code
-                          ? "bg-cyan-500/10 border-cyan-500/50 text-white"
-                          : "bg-os-surface border-os-border text-os-text-secondary hover:text-white hover:border-white/20"
+                          ? "bg-[var(--orion-accent-soft)] border-[var(--orion-accent)] text-os-text-primary"
+                          : "bg-os-surface-elevated border-os-border text-os-text-secondary hover:text-os-text-primary hover:border-os-border-strong"
                       )}
                     >
                       <div>
-                        <div className="font-semibold text-sm text-white">{lang.nativeName}</div>
+                        <div className="font-semibold text-sm text-os-text-primary">{lang.nativeName}</div>
                         <div className="text-xs text-os-text-muted mt-0.5">{lang.name}</div>
                       </div>
-                      <span className="text-xs font-mono uppercase px-2 py-0.5 rounded bg-white/5 border border-white/10 text-cyan-400">
+                      <span className="text-xs font-mono uppercase px-2 py-0.5 rounded bg-[var(--orion-surface-hover)] border border-[var(--orion-border)] text-os-text-primary font-semibold">
                         {lang.code}
                       </span>
                     </button>

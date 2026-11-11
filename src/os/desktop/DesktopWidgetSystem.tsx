@@ -13,6 +13,7 @@ import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { HealthService } from '../../operations/HealthService';
 import { orionFileSystemService } from '../../core/filesystem/OrionFileSystemService';
 import { useWindowManager } from '../WindowManagerContext';
+import { useOrionTheme } from '../theme/useOrionTheme';
 import { useToast } from '../../store/ToastContext';
 import { cn } from '../../lib/utils';
 import {
@@ -111,6 +112,7 @@ export function DesktopWidgetSystem({
   onMoveStart,
 }: WidgetComponentProps) {
   const { openApplication } = useWindowManager();
+  const { isDark } = useOrionTheme();
   const { showToast } = useToast();
   const [dbEnv, setDbEnv] = useState<DatabaseEnvironmentMode>(() => dbManager.getEnvironment());
 
@@ -243,37 +245,53 @@ export function DesktopWidgetSystem({
     switch (widget.widgetType) {
       case 'control_tower':
         return (
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-medium">
+          <span className={cn(
+            "text-[10px] font-mono px-1.5 py-0.5 rounded-full border font-medium",
+            isDark
+              ? "bg-amber-500/15 text-amber-300 border-amber-500/30"
+              : "bg-amber-500/15 text-amber-800 border-amber-600/30"
+          )}>
             {dbEnv}
           </span>
         );
       case 'supply_chain_pulse':
         return (
-          <span className="text-[10px] font-mono text-emerald-400 font-bold">
+          <span className={cn(
+            "text-[10px] font-mono font-bold",
+            isDark ? "text-emerald-400" : "text-emerald-700"
+          )}>
             98.4% SLA
           </span>
         );
       case 'inventory_health':
         return (
-          <span className="text-[10px] font-mono text-white/50">
+          <span className="text-[10px] font-mono text-[var(--orion-text-muted)]">
             24 Hubs
           </span>
         );
       case 'ai_copilot':
         return (
-          <span className="text-[9px] font-mono text-purple-300 bg-purple-500/15 px-1.5 py-0.5 rounded border border-purple-500/25">
+          <span className={cn(
+            "text-[9px] font-mono px-1.5 py-0.5 rounded border",
+            isDark
+              ? "text-purple-300 bg-purple-500/15 border-purple-500/25"
+              : "text-purple-800 bg-purple-500/12 border-purple-600/25"
+          )}>
             ACTIVE
           </span>
         );
       case 'system_health':
         return (
-          <span className="text-[9px] font-mono text-emerald-400 font-semibold">
+          <span className={cn(
+            "text-[9px] font-mono font-semibold",
+            isDark ? "text-emerald-400" : "text-emerald-700"
+          )}>
             ONLINE
           </span>
         );
       case 'notes':
         return (
-          <span className="text-[9px] font-mono text-white/40">
+          <span className="text-[9px] font-mono text-[var(--orion-text-muted)]">
             Auto-saved
           </span>
         );
@@ -288,12 +306,12 @@ export function DesktopWidgetSystem({
         return (
           <div className="flex flex-col justify-center items-center h-full text-center select-none py-1">
             <div className={cn(
-              "font-semibold font-mono tracking-tight text-white drop-shadow-sm",
+              "font-semibold font-mono tracking-tight text-[var(--orion-text)]",
               widget.size === 'SMALL' ? "text-xl sm:text-2xl" : "text-3xl sm:text-4xl"
             )}>
               {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: widget.size === 'SMALL' ? undefined : '2-digit' })}
             </div>
-            <div className="text-[11px] text-os-text-muted font-medium mt-1">
+            <div className="text-[11px] text-[var(--orion-text-secondary)] font-medium mt-1">
               {currentTime.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
             </div>
           </div>
@@ -304,14 +322,17 @@ export function DesktopWidgetSystem({
           return (
             <div className="flex items-center justify-between h-full px-2 select-none">
               <div>
-                <span className="text-3xl font-bold font-mono text-white">{currentTime.getDate()}</span>
-                <span className="block text-xs text-sky-400 font-medium">
+                <span className="text-3xl font-bold font-mono text-[var(--orion-text)]">{currentTime.getDate()}</span>
+                <span className={cn(
+                  "block text-xs font-medium",
+                  isDark ? "text-sky-400" : "text-sky-700"
+                )}>
                   {currentTime.toLocaleDateString(undefined, { weekday: 'long' })}
                 </span>
               </div>
-              <div className="text-right text-[11px] text-white/60">
+              <div className="text-right text-[11px] text-[var(--orion-text-secondary)]">
                 <div>{currentTime.toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</div>
-                <div className="text-[10px] text-white/40 mt-1">Calendar</div>
+                <div className="text-[10px] text-[var(--orion-text-muted)] mt-1">Calendar</div>
               </div>
             </div>
           );
@@ -320,7 +341,7 @@ export function DesktopWidgetSystem({
           <div className="flex flex-col h-full justify-between select-none">
             <div className="grid grid-cols-7 gap-1 text-center text-[10px] my-auto">
               {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-                <span key={i} className="text-white/40 font-bold">{d}</span>
+                <span key={i} className="text-[var(--orion-text-muted)] font-bold">{d}</span>
               ))}
               {Array.from({ length: 28 }).map((_, i) => {
                 const dayNum = i + 1;
@@ -330,8 +351,8 @@ export function DesktopWidgetSystem({
                     key={i}
                     className={`py-0.5 rounded text-[10px] font-mono transition-colors ${
                       isToday
-                        ? 'bg-blue-600 text-white font-bold shadow-xs'
-                        : 'text-white/80 hover:bg-white/10'
+                        ? 'bg-[var(--orion-accent)] text-[var(--orion-on-accent)] font-bold shadow-xs'
+                        : 'text-[var(--orion-text-secondary)] hover:bg-[var(--orion-surface-hover)]'
                     }`}
                   >
                     {dayNum}
@@ -346,17 +367,17 @@ export function DesktopWidgetSystem({
         return (
           <div className="flex flex-col h-full justify-between">
             <div className="grid grid-cols-3 gap-2 my-auto text-center">
-              <div className="bg-white/[0.05] border border-white/[0.10] rounded-xl p-1.5 backdrop-blur-md">
-                <span className="block text-[9px] text-white/50 uppercase font-medium">Critical</span>
-                <span className="text-base sm:text-lg font-bold text-rose-400 font-mono">3</span>
+              <div className="bg-[var(--orion-surface-secondary)] border border-[var(--orion-border)] rounded-xl p-1.5 backdrop-blur-md">
+                <span className="block text-[9px] text-[var(--orion-text-muted)] uppercase font-medium">Critical</span>
+                <span className={cn("text-base sm:text-lg font-bold font-mono", isDark ? "text-rose-400" : "text-rose-600")}>3</span>
               </div>
-              <div className="bg-white/[0.05] border border-white/[0.10] rounded-xl p-1.5 backdrop-blur-md">
-                <span className="block text-[9px] text-white/50 uppercase font-medium">High</span>
-                <span className="text-base sm:text-lg font-bold text-amber-400 font-mono">8</span>
+              <div className="bg-[var(--orion-surface-secondary)] border border-[var(--orion-border)] rounded-xl p-1.5 backdrop-blur-md">
+                <span className="block text-[9px] text-[var(--orion-text-muted)] uppercase font-medium">High</span>
+                <span className={cn("text-base sm:text-lg font-bold font-mono", isDark ? "text-amber-400" : "text-amber-700")}>8</span>
               </div>
-              <div className="bg-white/[0.05] border border-white/[0.10] rounded-xl p-1.5 backdrop-blur-md">
-                <span className="block text-[9px] text-white/50 uppercase font-medium">Pending</span>
-                <span className="text-base sm:text-lg font-bold text-sky-400 font-mono">14</span>
+              <div className="bg-[var(--orion-surface-secondary)] border border-[var(--orion-border)] rounded-xl p-1.5 backdrop-blur-md">
+                <span className="block text-[9px] text-[var(--orion-text-muted)] uppercase font-medium">Pending</span>
+                <span className={cn("text-base sm:text-lg font-bold font-mono", isDark ? "text-sky-400" : "text-sky-700")}>14</span>
               </div>
             </div>
             {widget.size !== 'SMALL' && (
@@ -368,7 +389,7 @@ export function DesktopWidgetSystem({
                   openApplication('control-tower');
                 }}
                 onPointerDown={(e) => e.stopPropagation()}
-                className="w-full py-1 text-center text-xs text-white font-medium bg-white/[0.08] hover:bg-white/[0.16] rounded-xl border border-white/[0.12] transition-colors cursor-pointer"
+                className="w-full py-1 text-center text-xs text-[var(--orion-text)] font-medium bg-[var(--orion-surface-secondary)] hover:bg-[var(--orion-surface-hover)] rounded-xl border border-[var(--orion-border)] transition-colors cursor-pointer"
               >
                 Open Control Tower Workspace →
               </button>
@@ -380,22 +401,22 @@ export function DesktopWidgetSystem({
         return (
           <div className="flex flex-col h-full justify-between space-y-2 my-auto">
             <div>
-              <div className="flex justify-between text-[11px] text-white/70 mb-1">
+              <div className="flex justify-between text-[11px] text-[var(--orion-text-secondary)] mb-1">
                 <span>Global Fulfillment Rate</span>
-                <span className="font-mono text-emerald-400 font-semibold">96.8%</span>
+                <span className={cn("font-mono font-semibold", isDark ? "text-emerald-400" : "text-emerald-700")}>96.8%</span>
               </div>
-              <div className="w-full bg-white/[0.08] h-1.5 rounded-full overflow-hidden border border-white/[0.06]">
-                <div className="bg-emerald-500 h-full rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" style={{ width: '96.8%' }} />
+              <div className="w-full bg-[var(--orion-surface-secondary)] h-1.5 rounded-full overflow-hidden border border-[var(--orion-border)]">
+                <div className="bg-emerald-500 h-full rounded-full" style={{ width: '96.8%' }} />
               </div>
             </div>
             {widget.size !== 'SMALL' && (
               <div>
-                <div className="flex justify-between text-[11px] text-white/70 mb-1">
+                <div className="flex justify-between text-[11px] text-[var(--orion-text-secondary)] mb-1">
                   <span>Inventory Velocity Index</span>
-                  <span className="font-mono text-sky-400 font-semibold">94.2%</span>
+                  <span className={cn("font-mono font-semibold", isDark ? "text-sky-400" : "text-sky-700")}>94.2%</span>
                 </div>
-                <div className="w-full bg-white/[0.08] h-1.5 rounded-full overflow-hidden border border-white/[0.06]">
-                  <div className="bg-sky-500 h-full rounded-full shadow-[0_0_8px_rgba(14,165,233,0.5)]" style={{ width: '94.2%' }} />
+                <div className="w-full bg-[var(--orion-surface-secondary)] h-1.5 rounded-full overflow-hidden border border-[var(--orion-border)]">
+                  <div className="bg-sky-500 h-full rounded-full" style={{ width: '94.2%' }} />
                 </div>
               </div>
             )}
@@ -406,13 +427,13 @@ export function DesktopWidgetSystem({
         return (
           <div className="flex items-center justify-around my-auto h-full">
             <div className="text-center">
-              <span className="text-xs text-white/50 block">In-Stock</span>
-              <span className="text-base font-bold text-emerald-400 font-mono">142,500</span>
+              <span className="text-xs text-[var(--orion-text-muted)] block">In-Stock</span>
+              <span className={cn("text-base font-bold font-mono", isDark ? "text-emerald-400" : "text-emerald-700")}>142,500</span>
             </div>
-            <div className="h-8 w-px bg-white/10" />
+            <div className="h-8 w-px bg-[var(--orion-border)]" />
             <div className="text-center">
-              <span className="text-xs text-white/50 block">Low Stock</span>
-              <span className="text-base font-bold text-amber-400 font-mono">12 SKU</span>
+              <span className="text-xs text-[var(--orion-text-muted)] block">Low Stock</span>
+              <span className={cn("text-base font-bold font-mono", isDark ? "text-amber-400" : "text-amber-700")}>12 SKU</span>
             </div>
           </div>
         );
@@ -420,7 +441,7 @@ export function DesktopWidgetSystem({
       case 'ai_copilot':
         return (
           <div className="flex flex-col h-full justify-between">
-            <div className="text-xs text-white/80 bg-white/5 border border-white/10 rounded-lg p-2 my-auto">
+            <div className="text-xs text-[var(--orion-text-secondary)] bg-[var(--orion-surface-secondary)] border border-[var(--orion-border)] rounded-lg p-2 my-auto">
               "Optimal route for Asia-Pacific shipments re-routed to avoid port congestion."
             </div>
             {widget.size !== 'SMALL' && (
@@ -430,7 +451,7 @@ export function DesktopWidgetSystem({
                   value={copilotInput}
                   onChange={(e) => setCopilotInput(e.target.value)}
                   placeholder="Ask Orion Copilot..."
-                  className="flex-1 px-3 py-1 bg-white/10 border border-white/15 rounded-lg text-xs text-white placeholder:text-white/40 focus:outline-none focus:border-purple-400"
+                  className="flex-1 px-3 py-1 bg-[var(--orion-surface-secondary)] border border-[var(--orion-border)] rounded-lg text-xs text-[var(--orion-text)] placeholder:text-[var(--orion-text-muted)] focus:outline-none focus:border-[var(--orion-accent)]"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && copilotInput.trim()) {
                       showToast(`Copilot processing: "${copilotInput.trim()}"`, 'info');
@@ -441,7 +462,7 @@ export function DesktopWidgetSystem({
                 <button
                   type="button"
                   onClick={() => openApplication('orion-copilot')}
-                  className="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                  className="px-3 py-1 bg-[var(--orion-accent)] hover:opacity-90 text-[var(--orion-on-accent)] rounded-lg text-xs font-medium transition-opacity cursor-pointer"
                 >
                   Ask
                 </button>
@@ -453,13 +474,18 @@ export function DesktopWidgetSystem({
       case 'system_health':
         return (
           <div className="grid grid-cols-2 gap-2 my-auto text-center h-full items-center">
-            <div className="bg-white/5 border border-white/10 rounded-lg p-2">
-              <span className="text-[10px] text-white/50 block">DB Latency</span>
-              <span className="text-sm font-bold font-mono text-sky-400">{healthData.latency}ms</span>
+            <div className="bg-[var(--orion-surface-secondary)] border border-[var(--orion-border)] rounded-lg p-2">
+              <span className="text-[10px] text-[var(--orion-text-muted)] block">DB Latency</span>
+              <span className={cn("text-sm font-bold font-mono", isDark ? "text-sky-400" : "text-sky-700")}>{healthData.latency}ms</span>
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-lg p-2">
-              <span className="text-[10px] text-white/50 block">Environment</span>
-              <span className={`text-sm font-bold font-mono ${dbEnv === 'LIVE' ? 'text-emerald-400' : 'text-amber-400'}`}>
+            <div className="bg-[var(--orion-surface-secondary)] border border-[var(--orion-border)] rounded-lg p-2">
+              <span className="text-[10px] text-[var(--orion-text-muted)] block">Environment</span>
+              <span className={cn(
+                "text-sm font-bold font-mono",
+                dbEnv === 'LIVE'
+                  ? (isDark ? 'text-emerald-400' : 'text-emerald-700')
+                  : (isDark ? 'text-amber-400' : 'text-amber-700')
+              )}>
                 {dbEnv}
               </span>
             </div>
@@ -472,7 +498,12 @@ export function DesktopWidgetSystem({
             <textarea
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
-              className="w-full flex-1 p-2 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-100 placeholder:text-amber-200/40 focus:outline-none resize-none font-sans leading-relaxed"
+              className={cn(
+                "w-full flex-1 p-2 rounded-lg text-xs focus:outline-none resize-none font-sans leading-relaxed border",
+                isDark
+                  ? "bg-amber-500/10 border-amber-500/25 text-amber-100 placeholder:text-amber-200/40"
+                  : "bg-amber-50/90 border-amber-500/30 text-amber-950 placeholder:text-amber-800/50"
+              )}
               placeholder="Type persistent note here..."
             />
           </div>
@@ -484,17 +515,27 @@ export function DesktopWidgetSystem({
             <button
               type="button"
               onClick={() => openApplication('orion-documents')}
-              className="p-1.5 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 text-blue-200 text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
+              className={cn(
+                "p-1.5 rounded-lg border text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer",
+                isDark
+                  ? "bg-blue-500/20 hover:bg-blue-500/30 border-blue-400/30 text-blue-200"
+                  : "bg-blue-500/12 hover:bg-blue-500/20 border-blue-600/25 text-blue-800"
+              )}
             >
-              <FileText className="w-4 h-4 text-blue-400" />
+              <FileText className={cn("w-4 h-4", isDark ? "text-blue-400" : "text-blue-600")} />
               <span>New Doc</span>
             </button>
             <button
               type="button"
               onClick={() => openApplication('orion-sheets')}
-              className="p-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/30 text-emerald-200 text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
+              className={cn(
+                "p-1.5 rounded-lg border text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer",
+                isDark
+                  ? "bg-emerald-500/20 hover:bg-emerald-500/30 border-emerald-400/30 text-emerald-200"
+                  : "bg-emerald-500/12 hover:bg-emerald-500/20 border-emerald-600/25 text-emerald-800"
+              )}
             >
-              <Activity className="w-4 h-4 text-emerald-400" />
+              <Activity className={cn("w-4 h-4", isDark ? "text-emerald-400" : "text-emerald-600")} />
               <span>New Sheet</span>
             </button>
             {widget.size !== 'SMALL' && (
@@ -502,17 +543,27 @@ export function DesktopWidgetSystem({
                 <button
                   type="button"
                   onClick={() => openApplication('orion-slides')}
-                  className="p-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/30 text-amber-200 text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
+                  className={cn(
+                    "p-1.5 rounded-lg border text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer",
+                    isDark
+                      ? "bg-amber-500/20 hover:bg-amber-500/30 border-amber-400/30 text-amber-200"
+                      : "bg-amber-500/12 hover:bg-amber-500/20 border-amber-600/25 text-amber-800"
+                  )}
                 >
-                  <Zap className="w-4 h-4 text-amber-400" />
+                  <Zap className={cn("w-4 h-4", isDark ? "text-amber-400" : "text-amber-600")} />
                   <span>New Slide</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => openApplication('settings')}
-                  className="p-1.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/30 text-purple-200 text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer"
+                  className={cn(
+                    "p-1.5 rounded-lg border text-xs font-medium flex items-center gap-2 transition-colors cursor-pointer",
+                    isDark
+                      ? "bg-purple-500/20 hover:bg-purple-500/30 border-purple-400/30 text-purple-200"
+                      : "bg-purple-500/12 hover:bg-purple-500/20 border-purple-600/25 text-purple-800"
+                  )}
                 >
-                  <Settings className="w-4 h-4 text-purple-400" />
+                  <Settings className={cn("w-4 h-4", isDark ? "text-purple-400" : "text-purple-600")} />
                   <span>Settings</span>
                 </button>
               </>
@@ -523,8 +574,8 @@ export function DesktopWidgetSystem({
       default:
         return (
           <div className="flex flex-col items-center justify-center h-full text-center p-2">
-            <span className="font-semibold text-xs text-white">{widget.title}</span>
-            <span className="text-[10px] text-white/50 uppercase mt-1">Widget ({widget.widgetType})</span>
+            <span className="font-semibold text-xs text-[var(--orion-text)]">{widget.title}</span>
+            <span className="text-[10px] text-[var(--orion-text-muted)] uppercase mt-1">Widget ({widget.widgetType})</span>
           </div>
         );
     }
@@ -559,17 +610,18 @@ export function DesktopWidgetSystem({
         className={cn(
           "rounded-[22px] border transition-[box-shadow,border-color] duration-200 p-3.5 flex flex-col justify-between select-none group overflow-hidden",
           "backdrop-blur-[var(--orion-blur,24px)]",
-          "bg-[var(--orion-surface,#121417)]/75",
+          isDark
+            ? "bg-[var(--orion-surface,#121417)]/78 shadow-[0_16px_42px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.14)] hover:border-white/20"
+            : "bg-[var(--orion-surface,#FFFFFF)]/88 shadow-[0_14px_32px_rgba(15,23,42,0.10),inset_0_1px_0_rgba(255,255,255,0.8)] hover:border-black/20",
           "border-[var(--orion-border,rgba(255,255,255,0.09))]",
-          "shadow-[0_16px_42px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.14)]",
-          "cursor-grab active:cursor-grabbing hover:border-white/20",
-          isEditMode && "ring-2 ring-[var(--orion-accent,#0071E3)]/50 border-white/40"
+          "cursor-grab active:cursor-grabbing",
+          isEditMode && "ring-2 ring-[var(--orion-accent,#0071E3)]/50 border-[var(--orion-accent)]"
         )}
       >
         {/* Integrated macOS-style Widget Header */}
         <div
           data-testid="widget-header"
-          className="flex items-center justify-between pb-1.5 border-b border-white/[0.08] select-none shrink-0"
+          className="flex items-center justify-between pb-1.5 border-b border-[var(--orion-border)] select-none shrink-0"
         >
           {/* Header Draggable Anchor */}
           <div
@@ -579,12 +631,12 @@ export function DesktopWidgetSystem({
             className="flex items-center gap-1.5 min-w-0 flex-1 cursor-grab active:cursor-grabbing"
           >
             {getWidgetIcon(widget.widgetType)}
-            <span className="font-semibold text-xs text-white truncate tracking-tight">
+            <span className="font-semibold text-xs text-[var(--orion-text)] truncate tracking-tight">
               {widget.title}
             </span>
             {renderHeaderBadge()}
             {isEditMode && (
-              <span className="text-[9px] font-mono uppercase px-1 py-0.5 rounded bg-white/10 text-white/70">
+              <span className="text-[9px] font-mono uppercase px-1 py-0.5 rounded bg-[var(--orion-surface-hover)] text-[var(--orion-text-secondary)]">
                 DRAG
               </span>
             )}
@@ -598,7 +650,7 @@ export function DesktopWidgetSystem({
           >
             {/* Small / Medium / Large Size Selector */}
             <div
-              className="flex items-center bg-white/[0.06] hover:bg-white/[0.10] p-0.5 rounded-lg border border-white/[0.08]"
+              className="flex items-center bg-[var(--orion-surface-secondary)] hover:bg-[var(--orion-surface-hover)] p-0.5 rounded-lg border border-[var(--orion-border)]"
               role="group"
               aria-label="Widget Size Selector"
             >
@@ -618,8 +670,8 @@ export function DesktopWidgetSystem({
                   className={cn(
                     "px-1.5 py-0.5 text-[10px] font-mono rounded transition-colors cursor-pointer",
                     widget.size === sz
-                      ? "bg-white/20 text-white font-bold shadow-xs"
-                      : "text-white/40 hover:text-white/80"
+                      ? "bg-[var(--orion-accent)] text-[var(--orion-on-accent)] font-bold shadow-xs"
+                      : "text-[var(--orion-text-muted)] hover:text-[var(--orion-text)]"
                   )}
                 >
                   {sz === 'SMALL' ? 'S' : sz === 'MEDIUM' ? 'M' : 'L'}
@@ -637,7 +689,7 @@ export function DesktopWidgetSystem({
                 setMenuPos({ x: Math.max(16, rect.left - 160), y: rect.bottom + 4 });
               }}
               onPointerDown={(e) => e.stopPropagation()}
-              className="w-5 h-5 rounded-full bg-white/[0.06] hover:bg-white/[0.14] text-white/60 hover:text-white flex items-center justify-center transition-colors shadow-xs cursor-pointer"
+              className="w-5 h-5 rounded-full bg-[var(--orion-surface-secondary)] hover:bg-[var(--orion-surface-hover)] text-[var(--orion-text-secondary)] hover:text-[var(--orion-text)] flex items-center justify-center transition-colors shadow-xs cursor-pointer"
               title="Widget Options"
               aria-label="Widget Options"
             >
@@ -650,7 +702,7 @@ export function DesktopWidgetSystem({
               data-action="remove-widget"
               onClick={handleSafeRemove}
               onPointerDown={(e) => e.stopPropagation()}
-              className="w-5 h-5 rounded-full bg-white/[0.06] hover:bg-rose-500/80 text-white/60 hover:text-white flex items-center justify-center transition-colors shadow-xs cursor-pointer focus-visible:ring-1 focus-visible:ring-rose-400"
+              className="w-5 h-5 rounded-full bg-[var(--orion-surface-secondary)] hover:bg-rose-500 text-[var(--orion-text-secondary)] hover:text-white flex items-center justify-center transition-colors shadow-xs cursor-pointer focus-visible:ring-1 focus-visible:ring-rose-400"
               title="Remove Widget"
               aria-label="Remove Widget"
             >
@@ -676,11 +728,11 @@ export function DesktopWidgetSystem({
             top: `${menuPos.y}px`,
             zIndex: 2147483600,
           }}
-          className="bg-[#14171d]/95 backdrop-blur-xl border border-white/[0.12] rounded-xl shadow-2xl p-1 w-48 text-xs text-white select-none animate-in fade-in zoom-in-95 pointer-events-auto"
+          className="bg-[var(--orion-surface)]/95 backdrop-blur-xl border border-[var(--orion-border)] rounded-xl shadow-2xl p-1 w-48 text-xs text-[var(--orion-text)] select-none animate-in fade-in zoom-in-95 pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <div className="px-3 py-1.5 text-[10px] font-bold text-white/50 uppercase tracking-wider border-b border-white/10 mb-1">
+          <div className="px-3 py-1.5 text-[10px] font-bold text-[var(--orion-text-muted)] uppercase tracking-wider border-b border-[var(--orion-border)] mb-1">
             {widget.title}
           </div>
 
@@ -691,9 +743,9 @@ export function DesktopWidgetSystem({
                 setMenuPos(null);
                 openApplication(targetApp);
               }}
-              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-white/10 text-white text-left transition-colors cursor-pointer"
+              className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-[var(--orion-surface-hover)] text-[var(--orion-text)] text-left transition-colors cursor-pointer"
             >
-              <ExternalLink className="w-3.5 h-3.5 text-sky-400" />
+              <ExternalLink className={cn("w-3.5 h-3.5", isDark ? "text-sky-400" : "text-sky-600")} />
               <span>Open in Application</span>
             </button>
           )}
@@ -702,7 +754,10 @@ export function DesktopWidgetSystem({
             type="button"
             data-action="menu-remove-widget"
             onClick={handleSafeRemove}
-            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-rose-500/20 text-rose-400 text-left transition-colors cursor-pointer"
+            className={cn(
+              "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg hover:bg-rose-500/15 text-left transition-colors cursor-pointer",
+              isDark ? "text-rose-400" : "text-rose-600"
+            )}
           >
             <X className="w-3.5 h-3.5" />
             <span>Remove Widget</span>

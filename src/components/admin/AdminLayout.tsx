@@ -113,10 +113,10 @@ export const AdminLayout = () => {
             title="Orion Home / User Desktop"
           >
             <BrandLogo sizePreset="sm" variant="mark" />
-            <span className="font-mono font-bold text-[13px] tracking-wider uppercase text-os-text-primary group-hover:text-white group-hover:drop-shadow-[0_0_8px_rgba(0,242,254,0.6)] transition-all whitespace-nowrap">
+            <span className="font-mono font-bold text-[13px] tracking-wider uppercase text-os-text-primary transition-all whitespace-nowrap">
               ORION
             </span>
-            <span className="text-white/20 font-mono text-[10px] select-none mx-1 hidden sm:inline">|</span>
+            <span className="text-[var(--orion-border-strong)] font-mono text-[10px] select-none mx-1 hidden sm:inline">|</span>
             <span className="text-[11px] font-mono tracking-widest text-os-text-muted uppercase whitespace-nowrap hidden sm:inline">
               PLATFORM CONTROL PLANE
             </span>
@@ -128,8 +128,8 @@ export const AdminLayout = () => {
               className={cn(
                 "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider select-none transition-all cursor-pointer",
                 dbEnv === 'LIVE'
-                  ? "bg-emerald-950/80 text-emerald-400 border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.2)] hover:border-emerald-400 hover:text-white"
-                  : "bg-amber-950/80 text-amber-400 border-amber-500/50 shadow-[0_0_8px_rgba(245,158,11,0.2)] hover:border-amber-400 hover:text-white"
+                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/40"
+                  : "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40"
               )}
               title={`Database: ${dbEnv}. Click to open Control Plane.`}
             >
@@ -144,7 +144,7 @@ export const AdminLayout = () => {
             type="button"
             onClick={() => navigate('/')}
             title="Return to Orion Home Screen"
-            className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-[10px] font-mono font-bold tracking-widest uppercase text-os-text-secondary hover:text-white bg-white/5 hover:bg-white/10 rounded border border-os-border hover:border-[var(--orion-accent)]/50 transition-all cursor-pointer"
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 text-[10px] font-mono font-bold tracking-widest uppercase text-os-text-primary hover:bg-[var(--orion-surface-hover)] bg-[var(--orion-surface)] rounded border border-os-border hover:border-os-border-strong transition-all cursor-pointer"
           >
             HOME SCREEN
           </button>
@@ -192,8 +192,8 @@ export const AdminLayout = () => {
                 className={({ isActive }) => cn(
                   "flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md transition-colors group",
                   isActive 
-                    ? "bg-blue-600/10 text-blue-400 border border-blue-900/30" 
-                    : "text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface border border-transparent"
+                    ? "bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))] border border-[var(--orion-border-strong)] font-semibold shadow-xs" 
+                    : "text-os-text-secondary hover:text-os-text-primary hover:bg-os-surface-hover border border-transparent"
                 )}
               >
                 <OrionAppIcon app={item.appId} size={20} className="shrink-0" />

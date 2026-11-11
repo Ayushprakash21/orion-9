@@ -44,13 +44,13 @@ export function OrionTable<T>({
   return (
     <div
       className={cn(
-        'w-full overflow-x-auto rounded-[10px] border border-white/[0.08] bg-white/[0.03] backdrop-blur-md shadow-[0_4px_16px_rgba(0,0,0,0.15)]',
+        'w-full overflow-x-auto rounded-[10px] border border-[var(--orion-border)] bg-[var(--orion-surface)] backdrop-blur-md shadow-[var(--orion-morph-shadow-soft)]',
         className
       )}
     >
-      <table className="w-full text-left border-collapse text-[var(--orion-text-primary,#F2F2EF)] text-xs select-text">
+      <table className="w-full text-left border-collapse text-[var(--orion-text-primary)] text-xs select-text">
         <thead>
-          <tr className="border-b border-white/[0.06] bg-white/[0.03] text-[var(--orion-text-muted,#747875)] text-[11px] font-medium tracking-tight">
+          <tr className="border-b border-[var(--orion-border)] bg-[var(--orion-surface-elevated)] text-[var(--orion-text-muted)] text-[11px] font-medium tracking-tight">
             {columns.map((col) => {
               const isSorted = sortColumn === col.key;
               return (
@@ -94,7 +94,7 @@ export function OrionTable<T>({
             })}
           </tr>
         </thead>
-        <tbody className="divide-y divide-white/[0.04]">
+        <tbody className="divide-y divide-[var(--orion-border-subtle,var(--orion-border))]">
           {loading ? (
             <tr>
               <td colSpan={columns.length} className="px-4 py-12 text-center text-[var(--orion-text-muted,#747875)]">
@@ -123,10 +123,10 @@ export function OrionTable<T>({
                   onClick={() => onRowClick?.(row)}
                   className={cn(
                     'transition-colors text-xs',
-                    striped && !isEven ? 'bg-white/[0.015]' : 'bg-transparent',
+                    striped && !isEven ? 'bg-[var(--orion-surface-hover)]/40' : 'bg-transparent',
                     onRowClick
-                      ? 'cursor-pointer hover:bg-white/[0.06] active:bg-white/[0.09]'
-                      : 'hover:bg-white/[0.03]'
+                      ? 'cursor-pointer hover:bg-[var(--orion-surface-hover)] active:bg-[var(--orion-surface-active)]'
+                      : 'hover:bg-[var(--orion-surface-hover)]/50'
                   )}
                 >
                   {columns.map((col) => {

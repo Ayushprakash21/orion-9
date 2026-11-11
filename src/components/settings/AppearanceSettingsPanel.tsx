@@ -6,6 +6,7 @@ import {
 import { useOrionTheme } from '../../os/theme/useOrionTheme';
 import { ORION_THEMES, getThemeList, getTheme } from '../../os/theme/OrionThemeRegistry';
 import { OrionThemeId, OrionAppearanceMode, OrionCornerRadius, OrionWindowStyle, OrionMorphismMode, OrionAppearancePreferences } from '../../os/theme/OrionThemeTypes';
+import { calculateContrastColor } from '../../os/theme/OrionContrast';
 import { OrionWindowControls } from '../../os/components/OrionWindowControls';
 import { useToast } from '../../store/ToastContext';
 import { useAuth } from '../../store/AuthContext';
@@ -196,7 +197,7 @@ export const AppearanceSettingsPanel: React.FC = () => {
             <Download className="w-3.5 h-3.5" />
             Export Profile
           </button>
-          <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[var(--orion-accent)] text-[var(--os-text-primary-inverse)] hover:opacity-90 transition-opacity cursor-pointer">
+          <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))] border border-[var(--orion-border-strong)] hover:bg-[var(--orion-accent-hover,var(--orion-accent))] transition-colors cursor-pointer">
             <Upload className="w-3.5 h-3.5" />
             Import Profile
             <input type="file" accept=".json" onChange={handleImportThemeFile} className="hidden" />
@@ -241,17 +242,17 @@ export const AppearanceSettingsPanel: React.FC = () => {
               >
                 <div>
                   {/* Theme Swatch Preview Bar */}
-                  <div className="flex items-center gap-1.5 p-2 rounded-xl mb-3 border border-white/5" style={{ backgroundColor: t.colors.background }}>
-                    <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: t.colors.surface }} />
-                    <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: t.colors.surfaceElevated }} />
-                    <div className="w-4 h-4 rounded-full border border-white/10" style={{ backgroundColor: t.colors.accent }} />
+                  <div className="flex items-center gap-1.5 p-2 rounded-xl mb-3 border" style={{ backgroundColor: t.colors.background, borderColor: t.colors.borderStrong }}>
+                    <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: t.colors.surface, borderColor: t.colors.borderStrong }} />
+                    <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: t.colors.surfaceElevated, borderColor: t.colors.borderStrong }} />
+                    <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: t.colors.accent, borderColor: t.colors.borderStrong }} />
                     <div className="w-2.5 h-2.5 rounded-full ml-auto" style={{ backgroundColor: t.colors.success }} />
                   </div>
 
                   <div className="flex items-center justify-between mb-1">
                     <h4 className="text-sm font-bold text-[var(--orion-text-primary)]">{t.name}</h4>
                     {isSelected && (
-                      <span className="flex items-center justify-center w-4 h-4 rounded-full bg-[var(--orion-accent)] text-[var(--os-text-primary-inverse)]">
+                      <span className="flex items-center justify-center w-4 h-4 rounded-full bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))]">
                         <Check className="w-3 h-3" />
                       </span>
                     )}
@@ -261,7 +262,12 @@ export const AppearanceSettingsPanel: React.FC = () => {
 
                 <div className="mt-3 pt-2.5 border-t border-[var(--orion-border)] flex items-center justify-between text-[10px] font-mono text-[var(--orion-text-muted)]">
                   <span>{t.appearance.mode.toUpperCase()}</span>
-                  <span className="font-semibold" style={{ color: t.colors.accent }}>{t.colors.accent}</span>
+                  <span
+                    className="px-1.5 py-0.5 rounded font-semibold"
+                    style={{ backgroundColor: t.colors.accent, color: calculateContrastColor(t.colors.accent, { backingColor: t.colors.surface }) }}
+                  >
+                    {t.colors.accent}
+                  </span>
                 </div>
               </button>
             );
@@ -290,11 +296,11 @@ export const AppearanceSettingsPanel: React.FC = () => {
               >
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <div className={`p-2 rounded-xl ${isSelected ? 'bg-[var(--orion-accent)] text-[var(--os-text-primary-inverse)]' : 'bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)]'}`}>
+                    <div className={`p-2 rounded-xl ${isSelected ? 'bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))]' : 'bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)]'}`}>
                       {mode.icon}
                     </div>
                     {isSelected && (
-                      <span className="flex items-center justify-center w-4 h-4 rounded-full bg-[var(--orion-accent)] text-[var(--os-text-primary-inverse)]">
+                      <span className="flex items-center justify-center w-4 h-4 rounded-full bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))]">
                         <Check className="w-3 h-3" />
                       </span>
                     )}
@@ -323,7 +329,7 @@ export const AppearanceSettingsPanel: React.FC = () => {
             <button
               type="button"
               onClick={() => setPreference('customAccentEnabled', false)}
-              className="text-[11px] font-semibold text-[var(--orion-accent)] hover:underline cursor-pointer"
+              className="px-2.5 py-1 rounded-lg border border-[var(--orion-border)] bg-[var(--orion-surface-hover)] text-[11px] font-semibold text-[var(--orion-text-primary)] hover:bg-[var(--orion-surface-active)] transition-colors cursor-pointer"
             >
               Revert to Theme Default ({theme.colors.accent})
             </button>
@@ -353,10 +359,10 @@ export const AppearanceSettingsPanel: React.FC = () => {
                 title={accent.name}
               >
                 <div 
-                  className="w-8 h-8 rounded-full flex items-center justify-center transition-transform group-hover:scale-105 shadow-sm border border-white/10"
-                  style={{ backgroundColor: accent.hex }}
+                  className="w-8 h-8 rounded-full flex items-center justify-center transition-transform group-hover:scale-105 shadow-sm border border-[var(--orion-border-strong)]"
+                  style={{ backgroundColor: accent.hex, color: calculateContrastColor(accent.hex) }}
                 >
-                  {isSelected && <Check className="w-4 h-4 text-black drop-shadow-sm" />}
+                  {isSelected && <Check className="w-4 h-4" />}
                 </div>
                 <span className="text-[10px] font-medium text-[var(--orion-text-secondary)] mt-1.5 truncate max-w-full">
                   {accent.name}
@@ -392,7 +398,7 @@ export const AppearanceSettingsPanel: React.FC = () => {
             <span>Active Operating System Highlight: </span>
             <span 
               className="px-2 py-0.5 rounded font-mono font-bold text-[10px]"
-              style={{ backgroundColor: resolvedAccent, color: '#000000' }}
+              style={{ backgroundColor: resolvedAccent, color: calculateContrastColor(resolvedAccent) }}
             >
               {resolvedAccent}
             </span>
@@ -581,12 +587,12 @@ export const AppearanceSettingsPanel: React.FC = () => {
             }`}
           >
             {/* Visual Micro Preview */}
-            <div className="p-3 rounded-lg border border-white/10 bg-white/[0.04] backdrop-blur-md shadow-sm space-y-2">
+            <div className="p-3 rounded-lg border border-[var(--orion-border)] bg-[var(--orion-surface-hover)] backdrop-blur-md shadow-sm space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono text-white/90 font-semibold">Glassmorphic Layer</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/10 text-white/80 font-mono">blur: 16px</span>
+                <span className="text-[10px] font-mono text-[var(--orion-text-primary)] font-semibold">Glassmorphic Layer</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--orion-surface-active)] text-[var(--orion-text-secondary)] font-mono">blur: 16px</span>
               </div>
-              <div className="h-6 rounded bg-white/[0.06] border border-white/10 flex items-center px-2 text-[10px] text-white/70">
+              <div className="h-6 rounded bg-[var(--orion-surface)] border border-[var(--orion-border)] flex items-center px-2 text-[10px] text-[var(--orion-text-secondary)]">
                 Translucent Surface
               </div>
             </div>
@@ -595,7 +601,7 @@ export const AppearanceSettingsPanel: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-[var(--orion-text-primary)]">Glassmorphism</span>
                 {(preferences.morphismMode || 'glass') === 'glass' && (
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--orion-accent)] text-[var(--os-text-primary-inverse)] font-bold">
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))] font-bold">
                     DEFAULT
                   </span>
                 )}
@@ -652,7 +658,7 @@ export const AppearanceSettingsPanel: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-[var(--orion-text-primary)]">Claymorphism</span>
                 {preferences.morphismMode === 'clay' && (
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--orion-accent)] text-[var(--os-text-primary-inverse)] font-bold">
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))] font-bold">
                     ACTIVE
                   </span>
                 )}
@@ -691,7 +697,7 @@ export const AppearanceSettingsPanel: React.FC = () => {
             >
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-mono font-semibold text-[var(--orion-text-primary)]">Extruded Surface</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-[var(--orion-text-muted)] font-mono">embossed</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--orion-surface-active)] text-[var(--orion-text-muted)] font-mono">embossed</span>
               </div>
               <div 
                 className="h-6 rounded-lg flex items-center px-2 text-[10px] text-[var(--orion-text-muted)]"
@@ -708,7 +714,7 @@ export const AppearanceSettingsPanel: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-[var(--orion-text-primary)]">Neumorphism</span>
                 {preferences.morphismMode === 'neumorphic' && (
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--orion-accent)] text-[var(--os-text-primary-inverse)] font-bold">
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))] font-bold">
                     ACTIVE
                   </span>
                 )}
@@ -871,7 +877,7 @@ export const AppearanceSettingsPanel: React.FC = () => {
                   className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm"
                   style={{
                     backgroundColor: 'var(--orion-accent)',
-                    color: 'var(--os-text-primary-inverse)'
+                    color: 'var(--orion-on-accent, var(--os-text-primary-inverse))'
                   }}
                 >
                   Primary Action
@@ -891,15 +897,16 @@ export const AppearanceSettingsPanel: React.FC = () => {
 
               <div className="flex items-center gap-2">
                 <span 
-                  className="px-2.5 py-1 rounded-full text-[11px] font-bold"
+                  className="px-2.5 py-1 rounded-full text-[11px] font-bold border"
                   style={{
                     backgroundColor: 'var(--orion-accent-soft)',
-                    color: 'var(--orion-accent)'
+                    borderColor: 'var(--orion-accent)',
+                    color: 'var(--orion-text-primary)'
                   }}
                 >
                   Active Accent Highlight
                 </span>
-                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#5FAF8A]/10 text-[#5FAF8A] border border-[#5FAF8A]/20">
+                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
                   Operational Nominal
                 </span>
               </div>

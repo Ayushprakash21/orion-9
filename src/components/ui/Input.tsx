@@ -30,14 +30,14 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             ref={ref}
             id={inputId}
             className={cn(
-              'w-full h-8 px-3 rounded-[6px] text-[13px] text-[var(--orion-text-primary,#F2F2EF)] placeholder:text-[var(--orion-text-muted,#747875)]',
-              'bg-white/[0.05] backdrop-blur-md border border-white/[0.08] shadow-[inset_0_1px_1px_rgba(0,0,0,0.15)]',
+              'w-full h-8 px-3 rounded-[6px] text-[13px] text-[var(--orion-text-primary)] placeholder:text-[var(--orion-text-muted)]',
+              'bg-[var(--os-input-bg,var(--orion-surface))] border border-[var(--orion-border)] shadow-[inset_0_1px_1px_rgba(0,0,0,0.06)]',
               'outline-none transition-all duration-150',
-              'focus:border-[var(--orion-accent,#0071E3)]/60 focus:ring-2 focus:ring-[var(--orion-accent,#0071E3)]/30 focus:bg-white/[0.08]',
-              'disabled:opacity-40 disabled:cursor-not-allowed',
+              'focus:border-[var(--orion-focus-ring,var(--orion-accent))] focus:ring-2 focus:ring-[var(--orion-focus,var(--orion-accent))]',
+              'disabled:opacity-45 disabled:cursor-not-allowed',
               error
-                ? 'border-[var(--orion-danger,#C96B72)]/60 focus:ring-[var(--orion-danger,#C96B72)]/30'
-                : 'hover:border-white/[0.14]',
+                ? 'border-[var(--orion-danger)] focus:ring-[var(--orion-danger)]/30'
+                : 'hover:border-[var(--orion-border-strong)]',
               icon && 'pl-8',
               iconRight && 'pr-8',
               className

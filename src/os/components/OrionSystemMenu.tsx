@@ -60,34 +60,34 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
     >
       <button 
         onClick={() => handleAction(() => openApplication('executive-overview'))}
-        className="w-full text-left px-2.5 py-1 hover:bg-white/[0.08] active:bg-white/[0.12] text-[var(--orion-text-primary,#F2F2EF)] transition-colors font-medium cursor-pointer flex items-center justify-between rounded-[5px]"
+        className="w-full text-left px-2.5 py-1 hover:bg-[var(--orion-surface-hover)] active:bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)] transition-colors font-medium cursor-pointer flex items-center justify-between rounded-[5px]"
       >
         <span>Executive Command Center</span>
-        <span className="text-[9px] font-mono text-[#39C77A] px-1.5 py-0.2 rounded bg-[#39C77A]/10 border border-[#39C77A]/30">C3</span>
+        <span className="text-[9px] font-mono text-[#2E7D5B] px-1.5 py-0.2 rounded bg-[#39C77A]/15 border border-[#39C77A]/35">C3</span>
       </button>
 
       <button 
         onClick={() => handleAction(() => openApplication('about'))}
-        className="w-full text-left px-2.5 py-1 hover:bg-white/[0.08] active:bg-white/[0.12] text-[var(--orion-text-primary,#F2F2EF)] transition-colors font-medium cursor-pointer rounded-[5px]"
+        className="w-full text-left px-2.5 py-1 hover:bg-[var(--orion-surface-hover)] active:bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)] transition-colors font-medium cursor-pointer rounded-[5px]"
       >
         {t('desktop.aboutOrion')}
       </button>
       
       {/* Operating UX Mode Switcher */}
-      <div className="px-2.5 py-1.5 bg-white/[0.02] border-y border-white/[0.04] my-1 rounded-[6px]">
-        <div className="text-[10px] font-mono text-[var(--orion-text-muted,#747875)] uppercase tracking-wider mb-1 flex justify-between items-center">
+      <div className="px-2.5 py-1.5 bg-[var(--orion-surface)]/70 border-y border-[var(--orion-border)] my-1 rounded-[6px]">
+        <div className="text-[10px] font-mono text-[var(--orion-text-muted)] uppercase tracking-wider mb-1 flex justify-between items-center">
           <span>Operating Mode</span>
-          <span className={cn("font-semibold text-[10px]", settings.userExperienceMode === 'ADVANCED' ? "text-purple-400" : "text-emerald-400")}>
+          <span className={cn("font-semibold text-[10px]", settings.userExperienceMode === 'ADVANCED' ? "text-purple-500" : "text-emerald-600")}>
             {settings.userExperienceMode === 'ADVANCED' ? 'ADVANCED SCM' : 'SIMPLE MODE'}
           </span>
         </div>
-        <div className="grid grid-cols-2 gap-1 p-0.5 bg-black/40 rounded-[6px] border border-white/[0.06] text-[11px] font-mono">
+        <div className="grid grid-cols-2 gap-1 p-0.5 bg-[var(--orion-surface-hover)] rounded-[6px] border border-[var(--orion-border)] text-[11px] font-mono">
           <button
             type="button"
             onClick={() => handleAction(() => updateSettings({ userExperienceMode: 'SIMPLE' }))}
             className={cn(
               "px-2 py-0.5 rounded-[4px] transition-all cursor-pointer text-center font-medium",
-              settings.userExperienceMode !== 'ADVANCED' ? "bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30" : "text-[var(--orion-text-muted,#747875)] hover:text-white"
+              settings.userExperienceMode !== 'ADVANCED' ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-500/35" : "text-[var(--orion-text-muted)] hover:text-[var(--orion-text-primary)]"
             )}
           >
             Simple
@@ -204,16 +204,16 @@ export function OrionSystemMenu({ onClose }: OrionSystemMenuProps) {
             'Restart'
           );
         })}
-        className="w-full text-left px-2.5 py-1 hover:bg-white/[0.08] active:bg-white/[0.12] text-[var(--orion-text-primary,#F2F2EF)] transition-colors cursor-pointer rounded-[5px]"
+        className="w-full text-left px-2.5 py-1 hover:bg-[var(--orion-surface-hover)] active:bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)] transition-colors cursor-pointer rounded-[5px]"
       >
         {t('auth.restart')}...
       </button>
 
-      <div className="h-px bg-white/[0.06] my-1 mx-1.5" />
+      <div className="h-px bg-[var(--orion-border)] my-1 mx-1.5" />
       
       <button 
         onClick={() => handleAction(() => logout())}
-        className="w-full text-left px-2.5 py-1 hover:bg-white/[0.08] active:bg-white/[0.12] text-[var(--orion-text-primary,#F2F2EF)] transition-colors cursor-pointer rounded-[5px]"
+        className="w-full text-left px-2.5 py-1 hover:bg-[var(--orion-surface-hover)] active:bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)] transition-colors cursor-pointer rounded-[5px]"
       >
         {t('auth.signOut')} {currentUser?.displayName || 'User'}...
       </button>

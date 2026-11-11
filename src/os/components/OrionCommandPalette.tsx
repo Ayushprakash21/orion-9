@@ -416,12 +416,12 @@ export function OrionCommandPalette() {
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="orion-command-palette w-full max-w-2xl bg-[rgba(18,22,28,0.85)] backdrop-blur-[36px] backdrop-saturate-[160%] border border-white/[0.14] rounded-2xl shadow-[0_32px_80px_rgba(0,0,0,0.70),inset_0_1px_1px_rgba(255,255,255,0.22)] overflow-hidden flex flex-col max-h-[82vh] sm:max-h-[75vh]"
+            className="orion-command-palette w-full max-w-2xl bg-[var(--orion-morph-surface-elevated)] text-[var(--orion-text-primary)] backdrop-blur-[36px] backdrop-saturate-[160%] border border-[var(--orion-border-strong)] rounded-2xl shadow-[var(--orion-morph-elevation-modal)] overflow-hidden flex flex-col max-h-[82vh] sm:max-h-[75vh]"
             onClick={e => e.stopPropagation()}
             onKeyDown={handleKeyDown}
           >
         {/* Search Header */}
-        <div className="flex items-center px-4 py-3.5 border-b border-white/[0.07] bg-white/[0.02]">
+        <div className="flex items-center px-4 py-3.5 border-b border-[var(--orion-border)] bg-[var(--orion-surface-elevated)]/60">
           <Search className="w-5 h-5 text-os-accent mr-3.5 shrink-0 drop-shadow-sm" />
           <input
             ref={inputRef}
@@ -432,16 +432,16 @@ export function OrionCommandPalette() {
               setSelectedIndex(0);
             }}
             placeholder="Search applications, entities, or commands (e.g. 'delayed shipments', 'lock', 'inventory')..."
-            className="flex-1 bg-transparent border-none outline-none text-os-text-primary font-sans text-base placeholder:text-slate-500"
+            className="flex-1 bg-transparent border-none outline-none text-os-text-primary font-sans text-base placeholder:text-[var(--orion-text-muted)]"
           />
-          <div className="flex items-center gap-1.5 ml-3 text-[11px] text-slate-500 font-mono shrink-0">
+          <div className="flex items-center gap-1.5 ml-3 text-[11px] text-[var(--orion-text-muted)] font-mono shrink-0">
             <kbd className="px-1.5 py-0.5 rounded border border-os-border bg-os-surface-hover text-[10px]">ESC</kbd>
             <span className="hidden sm:inline">close</span>
           </div>
         </div>
         
         {/* Results List */}
-        <div className="overflow-y-auto py-2 px-2 divide-y divide-white/[0.03]">
+        <div className="overflow-y-auto py-2 px-2 divide-y divide-[var(--orion-border-subtle,var(--orion-border))]">
           {results.length > 0 ? (
             results.map((item, i) => {
               const Icon = item.icon;
@@ -454,8 +454,8 @@ export function OrionCommandPalette() {
                   className={cn(
                     "w-full flex items-center px-3.5 py-2.5 rounded-xl transition-all text-left outline-none cursor-pointer",
                     isSelected 
-                      ? "bg-white/[0.08] text-os-text-primary shadow-sm ring-1 ring-white/10" 
-                      : "hover:bg-white/[0.04] text-os-text-secondary"
+                      ? "bg-[var(--orion-surface-hover)] text-os-text-primary shadow-sm ring-1 ring-[var(--orion-border-strong)]" 
+                      : "hover:bg-[var(--orion-surface-hover)]/60 text-os-text-secondary"
                   )}
                 >
                   {item.appId ? (

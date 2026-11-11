@@ -66,23 +66,23 @@ export const GlobalNetworkTimeMatrix: React.FC = () => {
 
   return (
     <div className="space-y-4 h-full flex flex-col font-sans select-none">
-      <div className="flex items-center justify-between shrink-0 border-b border-white/[0.08] pb-3">
+      <div className="flex items-center justify-between shrink-0 border-b border-[var(--orion-border)] pb-3">
         <div className="flex items-center gap-2">
-          <Globe className="w-4 h-4 text-sky-400" />
-          <h3 className="text-xs font-semibold text-white uppercase tracking-wider font-mono">
+          <Globe className="w-4 h-4 text-sky-500" />
+          <h3 className="text-xs font-semibold text-[var(--orion-text)] uppercase tracking-wider font-mono">
             GLOBAL NETWORK TIME MATRIX
           </h3>
         </div>
-        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           SYNCHRONIZED
         </span>
       </div>
 
       {/* 3D Live Earth Interactive Map Box (Enlarged to 280px-320px diameter presentation) */}
-      <div className="h-[280px] sm:h-[320px] w-full rounded-2xl overflow-hidden border border-white/10 bg-[#02070d] shrink-0 shadow-2xl relative">
+      <div className="h-[280px] sm:h-[320px] w-full rounded-2xl overflow-hidden border border-[var(--orion-border-strong)] bg-[#02070d] shrink-0 shadow-xl relative">
         <Suspense fallback={
-          <div className="w-full h-full flex flex-col items-center justify-center text-xs text-slate-500 font-mono gap-2">
+          <div className="w-full h-full flex flex-col items-center justify-center text-xs text-slate-400 font-mono gap-2">
             <div className="w-5 h-5 border border-cyan-500/40 border-t-cyan-400 rounded-full animate-spin" />
             <span>INITIALIZING 3D WORLD MATRIX...</span>
           </div>
@@ -93,7 +93,7 @@ export const GlobalNetworkTimeMatrix: React.FC = () => {
 
       {/* Multi-City Live Hub Matrix Grid */}
       <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar space-y-2">
-        <div className="text-[10px] font-mono text-slate-400 uppercase tracking-widest px-1">
+        <div className="text-[10px] font-mono text-[var(--orion-text-muted)] uppercase tracking-widest px-1">
           Key Operational Hub Clocks
         </div>
 
@@ -103,26 +103,26 @@ export const GlobalNetworkTimeMatrix: React.FC = () => {
             return (
               <div 
                 key={hub.city}
-                className="p-3 rounded-xl bg-[#12151a] border border-white/[0.08] hover:border-sky-500/30 transition-all flex items-center justify-between"
+                className="p-3 rounded-xl bg-[var(--orion-surface)] border border-[var(--orion-border)] hover:border-[var(--orion-accent)]/50 transition-all flex items-center justify-between"
               >
                 <div>
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-semibold text-white">{hub.city}</span>
-                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-white/[0.06] text-slate-400">
+                    <span className="text-xs font-semibold text-[var(--orion-text)]">{hub.city}</span>
+                    <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[var(--orion-surface-secondary)] text-[var(--orion-text-secondary)] border border-[var(--orion-border)]">
                       {hub.code}
                     </span>
                   </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5 flex items-center gap-1">
-                    <MapPin size={10} className="text-sky-400" />
+                  <div className="text-[10px] text-[var(--orion-text-muted)] mt-0.5 flex items-center gap-1">
+                    <MapPin size={10} className="text-sky-500" />
                     <span>{hub.country}</span>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <div className="text-sm font-mono font-bold text-sky-400 tracking-wider">
+                  <div className="text-sm font-mono font-bold text-sky-600 dark:text-sky-400 tracking-wider">
                     {data.timeStr}
                   </div>
-                  <div className="text-[9px] font-mono text-slate-400 flex items-center justify-end gap-1 mt-0.5">
+                  <div className="text-[9px] font-mono text-[var(--orion-text-muted)] flex items-center justify-end gap-1 mt-0.5">
                     <span className={`w-1.5 h-1.5 rounded-full ${data.isDay ? 'bg-amber-400' : 'bg-indigo-400'}`} />
                     <span>{data.offset}</span>
                   </div>

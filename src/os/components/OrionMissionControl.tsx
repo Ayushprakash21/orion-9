@@ -17,7 +17,7 @@ import { ORION_REGISTRY } from '../OrionApplicationRegistry';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
 import { cn } from '../../lib/utils';
 import { useToast } from '../../store/ToastContext';
-import { useSupplyChain } from '../../store/SupplyChainContext';
+import { useOptionalSupplyChain } from '../../store/SupplyChainContext';
 import { isReducedMotionPreferred, ORION_SPRING_SMOOTH } from '../motion/OrionMotion';
 
 export function OrionMissionControl() {
@@ -37,7 +37,7 @@ export function OrionMissionControl() {
   } = useWindowManager();
 
   const { showToast } = useToast();
-  const supplyChain = useSupplyChain();
+  const supplyChain = useOptionalSupplyChain();
   const prefersReduced = isReducedMotionPreferred(supplyChain?.settings?.reducedMotion);
   const [editingSpaceId, setEditingSpaceId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');

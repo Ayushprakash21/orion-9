@@ -82,8 +82,8 @@ export function computeMorphismTokens(
       surfacePressed: theme.colors.surfaceActive,
       surfaceDisabled: theme.colors.surface,
 
-      border: isDark ? 'rgba(255, 255, 255, 0.10)' : 'rgba(0, 0, 0, 0.08)',
-      borderStrong: isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.14)',
+      border: isDark ? 'rgba(255, 255, 255, 0.10)' : 'rgba(0, 0, 0, 0.11)',
+      borderStrong: isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.20)',
 
       blur: '0px',
       backdrop: 'none',
@@ -121,8 +121,8 @@ export function computeMorphismTokens(
       surfacePressed: theme.colors.background,
       surfaceDisabled: theme.colors.surface,
 
-      border: isDark ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.06)',
-      borderStrong: isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)',
+      border: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.10)',
+      borderStrong: isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.18)',
 
       blur: '0px',
       backdrop: 'none',
@@ -190,8 +190,8 @@ export function computeMorphismTokens(
     surfacePressed: `rgba(${rawBase}, 0.96)`,
     surfaceDisabled: `rgba(${rawBase}, 0.40)`,
 
-    border: isDark ? 'rgba(255, 255, 255, 0.09)' : 'rgba(0, 0, 0, 0.09)',
-    borderStrong: isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.16)',
+    border: isDark ? 'rgba(255, 255, 255, 0.09)' : 'rgba(0, 0, 0, 0.12)',
+    borderStrong: isDark ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.22)',
 
     blur: `${blurPx}px`,
     backdrop: blurPx > 0 ? `blur(${blurPx}px) saturate(125%)` : 'none',

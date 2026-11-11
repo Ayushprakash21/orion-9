@@ -14,13 +14,15 @@ describe('Orion-9 Theme Engine & Personalization System', () => {
   describe('WCAG Contrast Engine', () => {
     it('returns #FFFFFF for dark backgrounds', () => {
       expect(calculateContrastColor('#0F1115')).toBe('#FFFFFF');
-      expect(calculateContrastColor('#3B82F6')).toBe('#FFFFFF');
+      expect(calculateContrastColor('#1D4ED8')).toBe('#FFFFFF');
+      expect(calculateContrastColor('#4A5056')).toBe('#FFFFFF');
       expect(calculateContrastColor('#000000')).toBe('#FFFFFF');
     });
 
-    it('returns #0F172A for light backgrounds', () => {
+    it('returns #0F172A for mid-to-light backgrounds to satisfy WCAG AA (>= 4.5:1)', () => {
       expect(calculateContrastColor('#FFFFFF')).toBe('#0F172A');
       expect(calculateContrastColor('#F5F7FA')).toBe('#0F172A');
+      expect(calculateContrastColor('#3B82F6')).toBe('#0F172A');
     });
   });
 
@@ -49,7 +51,15 @@ describe('Orion-9 Theme Engine & Personalization System', () => {
       };
       const vars = resolveThemeVariables(settings, true);
       expect(vars['--orion-accent']).toBe('#EC4899');
-      expect(vars['--orion-on-accent']).toBe('#FFFFFF');
+      // WCAG contrast ratio against #EC4899: #0F172A (~4.65:1 AA) > #FFFFFF (~3.86:1)
+      expect(vars['--orion-on-accent']).toBe('#0F172A');
+
+      const darkAccentVars = resolveThemeVariables({
+        ...DEFAULT_PERSONALIZATION_SETTINGS,
+        accentKey: 'custom',
+        customAccentHex: '#1E40AF'
+      }, true);
+      expect(darkAccentVars['--orion-on-accent']).toBe('#FFFFFF');
     });
 
     it('resolves radius according to corner style', () => {

@@ -393,7 +393,7 @@ export const NetworkConnectionPopover: React.FC<NetworkConnectionPopoverProps> =
                         e.stopPropagation();
                         handleConnect(net.id);
                       }}
-                      className="opacity-0 group-hover:opacity-100 px-2.5 py-1 text-[10px] font-medium bg-os-surface-active hover:bg-os-accent hover:text-white rounded border border-os-border transition-all cursor-pointer shadow-xs"
+                      className="opacity-0 group-hover:opacity-100 px-2.5 py-1 text-[10px] font-medium bg-os-surface-active hover:bg-[var(--orion-accent)] hover:text-[var(--orion-on-accent)] rounded border border-os-border transition-all cursor-pointer shadow-xs"
                     >
                       Connect
                     </button>
@@ -415,7 +415,7 @@ export const NetworkConnectionPopover: React.FC<NetworkConnectionPopoverProps> =
           <button
             type="button"
             onClick={() => setWifiEnabled(true)}
-            className="mt-2 px-3 py-1.5 text-[11px] font-medium bg-os-accent text-white rounded-lg shadow-sm hover:bg-os-accent/90 transition-all cursor-pointer"
+            className="mt-2 px-3 py-1.5 text-[11px] font-medium bg-[var(--orion-accent)] text-[var(--orion-on-accent)] rounded-lg shadow-sm hover:bg-[var(--orion-accent-hover)] transition-all cursor-pointer"
           >
             Turn On Wi-Fi
           </button>

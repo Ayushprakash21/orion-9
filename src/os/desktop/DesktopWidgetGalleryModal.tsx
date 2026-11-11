@@ -280,24 +280,24 @@ export function DesktopWidgetGalleryModal({
       <div
         ref={modalRef}
         data-testid="widget-gallery"
-        className="bg-[#12151a] border border-white/[0.12] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95"
+        className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95"
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-white/[0.03]">
+        <div className="px-6 py-4 border-b border-[var(--orion-border)] flex items-center justify-between bg-[var(--orion-surface-secondary)]">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-white/[0.06] border border-white/[0.08] text-os-text-primary">
+            <div className="p-2 rounded-xl bg-[var(--orion-surface)] border border-[var(--orion-border)] text-[var(--orion-text)]">
               <Plus className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-white tracking-wide">Orion Widget Gallery</h2>
-              <p className="text-xs text-os-text-muted">Click or drag spatial OS widgets onto your desktop</p>
+              <h2 className="text-base font-semibold text-[var(--orion-text)] tracking-wide">Orion Widget Gallery</h2>
+              <p className="text-xs text-[var(--orion-text-muted)]">Click or drag spatial OS widgets onto your desktop</p>
             </div>
           </div>
           <button
             type="button"
             data-action="close-gallery"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 text-white/70 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-full bg-[var(--orion-surface)] hover:bg-[var(--orion-surface-hover)] text-[var(--orion-text-secondary)] hover:text-[var(--orion-text)] flex items-center justify-center transition-colors cursor-pointer border border-[var(--orion-border)]"
           >
             <X className="w-4 h-4" />
           </button>
@@ -311,22 +311,22 @@ export function DesktopWidgetGalleryModal({
               data-gallery-item={item.type}
               data-widget-gallery-drag-source="true"
               onPointerDown={(e) => handleItemPointerDown(e, item)}
-              className="bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.16] rounded-xl p-4 flex flex-col justify-between gap-3 transition-all duration-200 hover:bg-white/[0.07] group cursor-grab active:cursor-grabbing"
+              className="bg-[var(--orion-surface-secondary)] border border-[var(--orion-border)] hover:border-[var(--orion-border-strong)] rounded-xl p-4 flex flex-col justify-between gap-3 transition-all duration-200 hover:bg-[var(--orion-surface-hover)] group cursor-grab active:cursor-grabbing"
             >
               <div className="flex items-start gap-3 pointer-events-none">
-                <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 shrink-0 group-hover:scale-105 transition-transform pointer-events-none">
+                <div className="p-2.5 rounded-xl bg-[var(--orion-surface)] border border-[var(--orion-border)] shrink-0 group-hover:scale-105 transition-transform pointer-events-none">
                   {item.icon}
                 </div>
                 <div className="pointer-events-none">
-                  <h3 className="text-sm font-semibold text-white group-hover:text-white/90 transition-colors pointer-events-none">
+                  <h3 className="text-sm font-semibold text-[var(--orion-text)] transition-colors pointer-events-none">
                     {item.title}
                   </h3>
-                  <p className="text-xs text-os-text-muted mt-0.5 leading-relaxed pointer-events-none">{item.description}</p>
+                  <p className="text-xs text-[var(--orion-text-muted)] mt-0.5 leading-relaxed pointer-events-none">{item.description}</p>
                 </div>
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-white/5">
-                <span className="text-[10px] font-mono text-os-text-secondary bg-white/[0.06] px-2 py-0.5 rounded border border-white/[0.08] uppercase font-medium pointer-events-none">
+              <div className="flex items-center justify-between pt-2 border-t border-[var(--orion-border)]">
+                <span className="text-[10px] font-mono text-[var(--orion-text-secondary)] bg-[var(--orion-surface)] px-2 py-0.5 rounded border border-[var(--orion-border)] uppercase font-medium pointer-events-none">
                   Size: {item.defaultSize}
                 </span>
                 <button
@@ -336,7 +336,7 @@ export function DesktopWidgetGalleryModal({
                     onAddWidget(item);
                     onClose();
                   }}
-                  className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer active:scale-95 border border-white/15"
+                  className="px-3 py-1.5 rounded-lg bg-[var(--orion-accent)] hover:opacity-90 text-[var(--orion-on-accent)] font-semibold text-xs flex items-center gap-1.5 transition-opacity cursor-pointer active:scale-95 shadow-xs"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Add to Desktop</span>
@@ -354,8 +354,8 @@ export function DesktopWidgetGalleryModal({
             className={cn(
               "fixed pointer-events-none z-[2147483647] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-2 p-3.5 rounded-2xl border shadow-2xl backdrop-blur-xl transition-transform duration-75 select-none",
               activeDrag.isOverDesktop
-                ? "bg-[#141820]/95 border-white/40 shadow-[0_20px_50px_rgba(0,0,0,0.9),0_0_20px_rgba(255,255,255,0.12)] scale-105 ring-1 ring-white/20"
-                : "bg-[#12151a]/95 border-white/20 shadow-[0_20px_50px_rgba(0,0,0,0.9)] scale-100 opacity-80"
+                ? "bg-[var(--orion-surface)]/95 border-[var(--orion-accent)] scale-105 ring-2 ring-[var(--orion-accent)]/30"
+                : "bg-[var(--orion-surface)]/95 border-[var(--orion-border-strong)] scale-100 opacity-85"
             )}
             style={{
               left: `${activeDrag.currentX}px`,
@@ -364,20 +364,20 @@ export function DesktopWidgetGalleryModal({
             }}
           >
             <div className="flex items-center gap-2">
-              <div className="p-2 rounded-xl bg-white/10 border border-white/15 text-white">
+              <div className="p-2 rounded-xl bg-[var(--orion-surface-secondary)] border border-[var(--orion-border)] text-[var(--orion-text)]">
                 {activeDrag.item.icon}
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-semibold text-white drop-shadow">
+                <span className="text-xs font-semibold text-[var(--orion-text)]">
                   {activeDrag.item.title}
                 </span>
-                <span className="text-[10px] text-os-text-muted font-mono uppercase">
+                <span className="text-[10px] text-[var(--orion-text-muted)] font-mono uppercase">
                   {activeDrag.item.defaultSize} • {activeDrag.item.dimensions.width}×{activeDrag.item.dimensions.height}
                 </span>
               </div>
             </div>
             {activeDrag.isOverDesktop && (
-              <span className="text-[10px] font-medium text-white/90 uppercase tracking-wider bg-white/[0.12] px-2.5 py-0.5 rounded-full border border-white/20 flex items-center gap-1.5 shadow-sm">
+              <span className="text-[10px] font-medium text-[var(--orion-on-accent)] uppercase tracking-wider bg-[var(--orion-accent)] px-2.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 Drop on Desktop
               </span>
@@ -387,7 +387,7 @@ export function DesktopWidgetGalleryModal({
         )}
 
         {/* Footer */}
-        <div className="px-6 py-3.5 border-t border-white/10 bg-white/[0.02] flex items-center justify-between">
+        <div className="px-6 py-3.5 border-t border-[var(--orion-border)] bg-[var(--orion-surface-secondary)] flex items-center justify-between">
           {onRestoreDefaults ? (
             <button
               type="button"
@@ -396,7 +396,7 @@ export function DesktopWidgetGalleryModal({
                 onRestoreDefaults();
                 onClose();
               }}
-              className="px-3 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-os-text-secondary hover:text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer border border-white/[0.08]"
+              className="px-3 py-1.5 rounded-xl bg-[var(--orion-surface)] hover:bg-[var(--orion-surface-hover)] text-[var(--orion-text-secondary)] hover:text-[var(--orion-text)] text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer border border-[var(--orion-border)]"
             >
               <RotateCcw className="w-3.5 h-3.5" />
               <span>Restore Default Widgets</span>
@@ -405,7 +405,7 @@ export function DesktopWidgetGalleryModal({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-medium transition-colors cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-[var(--orion-surface)] hover:bg-[var(--orion-surface-hover)] text-[var(--orion-text)] border border-[var(--orion-border)] text-xs font-medium transition-colors cursor-pointer"
           >
             Close
           </button>

@@ -4,43 +4,13 @@ import { getTheme, ORION_THEMES, isValidThemeId, resolveCompatibleTheme } from '
 import { loadPreferences } from '../os/theme/OrionThemeStorage';
 import { OrionThemeId } from '../os/theme/OrionThemeTypes';
 import { applyThemeToDOM } from '../os/theme/OrionThemeCSS';
+import {
+  calculateContrastColor,
+  adjustHexBrightness,
+  resolveAccessibleAccentStates,
+} from '../os/theme/OrionContrast';
 
-/**
- * Calculates WCAG relative luminance to determine optimal foreground text color (#FFFFFF or #0F172A).
- */
-export function calculateContrastColor(hexColor: string): string {
-  let hex = hexColor.replace('#', '');
-  if (hex.length === 3) {
-    hex = hex.split('').map(c => c + c).join('');
-  }
-  if (hex.length !== 6) return '#FFFFFF';
-
-  const r = parseInt(hex.substring(0, 2), 16) / 255;
-  const g = parseInt(hex.substring(2, 4), 16) / 255;
-  const b = parseInt(hex.substring(4, 6), 16) / 255;
-
-  const toLinear = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
-  const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-
-  return luminance > 0.45 ? '#0F172A' : '#FFFFFF';
-}
-
-/**
- * Lightens or darkens a hex color for hover/subtle states.
- */
-export function adjustHexBrightness(hexColor: string, percent: number): string {
-  let hex = hexColor.replace('#', '');
-  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-  if (hex.length !== 6) return hexColor;
-
-  const num = parseInt(hex, 16);
-  const amt = Math.round(2.55 * percent);
-  const R = Math.min(255, Math.max(0, (num >> 16) + amt));
-  const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
-  const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
-
-  return `#${(1 << 24 | R << 16 | G << 8 | B).toString(16).slice(1)}`;
-}
+export { calculateContrastColor, adjustHexBrightness };
 
 /**
  * Resolves full set of CSS variables for a given personalization configuration.
@@ -106,10 +76,12 @@ export function resolveThemeVariables(
     accentHex = ACCENT_PRESETS[settings.accentKey as AccentPresetKey].hex;
   }
 
-  const textOnAccent = calculateContrastColor(accentHex);
-  const accentHover = adjustHexBrightness(accentHex, effectiveMode === 'light' ? -12 : 12);
-  const accentActive = adjustHexBrightness(accentHex, effectiveMode === 'light' ? -20 : 20);
-  const accentSubtle = `${accentHex}26`; // 15% opacity hex
+  const modeResolved = effectiveMode === 'light' ? 'light' : 'dark';
+  const accentState = resolveAccessibleAccentStates(accentHex, modeResolved, baseColors.surface);
+  const textOnAccent = accentState.foreground;
+  const accentHover = accentState.hover;
+  const accentActive = accentState.active;
+  const accentSubtle = accentState.soft;
   const dockSurface = canonicalTheme.colors.dockBg || canonicalTheme.colors.surfaceElevated;
   const dockBorder = canonicalTheme.colors.dockBorder || canonicalTheme.colors.borderStrong;
   const dockShadow = canonicalTheme.colors.dockShadow || '0 20px 48px rgba(0,0,0,0.50)';
@@ -158,13 +130,16 @@ export function resolveThemeVariables(
     '--os-surface-hover': baseColors.surfaceHover,
     '--os-border': baseColors.border,
     '--os-border-strong': baseColors.borderStrong,
+    '--os-input-bg': effectiveMode === 'light' ? '#FFFFFF' : baseColors.surface,
     '--os-text-primary': baseColors.text,
     '--os-text-secondary': baseColors.textSecondary,
     '--os-text-muted': baseColors.textMuted,
-    '--os-accent': accentHex,
+    '--os-text-primary-inverse': textOnAccent,
+    '--os-on-accent': textOnAccent,
+    '--os-accent': accentState.accent,
     '--os-accent-subtle': accentSubtle,
 
-    '--orion-accent': accentHex,
+    '--orion-accent': accentState.accent,
     '--orion-accent-hover': accentHover,
     '--orion-accent-active': accentActive,
     '--orion-accent-muted': accentSubtle,
@@ -172,8 +147,11 @@ export function resolveThemeVariables(
     '--orion-accent-subtle': accentSubtle,
     '--orion-accent-foreground': textOnAccent,
     '--orion-on-accent': textOnAccent,
-    '--orion-focus': `${accentHex}66`,
-    '--orion-focus-ring': settings.highContrastFocusRing ? '#F59E0B' : accentHex,
+    '--orion-focus': accentState.focusGlow,
+    '--orion-focus-ring': settings.highContrastFocusRing ? '#F59E0B' : accentState.focusRing,
+    '--orion-topbar-bg': effectiveMode === 'light' ? 'rgba(249, 250, 251, 0.90)' : 'rgba(18, 22, 28, 0.80)',
+    '--orion-topbar-border': effectiveMode === 'light' ? 'rgba(15, 23, 42, 0.10)' : 'rgba(255, 255, 255, 0.08)',
+    '--orion-danger-foreground': calculateContrastColor(canonicalTheme.colors.danger, { backingColor: baseColors.surface }),
 
     '--orion-dock-surface': dockSurface,
     '--orion-dock-bg': dockSurface,

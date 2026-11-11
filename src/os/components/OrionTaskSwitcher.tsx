@@ -86,16 +86,16 @@ export function OrionTaskSwitcher({ isOpen, onClose }: OrionTaskSwitcherProps) {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: prefersReduced ? 1 : 0.94, opacity: 0 }}
             transition={prefersReduced ? { duration: 0.08 } : ORION_SPRING_SMOOTH}
-            className="relative w-full max-w-2xl bg-[rgba(18,22,28,0.88)] backdrop-blur-[36px] backdrop-saturate-[160%] border border-white/[0.14] rounded-2xl shadow-[0_32px_80px_rgba(0,0,0,0.70),inset_0_1px_1px_rgba(255,255,255,0.22)] p-6 overflow-hidden flex flex-col gap-5"
+            className="relative w-full max-w-2xl bg-[var(--orion-morph-surface-elevated)] backdrop-blur-[36px] backdrop-saturate-[160%] border border-[var(--orion-border-strong)] rounded-2xl shadow-[var(--orion-morph-elevation-modal)] p-6 overflow-hidden flex flex-col gap-5 text-[var(--orion-text-primary)]"
             onClick={e => e.stopPropagation()}
           >
-        <div className="flex items-center justify-between border-b border-white/[0.08] pb-3.5">
+        <div className="flex items-center justify-between border-b border-[var(--orion-border)] pb-3.5">
           <div className="flex items-center gap-2.5">
-            <Layers className="w-5 h-5 text-[var(--orion-accent,#D8DDE3)]" />
-            <h2 className="text-[15px] font-semibold text-white tracking-wide">
+            <Layers className="w-5 h-5 text-[var(--orion-accent)]" />
+            <h2 className="text-[15px] font-semibold text-[var(--orion-text-primary)] tracking-wide">
               Task Switcher
             </h2>
-            <span className="text-[11px] font-mono text-slate-400 bg-white/[0.06] px-2 py-0.5 rounded-md border border-white/[0.08]">
+            <span className="text-[11px] font-mono text-[var(--orion-text-secondary)] bg-[var(--orion-surface-hover)] px-2 py-0.5 rounded-md border border-[var(--orion-border)]">
               {openWindows.length} Open {openWindows.length === 1 ? 'App' : 'Apps'}
             </span>
           </div>

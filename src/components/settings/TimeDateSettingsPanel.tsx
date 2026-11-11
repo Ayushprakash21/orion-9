@@ -93,36 +93,36 @@ export const TimeDateSettingsPanel: React.FC = () => {
   }, [selectedTimezone, is24Hour]);
 
   return (
-    <div className="w-full max-w-full space-y-5 font-sans text-white">
+    <div className="w-full max-w-full space-y-5 font-sans text-[var(--orion-text)]">
       {/* SECTION 1 — CURRENT TIME HERO CARD */}
-      <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="p-4 rounded-xl bg-[var(--orion-surface)] border border-[var(--orion-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-[var(--orion-accent-subtle)] border border-[var(--orion-border)] flex items-center justify-center text-[var(--orion-accent)] shrink-0">
             <Clock size={20} />
           </div>
           <div>
-            <span className="text-[10px] uppercase font-mono tracking-widest text-slate-500 block">System Clock</span>
-            <h3 className="text-xl font-mono font-bold text-sky-400 tracking-tight">{currentTimeStr || '12:00:00'}</h3>
-            <p className="text-[11px] text-slate-400 font-mono mt-0.5">{currentDateStr}</p>
+            <span className="text-[10px] uppercase font-mono tracking-widest text-[var(--orion-text-muted)] block">System Clock</span>
+            <h3 className="text-xl font-mono font-bold text-[var(--orion-text)] tracking-tight">{currentTimeStr || '12:00:00'}</h3>
+            <p className="text-[11px] text-[var(--orion-text-secondary)] font-mono mt-0.5">{currentDateStr}</p>
           </div>
         </div>
 
-        <div className="text-left sm:text-right text-xs border-t sm:border-t-0 border-white/[0.06] pt-2 sm:pt-0">
-          <span className="text-slate-400 block text-[10px] uppercase font-mono">Active Timezone</span>
-          <span className="text-white font-mono font-semibold">{selectedTimezone}</span>
+        <div className="text-left sm:text-right text-xs border-t sm:border-t-0 border-[var(--orion-border)] pt-2 sm:pt-0">
+          <span className="text-[var(--orion-text-muted)] block text-[10px] uppercase font-mono">Active Timezone</span>
+          <span className="text-[var(--orion-text)] font-mono font-semibold">{selectedTimezone}</span>
         </div>
       </div>
 
       {/* SECTION 2 — DATE & TIME SETTINGS */}
-      <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3">
-        <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider">Date & Time Settings</h4>
+      <div className="p-4 rounded-xl bg-[var(--orion-surface)] border border-[var(--orion-border)] space-y-3">
+        <h4 className="text-xs font-semibold text-[var(--orion-text-secondary)] uppercase tracking-wider">Date & Time Settings</h4>
 
-        <div className="divide-y divide-white/[0.06] text-xs">
+        <div className="divide-y divide-[var(--orion-border)] text-xs">
           {/* Automatic Date & Time */}
           <div className="py-2.5 flex items-center justify-between">
             <div>
-              <span className="text-slate-300 font-medium block">Automatic Date & Time</span>
-              <span className="text-[11px] text-slate-400">Sync clock automatically using network time protocol (NTP).</span>
+              <span className="text-[var(--orion-text)] font-medium block">Automatic Date & Time</span>
+              <span className="text-[11px] text-[var(--orion-text-muted)]">Sync clock automatically using network time protocol (NTP).</span>
             </div>
             <button
               type="button"
@@ -134,7 +134,9 @@ export const TimeDateSettingsPanel: React.FC = () => {
               }}
               className={cn(
                 "px-3 py-1 rounded-lg border text-xs font-mono font-semibold transition cursor-pointer",
-                autoTime ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400" : "bg-white/[0.05] border-white/10 text-slate-400"
+                autoTime
+                  ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-600 dark:text-emerald-400"
+                  : "bg-[var(--orion-surface-secondary)] border-[var(--orion-border)] text-[var(--orion-text-secondary)]"
               )}
             >
               {autoTime ? 'ON' : 'OFF'}
@@ -143,7 +145,7 @@ export const TimeDateSettingsPanel: React.FC = () => {
 
           {/* Timezone Selection */}
           <div className="py-3 space-y-1.5">
-            <span className="text-slate-300 font-medium block">Time Zone</span>
+            <span className="text-[var(--orion-text)] font-medium block">Time Zone</span>
             <SearchableDropdown
               value={selectedTimezone}
               options={timezones}
@@ -158,8 +160,8 @@ export const TimeDateSettingsPanel: React.FC = () => {
           {/* 24-Hour Clock Toggle */}
           <div className="py-2.5 flex items-center justify-between">
             <div>
-              <span className="text-slate-300 font-medium block">24-Hour Clock</span>
-              <span className="text-[11px] text-slate-400">Use 24-hour time format (19:44) instead of 12-hour (7:44 PM).</span>
+              <span className="text-[var(--orion-text)] font-medium block">24-Hour Clock</span>
+              <span className="text-[11px] text-[var(--orion-text-muted)]">Use 24-hour time format (19:44) instead of 12-hour (7:44 PM).</span>
             </div>
             <button
               type="button"
@@ -170,7 +172,9 @@ export const TimeDateSettingsPanel: React.FC = () => {
               }}
               className={cn(
                 "px-3 py-1 rounded-lg border text-xs font-mono font-semibold transition cursor-pointer",
-                is24Hour ? "bg-sky-500/20 border-sky-500/40 text-sky-400" : "bg-white/[0.05] border-white/10 text-slate-400"
+                is24Hour
+                  ? "bg-sky-500/15 border-sky-500/40 text-sky-600 dark:text-sky-400"
+                  : "bg-[var(--orion-surface-secondary)] border-[var(--orion-border)] text-[var(--orion-text-secondary)]"
               )}
             >
               {is24Hour ? 'ON' : 'OFF'}
@@ -179,47 +183,47 @@ export const TimeDateSettingsPanel: React.FC = () => {
 
           {/* Date Format */}
           <div className="py-2.5 flex items-center justify-between">
-            <span className="text-slate-300 font-medium">Date Format</span>
+            <span className="text-[var(--orion-text)] font-medium">Date Format</span>
             <select
               value={dateFormat}
               onChange={(e) => {
                 setDateFormat(e.target.value);
                 updateSettings({ dateFormat: e.target.value });
               }}
-              className="bg-white/[0.05] border border-white/[0.1] rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-sky-500/50 font-mono"
+              className="bg-[var(--orion-surface-secondary)] border border-[var(--orion-border)] rounded-lg px-2.5 py-1 text-xs text-[var(--orion-text)] focus:outline-none focus:border-[var(--orion-accent)] font-mono"
             >
-              <option value="DD/MM/YYYY" className="bg-[#12151a]">DD/MM/YYYY</option>
-              <option value="MM/DD/YYYY" className="bg-[#12151a]">MM/DD/YYYY</option>
-              <option value="YYYY-MM-DD" className="bg-[#12151a]">YYYY-MM-DD</option>
+              <option value="DD/MM/YYYY" className="bg-[var(--orion-surface)] text-[var(--orion-text)]">DD/MM/YYYY</option>
+              <option value="MM/DD/YYYY" className="bg-[var(--orion-surface)] text-[var(--orion-text)]">MM/DD/YYYY</option>
+              <option value="YYYY-MM-DD" className="bg-[var(--orion-surface)] text-[var(--orion-text)]">YYYY-MM-DD</option>
             </select>
           </div>
 
           {/* First Day of Week */}
           <div className="py-2.5 flex items-center justify-between">
-            <span className="text-slate-300 font-medium">First Day of Week</span>
+            <span className="text-[var(--orion-text)] font-medium">First Day of Week</span>
             <select
               value={firstDayOfWeek}
               onChange={(e) => {
                 setFirstDayOfWeek(e.target.value);
                 updateSettings({ firstDayOfWeek: e.target.value });
               }}
-              className="bg-white/[0.05] border border-white/[0.1] rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-sky-500/50"
+              className="bg-[var(--orion-surface-secondary)] border border-[var(--orion-border)] rounded-lg px-2.5 py-1 text-xs text-[var(--orion-text)] focus:outline-none focus:border-[var(--orion-accent)]"
             >
-              <option value="Monday" className="bg-[#12151a]">Monday</option>
-              <option value="Sunday" className="bg-[#12151a]">Sunday</option>
+              <option value="Monday" className="bg-[var(--orion-surface)] text-[var(--orion-text)]">Monday</option>
+              <option value="Sunday" className="bg-[var(--orion-surface)] text-[var(--orion-text)]">Sunday</option>
             </select>
           </div>
         </div>
       </div>
 
       {/* SECTION 3 — WORLD CLOCKS */}
-      <div className="p-4 rounded-xl bg-[#12151a] border border-white/[0.08] space-y-3">
+      <div className="p-4 rounded-xl bg-[var(--orion-surface)] border border-[var(--orion-border)] space-y-3">
         <div className="flex items-center justify-between">
-          <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-            <Globe size={14} className="text-sky-400" />
+          <h4 className="text-xs font-semibold text-[var(--orion-text-secondary)] uppercase tracking-wider flex items-center gap-2">
+            <Globe size={14} className="text-sky-500" />
             <span>World Clocks</span>
           </h4>
-          <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
+          <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25">
             LIVE SYNCHRONIZED
           </span>
         </div>
@@ -230,19 +234,19 @@ export const TimeDateSettingsPanel: React.FC = () => {
             return (
               <div
                 key={city.city}
-                className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:border-sky-500/30 transition flex items-center justify-between"
+                className="p-3 rounded-lg bg-[var(--orion-surface-secondary)] border border-[var(--orion-border)] hover:border-[var(--orion-accent)]/50 transition flex items-center justify-between"
               >
                 <div>
-                  <div className="font-semibold text-xs text-white flex items-center gap-1.5">
+                  <div className="font-semibold text-xs text-[var(--orion-text)] flex items-center gap-1.5">
                     <span>{city.city}</span>
-                    <span className="text-[9px] font-mono text-slate-400 bg-white/5 px-1 py-0.2 rounded">{city.code}</span>
+                    <span className="text-[9px] font-mono text-[var(--orion-text-muted)] bg-[var(--orion-surface)] px-1 py-0.2 rounded border border-[var(--orion-border)]">{city.code}</span>
                   </div>
-                  <div className="text-[10px] text-slate-400 font-mono mt-0.5">{city.country}</div>
+                  <div className="text-[10px] text-[var(--orion-text-muted)] font-mono mt-0.5">{city.country}</div>
                 </div>
 
                 <div className="text-right">
-                  <div className="font-mono font-bold text-sky-400 text-xs">{data.timeStr}</div>
-                  <div className="text-[9px] font-mono text-slate-400">{data.offset}</div>
+                  <div className="font-mono font-bold text-sky-600 dark:text-sky-400 text-xs">{data.timeStr}</div>
+                  <div className="text-[9px] font-mono text-[var(--orion-text-muted)]">{data.offset}</div>
                 </div>
               </div>
             );

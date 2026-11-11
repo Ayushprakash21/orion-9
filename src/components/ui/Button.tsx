@@ -27,19 +27,19 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     const baseStyles =
-      'inline-flex items-center justify-center font-medium select-none transition-all duration-150 rounded-[7px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--orion-accent,#0071E3)]/50 focus-visible:ring-offset-1 disabled:opacity-40 disabled:cursor-not-allowed';
+      'inline-flex items-center justify-center font-medium select-none transition-all duration-150 rounded-[7px] outline-none focus-visible:ring-2 focus-visible:ring-[var(--orion-focus-ring,var(--orion-accent,#0071E3))] focus-visible:ring-offset-1 focus-visible:ring-offset-[var(--orion-bg)] disabled:opacity-45 disabled:pointer-events-none disabled:cursor-not-allowed cursor-pointer';
 
     const variants = {
       primary:
-        'bg-[var(--orion-accent,#0071E3)] text-white hover:brightness-105 active:brightness-95 border border-white/10 shadow-[0_1px_2px_rgba(0,0,0,0.2)]',
+        'bg-[var(--orion-accent,#0071E3)] text-[var(--orion-on-accent,var(--orion-accent-foreground,#FFFFFF))] hover:bg-[var(--orion-accent-hover,var(--orion-accent))] active:bg-[var(--orion-accent-active,var(--orion-accent))] border border-[var(--orion-border-strong)] shadow-[0_1px_2px_rgba(0,0,0,0.18)]',
       secondary:
-        'bg-white/[0.07] text-[var(--orion-text-primary,#F2F2EF)] hover:bg-white/[0.12] active:bg-white/[0.16] border border-white/[0.08] shadow-[0_1px_2px_rgba(0,0,0,0.1)]',
+        'bg-[var(--orion-surface-elevated)] text-[var(--orion-text-primary)] hover:bg-[var(--orion-surface-hover)] active:bg-[var(--orion-surface-active)] border border-[var(--orion-border)] hover:border-[var(--orion-border-strong)] shadow-[0_1px_2px_rgba(0,0,0,0.08)]',
       ghost:
-        'bg-transparent text-[var(--orion-text-secondary,#A7AAA8)] hover:text-[var(--orion-text-primary,#F2F2EF)] hover:bg-white/[0.06] active:bg-white/[0.10]',
+        'bg-transparent text-[var(--orion-text-secondary)] hover:text-[var(--orion-text-primary)] hover:bg-[var(--orion-surface-hover)] active:bg-[var(--orion-surface-active)] border border-transparent',
       danger:
-        'bg-[var(--orion-danger,#C96B72)]/15 text-[var(--orion-danger,#C96B72)] hover:bg-[var(--orion-danger,#C96B72)]/25 active:bg-[var(--orion-danger,#C96B72)]/30 border border-[var(--orion-danger,#C96B72)]/20',
+        'bg-[var(--orion-danger,#C96B72)] text-[var(--orion-danger-foreground,#FFFFFF)] hover:brightness-110 active:brightness-95 border border-[var(--orion-danger,#C96B72)] shadow-[0_1px_2px_rgba(0,0,0,0.18)]',
       outline:
-        'bg-transparent border border-white/[0.12] text-[var(--orion-text-primary,#F2F2EF)] hover:bg-white/[0.06] active:bg-white/[0.10]',
+        'bg-transparent border border-[var(--orion-border-strong)] text-[var(--orion-text-primary)] hover:bg-[var(--orion-surface-hover)] active:bg-[var(--orion-surface-active)]',
     };
 
     const sizes = {

@@ -118,7 +118,7 @@
   --orion-control-h-lg: 38px;
   --orion-window-titlebar-h: 38px;
   --orion-topbar-h: 44px;
-  --orion-topbar-bg: rgba(28, 28, 30, 0.82);
+  --orion-topbar-bg: rgba(18, 22, 28, 0.80);
   --orion-topbar-border: rgba(255, 255, 255, 0.08);
   --orion-dock-h: 68px;
   /* ORION GRAPHITE (Default OS Theme Foundation) */
@@ -129,22 +129,24 @@
   --os-surface-hover: #22262B;
   --os-surface-active: #292E34;
   --os-border: rgba(255, 255, 255, 0.08);
-  --os-border-subtle: rgba(255, 255, 255, 0.04);
+  --os-border-subtle: rgba(255, 255, 255, 0.05);
   --os-border-strong: rgba(255, 255, 255, 0.15);
   --os-border-inverse: #E1E4E2;
   --os-text-primary: #F2F2EF;
-  --os-text-secondary: #A7AAA8;
-  --os-text-tertiary: #747875;
-  --os-text-muted: #747875;
-  --os-text-disabled: #555855;
-  --os-text-primary-inverse: #0B0D0F;
+  --os-text-secondary: #B2B6B4;
+  --os-text-tertiary: #8B918E;
+  --os-text-muted: #8B918E;
+  --os-text-disabled: #5E625F;
+  --os-text-primary-inverse: #0F172A;
+  --os-on-accent: #0F172A;
   --os-input-bg: #121417;
   --os-accent: #D8DDE3;
-  --os-accent-subtle: rgba(216, 221, 227, 0.10);
+  --os-accent-subtle: rgba(216, 221, 227, 0.14);
 
   /* Semantic --orion-* Tokens */
   --orion-bg: #0B0D0F;
   --orion-background: #0B0D0F;
+  --orion-background-secondary: #121417;
   --orion-surface: #121417;
   --orion-surface-secondary: #191C20;
   --orion-surface-elevated: #191C20;
@@ -152,22 +154,30 @@
   --orion-surface-active: #292E34;
   --orion-text: #F2F2EF;
   --orion-text-primary: #F2F2EF;
-  --orion-text-secondary: #A7AAA8;
-  --orion-text-tertiary: #747875;
-  --orion-text-muted: #747875;
-  --orion-text-disabled: #555855;
+  --orion-text-secondary: #B2B6B4;
+  --orion-text-tertiary: #8B918E;
+  --orion-text-muted: #8B918E;
+  --orion-text-disabled: #5E625F;
   --orion-border: rgba(255, 255, 255, 0.08);
-  --orion-border-subtle: rgba(255, 255, 255, 0.04);
+  --orion-border-subtle: rgba(255, 255, 255, 0.05);
   --orion-border-strong: rgba(255, 255, 255, 0.15);
   --orion-accent: #D8DDE3;
-  --orion-accent-soft: rgba(216, 221, 227, 0.10);
-  --orion-accent-subtle: rgba(216, 221, 227, 0.10);
+  --orion-accent-hover: #E6EBEF;
+  --orion-accent-active: #F2F5F8;
+  --orion-accent-foreground: #0F172A;
+  --orion-on-accent: #0F172A;
+  --orion-accent-soft: rgba(216, 221, 227, 0.14);
+  --orion-accent-subtle: rgba(216, 221, 227, 0.14);
   --orion-success: #5FAF8A;
+  --orion-success-foreground: #0F172A;
   --orion-warning: #C6A15B;
+  --orion-warning-foreground: #0F172A;
   --orion-danger: #C96B72;
+  --orion-danger-foreground: #0F172A;
   --orion-critical: #C96B72;
   --orion-info: #AEB5BE;
-  --orion-focus: rgba(216, 221, 227, 0.40);
+  --orion-focus: rgba(216, 221, 227, 0.38);
+  --orion-focus-ring: #D8DDE3;
   --orion-radius: 10px;
   --orion-blur: 12px;
   --orion-chart-1: #7BA3C9;
@@ -224,23 +234,25 @@
   --os-surface-elevated: #FFFFFF;
   --os-surface-hover: #ECEDEB;
   --os-surface-active: #E1E3E1;
-  --os-border: rgba(0, 0, 0, 0.09);
-  --os-border-subtle: rgba(0, 0, 0, 0.04);
-  --os-border-strong: rgba(0, 0, 0, 0.16);
+  --os-border: rgba(0, 0, 0, 0.12);
+  --os-border-subtle: rgba(0, 0, 0, 0.06);
+  --os-border-strong: rgba(0, 0, 0, 0.22);
   --os-border-inverse: #17191B;
   --os-text-primary: #17191B;
-  --os-text-secondary: #555A5E;
-  --os-text-tertiary: #7C8286;
-  --os-text-muted: #7C8286;
-  --os-text-disabled: #A5A8AB;
-  --os-text-primary-inverse: #F5F5F3;
+  --os-text-secondary: #434952;
+  --os-text-tertiary: #596069;
+  --os-text-muted: #596069;
+  --os-text-disabled: #8B929B;
+  --os-text-primary-inverse: #FFFFFF;
+  --os-on-accent: #FFFFFF;
   --os-input-bg: #FFFFFF;
   --os-accent: #4A5056;
-  --os-accent-subtle: rgba(74, 80, 86, 0.08);
+  --os-accent-subtle: rgba(74, 80, 86, 0.10);
 
   /* Semantic --orion-* Tokens */
   --orion-bg: #F5F5F3;
   --orion-background: #F5F5F3;
+  --orion-background-secondary: #FFFFFF;
   --orion-surface: #FFFFFF;
   --orion-surface-secondary: #ECEDEB;
   --orion-surface-elevated: #FFFFFF;
@@ -248,22 +260,30 @@
   --orion-surface-active: #E1E3E1;
   --orion-text: #17191B;
   --orion-text-primary: #17191B;
-  --orion-text-secondary: #555A5E;
-  --orion-text-tertiary: #7C8286;
-  --orion-text-muted: #7C8286;
-  --orion-text-disabled: #A5A8AB;
-  --orion-border: rgba(0, 0, 0, 0.09);
-  --orion-border-subtle: rgba(0, 0, 0, 0.04);
-  --orion-border-strong: rgba(0, 0, 0, 0.16);
+  --orion-text-secondary: #434952;
+  --orion-text-tertiary: #596069;
+  --orion-text-muted: #596069;
+  --orion-text-disabled: #8B929B;
+  --orion-border: rgba(0, 0, 0, 0.12);
+  --orion-border-subtle: rgba(0, 0, 0, 0.06);
+  --orion-border-strong: rgba(0, 0, 0, 0.22);
   --orion-accent: #4A5056;
-  --orion-accent-soft: rgba(74, 80, 86, 0.08);
-  --orion-accent-subtle: rgba(74, 80, 86, 0.08);
-  --orion-success: #3F8065;
-  --orion-warning: #92733B;
-  --orion-danger: #A94F57;
-  --orion-critical: #A94F57;
-  --orion-info: #646B72;
-  --orion-focus: rgba(74, 80, 86, 0.30);
+  --orion-accent-hover: #3B4046;
+  --orion-accent-active: #2E3338;
+  --orion-accent-foreground: #FFFFFF;
+  --orion-on-accent: #FFFFFF;
+  --orion-accent-soft: rgba(74, 80, 86, 0.10);
+  --orion-accent-subtle: rgba(74, 80, 86, 0.10);
+  --orion-success: #2E7D5B;
+  --orion-success-foreground: #FFFFFF;
+  --orion-warning: #8A672C;
+  --orion-warning-foreground: #FFFFFF;
+  --orion-danger: #B43C46;
+  --orion-danger-foreground: #FFFFFF;
+  --orion-critical: #B43C46;
+  --orion-info: #4F5761;
+  --orion-focus: rgba(74, 80, 86, 0.35);
+  --orion-focus-ring: #4A5056;
   --orion-radius: 10px;
   --orion-blur: 10px;
   --orion-chart-1: #4A7FAA;
@@ -274,35 +294,35 @@
 
   /* Desktop Icon Label & Dock Tokens (Light Mode Foundation) */
   --orion-desktop-icon-label: #17191B;
-  --orion-dock-bg: rgba(245, 241, 233, 0.95);
-  --orion-dock-border: rgba(70, 65, 55, 0.14);
-  --orion-dock-shadow: 0 16px 40px rgba(0, 0, 0, 0.14);
+  --orion-dock-bg: rgba(252, 253, 254, 0.90);
+  --orion-dock-border: rgba(15, 23, 42, 0.14);
+  --orion-dock-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
 
   /* Canonical Morphic Foundation Defaults for Light (Glassmorphism Default) */
   --orion-morph-mode: glass;
-  --orion-morph-surface: rgba(255, 255, 255, 0.72);
-  --orion-morph-surface-subtle: rgba(255, 255, 255, 0.60);
-  --orion-morph-surface-elevated: rgba(255, 255, 255, 0.82);
-  --orion-morph-surface-hover: rgba(255, 255, 255, 0.86);
-  --orion-morph-surface-active: rgba(255, 255, 255, 0.92);
-  --orion-morph-surface-pressed: rgba(255, 255, 255, 0.96);
-  --orion-morph-surface-disabled: rgba(255, 255, 255, 0.40);
-  --orion-morph-border: rgba(0, 0, 0, 0.09);
-  --orion-morph-border-strong: rgba(0, 0, 0, 0.16);
+  --orion-morph-surface: rgba(249, 250, 251, 0.86);
+  --orion-morph-surface-subtle: rgba(241, 244, 248, 0.78);
+  --orion-morph-surface-elevated: rgba(255, 255, 255, 0.94);
+  --orion-morph-surface-hover: rgba(230, 233, 237, 0.90);
+  --orion-morph-surface-active: rgba(220, 224, 230, 0.96);
+  --orion-morph-surface-pressed: rgba(210, 215, 222, 0.98);
+  --orion-morph-surface-disabled: rgba(241, 244, 248, 0.55);
+  --orion-morph-border: rgba(15, 23, 42, 0.12);
+  --orion-morph-border-strong: rgba(15, 23, 42, 0.22);
   --orion-morph-blur: 12px;
   --orion-morph-backdrop: blur(12px) saturate(125%);
   --orion-morph-saturation: 125%;
-  --orion-morph-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
-  --orion-morph-shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.10);
-  --orion-morph-shadow-deep: 0 16px 40px rgba(0, 0, 0, 0.18);
-  --orion-morph-shadow-inset: inset 0 1px 1px rgba(255, 255, 255, 0.60);
-  --orion-morph-highlight: rgba(255, 255, 255, 0.75);
+  --orion-morph-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --orion-morph-shadow-soft: 0 4px 12px rgba(15, 23, 42, 0.07);
+  --orion-morph-shadow-deep: 0 16px 40px rgba(15, 23, 42, 0.14);
+  --orion-morph-shadow-inset: inset 0 1px 1px rgba(255, 255, 255, 0.85);
+  --orion-morph-highlight: rgba(255, 255, 255, 0.85);
   --orion-morph-elevation-0: none;
-  --orion-morph-elevation-1: 0 4px 12px rgba(0, 0, 0, 0.10);
-  --orion-morph-elevation-2: 0 8px 24px rgba(0, 0, 0, 0.10);
-  --orion-morph-elevation-3: 0 16px 36px rgba(0, 0, 0, 0.18);
-  --orion-topbar-bg: rgba(248, 248, 250, 0.86);
-  --orion-topbar-border: rgba(0, 0, 0, 0.08);
+  --orion-morph-elevation-1: 0 4px 12px rgba(15, 23, 42, 0.08);
+  --orion-morph-elevation-2: 0 8px 24px rgba(15, 23, 42, 0.08);
+  --orion-morph-elevation-3: 0 16px 36px rgba(15, 23, 42, 0.14);
+  --orion-topbar-bg: rgba(249, 250, 251, 0.90);
+  --orion-topbar-border: rgba(15, 23, 42, 0.10);
 
   background-color: var(--os-bg);
   color: var(--os-text-primary);
@@ -710,38 +730,41 @@ html, body {
   }
 
   .aurora-button-primary {
-    background-color: #0284C7;
-    color: #FFFFFF;
+    background-color: var(--orion-accent);
+    color: var(--orion-on-accent, var(--orion-accent-foreground, #FFFFFF));
     font-weight: 500;
     border-radius: 8px;
     padding: 0.5rem 1rem;
-    transition: background-color 0.15s ease, transform 0.1s ease;
+    border: 1px solid var(--orion-border-strong);
+    transition: background-color 0.15s ease, color 0.15s ease, transform 0.1s ease;
   }
   .aurora-button-primary:hover {
-    background-color: #0369A1;
+    background-color: var(--orion-accent-hover, var(--orion-accent));
   }
   .aurora-button-primary:active {
+    background-color: var(--orion-accent-active, var(--orion-accent));
     transform: scale(0.98);
+  }
+  .aurora-button-primary:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
 
   .aurora-button-secondary {
-    background-color: rgba(255, 255, 255, 0.06);
-    color: var(--os-text-primary);
-    border: 1px solid var(--os-border);
+    background-color: var(--orion-surface-elevated);
+    color: var(--orion-text-primary);
+    border: 1px solid var(--orion-border);
     font-weight: 500;
     border-radius: 8px;
     padding: 0.5rem 1rem;
     transition: background-color 0.15s ease, border-color 0.15s ease;
   }
-  :root.light .aurora-button-secondary {
-    background-color: rgba(0, 0, 0, 0.04);
-  }
   .aurora-button-secondary:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-color: var(--os-border-strong);
+    background-color: var(--orion-surface-hover);
+    border-color: var(--orion-border-strong);
   }
-  :root.light .aurora-button-secondary:hover {
-    background-color: rgba(0, 0, 0, 0.08);
+  .aurora-button-secondary:active {
+    background-color: var(--orion-surface-active);
   }
 }
 

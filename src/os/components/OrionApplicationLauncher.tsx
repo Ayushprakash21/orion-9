@@ -321,21 +321,21 @@ export function OrionApplicationLauncher() {
               marginLeft: 'var(--orion-dock-workspace-left, 0px)',
               marginRight: 'var(--orion-dock-workspace-right, 0px)',
             }}
-            className="orion-launcher-surface relative w-[calc(100%-16px)] sm:w-full max-w-3xl max-h-[82vh] flex flex-col bg-[rgba(18,22,28,0.88)] backdrop-blur-[36px] backdrop-saturate-[160%] rounded-2xl border border-white/[0.14] shadow-[0_32px_80px_rgba(0,0,0,0.70),inset_0_1px_1px_0_rgba(255,255,255,0.22)] pointer-events-auto"
+            className="orion-launcher-surface relative w-[calc(100%-16px)] sm:w-full max-w-3xl max-h-[82vh] flex flex-col bg-[var(--orion-morph-surface-elevated)] text-[var(--orion-text-primary)] backdrop-blur-[36px] backdrop-saturate-[160%] rounded-2xl border border-[var(--orion-border-strong)] shadow-[var(--orion-morph-elevation-modal)] pointer-events-auto"
             onClick={e => e.stopPropagation()}
             role="dialog"
             aria-label="Application Launcher"
           >
-        <div className="flex items-center gap-3 p-4 border-b border-white/[0.08] shrink-0">
+        <div className="flex items-center gap-3 p-4 border-b border-[var(--orion-border)] shrink-0">
           <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--orion-text-muted)]" />
             <input
               ref={inputRef}
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search applications, modules, intelligence..."
-              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl py-2.5 pl-10 pr-4 text-[13px] text-white placeholder:text-slate-500 focus:outline-none focus:border-[var(--orion-accent)]/60 focus:bg-white/[0.08] transition-all"
+              className="w-full bg-[var(--os-input-bg,var(--orion-surface))] border border-[var(--orion-border)] rounded-xl py-2.5 pl-10 pr-4 text-[13px] text-[var(--orion-text-primary)] placeholder:text-[var(--orion-text-muted)] focus:outline-none focus:border-[var(--orion-focus-ring)] transition-all"
               onKeyDown={e => {
                 if (e.key === 'Enter' && filteredApps.length > 0) {
                   handleOpen(filteredApps[0].id);
@@ -343,13 +343,13 @@ export function OrionApplicationLauncher() {
               }}
             />
           </div>
-          <div className="flex items-center rounded-xl border border-white/[0.08] bg-white/[0.04] p-0.5 shrink-0" role="group" aria-label="Application view">
+          <div className="flex items-center rounded-xl border border-[var(--orion-border)] bg-[var(--orion-surface)] p-0.5 shrink-0" role="group" aria-label="Application view">
             <button
               type="button"
               aria-label="List view"
               aria-pressed={viewMode === 'list'}
               onClick={() => setViewMode('list')}
-              className={cn("p-2 rounded-lg transition-colors cursor-pointer", viewMode === 'list' ? "bg-white/[0.12] text-white" : "text-slate-400 hover:text-white")}
+              className={cn("p-2 rounded-lg transition-colors cursor-pointer", viewMode === 'list' ? "bg-[var(--orion-accent)] text-[var(--orion-on-accent)]" : "text-[var(--orion-text-muted)] hover:text-[var(--orion-text-primary)]")}
               title="List view"
             >
               <List className="w-4 h-4" />
@@ -359,7 +359,7 @@ export function OrionApplicationLauncher() {
               aria-label="Grid view"
               aria-pressed={viewMode === 'grid'}
               onClick={() => setViewMode('grid')}
-              className={cn("p-2 rounded-lg transition-colors cursor-pointer", viewMode === 'grid' ? "bg-white/[0.12] text-white" : "text-slate-400 hover:text-white")}
+              className={cn("p-2 rounded-lg transition-colors cursor-pointer", viewMode === 'grid' ? "bg-[var(--orion-accent)] text-[var(--orion-on-accent)]" : "text-[var(--orion-text-muted)] hover:text-[var(--orion-text-primary)]")}
               title="Grid view"
             >
               <Grid2X2 className="w-4 h-4" />
@@ -367,7 +367,7 @@ export function OrionApplicationLauncher() {
           </div>
           <button 
             onClick={() => setLauncherOpen(false)}
-            className="p-2 rounded-xl hover:bg-white/[0.08] text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0"
+            className="p-2 rounded-xl hover:bg-[var(--orion-surface-hover)] text-[var(--orion-text-muted)] hover:text-[var(--orion-text-primary)] transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -482,11 +482,11 @@ export function OrionApplicationLauncher() {
             <div className="flex flex-col gap-6 pb-6">
               <div className="flex items-center justify-between px-1">
                 <div>
-                  <h3 className="text-xs font-semibold tracking-wide text-white flex items-center gap-1.5">
+                  <h3 className="text-xs font-semibold tracking-wide text-[var(--orion-text-primary)] flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-purple-400" />
                     <span>Advanced SCM Operating Model</span>
                   </h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5">Full enterprise command towers, intelligence models, and orchestration centers</p>
+                  <p className="text-[11px] text-[var(--orion-text-muted)] mt-0.5">Full enterprise command towers, intelligence models, and orchestration centers</p>
                 </div>
 
                 <button
@@ -503,7 +503,7 @@ export function OrionApplicationLauncher() {
                 if (categoryApps.length === 0) return null;
                 return (
                   <div key={category} className="flex flex-col gap-2">
-                    <h3 className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase px-1">{category}</h3>
+                    <h3 className="text-[11px] font-semibold tracking-wider text-[var(--orion-text-muted)] uppercase px-1">{category}</h3>
                     {viewMode === 'grid' ? (
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
                         {categoryApps.map(app => (
@@ -539,17 +539,17 @@ export function OrionApplicationLauncher() {
         </div>
 
         {/* WINDOWS START MENU FOOTER BAR: USER PROFILE, SETTINGS & POWER */}
-        <div className="flex items-center justify-between px-5 py-3.5 border-t border-white/[0.08] bg-white/[0.02] rounded-b-2xl shrink-0">
+        <div className="flex items-center justify-between px-5 py-3.5 border-t border-[var(--orion-border)] bg-[var(--orion-surface)]/75 rounded-b-2xl shrink-0">
           {/* User Profile */}
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-[var(--orion-accent)]/20 border border-[var(--orion-accent)]/30 flex items-center justify-center text-[var(--orion-accent)] font-semibold text-[13px] shrink-0">
+            <div className="w-8 h-8 rounded-full bg-[var(--orion-accent)] border border-[var(--orion-border-strong)] flex items-center justify-center text-[var(--orion-on-accent)] font-semibold text-[13px] shrink-0">
               {currentUser?.fullName?.charAt(0) || 'U'}
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-[12px] font-semibold text-white truncate">
+              <span className="text-[12px] font-semibold text-[var(--orion-text-primary)] truncate">
                 {currentUser?.fullName || 'Enterprise User'}
               </span>
-              <span className="text-[10px] text-slate-400 truncate capitalize">
+              <span className="text-[10px] text-[var(--orion-text-muted)] truncate capitalize">
                 {currentUser?.role?.replace(/_/g, ' ') || 'User'}
               </span>
             </div>
@@ -561,7 +561,7 @@ export function OrionApplicationLauncher() {
               onClick={() => {
                 handleOpen('settings');
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-slate-300 hover:text-white bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.08] rounded-xl transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-[var(--orion-text-primary)] bg-[var(--orion-surface-elevated)] hover:bg-[var(--orion-surface-hover)] border border-[var(--orion-border)] rounded-xl transition-all cursor-pointer"
               title="Orion Settings"
             >
               <Settings className="w-3.5 h-3.5" />
@@ -573,7 +573,7 @@ export function OrionApplicationLauncher() {
                 setLauncherOpen(false);
                 window.dispatchEvent(new CustomEvent('orion:trigger-power-menu'));
               }}
-              className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/15 border border-transparent hover:border-red-500/30 rounded-xl transition-all cursor-pointer"
+              className="p-2 text-[var(--orion-text-muted)] hover:text-[var(--orion-danger)] hover:bg-red-500/15 border border-transparent hover:border-red-500/30 rounded-xl transition-all cursor-pointer"
               title="Power / Sign Out"
               aria-label="Power / Sign Out"
             >
@@ -646,15 +646,15 @@ function AppGridCard({ app, onClick, onPointerDown, isPinned, pinToDock, unpinFr
       onContextMenu={handleContextMenu}
       onPointerDown={onPointerDown}
       onDragStart={e => e.preventDefault()}
-      className="min-h-[114px] rounded-xl border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] hover:border-white/[0.18] p-3.5 text-left transition-all outline-none group cursor-grab active:cursor-grabbing select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]"
+      className="min-h-[114px] rounded-xl border border-[var(--orion-border)] bg-[var(--orion-surface)] hover:bg-[var(--orion-surface-hover)] hover:border-[var(--orion-border-strong)] p-3.5 text-left transition-all outline-none group cursor-grab active:cursor-grabbing select-none shadow-xs"
     >
       <div className="flex items-start justify-between gap-2 pointer-events-none">
         <OrionAppIcon app={app.id} size={38} className="transition-transform duration-200 group-hover:scale-105 pointer-events-none" />
-        <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-md pointer-events-none", isOpen ? "bg-[var(--orion-accent)]/20 text-[var(--orion-accent)]" : "text-slate-400 bg-white/[0.04]")}>{isOpen ? 'Running' : 'Open'}</span>
+        <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-md pointer-events-none", isOpen ? "bg-[var(--orion-accent)] text-[var(--orion-on-accent)] font-semibold" : "text-[var(--orion-text-muted)] bg-[var(--orion-surface-hover)]")}>{isOpen ? 'Running' : 'Open'}</span>
       </div>
       <div className="mt-2.5 min-w-0 pointer-events-none">
-        <div className="text-[13px] font-semibold text-white truncate pointer-events-none">{app.name}</div>
-        <div className="text-[11px] leading-relaxed text-slate-400 line-clamp-2 mt-0.5 pointer-events-none">{app.description}</div>
+        <div className="text-[13px] font-semibold text-[var(--orion-text-primary)] truncate pointer-events-none">{app.name}</div>
+        <div className="text-[11px] leading-relaxed text-[var(--orion-text-muted)] line-clamp-2 mt-0.5 pointer-events-none">{app.description}</div>
       </div>
     </button>
   );
@@ -697,15 +697,15 @@ function AppRow({ app, onClick, onPointerDown, isPinned, pinToDock, unpinFromDoc
       onContextMenu={handleContextMenu}
       onPointerDown={onPointerDown}
       onDragStart={e => e.preventDefault()}
-      className="flex items-center gap-3.5 group outline-none w-full px-3 py-2.5 bg-white/[0.02] hover:bg-white/[0.07] focus:bg-white/[0.08] border border-transparent hover:border-white/[0.1] rounded-xl transition-all duration-150 cursor-grab active:cursor-grabbing text-left select-none shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+      className="flex items-center gap-3.5 group outline-none w-full px-3 py-2.5 bg-[var(--orion-surface)] hover:bg-[var(--orion-surface-hover)] focus:bg-[var(--orion-surface-hover)] border border-transparent hover:border-[var(--orion-border)] rounded-xl transition-all duration-150 cursor-grab active:cursor-grabbing text-left select-none shadow-xs"
     >
       <OrionAppIcon app={app.id} size={36} className="transition-transform duration-200 group-hover:scale-105 shrink-0 pointer-events-none" />
       
       <div className="flex flex-col items-start min-w-0 flex-1 text-left pointer-events-none">
-        <span className="text-[13px] font-semibold text-white group-hover:text-white transition-colors truncate w-full pointer-events-none">
+        <span className="text-[13px] font-semibold text-[var(--orion-text-primary)] transition-colors truncate w-full pointer-events-none">
           {app.name}
         </span>
-        <span className="text-[11px] text-slate-400 group-hover:text-slate-300 transition-colors truncate w-full pointer-events-none">
+        <span className="text-[11px] text-[var(--orion-text-muted)] group-hover:text-[var(--orion-text-secondary)] transition-colors truncate w-full pointer-events-none">
           {app.description}
         </span>
       </div>
@@ -713,7 +713,7 @@ function AppRow({ app, onClick, onPointerDown, isPinned, pinToDock, unpinFromDoc
       <div className="shrink-0 flex items-center pr-1 pointer-events-none">
         <span className={cn(
           "text-[10px] font-medium tracking-wide px-2.5 py-1 rounded-md transition-colors pointer-events-none",
-          isOpen ? "text-[var(--orion-accent)] bg-[var(--orion-accent)]/20" : "text-slate-400 group-hover:text-slate-200"
+          isOpen ? "text-[var(--orion-on-accent)] bg-[var(--orion-accent)] font-semibold" : "text-[var(--orion-text-muted)] group-hover:text-[var(--orion-text-primary)]"
         )}>
           {isOpen ? 'Running' : 'Open'}
         </span>

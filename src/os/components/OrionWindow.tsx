@@ -14,7 +14,7 @@ import { cn } from '../../lib/utils';
 import { motion, AnimatePresence } from 'motion/react';
 import { dockGeometryRegistry } from '../dock/DockGeometryRegistry';
 import { ORION_SPRING_WINDOW, ORION_SPRING_SMOOTH, isReducedMotionPreferred } from '../motion/OrionMotion';
-import { useSupplyChain } from '../../store/SupplyChainContext';
+import { useOptionalSupplyChain } from '../../store/SupplyChainContext';
 
 interface OrionWindowProps {
   window: AppWindow;
@@ -561,7 +561,7 @@ export const OrionWindow = React.memo(React.forwardRef<HTMLDivElement, OrionWind
   const isMaximized = win.state === 'maximized' || isMobile;
   const isMinimized = win.state === 'minimized';
 
-  const supplyChain = useSupplyChain();
+  const supplyChain = useOptionalSupplyChain();
   const prefersReduced = isReducedMotionPreferred(supplyChain?.settings?.reducedMotion);
   const animationStyle = supplyChain?.settings?.animationStyle || 'premium';
   const genieEnabled = !prefersReduced && (supplyChain?.settings?.genieEffectEnabled ?? true);
@@ -639,9 +639,9 @@ export const OrionWindow = React.memo(React.forwardRef<HTMLDivElement, OrionWind
         !(isDragging || isResizing) && "transition-opacity duration-150",
         isMinimized && "pointer-events-none",
         isMaximized 
-          ? "rounded-none border-none shadow-none bg-[rgba(14,17,23,0.96)]" 
-          : "rounded-[18px] border border-white/[0.14] bg-[rgba(16,19,26,0.94)] shadow-[0_28px_80px_rgba(0,0,0,0.60),0_4px_20px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.20)]",
-        isActive && !isMaximized && "border-white/[0.22] shadow-[0_32px_90px_rgba(0,0,0,0.70),0_6px_24px_rgba(0,0,0,0.40),inset_0_1px_0_rgba(255,255,255,0.28)] opacity-100",
+          ? "rounded-none border-none shadow-none bg-[var(--orion-surface)]" 
+          : "rounded-[18px] border border-[var(--orion-border-strong)] bg-[var(--orion-morph-surface)] shadow-[var(--orion-morph-elevation-modal)]",
+        isActive && !isMaximized && "border-[var(--orion-border-strong)] shadow-[var(--orion-morph-elevation-modal)] opacity-100",
         !isActive && !isMaximized && "opacity-95"
       )}
     >
@@ -663,14 +663,14 @@ export const OrionWindow = React.memo(React.forwardRef<HTMLDivElement, OrionWind
           }
         }}
         style={{
-          backgroundColor: 'var(--orion-surface-elevated, rgba(20, 24, 30, 0.72))',
+          backgroundColor: 'var(--orion-surface-elevated)',
           backdropFilter: 'blur(20px) saturate(145%)',
           WebkitBackdropFilter: 'blur(20px) saturate(145%)',
           mixBlendMode: 'normal',
           isolation: 'isolate',
         }}
         className={cn(
-          "orion-window-titlebar h-[38px] border-b border-white/[0.08] px-3.5 flex items-center justify-between select-none relative z-20 cursor-default",
+          "orion-window-titlebar h-[38px] border-b border-[var(--orion-border)] px-3.5 flex items-center justify-between select-none relative z-20 cursor-default",
           isActive ? "text-[var(--orion-text-primary)]" : "text-[var(--orion-text-muted)] opacity-80"
         )}
       >

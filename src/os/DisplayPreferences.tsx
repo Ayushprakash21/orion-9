@@ -294,7 +294,7 @@ export function DisplayPreferencesControls({
 
   const LockTag = ({ lockKey }: { lockKey: string }) =>
     locked.has(lockKey) ? (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/35 text-amber-300 text-[10px] font-mono">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/40 text-[var(--orion-warning)] text-[10px] font-mono font-semibold">
         <Lock className="w-2.5 h-2.5" />
         Enforced by Organization Policy
       </span>
@@ -310,25 +310,25 @@ export function DisplayPreferencesControls({
         <div className="flex items-center gap-2">
           {syncStatus === 'SAVING' ? (
             <>
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-400" />
-              <span className="text-sky-300 font-medium">Saving preferences...</span>
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--orion-info)]" />
+              <span className="text-[var(--orion-text-primary)] font-medium">Saving preferences...</span>
             </>
           ) : syncStatus === 'SYNCED' ? (
             <>
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="text-emerald-300 font-medium">Synced to cloud (`user_preferences/{effectiveUserId}`)</span>
+              <CheckCircle2 className="w-3.5 h-3.5 text-[var(--orion-success)]" />
+              <span className="text-[var(--orion-success)] font-medium">Synced to cloud (`user_preferences/{effectiveUserId}`)</span>
             </>
           ) : syncStatus === 'PENDING' || (syncStatus === 'LOCAL_ONLY' && (activeEnv === 'LIVE' || activeEnv === 'STAGING')) ? (
             <>
-              <CloudOff className="w-3.5 h-3.5 text-amber-400" />
-              <span className="text-amber-300 font-medium">
+              <CloudOff className="w-3.5 h-3.5 text-[var(--orion-warning)]" />
+              <span className="text-[var(--orion-warning)] font-medium">
                 {syncMessage || 'Offline / pending cloud synchronization — saved locally'}
               </span>
             </>
           ) : syncStatus === 'FAILED' ? (
             <>
-              <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
-              <span className="text-rose-300 font-medium">
+              <AlertTriangle className="w-3.5 h-3.5 text-[var(--orion-danger)]" />
+              <span className="text-[var(--orion-danger)] font-medium">
                 {syncMessage || 'Failed to synchronize to cloud — saved locally'}
               </span>
             </>
@@ -349,7 +349,7 @@ export function DisplayPreferencesControls({
             type="button"
             data-testid="retry-preferences-sync-btn"
             onClick={handleRetrySync}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-[11px] font-medium text-white cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--orion-surface-hover)] hover:bg-[var(--orion-surface-active)] border border-[var(--orion-border-strong)] text-[11px] font-medium text-[var(--orion-text-primary)] cursor-pointer transition-colors"
           >
             <RefreshCw className="w-3 h-3" />
             Retry Sync
@@ -388,12 +388,12 @@ export function DisplayPreferencesControls({
                 locked.has('theme') ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
               } ${
                 effective.theme === t.id
-                  ? 'border-os-accent bg-os-accent/10 text-os-accent font-semibold shadow-sm'
+                  ? 'border-[var(--orion-border-strong)] bg-[var(--orion-accent)] text-[var(--orion-on-accent)] font-semibold shadow-sm'
                   : 'border-os-border bg-os-surface text-os-text-secondary hover:bg-os-surface-hover hover:text-os-text-primary'
               }`}
             >
               <span className="text-sm">{t.label}</span>
-              <span className="text-[10px] text-os-text-muted font-normal">{t.desc}</span>
+              <span className={`text-[10px] font-normal ${effective.theme === t.id ? 'opacity-85' : 'text-os-text-muted'}`}>{t.desc}</span>
             </button>
           ))}
         </div>
@@ -420,7 +420,7 @@ export function DisplayPreferencesControls({
                 locked.has('dockPosition') ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
               } ${
                 effective.dockPosition === pos
-                  ? 'border-os-accent bg-os-accent/10 text-os-accent'
+                  ? 'border-[var(--orion-border-strong)] bg-[var(--orion-accent)] text-[var(--orion-on-accent)] font-semibold shadow-sm'
                   : 'border-os-border bg-os-surface text-os-text-secondary hover:bg-os-surface-hover hover:text-os-text-primary'
               }`}
             >
@@ -441,7 +441,7 @@ export function DisplayPreferencesControls({
                   onClick={() => persistPatch({ dockAutoHide: val })}
                   className={`px-2.5 py-1 rounded text-xs font-medium ${
                     effective.dockAutoHide === val
-                      ? 'bg-os-accent/20 text-os-accent border border-os-accent/40'
+                      ? 'bg-[var(--orion-accent)] text-[var(--orion-on-accent)] border border-[var(--orion-border-strong)] font-semibold'
                       : 'text-os-text-muted hover:text-os-text-primary'
                   }`}
                 >
@@ -463,7 +463,7 @@ export function DisplayPreferencesControls({
                   onClick={() => persistPatch({ showDesktopIcons: val })}
                   className={`px-2.5 py-1 rounded text-xs font-medium ${
                     effective.showDesktopIcons === val
-                      ? 'bg-os-accent/20 text-os-accent border border-os-accent/40'
+                      ? 'bg-[var(--orion-accent)] text-[var(--orion-on-accent)] border border-[var(--orion-border-strong)] font-semibold'
                       : 'text-os-text-muted hover:text-os-text-primary'
                   }`}
                 >
@@ -496,7 +496,7 @@ export function DisplayPreferencesControls({
                 locked.has('dynamicIslandMode') ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'
               } ${
                 effective.dynamicIslandMode === mode
-                  ? 'border-os-accent bg-os-accent/10 text-os-accent'
+                  ? 'border-[var(--orion-border-strong)] bg-[var(--orion-accent)] text-[var(--orion-on-accent)] font-semibold shadow-sm'
                   : 'border-os-border bg-os-surface text-os-text-secondary hover:bg-os-surface-hover hover:text-os-text-primary'
               }`}
             >
@@ -544,7 +544,7 @@ export function DisplayPreferencesControls({
               onClick={() => persistPatch({ displayScale: value })}
               className={`h-10 rounded-md border text-xs font-medium transition-colors ${
                 effective.displayScale === value
-                  ? 'border-os-accent bg-os-accent/10 text-os-accent'
+                  ? 'border-[var(--orion-border-strong)] bg-[var(--orion-accent)] text-[var(--orion-on-accent)] font-semibold shadow-sm'
                   : 'border-os-border bg-os-surface text-os-text-secondary hover:bg-os-surface-hover hover:text-os-text-primary'
               }`}
             >
@@ -629,7 +629,7 @@ export function DisplayPreferencesControls({
               style={{ fontFamily: FONT_STACKS[font] }}
               className={`h-11 rounded-md border text-sm transition-colors ${
                 effective.fontFamily === font
-                  ? 'border-os-accent bg-os-accent/10 text-os-accent'
+                  ? 'border-[var(--orion-border-strong)] bg-[var(--orion-accent)] text-[var(--orion-on-accent)] font-semibold shadow-sm'
                   : 'border-os-border bg-os-surface text-os-text-secondary hover:bg-os-surface-hover hover:text-os-text-primary'
               }`}
             >

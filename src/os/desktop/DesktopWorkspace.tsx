@@ -1681,7 +1681,7 @@ export function DesktopWorkspace() {
               <button
                 type="button"
                 onClick={handleExecuteRename}
-                className="px-4 py-2 rounded-lg bg-os-accent text-white font-semibold text-xs min-h-[44px]"
+                className="px-4 py-2 rounded-lg bg-[var(--orion-accent)] text-[var(--orion-on-accent)] border border-[var(--orion-border-strong)] font-semibold text-xs min-h-[44px] cursor-pointer"
               >
                 Rename
               </button>

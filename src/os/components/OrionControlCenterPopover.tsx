@@ -116,23 +116,23 @@ export function OrionControlCenterPopover({ isOpen, onClose }: OrionControlCente
     <div
       ref={popoverRef}
       data-testid="orion-control-center-popover"
-      className="fixed sm:absolute right-2 sm:right-12 top-[calc(env(safe-area-inset-top,0px)+46px)] sm:top-[calc(100%+6px)] w-[min(calc(100vw-16px),340px)] z-50 bg-[#161a22]/90 backdrop-blur-2xl border border-white/[0.14] rounded-2xl shadow-2xl p-3 flex flex-col gap-2.5 text-white select-none animate-in fade-in zoom-in-95"
+      className="fixed sm:absolute right-2 sm:right-12 top-[calc(env(safe-area-inset-top,0px)+46px)] sm:top-[calc(100%+6px)] w-[min(calc(100vw-16px),340px)] z-50 bg-[var(--orion-morph-surface-elevated)] backdrop-blur-2xl border border-[var(--orion-border-strong)] rounded-2xl shadow-[var(--orion-morph-elevation-modal)] p-3 flex flex-col gap-2.5 text-[var(--orion-text-primary)] select-none animate-in fade-in zoom-in-95"
     >
       {/* 2x2 Grid of Quick Modules */}
       <div className="grid grid-cols-2 gap-2">
         {/* Module 1: Network & Database */}
-        <div className="p-2.5 rounded-xl bg-white/[0.06] border border-white/10 flex flex-col justify-between h-[84px]">
+        <div className="p-2.5 rounded-xl bg-[var(--orion-surface)] border border-[var(--orion-border)] flex flex-col justify-between h-[84px]">
           <div className="flex items-center justify-between">
-            <span className="text-[11px] font-semibold text-white/70 uppercase tracking-wider">Network</span>
-            <div className="w-6 h-6 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+            <span className="text-[11px] font-semibold text-[var(--orion-text-secondary)] uppercase tracking-wider">Network</span>
+            <div className="w-6 h-6 rounded-lg bg-emerald-500/15 text-emerald-500 flex items-center justify-center">
               <Wifi className="w-3.5 h-3.5" />
             </div>
           </div>
           <div>
-            <div className="text-xs font-medium text-white truncate">Connected</div>
-            <div className="text-[10px] text-white/50 flex items-center gap-1 mt-0.5">
-              <Database className="w-2.5 h-2.5 text-cyan-400" />
-              <span>ENV: <strong className="text-white/80">{currentEnv}</strong></span>
+            <div className="text-xs font-medium text-[var(--orion-text-primary)] truncate">Connected</div>
+            <div className="text-[10px] text-[var(--orion-text-muted)] flex items-center gap-1 mt-0.5">
+              <Database className="w-2.5 h-2.5 text-[var(--orion-info)]" />
+              <span>ENV: <strong className="text-[var(--orion-text-primary)]">{currentEnv}</strong></span>
             </div>
           </div>
         </div>
@@ -144,24 +144,24 @@ export function OrionControlCenterPopover({ isOpen, onClose }: OrionControlCente
           className={cn(
             "p-2.5 rounded-xl border flex flex-col justify-between h-[84px] text-left transition-all cursor-pointer",
             isFocusMode
-              ? "bg-purple-600/30 border-purple-400/50 shadow-md shadow-purple-900/30"
-              : "bg-white/[0.06] border-white/10 hover:bg-white/[0.10]"
+              ? "bg-purple-600/20 border-purple-500/50 shadow-sm"
+              : "bg-[var(--orion-surface)] border-[var(--orion-border)] hover:bg-[var(--orion-surface-hover)]"
           )}
         >
           <div className="flex items-center justify-between w-full">
-            <span className="text-[11px] font-semibold text-white/70 uppercase tracking-wider">Focus</span>
+            <span className="text-[11px] font-semibold text-[var(--orion-text-secondary)] uppercase tracking-wider">Focus</span>
             <div className={cn(
               "w-6 h-6 rounded-lg flex items-center justify-center transition-colors",
-              isFocusMode ? "bg-purple-500 text-white" : "bg-white/10 text-white/70"
+              isFocusMode ? "bg-purple-600 text-white" : "bg-[var(--orion-surface-hover)] text-[var(--orion-text-secondary)]"
             )}>
               {isFocusMode ? <BellOff className="w-3.5 h-3.5" /> : <Bell className="w-3.5 h-3.5" />}
             </div>
           </div>
           <div>
-            <div className="text-xs font-medium text-white">
+            <div className="text-xs font-medium text-[var(--orion-text-primary)]">
               {isFocusMode ? 'Do Not Disturb' : 'Notifications On'}
             </div>
-            <div className="text-[10px] text-white/50 mt-0.5">
+            <div className="text-[10px] text-[var(--orion-text-muted)] mt-0.5">
               {isFocusMode ? 'Muting Alerts' : 'Normal Priority'}
             </div>
           </div>
@@ -171,19 +171,19 @@ export function OrionControlCenterPopover({ isOpen, onClose }: OrionControlCente
         <button
           type="button"
           onClick={toggleAppearance}
-          className="p-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] border border-white/10 flex flex-col justify-between h-[84px] text-left transition-all cursor-pointer col-span-2 sm:col-span-1"
+          className="p-2.5 rounded-xl bg-[var(--orion-surface)] hover:bg-[var(--orion-surface-hover)] border border-[var(--orion-border)] flex flex-col justify-between h-[84px] text-left transition-all cursor-pointer col-span-2 sm:col-span-1"
         >
           <div className="flex items-center justify-between w-full">
-            <span className="text-[11px] font-semibold text-white/70 uppercase tracking-wider">Theme</span>
-            <div className="w-6 h-6 rounded-lg bg-white/10 text-white/80 flex items-center justify-center">
-              {isDark ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5 text-amber-300" />}
+            <span className="text-[11px] font-semibold text-[var(--orion-text-secondary)] uppercase tracking-wider">Theme</span>
+            <div className="w-6 h-6 rounded-lg bg-[var(--orion-surface-hover)] text-[var(--orion-text-primary)] flex items-center justify-center">
+              {isDark ? <Moon className="w-3.5 h-3.5" /> : <Sun className="w-3.5 h-3.5 text-amber-600" />}
             </div>
           </div>
           <div>
-            <div className="text-xs font-medium text-white">
+            <div className="text-xs font-medium text-[var(--orion-text-primary)]">
               {isDark ? 'Dark Surface' : 'Light Surface'}
             </div>
-            <div className="text-[10px] text-white/50 capitalize mt-0.5">
+            <div className="text-[10px] text-[var(--orion-text-muted)] capitalize mt-0.5">
               Theme: {preferences.themeId}
             </div>
           </div>
@@ -196,30 +196,30 @@ export function OrionControlCenterPopover({ isOpen, onClose }: OrionControlCente
             onClose();
             toggleMissionControl();
           }}
-          className="p-2.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.10] border border-white/10 flex flex-col justify-between h-[84px] text-left transition-all cursor-pointer col-span-2 sm:col-span-1"
+          className="p-2.5 rounded-xl bg-[var(--orion-surface)] hover:bg-[var(--orion-surface-hover)] border border-[var(--orion-border)] flex flex-col justify-between h-[84px] text-left transition-all cursor-pointer col-span-2 sm:col-span-1"
         >
           <div className="flex items-center justify-between w-full">
-            <span className="text-[11px] font-semibold text-white/70 uppercase tracking-wider">Spaces</span>
-            <div className="w-6 h-6 rounded-lg bg-white/10 text-white/80 flex items-center justify-center">
+            <span className="text-[11px] font-semibold text-[var(--orion-text-secondary)] uppercase tracking-wider">Spaces</span>
+            <div className="w-6 h-6 rounded-lg bg-[var(--orion-surface-hover)] text-[var(--orion-text-primary)] flex items-center justify-center">
               <Layers className="w-3.5 h-3.5" />
             </div>
           </div>
           <div>
-            <div className="text-xs font-medium text-white">Mission Control</div>
-            <div className="text-[10px] text-white/50 mt-0.5">Switch & Manage Desktops</div>
+            <div className="text-xs font-medium text-[var(--orion-text-primary)]">Mission Control</div>
+            <div className="text-[10px] text-[var(--orion-text-muted)] mt-0.5">Switch & Manage Desktops</div>
           </div>
         </button>
       </div>
 
       {/* Sliders: Display Brightness & Sound Volume */}
-      <div className="flex flex-col gap-2 p-2.5 rounded-xl bg-white/[0.06] border border-white/10">
+      <div className="flex flex-col gap-2 p-2.5 rounded-xl bg-[var(--orion-surface)] border border-[var(--orion-border)]">
         {/* Brightness */}
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between text-[11px] text-white/70">
+          <div className="flex items-center justify-between text-[11px] text-[var(--orion-text-secondary)]">
             <span className="flex items-center gap-1.5 font-medium">
-              <Sun className="w-3.5 h-3.5 text-amber-300" /> Display Brightness
+              <Sun className="w-3.5 h-3.5 text-amber-500" /> Display Brightness
             </span>
-            <span className="font-mono text-[10px] text-white/50">{brightness}%</span>
+            <span className="font-mono text-[10px] text-[var(--orion-text-muted)]">{brightness}%</span>
           </div>
           <input
             type="range"
@@ -227,28 +227,28 @@ export function OrionControlCenterPopover({ isOpen, onClose }: OrionControlCente
             max="120"
             value={brightness}
             onChange={(e) => setBrightness(Number(e.target.value))}
-            className="w-full accent-white/90 h-1.5 bg-white/20 rounded-lg cursor-pointer"
+            className="w-full accent-[var(--orion-accent)] h-1.5 bg-[var(--orion-surface-active)] rounded-lg cursor-pointer"
           />
         </div>
 
-        <div className="h-px bg-white/10 my-1" />
+        <div className="h-px bg-[var(--orion-border)] my-1" />
 
         {/* Sound Volume */}
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-center justify-between text-[11px] text-white/70">
+          <div className="flex items-center justify-between text-[11px] text-[var(--orion-text-secondary)]">
             <button
               type="button"
               onClick={toggleMute}
-              className="flex items-center gap-1.5 font-medium hover:text-white transition-colors"
+              className="flex items-center gap-1.5 font-medium hover:text-[var(--orion-text-primary)] transition-colors cursor-pointer"
             >
               {isMuted || volume === 0 ? (
-                <VolumeX className="w-3.5 h-3.5 text-red-400" />
+                <VolumeX className="w-3.5 h-3.5 text-[var(--orion-danger)]" />
               ) : (
-                <Volume2 className="w-3.5 h-3.5 text-white/80" />
+                <Volume2 className="w-3.5 h-3.5 text-[var(--orion-text-primary)]" />
               )}
               Sound Volume
             </button>
-            <span className="font-mono text-[10px] text-white/50">{effectiveVolume}%</span>
+            <span className="font-mono text-[10px] text-[var(--orion-text-muted)]">{effectiveVolume}%</span>
           </div>
           <input
             type="range"
@@ -259,7 +259,7 @@ export function OrionControlCenterPopover({ isOpen, onClose }: OrionControlCente
               if (isMuted) setIsMuted(false);
               setVolume(Number(e.target.value));
             }}
-            className="w-full accent-white/90 h-1.5 bg-white/20 rounded-lg cursor-pointer"
+            className="w-full accent-[var(--orion-accent)] h-1.5 bg-[var(--orion-surface-active)] rounded-lg cursor-pointer"
           />
         </div>
       </div>
@@ -272,9 +272,9 @@ export function OrionControlCenterPopover({ isOpen, onClose }: OrionControlCente
             onClose();
             openApplication('settings');
           }}
-          className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-medium text-white transition-colors"
+          className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[var(--orion-surface)] hover:bg-[var(--orion-surface-hover)] border border-[var(--orion-border)] text-xs font-medium text-[var(--orion-text-primary)] transition-colors cursor-pointer"
         >
-          <Settings className="w-3.5 h-3.5 text-white/70" />
+          <Settings className="w-3.5 h-3.5 text-[var(--orion-text-secondary)]" />
           Settings
         </button>
 
@@ -284,9 +284,9 @@ export function OrionControlCenterPopover({ isOpen, onClose }: OrionControlCente
             onClose();
             openApplication('file-manager');
           }}
-          className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-medium text-white transition-colors"
+          className="flex items-center justify-center gap-2 py-2 px-3 rounded-xl bg-[var(--orion-surface)] hover:bg-[var(--orion-surface-hover)] border border-[var(--orion-border)] text-xs font-medium text-[var(--orion-text-primary)] transition-colors cursor-pointer"
         >
-          <Folder className="w-3.5 h-3.5 text-amber-300" />
+          <Folder className="w-3.5 h-3.5 text-amber-500" />
           Files
         </button>
       </div>

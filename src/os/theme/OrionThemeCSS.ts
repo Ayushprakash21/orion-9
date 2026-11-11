@@ -1,55 +1,13 @@
 import { OrionTheme, OrionAppearancePreferences, OrionCornerRadius } from './OrionThemeTypes';
 import { computeMorphismTokens } from './OrionMorphismTokens';
+import {
+  calculateContrastColor,
+  adjustHexBrightness,
+  hexToRgba,
+  resolveAccessibleAccentStates,
+} from './OrionContrast';
 
-/**
- * Calculates WCAG relative luminance to determine optimal foreground text color (#FFFFFF or #0F172A).
- */
-export function calculateContrastColor(hexColor: string): string {
-  let hex = hexColor.replace('#', '');
-  if (hex.length === 3) {
-    hex = hex.split('').map(c => c + c).join('');
-  }
-  if (hex.length !== 6) return '#FFFFFF';
-
-  const r = parseInt(hex.substring(0, 2), 16) / 255;
-  const g = parseInt(hex.substring(2, 4), 16) / 255;
-  const b = parseInt(hex.substring(4, 6), 16) / 255;
-
-  const toLinear = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
-  const luminance = 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
-
-  return luminance > 0.45 ? '#0F172A' : '#FFFFFF';
-}
-
-/**
- * Lightens or darkens a hex color for hover/subtle states.
- */
-export function adjustHexBrightness(hexColor: string, percent: number): string {
-  let hex = hexColor.replace('#', '');
-  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-  if (hex.length !== 6) return hexColor;
-
-  const num = parseInt(hex, 16);
-  const amt = Math.round(2.55 * percent);
-  const R = Math.min(255, Math.max(0, (num >> 16) + amt));
-  const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
-  const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
-
-  return `#${(1 << 24 | R << 16 | G << 8 | B).toString(16).slice(1)}`;
-}
-
-/**
- * Converts a hex color to an rgba string with specified opacity.
- */
-export function hexToRgba(hexColor: string, alpha: number): string {
-  let hex = hexColor.replace('#', '');
-  if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
-  if (hex.length !== 6) return `rgba(216, 221, 227, ${alpha})`;
-  const r = parseInt(hex.substring(0, 2), 16);
-  const g = parseInt(hex.substring(2, 4), 16);
-  const b = parseInt(hex.substring(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
+export { calculateContrastColor, adjustHexBrightness, hexToRgba };
 
 /**
  * Maps corner radius preset to actual pixel value
@@ -108,6 +66,8 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   root.style.setProperty('--orion-surface-elevated', theme.colors.surfaceElevated);
   root.style.setProperty('--orion-surface-hover', theme.colors.surfaceHover);
   root.style.setProperty('--orion-surface-active', theme.colors.surfaceActive);
+  root.style.setProperty('--orion-card-bg', theme.colors.surfaceElevated);
+  root.style.setProperty('--orion-window-header-bg', theme.colors.surfaceElevated);
 
   root.style.setProperty('--orion-text', theme.colors.textPrimary);
   root.style.setProperty('--orion-text-primary', theme.colors.textPrimary);
@@ -115,7 +75,10 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   root.style.setProperty('--orion-text-muted', theme.colors.textMuted);
   root.style.setProperty('--orion-text-disabled', theme.colors.textDisabled);
 
+  const isDark = theme.appearance.mode === 'dark';
+  const subtleBorder = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(15, 23, 42, 0.06)';
   root.style.setProperty('--orion-border', theme.colors.border);
+  root.style.setProperty('--orion-border-subtle', subtleBorder);
   root.style.setProperty('--orion-border-strong', theme.colors.borderStrong);
 
   // Synchronize OS aliases for complete shell compatibility
@@ -125,47 +88,64 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   root.style.setProperty('--os-surface-elevated', theme.colors.surfaceElevated);
   root.style.setProperty('--os-surface-hover', theme.colors.surfaceHover);
   root.style.setProperty('--os-surface-active', theme.colors.surfaceActive);
+  root.style.setProperty('--os-input-bg', isDark ? theme.colors.surface : '#FFFFFF');
   root.style.setProperty('--os-text-primary', theme.colors.textPrimary);
   root.style.setProperty('--os-text-secondary', theme.colors.textSecondary);
   root.style.setProperty('--os-text-muted', theme.colors.textMuted);
   root.style.setProperty('--os-text-disabled', theme.colors.textDisabled);
   root.style.setProperty('--os-border', theme.colors.border);
+  root.style.setProperty('--os-border-subtle', subtleBorder);
   root.style.setProperty('--os-border-strong', theme.colors.borderStrong);
 
-  // ── ACCENT RESOLUTION & LIVE PROPAGATION ───────────────────────────────────
-  const isDark = theme.appearance.mode === 'dark';
-  const accent = (preferences.customAccentEnabled && preferences.customAccent) 
-    ? preferences.customAccent 
+  // ── ACCENT RESOLUTION & LIVE WCAG CONTRAST PROPAGATION ───────────────────
+  const requestedAccent = (preferences.customAccentEnabled && preferences.customAccent)
+    ? preferences.customAccent
     : theme.colors.accent;
 
-  const accentForeground = calculateContrastColor(accent);
-  const accentHover = adjustHexBrightness(accent, isDark ? 12 : -12);
-  const accentActive = adjustHexBrightness(accent, isDark ? 20 : -20);
-  const accentSoft = hexToRgba(accent, 0.15);
-  const accentFocusGlow = hexToRgba(accent, 0.40);
+  const accentState = resolveAccessibleAccentStates(requestedAccent, theme.appearance.mode, theme.colors.surface);
 
-  root.style.setProperty('--orion-accent', accent);
-  root.style.setProperty('--orion-accent-hover', accentHover);
-  root.style.setProperty('--orion-accent-active', accentActive);
-  root.style.setProperty('--orion-accent-muted', accentSoft);
-  root.style.setProperty('--orion-accent-soft', accentSoft);
-  root.style.setProperty('--orion-accent-subtle', accentSoft);
-  root.style.setProperty('--orion-accent-foreground', accentForeground);
-  root.style.setProperty('--orion-accent-glow', accentFocusGlow);
-  root.style.setProperty('--orion-on-accent', accentForeground);
-  root.style.setProperty('--os-accent', accent);
-  root.style.setProperty('--os-accent-subtle', accentSoft);
-  root.style.setProperty('--orion-focus', accentFocusGlow);
-  root.style.setProperty('--orion-focus-ring', accent);
+  root.style.setProperty('--orion-accent', accentState.accent);
+  root.style.setProperty('--orion-accent-hover', accentState.hover);
+  root.style.setProperty('--orion-accent-active', accentState.active);
+  root.style.setProperty('--orion-accent-muted', accentState.soft);
+  root.style.setProperty('--orion-accent-soft', accentState.soft);
+  root.style.setProperty('--orion-accent-subtle', accentState.soft);
+  root.style.setProperty('--orion-accent-foreground', accentState.foreground);
+  root.style.setProperty('--orion-accent-glow', accentState.focusGlow);
+  root.style.setProperty('--orion-on-accent', accentState.foreground);
+  root.style.setProperty('--os-accent', accentState.accent);
+  root.style.setProperty('--os-accent-subtle', accentState.soft);
+  root.style.setProperty('--os-on-accent', accentState.foreground);
+  root.style.setProperty('--os-text-primary-inverse', accentState.foreground);
+  root.style.setProperty('--orion-focus', accentState.focusGlow);
+  root.style.setProperty('--orion-focus-ring', accentState.focusRing);
 
-  // Status colors
+  // Status & Semantic Button Foregrounds
+  const dangerFg = calculateContrastColor(theme.colors.danger, { backingColor: theme.colors.surface });
+  const successFg = calculateContrastColor(theme.colors.success, { backingColor: theme.colors.surface });
+  const warningFg = calculateContrastColor(theme.colors.warning, { backingColor: theme.colors.surface });
   root.style.setProperty('--orion-success', theme.colors.success);
+  root.style.setProperty('--orion-success-foreground', successFg);
   root.style.setProperty('--orion-warning', theme.colors.warning);
+  root.style.setProperty('--orion-warning-foreground', warningFg);
   root.style.setProperty('--orion-danger', theme.colors.danger);
+  root.style.setProperty('--orion-danger-foreground', dangerFg);
   root.style.setProperty('--orion-critical', theme.colors.danger);
   root.style.setProperty('--orion-info', theme.colors.info);
 
+  // Topbar / Chrome Surface Tokens
+  root.style.setProperty(
+    '--orion-topbar-bg',
+    isDark ? 'rgba(18, 22, 28, 0.80)' : 'rgba(249, 250, 251, 0.90)'
+  );
+  root.style.setProperty(
+    '--orion-topbar-border',
+    isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.10)'
+  );
+
   // ── DOCK TOKENS (THEME & ACCENT UNIFIED) ───────────────────────────────────
+  const accent = accentState.accent;
+  const accentSoft = accentState.soft;
   const dockSurface = theme.colors.dockBg || theme.colors.surfaceElevated;
   const dockBorder = theme.colors.dockBorder || theme.colors.borderStrong;
   const dockShadow = theme.colors.dockShadow || '0 20px 48px rgba(0, 0, 0, 0.50)';

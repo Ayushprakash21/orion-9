@@ -1178,7 +1178,7 @@ export function OrionBrowser() {
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(false)}
-                className="px-4 py-2 rounded-xl bg-os-accent hover:opacity-90 text-os-bg text-xs font-medium transition-all cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-os-accent hover:opacity-90 text-[var(--orion-on-accent)] text-xs font-medium transition-all cursor-pointer"
               >
                 Done
               </button>
@@ -1236,7 +1236,7 @@ export function OrionBrowser() {
                   href="/api/download/desktop"
                   download="Orion-9-Setup.exe"
                   onClick={() => setIsInstallModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-os-accent text-os-bg font-medium hover:opacity-90 transition-opacity cursor-pointer text-center"
+                  className="px-4 py-2 rounded-xl bg-os-accent text-[var(--orion-on-accent)] font-medium hover:opacity-90 transition-opacity cursor-pointer text-center"
                 >
                   Download Installer (.exe)
                 </a>

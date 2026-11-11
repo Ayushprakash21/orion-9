@@ -36,7 +36,7 @@ export const Card: React.FC<CardProps> = ({
         'rounded-[12px] border overflow-hidden box-border transition-all duration-200 relative',
         variantStyles,
         hoverEffect &&
-          'hover:border-white/20 hover:shadow-[0_8px_24px_rgba(0,0,0,0.25)] hover:-translate-y-0.5',
+          'hover:border-[var(--orion-border-strong)] hover:shadow-[var(--orion-morph-shadow)] hover:-translate-y-0.5',
         className
       )}
       {...props}
@@ -58,7 +58,7 @@ export const CardHeader: React.FC<
     return (
       <div
         className={cn(
-          'p-4 sm:p-5 border-b border-white/[0.06] flex justify-between items-center gap-4',
+          'p-4 sm:p-5 border-b border-[var(--orion-border)] flex justify-between items-center gap-4',
           className
         )}
         {...props}
@@ -71,7 +71,7 @@ export const CardHeader: React.FC<
   return (
     <div
       className={cn(
-        'p-4 sm:p-5 border-b border-white/[0.06] flex flex-col sm:flex-row sm:items-center justify-between gap-3',
+        'p-4 sm:p-5 border-b border-[var(--orion-border)] flex flex-col sm:flex-row sm:items-center justify-between gap-3',
         className
       )}
       {...props}

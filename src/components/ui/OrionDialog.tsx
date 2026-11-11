@@ -70,25 +70,25 @@ export const OrionDialog: React.FC<OrionDialogProps> = ({
           >
             <LiquidGlass
               tier="modal"
-              className="rounded-[18px] text-[var(--orion-text-primary,#F2F2EF)] shadow-[0_32px_80px_rgba(0,0,0,0.65)] overflow-hidden flex flex-col"
+              className="rounded-[18px] text-[var(--orion-text-primary)] shadow-[var(--orion-morph-elevation-modal)] overflow-hidden flex flex-col"
             >
               {/* Header */}
               {(title || icon) && (
-                <div className="flex items-center justify-between px-5 py-3.5 border-b border-white/[0.06] bg-white/[0.02]">
+                <div className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--orion-border)] bg-[var(--orion-surface-elevated)]/60">
                   <div className="flex items-center gap-3 min-w-0">
                     {icon && (
-                      <div className="p-1.5 rounded-lg bg-[var(--orion-accent,#0071E3)]/15 border border-[var(--orion-accent,#0071E3)]/25 text-[var(--orion-accent,#0071E3)] shrink-0">
+                      <div className="p-1.5 rounded-lg bg-[var(--orion-accent-soft)] border border-[var(--orion-border-strong)] text-[var(--orion-text-primary)] shrink-0">
                         {icon}
                       </div>
                     )}
                     <div className="min-w-0">
                       {title && (
-                        <h3 className="text-sm font-semibold text-[var(--orion-text-primary,#F2F2EF)] tracking-tight truncate">
+                        <h3 className="text-sm font-semibold text-[var(--orion-text-primary)] tracking-tight truncate">
                           {title}
                         </h3>
                       )}
                       {subtitle && (
-                        <p className="text-[11px] text-[var(--orion-text-muted,#747875)] mt-0.5 truncate">
+                        <p className="text-[11px] text-[var(--orion-text-muted)] mt-0.5 truncate">
                           {subtitle}
                         </p>
                       )}
@@ -97,7 +97,7 @@ export const OrionDialog: React.FC<OrionDialogProps> = ({
                   <button
                     type="button"
                     onClick={onClose}
-                    className="p-1 rounded-[5px] text-[var(--orion-text-muted,#747875)] hover:text-white hover:bg-white/10 transition-colors cursor-pointer ml-3 shrink-0"
+                    className="p-1 rounded-[5px] text-[var(--orion-text-muted)] hover:text-[var(--orion-text-primary)] hover:bg-[var(--orion-surface-hover)] transition-colors cursor-pointer ml-3 shrink-0"
                     aria-label="Close dialog"
                   >
                     <X className="w-4 h-4" />
@@ -112,7 +112,7 @@ export const OrionDialog: React.FC<OrionDialogProps> = ({
 
               {/* Footer */}
               {footer && (
-                <div className="px-5 py-3 border-t border-white/[0.06] bg-white/[0.02] flex items-center justify-end gap-2.5 shrink-0">
+                <div className="px-5 py-3 border-t border-[var(--orion-border)] bg-[var(--orion-surface)]/70 flex items-center justify-end gap-2.5 shrink-0">
                   {footer}
                 </div>
               )}

@@ -169,7 +169,7 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
   const activeApp = activeAppId ? ORION_REGISTRY[activeAppId] : null;
 
   return (
-    <header className="orion-global-topbar relative top-auto left-auto right-auto h-[44px] min-h-[44px] w-full z-[10000] flex items-center justify-between px-3 md:px-4 text-[12px] font-medium text-[var(--orion-text-secondary)] select-none bg-[rgba(18,22,28,0.72)] backdrop-blur-[20px] backdrop-saturate-[150%] border-b border-white/[0.08] shadow-[0_2px_12px_rgba(0,0,0,0.25)] pointer-events-auto shrink-0 transition-colors">
+    <header className="orion-global-topbar relative top-auto left-auto right-auto h-[44px] min-h-[44px] w-full z-[10000] flex items-center justify-between px-3 md:px-4 text-[12px] font-medium text-[var(--orion-text-secondary)] select-none bg-[var(--orion-topbar-bg)] backdrop-blur-[20px] backdrop-saturate-[150%] border-b border-[var(--orion-topbar-border)] shadow-[0_2px_12px_rgba(0,0,0,0.12)] pointer-events-auto shrink-0 transition-colors">
       
       {/* LEFT: ORION HOME BUTTON & MENU */}
       <div className="flex items-center h-full min-w-0 gap-1.5" ref={menuRef}>
@@ -178,8 +178,8 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
           onClick={() => setMenuOpen(!menuOpen)}
           data-testid="orion-brand-trigger-btn"
           className={cn(
-            "flex items-center h-[28px] px-2 gap-2 hover:bg-white/[0.08] hover:text-[var(--orion-text-primary)] transition-all cursor-pointer rounded-lg shrink-0 group",
-            menuOpen && "bg-white/[0.12] text-[var(--orion-text-primary)]"
+            "flex items-center h-[28px] px-2 gap-2 hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] transition-all cursor-pointer rounded-lg shrink-0 group",
+            menuOpen && "bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)]"
           )}
           title="Orion System Menu"
           aria-label="Open ORION System Menu"
@@ -212,7 +212,7 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
           onClick={() => {
             window.dispatchEvent(new CustomEvent('orion:desktop-refresh', { detail: { timestamp: Date.now() } }));
           }}
-          className="hidden sm:flex items-center justify-center w-7 h-7 text-[var(--orion-text-muted)] hover:bg-white/[0.08] hover:text-[var(--orion-text-primary)] transition-colors cursor-pointer rounded-lg"
+          className="hidden sm:flex items-center justify-center w-7 h-7 text-[var(--orion-text-muted)] hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] transition-colors cursor-pointer rounded-lg"
           title="Refresh State"
         >
           <RefreshCw className="w-3.5 h-3.5" />
@@ -229,7 +229,7 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
               }
             }
           }}
-          className="hidden md:flex items-center justify-center w-7 h-7 text-[var(--orion-text-muted)] hover:bg-white/[0.08] hover:text-[var(--orion-text-primary)] transition-colors cursor-pointer rounded-lg"
+          className="hidden md:flex items-center justify-center w-7 h-7 text-[var(--orion-text-muted)] hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] transition-colors cursor-pointer rounded-lg"
           title="Toggle Fullscreen"
         >
           <Maximize2 className="w-3.5 h-3.5" />
@@ -251,7 +251,7 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
         <button 
           onClick={() => openApplication('ai-copilot')}
           data-testid="orion-copilot-button"
-          className="flex items-center gap-1.5 px-2.5 h-[28px] text-[var(--orion-text-primary)] hover:bg-white/[0.08] active:bg-white/[0.12] border border-white/[0.10] rounded-lg transition-all cursor-pointer text-[11px] font-medium shadow-xs backdrop-blur-sm"
+          className="flex items-center gap-1.5 px-2.5 h-[28px] text-[var(--orion-text-primary)] bg-[var(--orion-surface-elevated)]/70 hover:bg-[var(--orion-surface-hover)] active:bg-[var(--orion-surface-active)] border border-[var(--orion-border)] rounded-lg transition-all cursor-pointer text-[11px] font-medium shadow-xs backdrop-blur-sm"
           title="Open Orion AI Copilot"
           aria-label="Open Orion AI Copilot"
           type="button"
@@ -263,7 +263,7 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
         {/* Global Search */}
         <button 
           onClick={() => setCommandPaletteOpen(true)}
-          className="flex items-center justify-center w-7 h-7 hover:bg-white/[0.08] hover:text-[var(--orion-text-primary)] rounded-lg transition-colors text-[var(--orion-text-muted)] cursor-pointer"
+          className="flex items-center justify-center w-7 h-7 hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] rounded-lg transition-colors text-[var(--orion-text-muted)] cursor-pointer"
           title="Search (Cmd+K)"
         >
           <Search className="w-3.5 h-3.5" />
@@ -275,9 +275,9 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
             type="button"
             onClick={() => setNotificationsOpen(v => !v)}
             className={cn(
-              "relative flex items-center justify-center w-7 h-7 hover:bg-white/[0.08] hover:text-[var(--orion-text-primary)] rounded-lg transition-colors cursor-pointer outline-none",
-              hasCriticalExceptions ? "text-rose-400" : "text-[var(--orion-text-muted)]",
-              notificationsOpen && "bg-white/[0.12] text-[var(--orion-text-primary)]"
+              "relative flex items-center justify-center w-7 h-7 hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] rounded-lg transition-colors cursor-pointer outline-none",
+              hasCriticalExceptions ? "text-[var(--orion-danger)]" : "text-[var(--orion-text-muted)]",
+              notificationsOpen && "bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)]"
             )}
             title={hasCriticalExceptions ? "Critical exceptions detected" : "Notifications"}
             aria-label="Notifications"
@@ -294,7 +294,7 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
             )}
           </button>
           {notificationsOpen && (
-            <div className="notification-popover fixed sm:absolute right-2 sm:right-0 top-[calc(env(safe-area-inset-top,0px)+46px)] sm:top-[calc(100%+6px)] w-[min(calc(100vw-16px),420px)] max-h-[calc(100dvh-120px)] sm:max-h-[480px] z-40 bg-[#161a22]/90 backdrop-blur-2xl border border-white/[0.12] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
+            <div className="notification-popover fixed sm:absolute right-2 sm:right-0 top-[calc(env(safe-area-inset-top,0px)+46px)] sm:top-[calc(100%+6px)] w-[min(calc(100vw-16px),420px)] max-h-[calc(100dvh-120px)] sm:max-h-[480px] z-40 bg-[var(--orion-morph-surface-elevated)] backdrop-blur-2xl border border-[var(--orion-border-strong)] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
               <NotificationCenter isOpen={true} onClose={() => setNotificationsOpen(false)} />
             </div>
           )}
@@ -306,9 +306,9 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
             type="button"
             onClick={() => setNetworkOpen(v => !v)}
             className={cn(
-              "relative flex items-center justify-center w-7 h-7 hover:bg-white/[0.08] rounded-lg transition-colors cursor-pointer outline-none",
-              isOnline ? (isLocalMode ? "text-amber-400" : "text-emerald-400") : "text-red-400",
-              networkOpen && "bg-white/[0.12] text-[var(--orion-text-primary)]"
+              "relative flex items-center justify-center w-7 h-7 hover:bg-[var(--orion-surface-hover)] rounded-lg transition-colors cursor-pointer outline-none",
+              isOnline ? (isLocalMode ? "text-amber-500" : "text-emerald-500") : "text-red-500",
+              networkOpen && "bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)]"
             )}
             title={statusLabel}
             aria-label="Network Connections"
@@ -325,8 +325,8 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
             data-testid="control-center-toggle-btn"
             onClick={() => setControlCenterOpen(v => !v)}
             className={cn(
-              "relative flex items-center justify-center w-7 h-7 hover:bg-white/[0.08] hover:text-[var(--orion-text-primary)] rounded-lg transition-colors cursor-pointer outline-none text-[var(--orion-text-muted)]",
-              controlCenterOpen && "bg-white/[0.12] text-[var(--orion-text-primary)]"
+              "relative flex items-center justify-center w-7 h-7 hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] rounded-lg transition-colors cursor-pointer outline-none text-[var(--orion-text-muted)]",
+              controlCenterOpen && "bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)]"
             )}
             title="Control Center"
             aria-label="Control Center"

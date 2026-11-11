@@ -112,14 +112,14 @@ export const EnvironmentSettingsPanel: React.FC = () => {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs uppercase font-mono tracking-widest text-white/50">Active OS Environment</span>
+              <span className="text-xs uppercase font-mono tracking-widest text-[var(--orion-text-muted)]">Active OS Environment</span>
               <span className={`text-[11px] font-bold font-mono px-2 py-0.5 rounded-md ${
-                currentEnv === 'LIVE' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+                currentEnv === 'LIVE' ? 'bg-emerald-500/15 text-[var(--orion-success)]' : 'bg-amber-500/15 text-[var(--orion-warning)]'
               }`}>
                 {currentEnv} MODE
               </span>
             </div>
-            <p className="text-sm font-semibold text-white mt-0.5">
+            <p className="text-sm font-semibold text-[var(--orion-text-primary)] mt-0.5">
               {currentEnv === 'LIVE'
                 ? 'Production Cloud Services & Persistent Databases'
                 : 'Sandboxed Demonstration Mode with Synthetic Enterprise Data'}
@@ -130,7 +130,7 @@ export const EnvironmentSettingsPanel: React.FC = () => {
 
       {/* Environment Choice Cards */}
       <div className="space-y-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 font-mono">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--orion-text-muted)] font-mono">
           Available Environments
         </h3>
 
@@ -139,31 +139,31 @@ export const EnvironmentSettingsPanel: React.FC = () => {
           data-testid="env-option-live"
           className={`p-5 rounded-xl border transition-all ${
             currentEnv === 'LIVE'
-              ? 'bg-emerald-950/20 border-emerald-500/40 shadow-lg shadow-emerald-950/20'
-              : 'bg-white/[0.03] border-white/[0.08] hover:border-white/20'
+              ? 'bg-emerald-500/10 border-emerald-500/40 shadow-sm'
+              : 'bg-[var(--orion-surface)] border-[var(--orion-border)] hover:border-[var(--orion-border-strong)]'
           }`}
         >
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3.5">
-              <div className="p-2.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mt-0.5">
+              <div className="p-2.5 rounded-lg bg-emerald-500/10 text-[var(--orion-success)] border border-emerald-500/25 mt-0.5">
                 <Server className="w-5 h-5" />
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-semibold text-white">LIVE Environment</h4>
+                  <h4 className="text-sm font-semibold text-[var(--orion-text-primary)]">LIVE Environment</h4>
                   {currentEnv === 'LIVE' && (
-                    <span className="flex items-center gap-1 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    <span className="flex items-center gap-1 text-[11px] font-medium text-[var(--orion-success)] bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/25">
                       <CheckCircle2 className="w-3 h-3" /> Active
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed max-w-md">
+                <p className="text-xs text-[var(--orion-text-secondary)] leading-relaxed max-w-md">
                   Real enterprise operations connected to persistent cloud services, tenant Firestore documents, and live multi-echelon SCM event streams.
                 </p>
-                <div className="pt-2 flex flex-wrap gap-2 text-[11px] font-mono text-slate-400">
-                  <span className="px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.06]">Cloud Firestore</span>
-                  <span className="px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.06]">Production Relays</span>
-                  <span className="px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.06]">Audit Logging</span>
+                <div className="pt-2 flex flex-wrap gap-2 text-[11px] font-mono text-[var(--orion-text-muted)]">
+                  <span className="px-2 py-0.5 rounded bg-[var(--orion-surface-hover)] border border-[var(--orion-border)]">Cloud Firestore</span>
+                  <span className="px-2 py-0.5 rounded bg-[var(--orion-surface-hover)] border border-[var(--orion-border)]">Production Relays</span>
+                  <span className="px-2 py-0.5 rounded bg-[var(--orion-surface-hover)] border border-[var(--orion-border)]">Audit Logging</span>
                 </div>
               </div>
             </div>
@@ -175,7 +175,7 @@ export const EnvironmentSettingsPanel: React.FC = () => {
               onClick={() => handleInitiateSwitch('LIVE')}
               className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition-all shrink-0 cursor-pointer ${
                 currentEnv === 'LIVE'
-                  ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 opacity-75 cursor-default'
+                  ? 'bg-emerald-500/15 text-[var(--orion-success)] border border-emerald-500/30 opacity-75 cursor-default'
                   : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md active:scale-95'
               }`}
             >
@@ -189,31 +189,31 @@ export const EnvironmentSettingsPanel: React.FC = () => {
           data-testid="env-option-demo"
           className={`p-5 rounded-xl border transition-all ${
             currentEnv === 'DEMO'
-              ? 'bg-amber-950/20 border-amber-500/40 shadow-lg shadow-amber-950/20'
-              : 'bg-white/[0.03] border-white/[0.08] hover:border-white/20'
+              ? 'bg-amber-500/10 border-amber-500/40 shadow-sm'
+              : 'bg-[var(--orion-surface)] border-[var(--orion-border)] hover:border-[var(--orion-border-strong)]'
           }`}
         >
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3.5">
-              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/20 mt-0.5">
+              <div className="p-2.5 rounded-lg bg-amber-500/10 text-[var(--orion-warning)] border border-amber-500/25 mt-0.5">
                 <Database className="w-5 h-5" />
               </div>
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-semibold text-white">DEMO Sandbox</h4>
+                  <h4 className="text-sm font-semibold text-[var(--orion-text-primary)]">DEMO Sandbox</h4>
                   {currentEnv === 'DEMO' && (
-                    <span className="flex items-center gap-1 text-[11px] font-medium text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                    <span className="flex items-center gap-1 text-[11px] font-medium text-[var(--orion-warning)] bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/25">
                       <CheckCircle2 className="w-3 h-3" /> Active
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed max-w-md">
+                <p className="text-xs text-[var(--orion-text-secondary)] leading-relaxed max-w-md">
                   Isolated sandbox with pre-seeded synthetic contracts, logistics shipments, and autonomous AI agents. Safe for exploratory testing and offline scenarios.
                 </p>
-                <div className="pt-2 flex flex-wrap gap-2 text-[11px] font-mono text-slate-400">
-                  <span className="px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.06]">Synthetic Seeder</span>
-                  <span className="px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.06]">In-Memory Mock</span>
-                  <span className="px-2 py-0.5 rounded bg-white/[0.04] border border-white/[0.06]">Zero Cloud Costs</span>
+                <div className="pt-2 flex flex-wrap gap-2 text-[11px] font-mono text-[var(--orion-text-muted)]">
+                  <span className="px-2 py-0.5 rounded bg-[var(--orion-surface-hover)] border border-[var(--orion-border)]">Synthetic Seeder</span>
+                  <span className="px-2 py-0.5 rounded bg-[var(--orion-surface-hover)] border border-[var(--orion-border)]">In-Memory Mock</span>
+                  <span className="px-2 py-0.5 rounded bg-[var(--orion-surface-hover)] border border-[var(--orion-border)]">Zero Cloud Costs</span>
                 </div>
               </div>
             </div>
@@ -225,7 +225,7 @@ export const EnvironmentSettingsPanel: React.FC = () => {
               onClick={() => handleInitiateSwitch('DEMO')}
               className={`px-3.5 py-2 rounded-lg text-xs font-semibold transition-all shrink-0 cursor-pointer ${
                 currentEnv === 'DEMO'
-                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 opacity-75 cursor-default'
+                  ? 'bg-amber-500/15 text-[var(--orion-warning)] border border-amber-500/30 opacity-75 cursor-default'
                   : 'bg-amber-600 hover:bg-amber-500 text-white shadow-md active:scale-95'
               }`}
             >
@@ -239,31 +239,31 @@ export const EnvironmentSettingsPanel: React.FC = () => {
       {isConfirmOpen && pendingEnv && (
         <div 
           data-testid="environment-confirm-dialog"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150"
         >
-          <div className="bg-[#12151a] border border-white/20 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+          <div className="bg-[var(--orion-surface-elevated)] border border-[var(--orion-border-strong)] rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center gap-3">
-              <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+              <div className="p-2.5 rounded-xl bg-amber-500/10 text-[var(--orion-warning)] border border-amber-500/25">
                 <AlertTriangle className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-white">
+                <h3 className="text-base font-semibold text-[var(--orion-text-primary)]">
                   Confirm Environment Switch
                 </h3>
-                <p className="text-xs text-slate-400">
-                  Target: <span className="font-bold text-white uppercase">{pendingEnv}</span>
+                <p className="text-xs text-[var(--orion-text-muted)]">
+                  Target: <span className="font-bold text-[var(--orion-text-primary)] uppercase">{pendingEnv}</span>
                 </p>
               </div>
             </div>
 
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs text-[var(--orion-text-secondary)] leading-relaxed">
               Switching runtime environment immediately switches active database providers, clears memory-cached datasets, and broadcasts an OS-level environment change notification.
             </p>
 
-            <div className="p-3 rounded-lg bg-black/40 border border-white/10 text-[11px] text-slate-400 font-mono space-y-1">
-              <div>Current: <span className="text-white font-bold">{currentEnv}</span></div>
-              <div>Destination: <span className="text-white font-bold">{pendingEnv}</span></div>
-              <div>Persistence: <span className="text-emerald-400">Local Configuration Key</span></div>
+            <div className="p-3 rounded-lg bg-[var(--orion-surface)] border border-[var(--orion-border)] text-[11px] text-[var(--orion-text-muted)] font-mono space-y-1">
+              <div>Current: <span className="text-[var(--orion-text-primary)] font-bold">{currentEnv}</span></div>
+              <div>Destination: <span className="text-[var(--orion-text-primary)] font-bold">{pendingEnv}</span></div>
+              <div>Persistence: <span className="text-[var(--orion-success)]">Local Configuration Key</span></div>
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
@@ -274,7 +274,7 @@ export const EnvironmentSettingsPanel: React.FC = () => {
                   setIsConfirmOpen(false);
                   setPendingEnv(null);
                 }}
-                className="px-4 py-2 rounded-lg text-xs font-medium text-slate-300 hover:text-white bg-white/[0.06] hover:bg-white/[0.12] transition-colors cursor-pointer"
+                className="px-4 py-2 rounded-lg text-xs font-medium text-[var(--orion-text-primary)] bg-[var(--orion-surface-hover)] hover:bg-[var(--orion-surface-active)] border border-[var(--orion-border)] transition-colors cursor-pointer"
               >
                 Cancel
               </button>
@@ -283,7 +283,7 @@ export const EnvironmentSettingsPanel: React.FC = () => {
                 data-testid="confirm-env-switch-btn"
                 disabled={isSwitching}
                 onClick={handleConfirmSwitch}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold text-white bg-sky-600 hover:bg-sky-500 transition-colors shadow-lg cursor-pointer"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold text-[var(--orion-on-accent)] bg-[var(--orion-accent)] hover:bg-[var(--orion-accent-hover)] border border-[var(--orion-border-strong)] transition-colors shadow-sm cursor-pointer"
               >
                 {isSwitching ? (
                   <>

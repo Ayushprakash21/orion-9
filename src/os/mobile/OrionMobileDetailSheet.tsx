@@ -184,7 +184,7 @@ export const OrionMobileDetailSheet: React.FC = () => {
         <div className="p-4 border-t border-os-border bg-os-surface shrink-0 space-y-2">
           <button
             onClick={() => handleAction('Contain Risk & Acknowledge')}
-            className="w-full py-3 bg-os-accent text-black font-mono font-bold rounded-xl text-xs active:scale-[0.98] transition-transform min-h-[44px] flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+            className="w-full py-3 bg-[var(--orion-accent)] text-[var(--orion-on-accent)] border border-[var(--orion-border-strong)] font-mono font-bold rounded-xl text-xs active:scale-[0.98] transition-transform min-h-[44px] flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
           >
             <CheckCircle2 size={16} />
             <span>Acknowledge & Contain Risk</span>

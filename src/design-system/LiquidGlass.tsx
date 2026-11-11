@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { cn } from '../lib/utils';
 import { LiquidGlassTier, LIQUID_GLASS_TIERS } from './glass';
 import { getLiquidGlassHighlight, CursorHighlightCoordinates } from './cursor';
+import { useOrionTheme } from '../os/theme/useOrionTheme';
 
 export interface LiquidGlassProps extends React.HTMLAttributes<HTMLDivElement> {
   tier?: LiquidGlassTier;
@@ -53,15 +54,17 @@ export const LiquidGlass = React.forwardRef<HTMLDivElement, LiquidGlassProps>(
       [withHighlight, onMouseLeave]
     );
 
-    const tierSpec = LIQUID_GLASS_TIERS[tier].dark;
-    const highlightGradient = withHighlight ? getLiquidGlassHighlight(cursorCoord, 'dark') : undefined;
+    const { isDark } = useOrionTheme();
+    const appearanceKey = isDark ? 'dark' : 'light';
+    const tierSpec = LIQUID_GLASS_TIERS[tier][appearanceKey];
+    const highlightGradient = withHighlight ? getLiquidGlassHighlight(cursorCoord, appearanceKey) : undefined;
 
     return (
       <div
         ref={ref}
         className={cn(
-          'relative overflow-hidden transition-colors duration-200',
-          interactive && 'hover:bg-white/[0.08] active:bg-white/[0.12] cursor-pointer',
+          'relative overflow-hidden transition-colors duration-200 text-[var(--orion-text-primary)]',
+          interactive && 'hover:bg-[var(--orion-surface-hover)] active:bg-[var(--orion-surface-active)] cursor-pointer',
           elevation === 'sm' && 'shadow-sm',
           elevation === 'md' && 'shadow-md',
           elevation === 'lg' && 'shadow-xl',
