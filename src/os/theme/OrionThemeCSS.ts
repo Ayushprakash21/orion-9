@@ -143,9 +143,11 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
     isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(15, 23, 42, 0.10)'
   );
 
-  // ── DOCK TOKENS (THEME & ACCENT UNIFIED) ───────────────────────────────────
+  // ── DOCK & NAVIGATION ACCENT TOKENS ───────────────────────────────────────
   const accent = accentState.accent;
   const accentSoft = accentState.soft;
+  const applyNavAccent = preferences.applyAccentToNavigation !== false;
+
   const dockSurface = theme.colors.dockBg || theme.colors.surfaceElevated;
   const dockBorder = theme.colors.dockBorder || theme.colors.borderStrong;
   const dockShadow = theme.colors.dockShadow || '0 20px 48px rgba(0, 0, 0, 0.50)';
@@ -154,10 +156,13 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   root.style.setProperty('--orion-dock-bg', dockSurface);
   root.style.setProperty('--orion-dock-border', dockBorder);
   root.style.setProperty('--orion-dock-shadow', dockShadow);
-  root.style.setProperty('--orion-dock-active', accent);
-  root.style.setProperty('--orion-dock-hover', accentSoft);
+  root.style.setProperty('--orion-dock-active', applyNavAccent ? accent : theme.colors.textPrimary);
+  root.style.setProperty('--orion-dock-hover', applyNavAccent ? accentSoft : (isDark ? 'rgba(255, 255, 255, 0.12)' : 'rgba(15, 23, 42, 0.08)'));
   root.style.setProperty('--orion-dock-text', theme.colors.textPrimary);
   root.style.setProperty('--orion-dock-text-muted', theme.colors.textMuted);
+  root.style.setProperty('--orion-nav-accent', applyNavAccent ? accent : 'transparent');
+  root.style.setProperty('--orion-nav-accent-active', applyNavAccent ? accent : theme.colors.textPrimary);
+  root.style.setProperty('--orion-nav-accent-glow', applyNavAccent ? accentState.focusGlow : 'none');
 
   const dockOpacityVal = ((preferences.dockOpacity ?? 85) / 100);
   const dockBlurVal = Math.round(((preferences.dockBlur ?? 80) / 100) * 40);
@@ -176,14 +181,16 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   root.style.setProperty('--orion-dock-tint-bg', dockTintBg);
 
   // Effects and UI vars
-  const glassOpacity = preferences.transparencyEnabled ? (preferences.transparencyIntensity / 100) * theme.effects.glassOpacity : 1;
-  const blur = preferences.blurEnabled ? (preferences.blurIntensity / 100) * theme.effects.blur : 0;
+  const isTransEnabled = preferences.transparencyEnabled !== false;
+  const glassOpacity = isTransEnabled ? (preferences.transparencyIntensity / 100) * theme.effects.glassOpacity : 1;
+  const blur = (isTransEnabled && preferences.blurEnabled) ? (preferences.blurIntensity / 100) * theme.effects.blur : 0;
   
-  root.style.setProperty('--orion-glass-opacity', glassOpacity.toString());
-  root.style.setProperty('--orion-blur', blur + 'px');
+  root.style.setProperty('--orion-transparency-enabled', isTransEnabled ? '1' : '0');
+  root.style.setProperty('--orion-glass-opacity', isTransEnabled ? glassOpacity.toString() : '1');
+  root.style.setProperty('--orion-blur', isTransEnabled ? blur + 'px' : '0px');
   root.style.setProperty('--orion-shadow-intensity', theme.effects.shadowIntensity.toString());
-  root.style.setProperty('--orion-transparency-intensity', (preferences.transparencyIntensity ?? 70).toString());
-  root.style.setProperty('--orion-transparency-alpha', ((preferences.transparencyIntensity ?? 70) / 100).toFixed(3));
+  root.style.setProperty('--orion-transparency-intensity', isTransEnabled ? (preferences.transparencyIntensity ?? 70).toString() : '0');
+  root.style.setProperty('--orion-transparency-alpha', isTransEnabled ? ((preferences.transparencyIntensity ?? 70) / 100).toFixed(3) : '1');
   
   const radius = getCornerRadiusValue(preferences.cornerRadius);
   root.style.setProperty('--orion-radius', radius + 'px');

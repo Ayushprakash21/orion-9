@@ -309,7 +309,7 @@ export const About: React.FC = () => {
         <aside className="hidden md:flex w-64 bg-slate-950/60 border-r border-slate-900/80 flex-col shrink-0 select-none overflow-y-auto">
           <div className="p-4 border-b border-slate-900/60 flex items-center justify-between">
             <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-slate-400">
-              ABOUT ORION-9 OS
+              ORION-9 OS 21.1 • GOLDEN GATE EDITION
             </span>
             <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
           </div>
@@ -815,11 +815,11 @@ export const About: React.FC = () => {
                   <div className="space-y-2.5">
                     <div className="flex justify-between py-1.5 border-b border-slate-900">
                       <span className="text-slate-500">OS Distribution</span>
-                      <span className="text-white font-bold">ORION-9 Aurora Enterprise OS</span>
+                      <span className="text-white font-bold">ORION-9 OS 21.1 (Golden Gate Edition)</span>
                     </div>
                     <div className="flex justify-between py-1.5 border-b border-slate-900">
                       <span className="text-slate-500">OS Version</span>
-                      <span className="text-blue-400 font-bold">{version}</span>
+                      <span className="text-blue-400 font-bold">21.1</span>
                     </div>
                     <div className="flex justify-between py-1.5 border-b border-slate-900">
                       <span className="text-slate-500">Build Commit Git SHA</span>
@@ -827,7 +827,7 @@ export const About: React.FC = () => {
                     </div>
                     <div className="flex justify-between py-1.5 border-b border-slate-900">
                       <span className="text-slate-500">Kernel Version</span>
-                      <span className="text-emerald-400 font-bold">v9.4.2-kernel-core</span>
+                      <span className="text-emerald-400 font-bold">v21.1-kernel-core</span>
                     </div>
                   </div>
                 </div>

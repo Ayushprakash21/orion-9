@@ -134,7 +134,7 @@ export const DynamicIslandExpanded: React.FC<DynamicIslandExpandedProps> = React
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 min-w-0">
                 <span className="text-[11px] font-semibold tracking-wide text-[var(--orion-text-primary)] truncate">
-                  ORION-9 • {metrics.runtimeMode}
+                  ORION-9 OS 21.1 • {metrics.runtimeMode}
                 </span>
                 {metrics.environmentLabel && (
                   <span

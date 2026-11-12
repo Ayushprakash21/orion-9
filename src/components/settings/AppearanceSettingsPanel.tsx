@@ -1,16 +1,154 @@
 import React, { useState } from 'react';
 import { 
-  Sun, Moon, Laptop, Eye, Sparkles, Check, RefreshCw, Palette, 
-  Layers, ShieldCheck, Download, Upload, Sliders, Monitor, AppWindow
+  Sun, Moon, Check, RefreshCw, Palette, 
+  ChevronDown, ChevronUp, Eye, Sparkles, ShieldCheck, Download, Upload, Sliders
 } from 'lucide-react';
 import { useOrionTheme } from '../../os/theme/useOrionTheme';
-import { ORION_THEMES, getThemeList, getTheme } from '../../os/theme/OrionThemeRegistry';
-import { OrionThemeId, OrionAppearanceMode, OrionCornerRadius, OrionWindowStyle, OrionMorphismMode, OrionAppearancePreferences } from '../../os/theme/OrionThemeTypes';
+import { OrionThemeId, OrionAppearanceMode, OrionAppearancePreferences } from '../../os/theme/OrionThemeTypes';
 import { calculateContrastColor } from '../../os/theme/OrionContrast';
-import { OrionWindowControls } from '../../os/components/OrionWindowControls';
 import { useToast } from '../../store/ToastContext';
 import { useAuth } from '../../store/AuthContext';
 import { userPersistenceService } from '../../services/userPersistenceService';
+import { ORION_OS_METADATA } from '../../os/constants/OrionOsMetadata';
+
+// High-fidelity Windows 11 Personalization system color grid (35 shades across 15 chromatic families)
+export const SYSTEM_COLOR_PALETTE = [
+  // Row 1: Bright & warm tones
+  { hex: '#FFB900', name: 'Yellow Gold' },
+  { hex: '#FF8C00', name: 'Vibrant Orange' },
+  { hex: '#F7630C', name: 'Rust Orange' },
+  { hex: '#CA5010', name: 'Brick Orange' },
+  { hex: '#DA3B01', name: 'Amber Red' },
+  { hex: '#EF6950', name: 'Persimmon' },
+  { hex: '#D13438', name: 'Crimson Red' },
+
+  // Row 2: Rose, pink, magenta & purple
+  { hex: '#FF4343', name: 'Bright Red' },
+  { hex: '#E74856', name: 'Ruby Pink' },
+  { hex: '#E3008C', name: 'Magenta Pink' },
+  { hex: '#BF0077', name: 'Deep Magenta' },
+  { hex: '#C239B3', name: 'Plum Violet' },
+  { hex: '#9A0089', name: 'Purple Orchid' },
+  { hex: '#0078D7', name: 'Windows Blue' },
+
+  // Row 3: Violet, lilac, cyan & ocean blues
+  { hex: '#881798', name: 'Dark Violet' },
+  { hex: '#744DA9', name: 'Imperial Violet' },
+  { hex: '#8764B8', name: 'Lilac' },
+  { hex: '#B146C2', name: 'Lavender Rose' },
+  { hex: '#0063B1', name: 'Cobalt Blue' },
+  { hex: '#2D7D9A', name: 'Ocean Cyan' },
+  { hex: '#00B7C3', name: 'Cyan Aqua' },
+
+  // Row 4: Teals, emeralds, greens & olive
+  { hex: '#038387', name: 'Deep Teal' },
+  { hex: '#00B294', name: 'Mint Emerald' },
+  { hex: '#018574', name: 'Turquoise' },
+  { hex: '#00CC6A', name: 'Spring Green' },
+  { hex: '#107C41', name: 'Office Green' },
+  { hex: '#10893E', name: 'Forest Green' },
+  { hex: '#7A7574', name: 'Neutral Taupe' },
+
+  // Row 5: Greys, graphite, charcoal & metallics
+  { hex: '#5D5A58', name: 'Graphite Stone' },
+  { hex: '#68768A', name: 'Slate Grey' },
+  { hex: '#515C6B', name: 'Steel Charcoal' },
+  { hex: '#4C4A48', name: 'Deep Charcoal' },
+  { hex: '#498205', name: 'Olive Green' },
+  { hex: '#847545', name: 'Bronze Olive' },
+  { hex: '#D6A65C', name: 'Golden Gate Amber' },
+];
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  const clean = hex.replace('#', '');
+  if (clean.length !== 6) return null;
+  const num = parseInt(clean, 16);
+  if (isNaN(num)) return null;
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255,
+  };
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const clamp = (v: number) => Math.max(0, Math.min(255, Math.round(v)));
+  return (
+    '#' +
+    [clamp(r), clamp(g), clamp(b)]
+      .map((x) => x.toString(16).padStart(2, '0'))
+      .join('')
+      .toUpperCase()
+  );
+}
+
+function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: number } {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r:
+        h = (g - b) / d + (g < b ? 6 : 0);
+        break;
+      case g:
+        h = (b - r) / d + 2;
+        break;
+      case b:
+        h = (r - g) / d + 4;
+        break;
+    }
+    h /= 6;
+  }
+
+  return {
+    h: Math.round(h * 360),
+    s: Math.round(s * 100),
+    l: Math.round(l * 100),
+  };
+}
+
+function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
+  h = ((h % 360) + 360) % 360;
+  s = Math.max(0, Math.min(100, s)) / 100;
+  l = Math.max(0, Math.min(100, l)) / 100;
+
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+
+  let r1 = 0;
+  let g1 = 0;
+  let b1 = 0;
+
+  if (h >= 0 && h < 60) {
+    r1 = c; g1 = x; b1 = 0;
+  } else if (h >= 60 && h < 120) {
+    r1 = x; g1 = c; b1 = 0;
+  } else if (h >= 120 && h < 180) {
+    r1 = 0; g1 = c; b1 = x;
+  } else if (h >= 180 && h < 240) {
+    r1 = 0; g1 = x; b1 = c;
+  } else if (h >= 240 && h < 300) {
+    r1 = x; g1 = 0; b1 = c;
+  } else {
+    r1 = c; g1 = 0; b1 = x;
+  }
+
+  return {
+    r: Math.round((r1 + m) * 255),
+    g: Math.round((g1 + m) * 255),
+    b: Math.round((b1 + m) * 255),
+  };
+}
 
 export const AppearanceSettingsPanel: React.FC = () => {
   const { theme, preferences, resolvedAccent, setTheme: setEngineTheme, setPreference: setEnginePreference, resetAppearance: resetEngineAppearance, isDark } = useOrionTheme();
@@ -29,17 +167,6 @@ export const AppearanceSettingsPanel: React.FC = () => {
     }
   }, [currentUser?.id, currentUser?.organizationId]);
 
-  const setTheme = React.useCallback((id: OrionThemeId) => {
-    setEngineTheme(id);
-    const resolved = getTheme(id);
-    const mode = resolved.appearance.mode;
-    syncUserPref({
-      themeId: id,
-      appearanceMode: mode,
-      theme: mode === 'light' ? 'light' : 'dark',
-    });
-  }, [setEngineTheme, syncUserPref]);
-
   const setPreference = React.useCallback(<K extends keyof OrionAppearancePreferences>(
     key: K,
     value: OrionAppearancePreferences[K]
@@ -49,914 +176,703 @@ export const AppearanceSettingsPanel: React.FC = () => {
       const m = value as OrionAppearanceMode;
       syncUserPref({
         appearanceMode: m,
-        theme: m === 'light' ? 'light' : m === 'dark' ? 'dark' : 'system',
+        theme: m === 'light' ? 'light' : 'dark',
       });
-    } else if (key === 'reduceMotion') {
-      syncUserPref({ reducedMotion: Boolean(value) });
     } else if (key === 'transparencyEnabled') {
       syncUserPref({ reducedTransparency: !Boolean(value) });
-    } else if (
-      key === 'dockPosition' ||
-      key === 'dockSize' ||
-      key === 'dockAutoHide' ||
-      key === 'dockMagnification' ||
-      key === 'dockTint' ||
-      key === 'windowStyle' ||
-      key === 'cornerRadius' ||
-      key === 'windowControlPosition'
-    ) {
-      syncUserPref({ [key]: value });
+    } else if (key === 'customAccent') {
+      syncUserPref({ customAccent: value });
+    } else if (key === 'applyAccentToNavigation') {
+      syncUserPref({ applyAccentToNavigation: Boolean(value) });
+    } else if (key === 'recentColors') {
+      syncUserPref({ recentColors: value });
+    } else if (key === 'customColors') {
+      syncUserPref({ customColors: value });
     }
   }, [setEnginePreference, syncUserPref]);
 
-  const resetAppearance = React.useCallback(() => {
-    resetEngineAppearance();
+  // Mode Selection: Strictly DARK and LIGHT
+  const handleModeChange = (mode: 'dark' | 'light') => {
+    const targetTheme: OrionThemeId = mode === 'dark' ? 'graphite' : 'silver';
+    setEngineTheme(targetTheme);
+    setPreference('appearanceMode', mode);
     syncUserPref({
-      themeId: 'graphite',
-      appearanceMode: 'dark',
-      theme: 'dark',
-      reducedMotion: false,
-      dockPosition: 'bottom',
-      dockSize: 'medium',
-      dockAutoHide: true,
-      dockMagnification: true,
-      windowStyle: 'glass',
-      cornerRadius: 'medium',
+      themeId: targetTheme,
+      appearanceMode: mode,
+      theme: mode,
     });
-  }, [resetEngineAppearance, syncUserPref]);
-  const [customHex, setCustomHex] = useState(preferences.customAccent || '#D8DDE3');
-  const [importError, setImportError] = useState('');
+    showToast(`Appearance set to ${mode === 'dark' ? 'Dark' : 'Light'} Mode`, 'info', 'Settings');
+  };
 
-  const themes = getThemeList();
+  // Accent Selection & Persistence
+  const applyAccentColor = (hex: string) => {
+    if (!/^#[0-9A-Fa-f]{6}$/.test(hex)) return;
+    const cleanHex = hex.toUpperCase();
+    setPreference('customAccentEnabled', true);
+    setPreference('customAccent', cleanHex);
 
-  // Mode Cards Configuration
-  const modes: { key: OrionAppearanceMode; title: string; desc: string; icon: React.ReactNode }[] = [
-    { key: 'dark', title: 'Dark Mode', desc: 'Deep graphite foundation with subdued contrast and minimal eye strain.', icon: <Moon className="w-5 h-5" /> },
-    { key: 'light', title: 'Light Mode', desc: 'Crisp porcelain slate palette designed for high-ambient workstations.', icon: <Sun className="w-5 h-5" /> },
-    { key: 'auto', title: 'System Auto', desc: 'Dynamically adapts in real time to your operating system appearance schedule.', icon: <Laptop className="w-5 h-5" /> },
-  ];
+    // Maintain Recent Colors FIFO (up to 6)
+    const existingRecent = preferences.recentColors || ['#D6A65C', '#3B82F6', '#10B981', '#8B5CF6'];
+    const updatedRecent = [cleanHex, ...existingRecent.filter((c) => c.toUpperCase() !== cleanHex)].slice(0, 6);
+    setPreference('recentColors', updatedRecent);
+  };
 
-  // Curated Accent Presets matching macOS and Windows 11 elegance
-  const curatedAccents = [
-    { hex: '#D8DDE3', name: 'Graphite Slate' },
-    { hex: '#A7AAA8', name: 'Silver Mist' },
-    { hex: '#7FA58D', name: 'Muted Forest' },
-    { hex: '#C7B7A4', name: 'Warm Cashmere' },
-    { hex: '#7BA3C9', name: 'Steel Blue' },
-    { hex: '#B07DA3', name: 'Dusty Plum' },
-    { hex: '#C6A15B', name: 'Amber Gold' },
-    { hex: '#5FAF8A', name: 'Sage Green' },
-  ];
+  // Custom Color Dialog State
+  const [isCustomColorModalOpen, setIsCustomColorModalOpen] = useState(false);
+  const [customInputMode, setCustomInputMode] = useState<'hex' | 'rgb' | 'hsl'>('hex');
+  const [colorHexDraft, setColorHexDraft] = useState(resolvedAccent || '#D6A65C');
+  const [colorRgbDraft, setColorRgbDraft] = useState(() => hexToRgb(resolvedAccent || '#D6A65C') || { r: 214, g: 166, b: 92 });
+  const [colorHslDraft, setColorHslDraft] = useState(() => {
+    const rgb = hexToRgb(resolvedAccent || '#D6A65C') || { r: 214, g: 166, b: 92 };
+    return rgbToHsl(rgb.r, rgb.g, rgb.b);
+  });
+  const [colorInputError, setColorInputError] = useState<string | null>(null);
 
-  const handleCustomHexChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setCustomHex(val);
-    if (/^#[0-9A-Fa-f]{6}$/.test(val)) {
-      setPreference('customAccentEnabled', true);
-      setPreference('customAccent', val);
+  const openCustomColorModal = () => {
+    const active = resolvedAccent || '#D6A65C';
+    setColorHexDraft(active);
+    const rgb = hexToRgb(active) || { r: 214, g: 166, b: 92 };
+    setColorRgbDraft(rgb);
+    setColorHslDraft(rgbToHsl(rgb.r, rgb.g, rgb.b));
+    setColorInputError(null);
+    setIsCustomColorModalOpen(true);
+  };
+
+  const handleHexDraftChange = (raw: string) => {
+    setColorHexDraft(raw);
+    const clean = raw.trim();
+    if (/^#[0-9A-Fa-f]{6}$/.test(clean)) {
+      setColorInputError(null);
+      const rgb = hexToRgb(clean);
+      if (rgb) {
+        setColorRgbDraft(rgb);
+        setColorHslDraft(rgbToHsl(rgb.r, rgb.g, rgb.b));
+      }
+    } else {
+      setColorInputError('Enter a valid 6-character hex code (e.g. #D6A65C)');
     }
   };
 
-  const handleExportTheme = () => {
-    const jsonStr = JSON.stringify(preferences, null, 2);
-    const blob = new Blob([jsonStr], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `orion-appearance-${preferences.themeId}-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('Appearance profile exported successfully', 'success');
+  const handleRgbDraftChange = (channel: 'r' | 'g' | 'b', valStr: string) => {
+    const val = parseInt(valStr, 10);
+    if (isNaN(val) || val < 0 || val > 255) {
+      setColorInputError('RGB channel values must be integers between 0 and 255');
+      return;
+    }
+    setColorInputError(null);
+    const nextRgb = { ...colorRgbDraft, [channel]: val };
+    setColorRgbDraft(nextRgb);
+    const nextHex = rgbToHex(nextRgb.r, nextRgb.g, nextRgb.b);
+    setColorHexDraft(nextHex);
+    setColorHslDraft(rgbToHsl(nextRgb.r, nextRgb.g, nextRgb.b));
   };
 
-  const handleImportThemeFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImportError('');
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const content = event.target?.result as string;
-        const parsed = JSON.parse(content);
-        if (parsed.version === 1 && parsed.themeId) {
-          if (parsed.themeId in ORION_THEMES) {
-            setTheme(parsed.themeId);
-          }
-          if (parsed.appearanceMode) setPreference('appearanceMode', parsed.appearanceMode);
-          if (typeof parsed.customAccentEnabled === 'boolean') setPreference('customAccentEnabled', parsed.customAccentEnabled);
-          if (parsed.customAccent) setPreference('customAccent', parsed.customAccent);
-          if (typeof parsed.transparencyEnabled === 'boolean') setPreference('transparencyEnabled', parsed.transparencyEnabled);
-          if (typeof parsed.transparencyIntensity === 'number') setPreference('transparencyIntensity', parsed.transparencyIntensity);
-          if (typeof parsed.blurEnabled === 'boolean') setPreference('blurEnabled', parsed.blurEnabled);
-          if (typeof parsed.blurIntensity === 'number') setPreference('blurIntensity', parsed.blurIntensity);
-          if (typeof parsed.reduceMotion === 'boolean') setPreference('reduceMotion', parsed.reduceMotion);
-          if (parsed.cornerRadius) setPreference('cornerRadius', parsed.cornerRadius);
-          if (parsed.windowStyle) setPreference('windowStyle', parsed.windowStyle);
-          if (parsed.windowControlPosition) setPreference('windowControlPosition', parsed.windowControlPosition);
-          if (parsed.morphismMode) setPreference('morphismMode', parsed.morphismMode);
-          showToast('Appearance preferences imported successfully!', 'success');
-        } else {
-          setImportError('Invalid configuration schema or missing version.');
-        }
-      } catch (err) {
-        setImportError('Failed to parse appearance JSON file.');
-      }
-    };
-    reader.readAsText(file);
+  const handleHslDraftChange = (channel: 'h' | 's' | 'l', valStr: string) => {
+    const val = parseInt(valStr, 10);
+    const max = channel === 'h' ? 360 : 100;
+    if (isNaN(val) || val < 0 || val > max) {
+      setColorInputError(`HSL ${channel.toUpperCase()} must be between 0 and ${max}`);
+      return;
+    }
+    setColorInputError(null);
+    const nextHsl = { ...colorHslDraft, [channel]: val };
+    setColorHslDraft(nextHsl);
+    const nextRgb = hslToRgb(nextHsl.h, nextHsl.s, nextHsl.l);
+    setColorRgbDraft(nextRgb);
+    setColorHexDraft(rgbToHex(nextRgb.r, nextRgb.g, nextRgb.b));
   };
+
+  const commitCustomColor = () => {
+    if (!/^#[0-9A-Fa-f]{6}$/.test(colorHexDraft.trim())) {
+      setColorInputError('Invalid HEX color value.');
+      return;
+    }
+    const cleanHex = colorHexDraft.trim().toUpperCase();
+    applyAccentColor(cleanHex);
+
+    // Save to customColors array in preferences
+    const existingCustom = preferences.customColors || [];
+    if (!existingCustom.map((c) => c.toUpperCase()).includes(cleanHex)) {
+      setPreference('customColors', [cleanHex, ...existingCustom].slice(0, 12));
+    }
+
+    setIsCustomColorModalOpen(false);
+    showToast(`Custom accent ${cleanHex} applied`, 'success', 'Settings');
+  };
+
+  const recentColors = (preferences.recentColors && preferences.recentColors.length > 0)
+    ? preferences.recentColors
+    : ['#D6A65C', '#3B82F6', '#10B981', '#8B5CF6'];
+
+  const isTransEnabled = preferences.transparencyEnabled !== false;
+  const isNavAccentEnabled = preferences.applyAccentToNavigation !== false;
 
   return (
-    <div className="w-full space-y-8 select-none pb-24 p-4 sm:p-5 md:p-6">
-      {/* Header Banner */}
-      <div className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+    <div className="w-full space-y-6 select-none pb-24 text-[var(--orion-text-primary)]">
+      {/* A. Page Heading — Windows 11 Personalization Layout Reference */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2 border-b border-[var(--orion-border)]">
         <div>
-          <h2 className="text-lg font-bold text-[var(--orion-text-primary)] flex items-center gap-2.5">
-            <Palette className="w-5 h-5 text-[var(--orion-accent)]" />
-            Personalization & Appearance Engine
-          </h2>
-          <p className="text-xs text-[var(--orion-text-secondary)] mt-1.5 leading-relaxed">
-            Centralized operating system visual styling. Seamless real-time transitions across desktop, windows, dock, and apps without page reload.
+          <div className="flex items-center gap-2 text-xs font-mono text-[var(--orion-accent)] uppercase tracking-wider mb-1">
+            <Palette className="w-3.5 h-3.5" />
+            <span>{ORION_OS_METADATA.displayTitle} • {ORION_OS_METADATA.edition}</span>
+          </div>
+          <h1 className="text-2xl font-bold tracking-tight text-[var(--orion-text-primary)]">
+            Colors
+          </h1>
+          <p className="text-xs text-[var(--orion-text-secondary)] mt-0.5">
+            Personalization and visual experience. Configure system theme mode, transparency effects, and accent highlights.
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={resetAppearance}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[var(--orion-surface-hover)] text-[var(--orion-text-primary)] border border-[var(--orion-border)] hover:bg-[var(--orion-surface-active)] transition-colors cursor-pointer"
-            title="Reset appearance to Orion Graphite defaults"
+            onClick={() => {
+              resetEngineAppearance();
+              showToast('Personalization reset to Orion-9 defaults', 'info', 'Settings');
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-[var(--orion-border)] bg-[var(--orion-surface)] hover:bg-[var(--orion-surface-hover)] transition-colors cursor-pointer"
+            title="Reset to Orion-9 Golden Gate Edition defaults"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             Reset Defaults
           </button>
+        </div>
+      </div>
+
+      {/* B. Theme Preview — Live Interactive Appearance Viewport */}
+      <div 
+        data-testid="personalization-preview-viewport"
+        className="relative w-full rounded-2xl border border-[var(--orion-border)] overflow-hidden shadow-sm p-5 sm:p-7 flex flex-col gap-4 transition-all duration-300"
+        style={{
+          backgroundColor: isDark ? '#17191D' : '#F4F5F7',
+        }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div 
+              className="w-3 h-3 rounded-full"
+              style={{ backgroundColor: resolvedAccent }}
+            />
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--orion-text-secondary)]">
+              Live Desktop & Window Preview
+            </span>
+          </div>
+          <span className="text-[11px] font-mono px-2 py-0.5 rounded-md border border-[var(--orion-border)] bg-[var(--orion-surface)] text-[var(--orion-text-secondary)]">
+            Mode: <strong className="text-[var(--orion-text-primary)]">{isDark ? 'Dark' : 'Light'}</strong> • Accent: <strong className="font-mono text-[var(--orion-accent)]">{resolvedAccent}</strong>
+          </span>
+        </div>
+
+        {/* Scaled OS Shell Representation */}
+        <div className="relative w-full rounded-xl border border-[var(--orion-border)] overflow-hidden p-4 sm:p-6 flex flex-col items-center justify-between min-h-[220px] bg-cover bg-center"
+          style={{
+            background: isDark
+              ? 'linear-gradient(135deg, #101216 0%, #1c222d 50%, #12151c 100%)'
+              : 'linear-gradient(135deg, #e5e9f0 0%, #ffffff 50%, #d8dfea 100%)'
+          }}
+        >
+          {/* Top Preview Dynamic Island */}
+          <div 
+            className="flex items-center gap-2 px-3.5 py-1 rounded-full border shadow-sm transition-all text-xs"
+            style={{
+              backgroundColor: isDark 
+                ? (isTransEnabled ? 'rgba(20,24,36,0.85)' : '#141824')
+                : (isTransEnabled ? 'rgba(255,255,255,0.92)' : '#FFFFFF'),
+              borderColor: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(15,23,42,0.12)',
+              backdropFilter: isTransEnabled ? 'blur(16px)' : 'none',
+              WebkitBackdropFilter: isTransEnabled ? 'blur(16px)' : 'none',
+            }}
+          >
+            <span 
+              className="w-2 h-2 rounded-full"
+              style={{ backgroundColor: resolvedAccent }}
+            />
+            <span className="text-[11px] font-medium text-[var(--orion-text-primary)]">
+              Orion-9 OS 21.1
+            </span>
+            <span className="text-[10px] text-[var(--orion-text-muted)]">• System Ready</span>
+          </div>
+
+          {/* Sample Floating App Window */}
+          <div 
+            className="w-full max-w-sm rounded-xl border p-3.5 shadow-md flex flex-col gap-2 transition-all my-auto"
+            style={{
+              backgroundColor: isDark
+                ? (isTransEnabled ? 'rgba(32,35,41,0.82)' : '#202329')
+                : (isTransEnabled ? 'rgba(255,255,255,0.92)' : '#FFFFFF'),
+              borderColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(20,25,35,0.10)',
+              backdropFilter: isTransEnabled ? 'blur(20px)' : 'none',
+              WebkitBackdropFilter: isTransEnabled ? 'blur(20px)' : 'none',
+            }}
+          >
+            <div className="flex items-center justify-between pb-2 border-b border-[var(--orion-border)]">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block" />
+                <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
+                <span className="text-[10px] font-semibold text-[var(--orion-text-secondary)] ml-1">Control Tower</span>
+              </div>
+              <span className="text-[9px] font-mono text-[var(--orion-text-muted)]">v21.1</span>
+            </div>
+            <div className="flex items-center justify-between text-[11px] pt-1">
+              <span className="text-[var(--orion-text-secondary)]">Supply Chain Network</span>
+              <button 
+                type="button"
+                className="px-2.5 py-0.5 rounded-md text-[10px] font-bold border transition-colors"
+                style={{
+                  backgroundColor: resolvedAccent,
+                  color: calculateContrastColor(resolvedAccent),
+                  borderColor: resolvedAccent,
+                }}
+              >
+                Inspect
+              </button>
+            </div>
+          </div>
+
+          {/* Bottom Dock representation */}
+          <div 
+            className="flex items-center gap-2 px-3 py-1.5 rounded-2xl border shadow-lg transition-all"
+            style={{
+              backgroundColor: isDark
+                ? (isTransEnabled ? 'rgba(24,28,36,0.88)' : '#181c24')
+                : (isTransEnabled ? 'rgba(255,255,255,0.94)' : '#FFFFFF'),
+              borderColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(15,23,42,0.14)',
+              backdropFilter: isTransEnabled ? 'blur(24px)' : 'none',
+              WebkitBackdropFilter: isTransEnabled ? 'blur(24px)' : 'none',
+            }}
+          >
+            {['O9', 'CT', 'PO', 'AI', 'IN'].map((code, idx) => (
+              <div
+                key={code}
+                className="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-[9px] border transition-transform hover:scale-105"
+                style={{
+                  backgroundColor: idx === 0 && isNavAccentEnabled
+                    ? resolvedAccent
+                    : (isDark ? '#282C32' : '#F0F2F5'),
+                  color: idx === 0 && isNavAccentEnabled
+                    ? calculateContrastColor(resolvedAccent)
+                    : 'inherit',
+                  borderColor: isDark ? 'rgba(255,255,255,0.10)' : 'rgba(15,23,42,0.10)'
+                }}
+              >
+                {code}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* C. Choose Your Mode — Windows 11 Full-Width Settings Row */}
+      <div className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all">
+        <div className="space-y-0.5">
+          <div className="text-sm font-semibold text-[var(--orion-text-primary)]">
+            Choose your mode
+          </div>
+          <p className="text-xs text-[var(--orion-text-secondary)]">
+            Change the colors that appear in Orion-9 and its applications
+          </p>
+        </div>
+
+        {/* Dropdown / Segmented Selector (Strictly 2 options: Dark, Light) */}
+        <div className="flex items-center p-1 rounded-xl border border-[var(--orion-border)] bg-[var(--orion-surface-hover)]">
           <button
             type="button"
-            onClick={handleExportTheme}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[var(--orion-surface-hover)] text-[var(--orion-text-primary)] border border-[var(--orion-border)] hover:bg-[var(--orion-surface-active)] transition-colors cursor-pointer"
+            data-testid="mode-select-dark"
+            onClick={() => handleModeChange('dark')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              isDark
+                ? 'bg-[var(--orion-surface)] text-[var(--orion-text-primary)] shadow-xs border border-[var(--orion-border)]'
+                : 'text-[var(--orion-text-secondary)] hover:text-[var(--orion-text-primary)]'
+            }`}
           >
-            <Download className="w-3.5 h-3.5" />
-            Export Profile
+            <Moon className="w-3.5 h-3.5" />
+            Dark
           </button>
-          <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))] border border-[var(--orion-border-strong)] hover:bg-[var(--orion-accent-hover,var(--orion-accent))] transition-colors cursor-pointer">
-            <Upload className="w-3.5 h-3.5" />
-            Import Profile
-            <input type="file" accept=".json" onChange={handleImportThemeFile} className="hidden" />
-          </label>
+          <button
+            type="button"
+            data-testid="mode-select-light"
+            onClick={() => handleModeChange('light')}
+            className={`flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              !isDark
+                ? 'bg-[var(--orion-surface)] text-[var(--orion-text-primary)] shadow-xs border border-[var(--orion-border)]'
+                : 'text-[var(--orion-text-secondary)] hover:text-[var(--orion-text-primary)]'
+            }`}
+          >
+            <Sun className="w-3.5 h-3.5" />
+            Light
+          </button>
         </div>
       </div>
 
-      {importError && (
-        <div className="p-3.5 bg-red-500/10 border border-red-500/30 rounded-xl text-xs text-red-400">
-          {importError}
+      {/* D. Transparency Effects — Windows 11 Full-Width Settings Row */}
+      <div className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition-all">
+        <div className="space-y-0.5">
+          <div className="text-sm font-semibold text-[var(--orion-text-primary)]">
+            Transparency effects
+          </div>
+          <p className="text-xs text-[var(--orion-text-secondary)]">
+            Windows and surfaces appear translucent
+          </p>
         </div>
-      )}
 
-      {/* 1. FIVE BUILT-IN SYSTEM THEMES */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-bold uppercase tracking-wider text-[var(--orion-text-muted)] flex items-center gap-1.5">
-            <Monitor className="w-4 h-4 text-[var(--orion-accent)]" />
-            System Themes (5 First-Class Foundations)
-          </label>
-          <span className="text-[11px] font-mono text-[var(--orion-text-secondary)]">
-            Active: <span className="font-bold text-[var(--orion-text-primary)]">{theme.name}</span>
+        {/* ON / OFF Toggle Switch */}
+        <div className="flex items-center gap-2.5">
+          <span className="text-xs font-medium text-[var(--orion-text-secondary)]">
+            {isTransEnabled ? 'On' : 'Off'}
           </span>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
-          {themes.map(t => {
-            const isSelected = preferences.themeId === t.id;
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setTheme(t.id)}
-                className={`p-4 rounded-2xl border text-left transition-all relative flex flex-col justify-between overflow-hidden cursor-pointer ${
-                  isSelected 
-                    ? 'border-[var(--orion-accent)] ring-2 ring-[var(--orion-accent)]/30 shadow-md' 
-                    : 'border-[var(--orion-border)] bg-[var(--orion-surface)] hover:bg-[var(--orion-surface-hover)]'
-                }`}
-                style={{
-                  backgroundColor: isSelected ? t.colors.surface : undefined
-                }}
-              >
-                <div>
-                  {/* Theme Swatch Preview Bar */}
-                  <div className="flex items-center gap-1.5 p-2 rounded-xl mb-3 border" style={{ backgroundColor: t.colors.background, borderColor: t.colors.borderStrong }}>
-                    <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: t.colors.surface, borderColor: t.colors.borderStrong }} />
-                    <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: t.colors.surfaceElevated, borderColor: t.colors.borderStrong }} />
-                    <div className="w-4 h-4 rounded-full border" style={{ backgroundColor: t.colors.accent, borderColor: t.colors.borderStrong }} />
-                    <div className="w-2.5 h-2.5 rounded-full ml-auto" style={{ backgroundColor: t.colors.success }} />
-                  </div>
-
-                  <div className="flex items-center justify-between mb-1">
-                    <h4 className="text-sm font-bold text-[var(--orion-text-primary)]">{t.name}</h4>
-                    {isSelected && (
-                      <span className="flex items-center justify-center w-4 h-4 rounded-full bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))]">
-                        <Check className="w-3 h-3" />
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-[11px] text-[var(--orion-text-secondary)] leading-relaxed">{t.description}</p>
-                </div>
-
-                <div className="mt-3 pt-2.5 border-t border-[var(--orion-border)] flex items-center justify-between text-[10px] font-mono text-[var(--orion-text-muted)]">
-                  <span>{t.appearance.mode.toUpperCase()}</span>
-                  <span
-                    className="px-1.5 py-0.5 rounded font-semibold"
-                    style={{ backgroundColor: t.colors.accent, color: calculateContrastColor(t.colors.accent, { backingColor: t.colors.surface }) }}
-                  >
-                    {t.colors.accent}
-                  </span>
-                </div>
-              </button>
-            );
-          })}
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isTransEnabled}
+            data-testid="transparency-effects-toggle"
+            onClick={() => {
+              const next = !isTransEnabled;
+              setPreference('transparencyEnabled', next);
+              showToast(`Transparency effects turned ${next ? 'On' : 'Off'}`, 'info', 'Settings');
+            }}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer border ${
+              isTransEnabled
+                ? 'bg-[var(--orion-accent)] border-[var(--orion-accent)]'
+                : 'bg-[var(--orion-surface-hover)] border-[var(--orion-border)]'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                isTransEnabled ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
         </div>
       </div>
 
-      {/* 2. APPEARANCE MODE SELECTION (LIGHT / DARK / AUTO) */}
-      <div className="space-y-3">
-        <label className="text-xs font-bold uppercase tracking-wider text-[var(--orion-text-muted)]">
-          Appearance Mode
-        </label>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {modes.map(mode => {
-            const isSelected = preferences.appearanceMode === mode.key;
-            return (
-              <button
-                key={mode.key}
-                type="button"
-                onClick={() => setPreference('appearanceMode', mode.key)}
-                className={`p-4 rounded-2xl border text-left transition-all relative flex flex-col justify-between cursor-pointer ${
-                  isSelected 
-                    ? 'border-[var(--orion-accent)] bg-[var(--orion-surface-hover)] ring-2 ring-[var(--orion-accent)]/30' 
-                    : 'border-[var(--orion-border)] bg-[var(--orion-surface)] hover:bg-[var(--orion-surface-hover)]'
-                }`}
-              >
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <div className={`p-2 rounded-xl ${isSelected ? 'bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))]' : 'bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)]'}`}>
-                      {mode.icon}
-                    </div>
-                    {isSelected && (
-                      <span className="flex items-center justify-center w-4 h-4 rounded-full bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))]">
-                        <Check className="w-3 h-3" />
-                      </span>
-                    )}
-                  </div>
-                  <h4 className="text-sm font-semibold text-[var(--orion-text-primary)]">{mode.title}</h4>
-                  <p className="text-xs text-[var(--orion-text-secondary)] mt-1 leading-relaxed">{mode.desc}</p>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 3. ACCENT COLOR HIGHLIGHTS */}
-      <div className="space-y-4 bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-2xl p-5 sm:p-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-[var(--orion-text-muted)]">
-              Accent Highlight Color
-            </label>
-            <p className="text-xs text-[var(--orion-text-secondary)] mt-1">
-              Select a system accent or specify a custom HEX value for buttons, active tabs, and focus rings.
+      {/* E. Accent Color — Collapsible Accordion Header */}
+      <div className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-2xl p-4 sm:p-6 space-y-5 transition-all">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-[var(--orion-border)]">
+          <div className="space-y-0.5">
+            <div className="text-sm font-semibold text-[var(--orion-text-primary)]">
+              Accent color
+            </div>
+            <p className="text-xs text-[var(--orion-text-secondary)]">
+              Choose an accent color to highlight buttons, focus rings, and active controls
             </p>
           </div>
-          {preferences.customAccentEnabled && (
+
+          <div className="flex items-center gap-2.5">
+            <span className="text-xs text-[var(--orion-text-secondary)]">Selection mode:</span>
+            <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-[var(--orion-surface-hover)] border border-[var(--orion-border)] text-[var(--orion-text-primary)]">
+              Manual
+            </span>
+          </div>
+        </div>
+
+        {/* F. Recent Colors */}
+        <div className="space-y-2">
+          <div className="text-xs font-semibold text-[var(--orion-text-secondary)] uppercase tracking-wider">
+            Recent colors
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {recentColors.map((hex, idx) => {
+              const isSelected = resolvedAccent?.toUpperCase() === hex.toUpperCase();
+              return (
+                <button
+                  key={`${hex}-${idx}`}
+                  type="button"
+                  data-testid={`recent-color-${idx}`}
+                  onClick={() => applyAccentColor(hex)}
+                  className={`w-9 h-9 rounded-lg border flex items-center justify-center transition-all cursor-pointer ${
+                    isSelected
+                      ? 'ring-2 ring-[var(--orion-accent)] ring-offset-2 ring-offset-[var(--orion-bg)] scale-105'
+                      : 'border-[var(--orion-border)] hover:scale-105'
+                  }`}
+                  style={{ backgroundColor: hex }}
+                  title={`Recent Color: ${hex}`}
+                  aria-label={`Select recent color ${hex}`}
+                >
+                  {isSelected && (
+                    <Check 
+                      className="w-4 h-4"
+                      style={{ color: calculateContrastColor(hex) }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* G. Windows System Color Palette (35 Compact Grid Swatches) */}
+        <div className="space-y-2 pt-2">
+          <div className="text-xs font-semibold text-[var(--orion-text-secondary)] uppercase tracking-wider">
+            Windows colors
+          </div>
+          <div 
+            data-testid="system-color-palette-grid"
+            className="grid grid-cols-7 gap-2 sm:gap-2.5 max-w-xl"
+          >
+            {SYSTEM_COLOR_PALETTE.map((color) => {
+              const isSelected = resolvedAccent?.toUpperCase() === color.hex.toUpperCase();
+              return (
+                <button
+                  key={color.hex}
+                  type="button"
+                  data-testid={`palette-color-${color.hex}`}
+                  onClick={() => applyAccentColor(color.hex)}
+                  className={`w-full aspect-square rounded-md border flex items-center justify-center transition-transform hover:scale-105 cursor-pointer ${
+                    isSelected
+                      ? 'ring-2 ring-white ring-offset-2 ring-offset-[var(--orion-bg)] shadow-md'
+                      : 'border-white/10 hover:border-white/40'
+                  }`}
+                  style={{ backgroundColor: color.hex }}
+                  title={`${color.name} (${color.hex})`}
+                  aria-label={`Select ${color.name}`}
+                >
+                  {isSelected && (
+                    <Check 
+                      className="w-4 h-4 stroke-[2.5]"
+                      style={{ color: calculateContrastColor(color.hex) }}
+                    />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* H. Custom Colors — Dedicated Section with View Colors Modal Trigger */}
+        <div className="pt-4 border-t border-[var(--orion-border)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-0.5">
+            <div className="text-xs font-semibold text-[var(--orion-text-primary)]">
+              Custom colors
+            </div>
+            <p className="text-[11px] text-[var(--orion-text-secondary)]">
+              Specify custom HEX, RGB, or HSL values for precision branding
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-8 h-8 rounded-lg border border-[var(--orion-border)] shadow-xs"
+              style={{ backgroundColor: resolvedAccent }}
+              title={`Current Accent: ${resolvedAccent}`}
+            />
             <button
               type="button"
-              onClick={() => setPreference('customAccentEnabled', false)}
-              className="px-2.5 py-1 rounded-lg border border-[var(--orion-border)] bg-[var(--orion-surface-hover)] text-[11px] font-semibold text-[var(--orion-text-primary)] hover:bg-[var(--orion-surface-active)] transition-colors cursor-pointer"
+              data-testid="view-custom-colors-btn"
+              onClick={openCustomColorModal}
+              className="px-4 py-1.5 rounded-xl text-xs font-semibold border border-[var(--orion-border)] bg-[var(--orion-surface-hover)] hover:bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)] transition-colors cursor-pointer"
             >
-              Revert to Theme Default ({theme.colors.accent})
+              View colors
             </button>
-          )}
+          </div>
         </div>
 
-        {/* Swatch Matrix */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3">
-          {curatedAccents.map(accent => {
-            const isSelected = !preferences.customAccentEnabled 
-              ? (theme.colors.accent.toLowerCase() === accent.hex.toLowerCase())
-              : (preferences.customAccent?.toLowerCase() === accent.hex.toLowerCase());
-            return (
-              <button
-                key={accent.hex}
-                type="button"
-                onClick={() => {
-                  setPreference('customAccentEnabled', true);
-                  setPreference('customAccent', accent.hex);
-                  setCustomHex(accent.hex);
-                }}
-                className={`group flex flex-col items-center p-2.5 rounded-xl border transition-all cursor-pointer ${
-                  isSelected 
-                    ? 'border-[var(--orion-accent)] bg-[var(--orion-surface-hover)] ring-2 ring-[var(--orion-accent)]/40' 
-                    : 'border-[var(--orion-border)] hover:bg-[var(--orion-surface-hover)]'
-                }`}
-                title={accent.name}
-              >
-                <div 
-                  className="w-8 h-8 rounded-full flex items-center justify-center transition-transform group-hover:scale-105 shadow-sm border border-[var(--orion-border-strong)]"
-                  style={{ backgroundColor: accent.hex, color: calculateContrastColor(accent.hex) }}
-                >
-                  {isSelected && <Check className="w-4 h-4" />}
-                </div>
-                <span className="text-[10px] font-medium text-[var(--orion-text-secondary)] mt-1.5 truncate max-w-full">
-                  {accent.name}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Custom HEX Picker Row */}
+        {/* I. Apply Accent Color to Dock and System Navigation */}
         <div className="pt-4 border-t border-[var(--orion-border)] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-semibold text-[var(--orion-text-primary)]">Custom Accent HEX:</span>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={resolvedAccent}
-                onChange={handleCustomHexChange}
-                className="w-8 h-8 rounded-lg cursor-pointer border border-[var(--orion-border)] bg-transparent p-0"
-              />
-              <input
-                type="text"
-                value={customHex}
-                onChange={handleCustomHexChange}
-                placeholder="#D8DDE3"
-                className="w-28 px-2.5 py-1 text-xs rounded-lg bg-[var(--orion-surface-hover)] border border-[var(--orion-border)] text-[var(--orion-text-primary)] uppercase font-mono focus:outline-none focus:border-[var(--orion-accent)]"
-              />
+          <div className="space-y-0.5">
+            <div className="text-xs font-semibold text-[var(--orion-text-primary)]">
+              Show accent color on Start and taskbar
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs text-[var(--orion-text-secondary)] bg-[var(--orion-surface-hover)] px-3 py-1.5 rounded-xl border border-[var(--orion-border)]">
-            <ShieldCheck className="w-4 h-4 text-[var(--orion-accent)]" />
-            <span>Active Operating System Highlight: </span>
-            <span 
-              className="px-2 py-0.5 rounded font-mono font-bold text-[10px]"
-              style={{ backgroundColor: resolvedAccent, color: calculateContrastColor(resolvedAccent) }}
-            >
-              {resolvedAccent}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* 4. WINDOW & GEOMETRY CONTROLS */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        {/* Corner Radius Preset */}
-        <div className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-2xl p-5 space-y-3">
-          <label className="text-xs font-bold uppercase tracking-wider text-[var(--orion-text-muted)] flex items-center gap-1.5">
-            <AppWindow className="w-4 h-4 text-[var(--orion-accent)]" />
-            Corner Geometry
-          </label>
-          <div className="space-y-2">
-            {[
-              { key: 'compact', label: 'Compact (4px)', desc: 'High-density sharp enterprise geometry' },
-              { key: 'standard', label: 'Standard (10px)', desc: 'Balanced modern operating system corners' },
-              { key: 'rounded', label: 'Rounded (18px)', desc: 'Contemporary soft organic radii' },
-            ].map(r => (
-              <button
-                key={r.key}
-                type="button"
-                onClick={() => setPreference('cornerRadius', r.key as OrionCornerRadius)}
-                className={`w-full p-2.5 rounded-xl text-left text-xs font-medium border transition-colors cursor-pointer ${
-                  preferences.cornerRadius === r.key
-                    ? 'border-[var(--orion-accent)] bg-[var(--orion-surface-hover)] text-[var(--orion-text-primary)]'
-                    : 'border-[var(--orion-border)] hover:bg-[var(--orion-surface-hover)] text-[var(--orion-text-secondary)]'
-                }`}
-              >
-                <div className="font-semibold text-[var(--orion-text-primary)]">{r.label}</div>
-                <div className="text-[11px] opacity-80 mt-0.5">{r.desc}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Window Chrome Style */}
-        <div className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-2xl p-5 space-y-3">
-          <label className="text-xs font-bold uppercase tracking-wider text-[var(--orion-text-muted)] flex items-center gap-1.5">
-            <Layers className="w-4 h-4 text-[var(--orion-accent)]" />
-            Window Header Style
-          </label>
-          <div className="space-y-2">
-            {[
-              { key: 'standard', label: 'Standard Opaque', desc: 'Crisp high-clarity solid titlebar surface' },
-              { key: 'glass', label: 'Glass Translucent', desc: 'Subtle translucent backdrop blur header' },
-              { key: 'compact', label: 'Compact Header', desc: 'Reduced height for high-density displays' },
-            ].map(w => (
-              <button
-                key={w.key}
-                type="button"
-                onClick={() => setPreference('windowStyle', w.key as OrionWindowStyle)}
-                className={`w-full p-2.5 rounded-xl text-left text-xs font-medium border transition-colors cursor-pointer ${
-                  preferences.windowStyle === w.key
-                    ? 'border-[var(--orion-accent)] bg-[var(--orion-surface-hover)] text-[var(--orion-text-primary)]'
-                    : 'border-[var(--orion-border)] hover:bg-[var(--orion-surface-hover)] text-[var(--orion-text-secondary)]'
-                }`}
-              >
-                <div className="font-semibold text-[var(--orion-text-primary)]">{w.label}</div>
-                <div className="text-[11px] opacity-80 mt-0.5">{w.desc}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Visual Effects & Performance */}
-        <div className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-2xl p-5 space-y-3">
-          <label className="text-xs font-bold uppercase tracking-wider text-[var(--orion-text-muted)] flex items-center gap-1.5">
-            <Sliders className="w-4 h-4 text-[var(--orion-accent)]" />
-            Effects & Performance
-          </label>
-          <div className="space-y-3 pt-1">
-            <label className="flex items-center justify-between text-xs text-[var(--orion-text-primary)] cursor-pointer">
-              <span>Enable Glass Transparency</span>
-              <input 
-                type="checkbox"
-                checked={preferences.transparencyEnabled}
-                onChange={(e) => setPreference('transparencyEnabled', e.target.checked)}
-                className="w-4 h-4 rounded accent-[var(--orion-accent)]"
-              />
-            </label>
-
-            {/* Dedicated Global UI Transparency Slider (0-100%) */}
-            <div className="pt-2 border-t border-[var(--orion-border)] space-y-1.5">
-              <div className="flex justify-between text-[11px] text-[var(--orion-text-secondary)]">
-                <span>Global UI Transparency:</span>
-                <span className="font-mono font-bold text-[var(--orion-text-primary)]">{preferences.transparencyIntensity}%</span>
-              </div>
-              <input 
-                type="range"
-                min="0"
-                max="100"
-                value={preferences.transparencyIntensity}
-                disabled={!preferences.transparencyEnabled}
-                onChange={(e) => setPreference('transparencyIntensity', Number(e.target.value))}
-                className="w-full accent-[var(--orion-accent)] disabled:opacity-40 cursor-pointer"
-                aria-label="Global UI Transparency"
-              />
-              <div className="flex justify-between text-[10px] text-[var(--orion-text-muted)] font-mono">
-                <span>0% (Near-Opaque)</span>
-                <span>100% (Maximum Glass)</span>
-              </div>
-            </div>
-
-            <label className="flex items-center justify-between text-xs text-[var(--orion-text-primary)] cursor-pointer pt-2 border-t border-[var(--orion-border)]">
-              <span>Enable Backdrop Blur</span>
-              <input 
-                type="checkbox"
-                checked={preferences.blurEnabled}
-                onChange={(e) => setPreference('blurEnabled', e.target.checked)}
-                className="w-4 h-4 rounded accent-[var(--orion-accent)]"
-              />
-            </label>
-
-            <div className="pt-2 border-t border-[var(--orion-border)] space-y-1.5">
-              <div className="flex justify-between text-[11px] text-[var(--orion-text-secondary)]">
-                <span>Blur Intensity:</span>
-                <span className="font-mono">{preferences.blurIntensity}%</span>
-              </div>
-              <input 
-                type="range"
-                min="0"
-                max="100"
-                value={preferences.blurIntensity}
-                disabled={!preferences.blurEnabled}
-                onChange={(e) => setPreference('blurIntensity', Number(e.target.value))}
-                className="w-full accent-[var(--orion-accent)] disabled:opacity-40 cursor-pointer"
-                aria-label="Blur Intensity"
-              />
-            </div>
-
-            <label className="flex items-center justify-between text-xs text-[var(--orion-text-primary)] cursor-pointer pt-2 border-t border-[var(--orion-border)]">
-              <span>Reduce System Motion</span>
-              <input 
-                type="checkbox"
-                checked={preferences.reduceMotion}
-                onChange={(e) => setPreference('reduceMotion', e.target.checked)}
-                className="w-4 h-4 rounded accent-[var(--orion-accent)]"
-              />
-            </label>
-          </div>
-        </div>
-      </div>
-
-      {/* 4.5 INTERFACE MATERIAL MODE (MORPHIC UI ENGINE) */}
-      <div className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-2xl p-5 sm:p-6 space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            <label className="text-xs font-bold uppercase tracking-wider text-[var(--orion-text-muted)] flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4 text-[var(--orion-accent)]" />
-              Interface Material System (Morphism Engine)
-            </label>
-            <p className="text-xs text-[var(--orion-text-secondary)] mt-1">
-              Select the global tactile material physics applied across cards, windows, dock, inputs, and interactive surfaces.
+            <p className="text-[11px] text-[var(--orion-text-secondary)]">
+              Apply accent color to application Dock, launcher indicators, and supported navigation surfaces
             </p>
           </div>
-          <span className="text-[11px] font-mono text-[var(--orion-text-secondary)]">
-            Active Material: <span className="font-bold text-[var(--orion-text-primary)] capitalize">{preferences.morphismMode || 'glass'}</span>
-          </span>
-        </div>
 
-        {/* 3 Morphic Modes Cards */}
-        <div 
-          role="radiogroup" 
-          aria-label="Interface Material Mode"
-          className="grid grid-cols-1 md:grid-cols-3 gap-4"
-        >
-          {/* 1. GLASSMORPHISM */}
-          <div
-            role="radio"
-            aria-checked={(preferences.morphismMode || 'glass') === 'glass'}
-            tabIndex={0}
-            onClick={() => setPreference('morphismMode', 'glass')}
-            onKeyDown={(e) => {
-              if (e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault();
-                setPreference('morphismMode', 'glass');
-              }
-            }}
-            className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative space-y-3 flex flex-col justify-between ${
-              (preferences.morphismMode || 'glass') === 'glass'
-                ? 'border-[var(--orion-accent)] bg-[var(--orion-surface-hover)] ring-2 ring-[var(--orion-accent)]/30'
-                : 'border-[var(--orion-border)] bg-[var(--orion-surface)] hover:border-[var(--orion-border-strong)] hover:bg-[var(--orion-surface-hover)]'
-            }`}
-          >
-            {/* Visual Micro Preview */}
-            <div className="p-3 rounded-lg border border-[var(--orion-border)] bg-[var(--orion-surface-hover)] backdrop-blur-md shadow-sm space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono text-[var(--orion-text-primary)] font-semibold">Glassmorphic Layer</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--orion-surface-active)] text-[var(--orion-text-secondary)] font-mono">blur: 16px</span>
-              </div>
-              <div className="h-6 rounded bg-[var(--orion-surface)] border border-[var(--orion-border)] flex items-center px-2 text-[10px] text-[var(--orion-text-secondary)]">
-                Translucent Surface
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[var(--orion-text-primary)]">Glassmorphism</span>
-                {(preferences.morphismMode || 'glass') === 'glass' && (
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))] font-bold">
-                    DEFAULT
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-[var(--orion-text-secondary)] leading-relaxed">
-                Translucent, layered, backdrop-blurred surfaces with subtle specular border reflections and atmospheric depth.
-              </p>
-            </div>
-          </div>
-
-          {/* 2. CLAYMORPHISM */}
-          <div
-            role="radio"
-            aria-checked={preferences.morphismMode === 'clay'}
-            tabIndex={0}
-            onClick={() => setPreference('morphismMode', 'clay')}
-            onKeyDown={(e) => {
-              if (e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault();
-                setPreference('morphismMode', 'clay');
-              }
-            }}
-            className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative space-y-3 flex flex-col justify-between ${
-              preferences.morphismMode === 'clay'
-                ? 'border-[var(--orion-accent)] bg-[var(--orion-surface-hover)] ring-2 ring-[var(--orion-accent)]/30'
-                : 'border-[var(--orion-border)] bg-[var(--orion-surface)] hover:border-[var(--orion-border-strong)] hover:bg-[var(--orion-surface-hover)]'
-            }`}
-          >
-            {/* Visual Micro Preview */}
-            <div 
-              className="p-3 rounded-xl border space-y-2"
-              style={{
-                backgroundColor: 'var(--orion-surface-elevated)',
-                borderColor: 'rgba(255, 255, 255, 0.12)',
-                boxShadow: '0 8px 16px -4px rgba(0,0,0,0.4), inset 1px 1px 2px rgba(255,255,255,0.18)',
+          <div className="flex items-center gap-2.5">
+            <span className="text-xs font-medium text-[var(--orion-text-secondary)]">
+              {isNavAccentEnabled ? 'On' : 'Off'}
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={isNavAccentEnabled}
+              data-testid="nav-accent-toggle"
+              onClick={() => {
+                const next = !isNavAccentEnabled;
+                setPreference('applyAccentToNavigation', next);
+                showToast(`Accent on navigation turned ${next ? 'On' : 'Off'}`, 'info', 'Settings');
               }}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer border ${
+                isNavAccentEnabled
+                  ? 'bg-[var(--orion-accent)] border-[var(--orion-accent)]'
+                  : 'bg-[var(--orion-surface-hover)] border-[var(--orion-border)]'
+              }`}
             >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-semibold text-[var(--orion-text-primary)]">Tactile Clay</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--orion-accent-soft)] text-[var(--orion-accent)] font-mono">3D depth</span>
-              </div>
-              <div 
-                className="h-6 rounded-lg flex items-center px-2 text-[10px] text-[var(--orion-text-secondary)]"
-                style={{
-                  backgroundColor: 'var(--orion-surface)',
-                  boxShadow: 'inset 1px 1px 2px rgba(255,255,255,0.12), 0 3px 6px rgba(0,0,0,0.25)'
-                }}
-              >
-                Physical Floating Card
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[var(--orion-text-primary)]">Claymorphism</span>
-                {preferences.morphismMode === 'clay' && (
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))] font-bold">
-                    ACTIVE
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-[var(--orion-text-secondary)] leading-relaxed">
-                Soft, tactile, friendly dimensional surfaces featuring inner rim specular highlights and rounded volumetric drop shadows.
-              </p>
-            </div>
-          </div>
-
-          {/* 3. NEUMORPHISM */}
-          <div
-            role="radio"
-            aria-checked={preferences.morphismMode === 'neumorphic'}
-            tabIndex={0}
-            onClick={() => setPreference('morphismMode', 'neumorphic')}
-            onKeyDown={(e) => {
-              if (e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault();
-                setPreference('morphismMode', 'neumorphic');
-              }
-            }}
-            className={`p-4 rounded-xl border text-left transition-all cursor-pointer relative space-y-3 flex flex-col justify-between ${
-              preferences.morphismMode === 'neumorphic'
-                ? 'border-[var(--orion-accent)] bg-[var(--orion-surface-hover)] ring-2 ring-[var(--orion-accent)]/30'
-                : 'border-[var(--orion-border)] bg-[var(--orion-surface)] hover:border-[var(--orion-border-strong)] hover:bg-[var(--orion-surface-hover)]'
-            }`}
-          >
-            {/* Visual Micro Preview */}
-            <div 
-              className="p-3 rounded-xl border border-transparent space-y-2"
-              style={{
-                backgroundColor: 'var(--orion-surface)',
-                boxShadow: '-3px -3px 8px rgba(255,255,255,0.06), 4px 4px 10px rgba(0,0,0,0.5)',
-              }}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-semibold text-[var(--orion-text-primary)]">Extruded Surface</span>
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--orion-surface-active)] text-[var(--orion-text-muted)] font-mono">embossed</span>
-              </div>
-              <div 
-                className="h-6 rounded-lg flex items-center px-2 text-[10px] text-[var(--orion-text-muted)]"
-                style={{
-                  backgroundColor: 'var(--orion-surface)',
-                  boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.5), inset -2px -2px 4px rgba(255,255,255,0.05)'
-                }}
-              >
-                Recessed Input Track
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-[var(--orion-text-primary)]">Neumorphism</span>
-                {preferences.morphismMode === 'neumorphic' && (
-                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))] font-bold">
-                    ACTIVE
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-[var(--orion-text-secondary)] leading-relaxed">
-                Seamless monochromatic extrusion from the parent canvas with coupled dual-axis highlights and recessed interactive tracks.
-              </p>
-            </div>
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  isNavAccentEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* Live Material Controls Preview Strip */}
+      {/* MODAL: Professional Custom Color Picker Dialog */}
+      {isCustomColorModalOpen && (
         <div 
-          className="p-4 rounded-xl border transition-all space-y-3"
-          style={{
-            backgroundColor: 'var(--orion-morph-surface)',
-            borderColor: 'var(--orion-morph-border)',
-            boxShadow: 'var(--orion-morph-shadow-soft)',
-            backdropFilter: 'blur(var(--orion-morph-blur))',
-            WebkitBackdropFilter: 'blur(var(--orion-morph-blur))',
-          }}
+          className="fixed inset-0 z-[2147483640] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="custom-color-modal-title"
         >
-          <div className="flex items-center justify-between border-b pb-2" style={{ borderColor: 'var(--orion-morph-border)' }}>
-            <span className="text-xs font-semibold text-[var(--orion-text-primary)] flex items-center gap-2">
-              <Eye className="w-3.5 h-3.5 text-[var(--orion-accent)]" />
-              Live Interactive Primitives Preview ({preferences.morphismMode?.toUpperCase() || 'GLASS'})
-            </span>
-            <span className="text-[10px] font-mono text-[var(--orion-text-muted)]">
-              Real-time CSS Custom Properties
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-            {/* Preview Button */}
-            <div className="space-y-1.5">
-              <span className="text-[10px] uppercase font-mono text-[var(--orion-text-muted)]">Interactive Button</span>
-              <button
-                type="button"
-                className="w-full py-2 px-3 rounded-lg text-xs font-semibold text-[var(--os-text-primary-inverse)] transition-all cursor-pointer active:scale-95"
-                style={{
-                  backgroundColor: 'var(--orion-accent)',
-                  boxShadow: 'var(--orion-morph-shadow)',
-                }}
-              >
-                Execute Pipeline
-              </button>
-            </div>
-
-            {/* Preview Input */}
-            <div className="space-y-1.5">
-              <span className="text-[10px] uppercase font-mono text-[var(--orion-text-muted)]">Recessed Input</span>
-              <input
-                type="text"
-                readOnly
-                value="SKU-8492-INVENTORY"
-                className="w-full py-1.5 px-3 rounded-lg text-xs font-mono text-[var(--orion-text-primary)] border outline-none"
-                style={{
-                  backgroundColor: 'var(--orion-morph-surface-subtle)',
-                  borderColor: 'var(--orion-morph-border)',
-                  boxShadow: 'var(--orion-morph-shadow-inset)',
-                }}
+          <div 
+            className="w-full max-w-md rounded-2xl border border-[var(--orion-border)] bg-[var(--orion-surface)] p-6 shadow-2xl space-y-5 text-[var(--orion-text-primary)]"
+          >
+            <div className="flex items-center justify-between border-b border-[var(--orion-border)] pb-3">
+              <h3 id="custom-color-modal-title" className="text-sm font-bold tracking-tight">
+                Pick a custom color
+              </h3>
+              <div 
+                className="w-6 h-6 rounded-md border border-[var(--orion-border)]"
+                style={{ backgroundColor: colorHexDraft }}
               />
             </div>
 
-            {/* Preview Elevated Card */}
-            <div className="space-y-1.5">
-              <span className="text-[10px] uppercase font-mono text-[var(--orion-text-muted)]">Elevated Card</span>
-              <div 
-                className="w-full py-1.5 px-3 rounded-lg text-xs font-medium text-[var(--orion-text-primary)] flex items-center justify-between border"
-                style={{
-                  backgroundColor: 'var(--orion-morph-surface-elevated)',
-                  borderColor: 'var(--orion-morph-border-strong)',
-                  boxShadow: 'var(--orion-morph-shadow-soft)',
-                }}
-              >
-                <span>Stock Fill Rate</span>
-                <span className="font-bold text-[#5FAF8A]">99.2%</span>
+            {/* Input Mode Selector */}
+            <div className="flex rounded-lg border border-[var(--orion-border)] p-1 bg-[var(--orion-surface-hover)] text-xs font-medium">
+              {(['hex', 'rgb', 'hsl'] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setCustomInputMode(m)}
+                  className={`flex-1 py-1 rounded-md transition-colors cursor-pointer uppercase ${
+                    customInputMode === m
+                      ? 'bg-[var(--orion-surface)] text-[var(--orion-text-primary)] shadow-xs font-bold'
+                      : 'text-[var(--orion-text-secondary)] hover:text-[var(--orion-text-primary)]'
+                  }`}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+
+            {/* Color Swatch & Native Color Element */}
+            <div className="flex items-center gap-4">
+              <input
+                type="color"
+                value={colorHexDraft}
+                onChange={(e) => handleHexDraftChange(e.target.value)}
+                className="w-16 h-16 rounded-xl cursor-pointer border border-[var(--orion-border)] bg-transparent p-0"
+              />
+              <div className="flex-1 space-y-1">
+                <div className="text-[11px] text-[var(--orion-text-secondary)]">Live Swatch Preview</div>
+                <div 
+                  className="w-full h-8 rounded-lg flex items-center justify-center text-xs font-mono font-bold border border-[var(--orion-border)]"
+                  style={{
+                    backgroundColor: colorHexDraft,
+                    color: calculateContrastColor(colorHexDraft),
+                  }}
+                >
+                  {colorHexDraft.toUpperCase()}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* 5. INTERACTIVE LIVE WINDOW PREVIEW BOX */}
-      <div className="bg-[var(--orion-surface)] border border-[var(--orion-border)] rounded-2xl p-5 sm:p-6 space-y-3">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-bold uppercase tracking-wider text-[var(--orion-text-muted)] flex items-center gap-1.5">
-            <Eye className="w-4 h-4 text-[var(--orion-accent)]" />
-            Live Operating System Window Preview
-          </label>
-          <span className="text-[11px] text-[var(--orion-text-secondary)] font-mono">
-            Active Theme: <span className="text-[var(--orion-text-primary)] font-bold">{theme.name}</span> ({isDark ? 'Dark' : 'Light'})
-          </span>
-        </div>
-
-        {/* Mock Window Container */}
-        <div 
-          className="border shadow-lg overflow-hidden transition-all"
-          style={{
-            backgroundColor: 'var(--orion-surface)',
-            borderColor: 'var(--orion-border)',
-            borderRadius: 'var(--orion-radius)'
-          }}
-        >
-          {/* Title Bar */}
-          <div 
-            className="px-4 py-2.5 flex items-center justify-between border-b"
-            style={{
-              backgroundColor: 'var(--orion-surface-elevated)',
-              borderColor: 'var(--orion-border)'
-            }}
-          >
-            {preferences.windowControlPosition === 'right' ? (
-              <>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-semibold text-[var(--orion-text-primary)]">
-                    Supply Chain Control Tower — Live Preview
-                  </span>
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--orion-surface)] text-[var(--orion-text-secondary)] border border-[var(--orion-border)]">
-                    {theme.id.toUpperCase()} • {preferences.cornerRadius.toUpperCase()} • {preferences.morphismMode?.toUpperCase() || 'GLASS'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <OrionWindowControls
-                    appName="Live Preview"
-                    position="right"
-                    onClose={() => showToast('Close clicked in preview', 'info')}
-                    onMinimize={() => showToast('Minimize clicked in preview', 'info')}
-                    onMaximize={() => showToast('Maximize clicked in preview', 'info')}
-                  />
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center gap-3">
-                  <OrionWindowControls
-                    appName="Live Preview"
-                    position="left"
-                    onClose={() => showToast('Close clicked in preview', 'info')}
-                    onMinimize={() => showToast('Minimize clicked in preview', 'info')}
-                    onMaximize={() => showToast('Maximize clicked in preview', 'info')}
-                  />
-                  <span className="text-xs font-semibold text-[var(--orion-text-primary)]">
-                    Supply Chain Control Tower — Live Preview
-                  </span>
-                </div>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--orion-surface)] text-[var(--orion-text-secondary)] border border-[var(--orion-border)]">
-                  {theme.id.toUpperCase()} • {preferences.cornerRadius.toUpperCase()} • {preferences.morphismMode?.toUpperCase() || 'GLASS'}
-                </span>
-              </>
+            {/* Parameter Inputs by Mode */}
+            {customInputMode === 'hex' && (
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-[var(--orion-text-secondary)]">
+                  Hex Color Code
+                </label>
+                <input
+                  type="text"
+                  data-testid="custom-hex-input"
+                  value={colorHexDraft}
+                  onChange={(e) => handleHexDraftChange(e.target.value)}
+                  placeholder="#D6A65C"
+                  maxLength={7}
+                  className="w-full px-3 py-2 rounded-xl text-sm font-mono uppercase bg-[var(--orion-surface-hover)] border border-[var(--orion-border)] text-[var(--orion-text-primary)] focus:outline-none focus:border-[var(--orion-accent)]"
+                />
+              </div>
             )}
-          </div>
 
-          {/* Window Body */}
-          <div className="p-4 space-y-4" style={{ backgroundColor: 'var(--orion-surface)' }}>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shadow-sm"
-                  style={{
-                    backgroundColor: 'var(--orion-accent)',
-                    color: 'var(--orion-on-accent, var(--os-text-primary-inverse))'
-                  }}
-                >
-                  Primary Action
-                </button>
-                <button
-                  type="button"
-                  className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all"
-                  style={{
-                    backgroundColor: 'var(--orion-surface-hover)',
-                    borderColor: 'var(--orion-border)',
-                    color: 'var(--orion-text-primary)'
-                  }}
-                >
-                  Secondary Action
-                </button>
+            {customInputMode === 'rgb' && (
+              <div className="grid grid-cols-3 gap-2">
+                {(['r', 'g', 'b'] as const).map((ch) => (
+                  <div key={ch} className="space-y-1">
+                    <label className="text-xs font-semibold text-[var(--orion-text-secondary)] uppercase">
+                      {ch}
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      max={255}
+                      value={colorRgbDraft[ch]}
+                      onChange={(e) => handleRgbDraftChange(ch, e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded-xl text-sm font-mono bg-[var(--orion-surface-hover)] border border-[var(--orion-border)] text-[var(--orion-text-primary)] focus:outline-none focus:border-[var(--orion-accent)]"
+                    />
+                  </div>
+                ))}
               </div>
+            )}
 
-              <div className="flex items-center gap-2">
-                <span 
-                  className="px-2.5 py-1 rounded-full text-[11px] font-bold border"
-                  style={{
-                    backgroundColor: 'var(--orion-accent-soft)',
-                    borderColor: 'var(--orion-accent)',
-                    color: 'var(--orion-text-primary)'
-                  }}
-                >
-                  Active Accent Highlight
-                </span>
-                <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25">
-                  Operational Nominal
-                </span>
-              </div>
-            </div>
-
-            {/* Mock Telemetry Data Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div 
-                className="p-3.5 rounded-xl border flex items-center justify-between"
-                style={{
-                  backgroundColor: 'var(--orion-surface-elevated)',
-                  borderColor: 'var(--orion-border)'
-                }}
-              >
+            {customInputMode === 'hsl' && (
+              <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
-                  <div className="text-xs font-bold text-[var(--orion-text-primary)]">
-                    SKU-4902 In-Transit Inventory
-                  </div>
-                  <div className="text-[11px] text-[var(--orion-text-secondary)]">
-                    Stock Level: 14,200 units • Target: 12,000 units
-                  </div>
+                  <label className="text-xs font-semibold text-[var(--orion-text-secondary)] uppercase">H (°)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={360}
+                    value={colorHslDraft.h}
+                    onChange={(e) => handleHslDraftChange('h', e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded-xl text-sm font-mono bg-[var(--orion-surface-hover)] border border-[var(--orion-border)] text-[var(--orion-text-primary)] focus:outline-none focus:border-[var(--orion-accent)]"
+                  />
                 </div>
-                <div className="w-16 h-2 rounded-full overflow-hidden bg-[var(--orion-surface-hover)]">
-                  <div className="h-full w-3/4" style={{ backgroundColor: 'var(--orion-chart-1)' }} />
-                </div>
-              </div>
-
-              <div 
-                className="p-3.5 rounded-xl border flex items-center justify-between"
-                style={{
-                  backgroundColor: 'var(--orion-surface-elevated)',
-                  borderColor: 'var(--orion-border)'
-                }}
-              >
                 <div className="space-y-1">
-                  <div className="text-xs font-bold text-[var(--orion-text-primary)]">
-                    Supplier Fulfillment SLA
-                  </div>
-                  <div className="text-[11px] text-[var(--orion-text-secondary)]">
-                    Global Network On-Time: 98.4%
-                  </div>
+                  <label className="text-xs font-semibold text-[var(--orion-text-secondary)] uppercase">S (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={colorHslDraft.s}
+                    onChange={(e) => handleHslDraftChange('s', e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded-xl text-sm font-mono bg-[var(--orion-surface-hover)] border border-[var(--orion-border)] text-[var(--orion-text-primary)] focus:outline-none focus:border-[var(--orion-accent)]"
+                  />
                 </div>
-                <div className="w-16 h-2 rounded-full overflow-hidden bg-[var(--orion-surface-hover)]">
-                  <div className="h-full w-5/6" style={{ backgroundColor: 'var(--orion-chart-2)' }} />
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-[var(--orion-text-secondary)] uppercase">L (%)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={colorHslDraft.l}
+                    onChange={(e) => handleHslDraftChange('l', e.target.value)}
+                    className="w-full px-2.5 py-1.5 rounded-xl text-sm font-mono bg-[var(--orion-surface-hover)] border border-[var(--orion-border)] text-[var(--orion-text-primary)] focus:outline-none focus:border-[var(--orion-accent)]"
+                  />
                 </div>
               </div>
+            )}
+
+            {colorInputError && (
+              <p className="text-xs text-rose-500 font-medium">
+                {colorInputError}
+              </p>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-[var(--orion-border)]">
+              <button
+                type="button"
+                onClick={() => setIsCustomColorModalOpen(false)}
+                className="px-4 py-1.5 rounded-xl text-xs font-semibold border border-[var(--orion-border)] bg-[var(--orion-surface-hover)] hover:bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)] transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                data-testid="apply-custom-color-btn"
+                disabled={Boolean(colorInputError)}
+                onClick={commitCustomColor}
+                className="px-4 py-1.5 rounded-xl text-xs font-bold bg-[var(--orion-accent)] text-[var(--orion-on-accent,var(--os-text-primary-inverse))] border border-[var(--orion-border-strong)] hover:opacity-90 transition-opacity cursor-pointer disabled:opacity-50"
+              >
+                Apply
+              </button>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

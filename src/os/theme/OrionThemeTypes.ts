@@ -92,6 +92,9 @@ export interface OrionAppearancePreferences {
   appearanceMode: OrionAppearanceMode;
   customAccentEnabled: boolean;
   customAccent?: string;
+  applyAccentToNavigation?: boolean;
+  recentColors?: string[];
+  customColors?: string[];
   transparencyEnabled: boolean;
   transparencyIntensity: number;
   blurEnabled: boolean;
@@ -134,6 +137,9 @@ export const DEFAULT_PREFERENCES: OrionAppearancePreferences = {
   morphismMode: 'glass',
   appearanceMode: 'dark',
   customAccentEnabled: false,
+  applyAccentToNavigation: true,
+  recentColors: ['#D6A65C', '#3B82F6', '#10B981', '#8B5CF6'],
+  customColors: [],
   transparencyEnabled: true,
   transparencyIntensity: 70,
   blurEnabled: true,

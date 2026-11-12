@@ -69,6 +69,30 @@ export function migratePreferences(raw: unknown): OrionAppearancePreferences {
     prefs.dockAutoHide = true;
   }
 
+  // Enforce exactly two modes: dark and light
+  if (prefs.appearanceMode !== 'light' && prefs.appearanceMode !== 'dark') {
+    prefs.appearanceMode = 'dark';
+  }
+
+  // Preserve accent to navigation and color arrays
+  if (rawObj.applyAccentToNavigation !== undefined) {
+    prefs.applyAccentToNavigation = Boolean(rawObj.applyAccentToNavigation);
+  } else if (prefs.applyAccentToNavigation === undefined) {
+    prefs.applyAccentToNavigation = true;
+  }
+
+  if (Array.isArray(rawObj.recentColors)) {
+    prefs.recentColors = rawObj.recentColors.filter((c: any) => typeof c === 'string' && /^#[0-9A-Fa-f]{6}$/.test(c));
+  } else if (!prefs.recentColors) {
+    prefs.recentColors = ['#D6A65C', '#3B82F6', '#10B981', '#8B5CF6'];
+  }
+
+  if (Array.isArray(rawObj.customColors)) {
+    prefs.customColors = rawObj.customColors.filter((c: any) => typeof c === 'string' && /^#[0-9A-Fa-f]{6}$/.test(c));
+  } else if (!prefs.customColors) {
+    prefs.customColors = [];
+  }
+
   // Ensure version markers are correct
   prefs.version = 1;
   prefs.appearancePreferencesVersion = CANONICAL_APPEARANCE_PREFERENCES_VERSION;
