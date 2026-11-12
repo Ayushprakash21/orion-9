@@ -165,9 +165,9 @@ export function DesktopWorkspace() {
   const [isWidgetGalleryOpen, setIsWidgetGalleryOpen] = useState<boolean>(false);
   const [showWidgets, setShowWidgets] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('orion_show_desktop_widgets') === 'true';
+      return localStorage.getItem('orion_show_desktop_widgets') !== 'false';
     }
-    return false;
+    return true;
   });
 
   // Load shortcuts for active workspace

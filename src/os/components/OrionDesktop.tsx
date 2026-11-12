@@ -310,9 +310,7 @@ export function OrionDesktop() {
 
         {/* Golden Gate Edition Central Hero Card (Enterprise Control Tower) */}
         {!heroCardDismissed && currentWorkspaceWindows.length === 0 && (
-          <div className="absolute inset-0 z-15 flex items-center justify-center p-4 pointer-events-none pb-24">
-            <OrionGoldenGateHeroCard onClose={() => setHeroCardDismissed(true)} />
-          </div>
+          <OrionGoldenGateHeroCard onClose={() => setHeroCardDismissed(true)} />
         )}
       </div>
 

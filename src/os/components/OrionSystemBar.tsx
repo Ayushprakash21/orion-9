@@ -31,6 +31,7 @@ import { SystemStatusModal } from '../../components/modals/SystemStatusModal';
 import { NetworkConnectionPopover } from './NetworkConnectionPopover';
 import { OrionControlCenterPopover } from './OrionControlCenterPopover';
 import { useBranding } from '../../store/BrandingContext';
+import { BrandLogo } from '../../components/brand/BrandLogo';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { DatabaseEnvironmentMode } from '../../core/database/DatabaseEnvironment';
 import { cn } from '../../lib/utils';
@@ -185,9 +186,9 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
   return (
     <header className="orion-global-topbar relative top-auto left-auto right-auto h-[40px] min-h-[40px] w-full z-[10000] flex items-center justify-between px-3 md:px-4 text-[13px] font-medium text-white/90 select-none bg-[rgba(18,22,28,0.78)] backdrop-blur-[24px] backdrop-saturate-[180%] border-b border-white/[0.10] shadow-[0_2px_12px_rgba(0,0,0,0.18)] pointer-events-auto shrink-0 transition-colors">
       
-      {/* LEFT: macOS Apple Logo, Orion-9 OS Title & Menus */}
+      {/* LEFT: Orion-9 Brand Mark, Title & Menus */}
       <div className="flex items-center h-full min-w-0 gap-1" ref={menuRef}>
-        {/* Apple / Brand Trigger Button */}
+        {/* Orion System Menu Trigger Button */}
         <button 
           onClick={() => {
             setMenuOpen(!menuOpen);
@@ -198,15 +199,13 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
             "flex items-center h-[26px] px-2 gap-1.5 rounded hover:bg-white/[0.12] transition-colors cursor-pointer text-white/95 shrink-0",
             menuOpen && "bg-white/[0.16] text-white"
           )}
-          title="Apple / Orion System Menu"
+          title="Orion System Menu"
           aria-label="Open ORION System Menu"
           aria-expanded={menuOpen}
         >
-          {/* Apple Logo SVG with orion-brand-image */}
+          {/* Orion-9 Official Brand Logo Mark */}
           <span className="orion-brand-image flex items-center justify-center">
-            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 170 170">
-              <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.69-7.85-11.97-14.42-6.53-9.99-11.66-21.6-15.39-34.82-3.73-13.23-5.59-25.59-5.59-37.08 0-15.3 3.65-28.18 10.96-38.64 7.31-10.45 16.73-15.82 28.24-16.1 4.79 0 10.44 1.25 16.96 3.75 6.52 2.5 10.59 3.81 12.21 3.93 2.17-.37 6.47-1.78 12.89-4.23 6.42-2.45 12.02-3.54 16.79-3.27 12.83.65 23.36 5.38 31.59 14.19-11.19 6.74-16.68 16.14-16.48 28.2 0 9.89 3.86 18.25 11.59 25.07 7.73 6.82 17.07 10.66 28.02 11.53-2.6 7.61-5.71 14.8-9.33 21.58zM119.22 31.81c0-7.72 2.77-14.99 8.31-21.8 5.54-6.81 12.39-10.91 20.55-12.31.22 1.3.33 2.44.33 3.43 0 7.72-2.88 15.15-8.63 22.28-5.75 7.13-12.67 11.37-20.76 12.71-.21-1.41-.32-2.58-.32-3.51z"/>
-            </svg>
+            <BrandLogo sizePreset="xs" variant="mark" />
           </span>
           <span 
             onClick={(e) => {
@@ -235,7 +234,7 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
           Orion-9 OS
         </span>
 
-        {/* macOS Top Menus */}
+        {/* Top Menus */}
         <div className="hidden lg:flex items-center gap-0.5 text-[13px] text-white/85">
           {['File', 'Edit', 'View', 'Go', 'Window', 'Help'].map((item) => (
             <div key={item} className="relative">
