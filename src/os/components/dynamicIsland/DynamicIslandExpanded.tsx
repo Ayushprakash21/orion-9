@@ -114,35 +114,49 @@ export const DynamicIslandExpanded: React.FC<DynamicIslandExpandedProps> = React
       }
       style={{ zIndex: 10020 }}
       className={cn(
-        "relative overflow-visible rounded-b-[24px] rounded-t-none border-b border-l border-r border-t-0 select-none pointer-events-auto transition-colors w-[min(580px,calc(100vw-24px))]",
+        "relative -mt-[0.5px] overflow-visible rounded-b-[24px] rounded-t-none border-b border-l border-r border-t-0 select-none pointer-events-auto transition-colors w-[min(580px,calc(100vw-24px))]",
         isDark
           ? "bg-[#181B22] text-white border-white/[0.12] shadow-[0_24px_54px_rgba(0,0,0,0.75)]"
-          : "bg-white text-[#202631] border-[#E1E5EA] shadow-[0_20px_48px_rgba(15,23,42,0.12),0_0_0_1px_rgba(15,23,42,0.04)]"
+          : "bg-white text-[#202631] border-[#E1E5EA] shadow-[0_20px_48px_rgba(15,23,42,0.12)]"
       )}
       onClick={(e) => e.stopPropagation()}
     >
       {/* Seamless Left Concave Fillet connecting to top System Bar at top-0 */}
       <svg
         className={cn(
-          "absolute -left-3 top-0 w-3 h-3 pointer-events-none hidden sm:block",
-          isDark ? "text-[#181B22] fill-current" : "text-white fill-current"
+          "absolute -left-3 top-0 w-3 h-3 pointer-events-none hidden sm:block overflow-visible",
+          isDark ? "text-[#181B22]" : "text-white"
         )}
         viewBox="0 0 12 12"
         aria-hidden="true"
       >
-        <path d="M 0,0 L 12,0 L 12,12 Q 12,0 0,0 Z" />
+        <path d="M 0,0 L 12,0 L 12,12 Q 12,0 0,0 Z" fill="currentColor" />
+        <path
+          d="M 0,0.5 Q 11.5,0.5 11.5,12"
+          fill="none"
+          stroke={isDark ? "rgba(255,255,255,0.12)" : "#E1E5EA"}
+          strokeWidth="1"
+          strokeLinecap="round"
+        />
       </svg>
 
       {/* Seamless Right Concave Fillet connecting to top System Bar at top-0 */}
       <svg
         className={cn(
-          "absolute -right-3 top-0 w-3 h-3 pointer-events-none hidden sm:block",
-          isDark ? "text-[#181B22] fill-current" : "text-white fill-current"
+          "absolute -right-3 top-0 w-3 h-3 pointer-events-none hidden sm:block overflow-visible",
+          isDark ? "text-[#181B22]" : "text-white"
         )}
         viewBox="0 0 12 12"
         aria-hidden="true"
       >
-        <path d="M 0,12 L 0,0 L 12,0 Q 0,0 0,12 Z" />
+        <path d="M 0,12 L 0,0 L 12,0 Q 0,0 0,12 Z" fill="currentColor" />
+        <path
+          d="M 0.5,12 Q 0.5,0.5 12,0.5"
+          fill="none"
+          stroke={isDark ? "rgba(255,255,255,0.12)" : "#E1E5EA"}
+          strokeWidth="1"
+          strokeLinecap="round"
+        />
       </svg>
 
       {/* 1. Orion System Header Row (Proprietary Orion System Controls — Zero Traffic Lights) */}

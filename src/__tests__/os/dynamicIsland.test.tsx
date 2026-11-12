@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { DynamicIsland } from '../../os/components/dynamicIsland/DynamicIsland';
+import { DynamicIslandExpanded } from '../../os/components/dynamicIsland/DynamicIslandExpanded';
 import { getAuthoritativeRuntime, useDynamicIslandState } from '../../os/components/dynamicIsland/useDynamicIslandState';
 
 // Mock essential contexts
@@ -264,5 +265,55 @@ describe('Orion-9 Dynamic Island Architecture & Telemetry', () => {
     // Verify handleAction opens Search command palette
     hookState.handleAction('search');
     expect(mockSetCommandPaletteOpen).toHaveBeenCalledWith(true);
+  });
+
+  it('DYNAMIC-ISLAND-13: Verifies seamless top edge integration, zero top border, and concave fillet contour strokes', () => {
+    const dummyMetrics = {
+      activeExceptionsCount: 1,
+      criticalExceptionsCount: 1,
+      stockoutRisksCount: 0,
+      delayedShipmentsCount: 0,
+      openPurchaseOrdersCount: 0,
+      connectedConnectorsCount: 3,
+      activeSyncJobsCount: 0,
+      unreadNotificationsCount: 0,
+      runtimeMode: 'WEB OS' as const,
+      isNativeDesktop: false,
+      environmentLabel: 'DEMO',
+      connectivityLabel: 'Online',
+      isOnline: true,
+      activeAppName: null,
+      copilotStatus: 'idle' as const,
+      simulationRunning: false,
+    };
+
+    const html = renderToString(
+      <DynamicIslandExpanded
+        activity="critical-alert"
+        activities={[]}
+        metrics={dummyMetrics}
+        isPinned={false}
+        isReducedMotion={false}
+        activeNotification={null}
+        onTogglePin={vi.fn()}
+        onCollapse={vi.fn()}
+        onAction={vi.fn()}
+        onDismissActivity={vi.fn()}
+        onDismissNotification={vi.fn()}
+      />
+    );
+
+    // 1. Zero top border and negative top margin for continuous subpixel seating
+    expect(html).toContain('border-t-0');
+    expect(html).toContain('-mt-[0.5px]');
+    expect(html).toContain('rounded-b-[24px]');
+    expect(html).toContain('rounded-t-none');
+
+    // 2. Concave fillets with continuous stroke path
+    expect(html).toContain('M 0,0.5 Q 11.5,0.5 11.5,12');
+    expect(html).toContain('M 0.5,12 Q 0.5,0.5 12,0.5');
+
+    // 3. No box-shadow 0 0 0 1px ring across the top edge
+    expect(html).not.toContain('0_0_0_1px');
   });
 });

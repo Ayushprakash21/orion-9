@@ -152,9 +152,9 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
           : { type: 'spring', stiffness: 450, damping: 32 }
       }
       style={{ zIndex: 10015 }}
-      className={`group relative flex items-center justify-between px-3.5 sm:px-4 rounded-b-2xl rounded-t-none border-b border-l border-r border-t-0 cursor-pointer select-none transition-colors duration-200 pointer-events-auto w-[min(520px,calc(100vw-24px))] min-w-[320px] ${
+      className={`group relative -mt-[0.5px] flex items-center justify-between px-3.5 sm:px-4 rounded-b-2xl rounded-t-none border-b border-l border-r border-t-0 cursor-pointer select-none transition-colors duration-200 pointer-events-auto w-[min(520px,calc(100vw-24px))] min-w-[320px] ${
         isDark
-          ? 'shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.12)]'
+          ? 'shadow-[0_8px_24px_rgba(0,0,0,0.65)]'
           : 'shadow-[0_4px_16px_rgba(15,23,42,0.08)]'
       } ${pillHeightClass} ${statusToneClass} ${
         isExpanded ? 'opacity-90' : ''
@@ -162,24 +162,38 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
     >
       {/* Seamless Left Concave Transition Fillet connecting to top System Bar */}
       <svg
-        className={`absolute -left-2.5 top-0 w-2.5 h-2.5 pointer-events-none hidden sm:block ${
-          isDark ? 'text-[#181B22] fill-current' : 'text-white fill-current'
+        className={`absolute -left-2.5 top-0 w-2.5 h-2.5 pointer-events-none hidden sm:block overflow-visible ${
+          isDark ? 'text-[#181B22]' : 'text-white'
         }`}
         viewBox="0 0 10 10"
         aria-hidden="true"
       >
-        <path d="M 0,0 L 10,0 L 10,10 Q 10,0 0,0 Z" />
+        <path d="M 0,0 L 10,0 L 10,10 Q 10,0 0,0 Z" fill="currentColor" />
+        <path
+          d="M 0,0.5 Q 9.5,0.5 9.5,10"
+          fill="none"
+          stroke={isDark ? "rgba(255,255,255,0.12)" : "#E1E5EA"}
+          strokeWidth="1"
+          strokeLinecap="round"
+        />
       </svg>
 
       {/* Seamless Right Concave Transition Fillet connecting to top System Bar */}
       <svg
-        className={`absolute -right-2.5 top-0 w-2.5 h-2.5 pointer-events-none hidden sm:block ${
-          isDark ? 'text-[#181B22] fill-current' : 'text-white fill-current'
+        className={`absolute -right-2.5 top-0 w-2.5 h-2.5 pointer-events-none hidden sm:block overflow-visible ${
+          isDark ? 'text-[#181B22]' : 'text-white'
         }`}
         viewBox="0 0 10 10"
         aria-hidden="true"
       >
-        <path d="M 0,10 L 0,0 L 10,0 Q 0,0 0,10 Z" />
+        <path d="M 0,10 L 0,0 L 10,0 Q 0,0 0,10 Z" fill="currentColor" />
+        <path
+          d="M 0.5,10 Q 0.5,0.5 10,0.5"
+          fill="none"
+          stroke={isDark ? "rgba(255,255,255,0.12)" : "#E1E5EA"}
+          strokeWidth="1"
+          strokeLinecap="round"
+        />
       </svg>
       <div className="sr-only" role="status" aria-live={activeNotification?.severity === 'critical' || activity === 'critical-alert' ? 'assertive' : 'polite'}>
         {activeNotification ? `${activeNotification.appName || 'Notification'}: ${activeNotification.title || activeNotification.message}` : activity === 'system-ready' ? 'System Ready' : activity}

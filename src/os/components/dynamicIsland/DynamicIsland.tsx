@@ -55,6 +55,14 @@ export const DynamicIsland: React.FC = React.memo(() => {
     };
   }, []);
 
+  // Synchronize expanded state with System Bar separator and surface bridge
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__ORION_DYNAMIC_ISLAND_EXPANDED__ = isExpanded;
+      window.dispatchEvent(new CustomEvent('orion:dynamic-island-state', { detail: { isExpanded } }));
+    }
+  }, [isExpanded]);
+
   // Outside click to collapse when unpinned
   useEffect(() => {
     if (!isExpanded || isPinned) return;
