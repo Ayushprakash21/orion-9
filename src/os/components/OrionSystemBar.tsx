@@ -309,7 +309,7 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
                   {item === 'Help' && (
                     <>
                       <button onClick={() => { openApplication('about'); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer">
-                        About ORION-9 OS 21.1
+                        About {ORION_OS_METADATA.fullVersionName}
                       </button>
                       <button onClick={() => { setStatusOpen(true); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer">
                         System Diagnostic Status

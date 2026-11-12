@@ -11,6 +11,7 @@ import { OrionLifecycleBackdrop } from '../lifecycle/OrionLifecycleBackdrop';
 import { OrionLifecycleCore } from '../lifecycle/OrionLifecycleCore';
 import { OrionLifecycleStatusList, LifecycleStatusItem } from '../lifecycle/OrionLifecycleStatusList';
 import { OrionLifecycleProgress } from '../lifecycle/OrionLifecycleProgress';
+import { ORION_OS_METADATA } from '../constants/OrionOsMetadata';
 
 interface OrionBootSequenceProps {
   onComplete: () => void;
@@ -34,7 +35,7 @@ const BOOT_SERVICES: BootServiceStage[] = [
   { id: 'security', code: '03', label: 'WORLD MODEL', readyStatus: 'MOUNTED', readyMs: Math.round(1400 * ORION_BOOT_MOTION_SCALE) },    // 1750ms
   { id: 'data-fabric', code: '04', label: 'INTELLIGENCE CORE', readyStatus: 'ONLINE', readyMs: Math.round(1800 * ORION_BOOT_MOTION_SCALE) }, // 2250ms
   { id: 'intelligence', code: '05', label: 'DECISION PLANE', readyStatus: 'ARMED', readyMs: Math.round(2200 * ORION_BOOT_MOTION_SCALE) },// 2750ms
-  { id: 'operations', code: '06', label: 'ORION-9 KERNEL', readyStatus: 'READY', readyMs: Math.round(2500 * ORION_BOOT_MOTION_SCALE) }, // 3125ms
+  { id: 'operations', code: '06', label: 'ORION-9 KERNEL (PULSAR 21.1)', readyStatus: 'READY', readyMs: Math.round(2500 * ORION_BOOT_MOTION_SCALE) }, // 3125ms
 ];
 
 export function OrionBootSequence({ onComplete }: OrionBootSequenceProps) {
@@ -121,7 +122,7 @@ export function OrionBootSequence({ onComplete }: OrionBootSequenceProps) {
 
         {/* Calm Heading & Subtitle */}
         <h2 className="text-base sm:text-lg font-semibold tracking-tight text-white mb-1">
-          {ready ? 'Orion-9 Ready' : 'Starting Orion'}
+          {ready ? `${ORION_OS_METADATA.product} 21.1 Ready` : `Starting ${ORION_OS_METADATA.product}`}
         </h2>
         <p className="text-xs text-neutral-400 font-normal mb-6 h-5 flex items-center justify-center">
           {getStatusSubtitle()}

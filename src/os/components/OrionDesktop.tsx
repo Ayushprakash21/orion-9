@@ -308,7 +308,7 @@ export function OrionDesktop() {
         {/* Dynamic Draggable Grid-Snapped Desktop Workspace */}
         {showDesktopIcons && <DesktopWorkspace />}
 
-        {/* Golden Gate Edition Central Hero Card (Enterprise Control Tower) */}
+        {/* Central Enterprise Control Tower Hero Card (Pulsar Release) */}
         {!heroCardDismissed && currentWorkspaceWindows.length === 0 && (
           <OrionGoldenGateHeroCard onClose={() => setHeroCardDismissed(true)} />
         )}

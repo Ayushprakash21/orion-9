@@ -56,7 +56,7 @@ export const SYSTEM_COLOR_PALETTE = [
   { hex: '#4C4A48', name: 'Deep Charcoal' },
   { hex: '#498205', name: 'Olive Green' },
   { hex: '#847545', name: 'Bronze Olive' },
-  { hex: '#D6A65C', name: 'Golden Gate Amber' },
+  { hex: '#D6A65C', name: 'Pulsar Amber' },
 ];
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
@@ -332,7 +332,7 @@ export const AppearanceSettingsPanel: React.FC = () => {
               showToast('Personalization reset to Orion-9 defaults', 'info', 'Settings');
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-[var(--orion-border)] bg-[var(--orion-surface)] hover:bg-[var(--orion-surface-hover)] transition-colors cursor-pointer"
-            title="Reset to Orion-9 Golden Gate Edition defaults"
+            title={`Reset to ${ORION_OS_METADATA.fullVersionName} defaults`}
           >
             <RefreshCw className="w-3.5 h-3.5" />
             Reset Defaults
@@ -388,7 +388,7 @@ export const AppearanceSettingsPanel: React.FC = () => {
               style={{ backgroundColor: resolvedAccent }}
             />
             <span className="text-[11px] font-medium text-[var(--orion-text-primary)]">
-              Orion-9 OS 21.1
+              {ORION_OS_METADATA.displayTitle} — {ORION_OS_METADATA.releaseCodename}
             </span>
             <span className="text-[10px] text-[var(--orion-text-muted)]">• System Ready</span>
           </div>

@@ -177,7 +177,7 @@ export const OrionGoldenGateHeroCard: React.FC<OrionGoldenGateHeroCardProps> = (
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
       transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-      data-testid="golden-gate-control-tower-card"
+      data-testid="orion-control-tower-card"
       style={effectiveStyle}
       className={`rounded-[24px] border border-white/[0.14] shadow-[0_24px_64px_rgba(0,0,0,0.60),0_0_0_1px_rgba(255,255,255,0.06)] backdrop-blur-[28px] overflow-hidden select-none pointer-events-auto transition-shadow ${
         isDragging ? 'shadow-[0_32px_80px_rgba(0,0,0,0.75)] ring-2 ring-[#D6A65C]/40' : ''
@@ -295,7 +295,7 @@ export const OrionGoldenGateHeroCard: React.FC<OrionGoldenGateHeroCardProps> = (
               <span className="font-mono text-[10px] text-white/40">Real-time Telemetry</span>
             </div>
 
-            {/* 2. Hero Operational Banner with Golden Gate wireframe */}
+            {/* 2. Hero Operational Banner with Pulsar celestial emission */}
             <div className="relative overflow-hidden rounded-2xl border border-white/[0.10] bg-white/[0.04] p-4 flex items-center justify-between backdrop-blur-md">
               {/* Left: System Status Pill */}
               <div className="flex items-center gap-3 z-10">
@@ -315,34 +315,27 @@ export const OrionGoldenGateHeroCard: React.FC<OrionGoldenGateHeroCardProps> = (
                 </div>
               </div>
 
-              {/* Right: Version + Golden Gate Bridge Wireframe SVG */}
-              <div className="flex items-center gap-4 z-10">
+              {/* Right: Version + Pulsar Release Graphic */}
+              <div className="flex items-center gap-3.5 z-10">
                 <div className="text-right">
                   <div className="text-xs font-bold text-white/90 tracking-wide font-mono">
-                    Version 21.1
+                    Version {ORION_OS_METADATA.version}
                   </div>
-                  <div className="text-[10px] text-[#D6A65C] font-semibold tracking-wider">
-                    Golden Gate Edition
+                  <div className="text-[10px] text-sky-400 font-bold tracking-wider uppercase font-mono">
+                    {ORION_OS_METADATA.releaseCodename} RELEASE
                   </div>
                 </div>
 
-                {/* Golden Gate Bridge Stylized Graphic */}
-                <div className="w-14 h-10 text-[#D6A65C]/80 shrink-0">
-                  <svg viewBox="0 0 100 60" fill="none" className="w-full h-full stroke-current" strokeWidth="2.2" strokeLinecap="round">
-                    {/* Tower 1 */}
-                    <path d="M 30 10 L 30 55 M 36 10 L 36 55 M 30 18 L 36 18 M 30 28 L 36 28 M 30 38 L 36 38" />
-                    {/* Tower 2 */}
-                    <path d="M 70 10 L 70 55 M 76 10 L 76 55 M 70 18 L 76 18 M 70 28 L 76 28 M 70 38 L 76 38" />
-                    {/* Main Suspension Cable Curve */}
-                    <path d="M 5 25 Q 33 48 53 35 Q 73 22 95 25" strokeWidth="2.4" />
-                    {/* Roadway */}
-                    <line x1="5" y1="42" x2="95" y2="42" strokeWidth="2.8" />
-                    {/* Vertical Suspension Cables */}
-                    <line x1="18" y1="34" x2="18" y2="42" strokeWidth="1" strokeDasharray="1 1" />
-                    <line x1="45" y1="36" x2="45" y2="42" strokeWidth="1" strokeDasharray="1 1" />
-                    <line x1="53" y1="35" x2="53" y2="42" strokeWidth="1" strokeDasharray="1 1" />
-                    <line x1="61" y1="33" x2="61" y2="42" strokeWidth="1" strokeDasharray="1 1" />
-                    <line x1="85" y1="30" x2="85" y2="42" strokeWidth="1" strokeDasharray="1 1" />
+                {/* Pulsar Celestial Emission Waveform SVG */}
+                <div className="w-12 h-10 text-sky-400/90 shrink-0 flex items-center justify-center">
+                  <svg viewBox="0 0 48 48" fill="none" className="w-full h-full stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="24" cy="24" r="5" className="fill-sky-400/20" />
+                    <line x1="24" y1="4" x2="24" y2="44" strokeDasharray="2 3" strokeWidth="1.5" />
+                    <line x1="4" y1="24" x2="44" y2="24" strokeDasharray="2 3" strokeWidth="1.5" />
+                    <path d="M12 18 C16 12 32 12 36 18" strokeWidth="1.8" />
+                    <path d="M12 30 C16 36 32 36 36 30" strokeWidth="1.8" />
+                    <path d="M8 14 C15 6 33 6 40 14" strokeWidth="1.4" opacity="0.6" />
+                    <path d="M8 34 C15 42 33 42 40 34" strokeWidth="1.4" opacity="0.6" />
                   </svg>
                 </div>
               </div>
@@ -447,4 +440,5 @@ export const OrionGoldenGateHeroCard: React.FC<OrionGoldenGateHeroCardProps> = (
   );
 };
 
+export const OrionPulsarHeroCard = OrionGoldenGateHeroCard;
 export default OrionGoldenGateHeroCard;

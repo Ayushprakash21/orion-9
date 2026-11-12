@@ -19,6 +19,7 @@ import {
   DynamicIslandSurfaceState,
 } from './DynamicIslandTypes';
 import { useOrionTheme } from '../../theme/useOrionTheme';
+import { ORION_OS_METADATA } from '../../constants/OrionOsMetadata';
 
 interface DynamicIslandCapsuleProps {
   activity: DynamicIslandActivity;
@@ -261,17 +262,17 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
                 </>
               ) : (
                 <div className="flex items-center gap-3 min-w-0">
-                  {/* Left: 09 badge + Golden Gate Edition Branding */}
+                  {/* Left: 09 badge + PULSAR RELEASE Branding */}
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="w-5 h-5 rounded-full bg-white/10 border border-[#D6A65C]/60 flex items-center justify-center font-bold font-mono text-[9px] text-[#D6A65C] shadow-xs">
+                    <span className="w-5 h-5 rounded-full bg-white/10 border border-sky-400/50 flex items-center justify-center font-bold font-mono text-[9px] text-sky-400 shadow-xs">
                       09
                     </span>
                     <div className="flex flex-col text-left leading-none">
                       <span className={`text-[11px] font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                        ORION-9 OS 21.1
+                        {ORION_OS_METADATA.displayTitle}
                       </span>
-                      <span className={`text-[8.5px] font-medium mt-0.5 ${isDark ? 'text-white/50' : 'text-slate-500'}`}>
-                        Golden Gate Edition
+                      <span className={`text-[8.5px] font-semibold tracking-wider uppercase mt-0.5 ${isDark ? 'text-sky-400/90' : 'text-sky-600'}`}>
+                        {ORION_OS_METADATA.displaySubtitle}
                       </span>
                     </div>
                   </div>

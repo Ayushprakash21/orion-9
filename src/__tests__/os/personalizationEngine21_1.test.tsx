@@ -40,19 +40,21 @@ vi.mock('../../store/ToastContext', () => ({
   }),
 }));
 
-describe('ORION-9 OS 21.1 — SYSTEM PERSONALIZATION & APPEARANCE ENGINE (Golden Gate Edition)', () => {
+describe('ORION-9 OS 21.1 — SYSTEM PERSONALIZATION & APPEARANCE ENGINE (PULSAR RELEASE)', () => {
   describe('Requirement 1: OS Version & Product Identity', () => {
-    it('declares authoritative OS 21.1 Golden Gate Edition metadata', () => {
+    it('declares authoritative OS 21.1 PULSAR RELEASE metadata', () => {
       expect(ORION_OS_METADATA.version).toBe('21.1');
       expect(ORION_OS_METADATA.displayTitle).toBe('ORION-9 OS 21.1');
-      expect(ORION_OS_METADATA.edition).toBe('Golden Gate Edition');
+      expect(ORION_OS_METADATA.edition).toBe('PULSAR RELEASE');
+      expect(ORION_OS_METADATA.releaseCodename).toBe('PULSAR');
+      expect(ORION_OS_METADATA.fullVersionName).toBe('ORION-9 OS 21.1 — PULSAR RELEASE');
       expect(ORION_OS_METADATA.kernelVersion).toBe('v21.1-kernel-core');
     });
 
-    it('renders OS 21.1 Golden Gate Edition branding and Colors heading', () => {
+    it('renders OS 21.1 PULSAR RELEASE branding and Colors heading', () => {
       const html = renderToString(<AppearanceSettingsPanel />);
       expect(html).toContain('ORION-9 OS 21.1');
-      expect(html).toContain('Golden Gate Edition');
+      expect(html).toContain('PULSAR RELEASE');
       expect(html).toContain('Colors</h1>');
       expect(html).toContain('Personalization and visual experience');
     });
@@ -216,11 +218,12 @@ describe('ORION-9 OS 21.1 — SYSTEM PERSONALIZATION & APPEARANCE ENGINE (Golden
   });
 
   describe('Requirement 7: Live Theme Preview Viewport', () => {
-    it('renders the interactive live preview matching the Golden Gate visual composition', () => {
+    it('renders the interactive live preview matching the Pulsar visual composition', () => {
       const html = renderToString(<AppearanceSettingsPanel />);
       expect(html).toContain('data-testid="personalization-preview-viewport"');
       expect(html).toContain('Live Desktop &amp; Window Preview');
-      expect(html).toContain('Orion-9 OS 21.1');
+      expect(html).toContain('ORION-9 OS 21.1');
+      expect(html).toContain('PULSAR');
       expect(html).toContain('Control Tower');
       expect(html).toContain('Supply Chain Network');
     });

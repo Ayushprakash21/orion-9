@@ -28,6 +28,7 @@ import {
 
 import { WorldLanguagePanel } from '../i18n/WorldLanguagePanel';
 import { SUPPORTED_LOCALES, SupportedLocale, TRANSLATIONS } from '../../i18n';
+import { ORION_OS_METADATA } from '../../os/constants/OrionOsMetadata';
 import { cn } from '../../lib/utils';
 
 export interface LanguageOption {
@@ -771,6 +772,13 @@ export const Login: React.FC<LoginProps> = () => {
             <Power className="w-4 h-4 shrink-0 text-white/70 group-hover:text-red-400 transition-colors" />
             <span className="sr-only">{t.shutDown}</span>
           </button>
+        </div>
+
+        {/* Center: System Release Info */}
+        <div className="hidden sm:flex flex-col items-center justify-center text-center">
+          <span className="text-[11px] font-mono font-medium text-white/50 tracking-wider">
+            {ORION_OS_METADATA.fullVersionName}
+          </span>
         </div>
 
         {/* Bottom Right Subtle Circular Glass Switch User Button */}
