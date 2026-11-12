@@ -28,6 +28,7 @@ import { useOrionDeviceMode } from '../../lib/useOrionDeviceMode';
 import { useToast } from '../../store/ToastContext';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { cn } from '../../lib/utils';
+import { useOrionTheme } from '../theme/useOrionTheme';
 import { useOSGeometry } from '../dock/DockGeometry';
 import {
   FileText,
@@ -109,6 +110,7 @@ export function DesktopWorkspace() {
     rightPadding: Math.max(16, safeArea.right + 16),
   }), [cellWidth, cellHeight, safeArea]);
 
+  const { isDark } = useOrionTheme();
   const [shortcuts, setShortcuts] = useState<DesktopShortcut[]>([]);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [activeDraggingId, setActiveDraggingId] = useState<string | null>(null);
@@ -207,7 +209,12 @@ export function DesktopWorkspace() {
   const loadWidgets = useCallback(async () => {
     try {
       const list = await desktopWorkspaceService.ensureDefaultWidgets(activeWorkspaceId);
-      setWidgets(list);
+      const vWidth = typeof window !== 'undefined' ? window.innerWidth : 1440;
+      const clamped = list.map((w) => {
+        const maxX = Math.max(16, vWidth - w.width - 24);
+        return w.x > maxX ? { ...w, x: maxX } : w;
+      });
+      setWidgets(clamped);
     } catch (e) {
       console.error('Failed to load desktop widgets', e);
     }
@@ -217,6 +224,28 @@ export function DesktopWorkspace() {
     loadShortcuts();
     loadWidgets();
   }, [loadShortcuts, loadWidgets]);
+
+  // Keep widgets safely clamped inside desktop viewport bounds on window resize
+  useEffect(() => {
+    const handleResize = () => {
+      const vWidth = window.innerWidth;
+      const vHeight = window.innerHeight;
+      setWidgets((prev) =>
+        prev.map((w) => {
+          const maxX = Math.max(16, vWidth - w.width - 24);
+          const maxY = Math.max(52, vHeight - w.height - 84);
+          const newX = Math.min(w.x, maxX);
+          const newY = Math.min(w.y, maxY);
+          if (newX !== w.x || newY !== w.y) {
+            return { ...w, x: newX, y: newY };
+          }
+          return w;
+        })
+      );
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Support global orion:open-app events and window.__orion_open_app for cross-shell application launching
   useEffect(() => {
@@ -1343,7 +1372,12 @@ export function DesktopWorkspace() {
           ref={desktopMenuRef}
           data-orion-context-menu="true"
           data-testid="desktop-context-menu"
-          className="fixed z-[2147483500] bg-[#161a22]/90 backdrop-blur-2xl border border-white/[0.12] rounded-2xl shadow-[0_24px_60px_rgba(0,0,0,0.7),inset_0_1px_1px_0_rgba(255,255,255,0.18)] py-1.5 w-60 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto select-none"
+          className={cn(
+            "fixed z-[2147483500] backdrop-blur-2xl rounded-2xl py-1.5 w-60 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto select-none",
+            isDark
+              ? "bg-[#161a22]/90 border border-white/[0.12] shadow-[0_24px_60px_rgba(0,0,0,0.7),inset_0_1px_1px_0_rgba(255,255,255,0.18)] text-white/90"
+              : "bg-white/98 border border-[#DCE1E7] shadow-[0_20px_48px_rgba(15,23,42,0.12),0_0_0_1px_rgba(0,0,0,0.04)] text-[#202631]"
+          )}
           style={{
             top: `${clampedDesktopPos.y}px`,
             left: `${clampedDesktopPos.x}px`,
@@ -1542,7 +1576,12 @@ export function DesktopWorkspace() {
           ref={itemMenuRef}
           data-orion-context-menu="true"
           data-testid="desktop-item-context-menu"
-          className="fixed z-[2147483500] bg-[#161a22]/90 backdrop-blur-2xl border border-white/[0.12] rounded-2xl shadow-[0_24px_60px_rgba(0,0,0,0.7),inset_0_1px_1px_0_rgba(255,255,255,0.18)] py-1.5 w-56 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto select-none"
+          className={cn(
+            "fixed z-[2147483500] backdrop-blur-2xl rounded-2xl py-1.5 w-56 text-xs flex flex-col gap-0.5 animate-in fade-in zoom-in-95 pointer-events-auto select-none",
+            isDark
+              ? "bg-[#161a22]/90 border border-white/[0.12] shadow-[0_24px_60px_rgba(0,0,0,0.7),inset_0_1px_1px_0_rgba(255,255,255,0.18)] text-white/90"
+              : "bg-white/98 border border-[#DCE1E7] shadow-[0_20px_48px_rgba(15,23,42,0.12),0_0_0_1px_rgba(0,0,0,0.04)] text-[#202631]"
+          )}
           style={{
             top: `${clampedItemPos.y}px`,
             left: `${clampedItemPos.x}px`,

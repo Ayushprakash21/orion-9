@@ -67,6 +67,24 @@ export const DynamicIsland: React.FC = React.memo(() => {
     return () => document.removeEventListener('mousedown', handlePointerDown);
   }, [isExpanded, isPinned, collapse]);
 
+  // Support Escape to collapse and global orion:dynamic-island-toggle
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isExpanded) {
+        collapse();
+      }
+    };
+    const handleToggleEvent = () => {
+      toggleExpanded();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('orion:dynamic-island-toggle', handleToggleEvent);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('orion:dynamic-island-toggle', handleToggleEvent);
+    };
+  }, [isExpanded, collapse, toggleExpanded]);
+
   if (isFullscreenHidden || presentationMode === 'disabled') {
     return null;
   }

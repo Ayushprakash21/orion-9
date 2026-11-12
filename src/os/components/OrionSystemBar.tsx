@@ -36,12 +36,14 @@ import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { DatabaseEnvironmentMode } from '../../core/database/DatabaseEnvironment';
 import { cn } from '../../lib/utils';
 import { ORION_OS_METADATA } from '../constants/OrionOsMetadata';
+import { useOrionTheme } from '../theme/useOrionTheme';
 
 const SystemBarClock = React.memo(function SystemBarClock({
   onOpenTimeWorld,
 }: {
   onOpenTimeWorld: () => void;
 }) {
+  const { isDark } = useOrionTheme();
   const [currentTime, setCurrentTime] = useState(() => new Date());
   const [hovered, setHovered] = useState(false);
 
@@ -91,12 +93,18 @@ const SystemBarClock = React.memo(function SystemBarClock({
       onClick={onOpenTimeWorld}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="hidden sm:flex group relative items-center px-2 h-[26px] text-[12px] font-medium text-white/90 hover:text-white hover:bg-white/[0.08] rounded-md transition-colors cursor-pointer"
+      className={cn(
+        "hidden sm:flex group relative items-center px-2 h-[26px] text-[12px] font-medium rounded-md transition-colors cursor-pointer",
+        isDark ? "text-white/90 hover:text-white hover:bg-white/[0.08]" : "text-[#202631] hover:text-black hover:bg-black/[0.06]"
+      )}
       aria-label="Open Time & World settings"
       title="Open Time & World"
     >
       <span>{fullDateTimeDisplay}</span>
-      <span className="pointer-events-none absolute right-0 top-[calc(100%+7px)] z-[2147483600] min-w-[210px] rounded-xl border border-white/[0.14] bg-[#161a22]/95 px-3.5 py-2.5 text-left opacity-0 translate-y-[-3px] group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 shadow-2xl">
+      <span className={cn(
+        "pointer-events-none absolute right-0 top-[calc(100%+7px)] z-[2147483600] min-w-[210px] rounded-xl border px-3.5 py-2.5 text-left opacity-0 translate-y-[-3px] group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 shadow-2xl",
+        isDark ? "border-white/[0.14] bg-[#161a22]/95" : "border-[#DCE1E7] bg-white/95"
+      )}>
         <span className="block font-mono tabular-nums text-[12px] font-medium text-[var(--orion-text-primary)]">
           {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
         </span>
@@ -110,6 +118,7 @@ const SystemBarClock = React.memo(function SystemBarClock({
 
 export const OrionSystemBar = React.memo(function OrionSystemBar() {
   const navigate = useNavigate();
+  const { isDark } = useOrionTheme();
   const { branding } = useBranding();
   const { isAdmin } = useAuth();
   const { 
@@ -184,7 +193,12 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
   }, []);
 
   return (
-    <header className="orion-global-topbar relative top-auto left-auto right-auto h-[44px] min-h-[44px] w-full z-[10000] flex items-center justify-between px-3 md:px-4 text-[13px] font-medium text-white/90 select-none bg-[rgba(18,22,28,0.78)] backdrop-blur-[20px] backdrop-saturate-[150%] border-b border-white/[0.10] shadow-[0_2px_12px_rgba(0,0,0,0.18)] pointer-events-auto shrink-0 transition-colors">
+    <header className={cn(
+      "orion-global-topbar relative top-auto left-auto right-auto h-[44px] min-h-[44px] w-full z-[10000] flex items-center justify-between px-3 md:px-4 text-[13px] font-medium select-none backdrop-blur-[20px] backdrop-saturate-[150%] pointer-events-auto shrink-0 transition-colors",
+      isDark
+        ? "bg-[rgba(18,22,28,0.78)] text-white/90 border-b border-white/[0.10] shadow-[0_2px_12px_rgba(0,0,0,0.18)]"
+        : "bg-[rgba(255,255,255,0.85)] text-[#202631] border-b border-[#DCE1E7] shadow-[0_2px_12px_rgba(15,23,42,0.06)]"
+    )}>
       
       {/* LEFT: Orion-9 Brand Mark, Title & Menus */}
       <div className="flex items-center h-full min-w-0 gap-1" ref={menuRef}>
@@ -196,8 +210,11 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
           }}
           data-testid="orion-brand-trigger-btn"
           className={cn(
-            "flex items-center h-[26px] px-2 gap-1.5 rounded hover:bg-white/[0.12] transition-colors cursor-pointer text-white/95 shrink-0",
-            menuOpen && "bg-white/[0.16] text-white"
+            "flex items-center h-[26px] px-2 gap-1.5 rounded transition-colors cursor-pointer shrink-0",
+            isDark
+              ? "text-white/95 hover:bg-white/[0.12]"
+              : "text-[#202631] hover:bg-black/[0.06]",
+            menuOpen && (isDark ? "bg-white/[0.16] text-white" : "bg-black/[0.08] text-black")
           )}
           title="Orion System Menu"
           aria-label="Open ORION System Menu"
@@ -229,14 +246,17 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
         {/* Brand OS Name */}
         <span 
           onClick={() => openApplication('about')}
-          className="font-bold text-[13px] text-white tracking-tight px-1.5 py-0.5 rounded hover:bg-white/[0.08] transition-colors cursor-pointer"
+          className={cn(
+            "font-bold text-[13px] tracking-tight px-1.5 py-0.5 rounded transition-colors cursor-pointer",
+            isDark ? "text-white hover:bg-white/[0.08]" : "text-[#202631] hover:bg-black/[0.06]"
+          )}
         >
           <span className="sr-only">Orion OS</span>
           Orion-9 OS
         </span>
 
         {/* Top Menus */}
-        <div className="hidden lg:flex items-center gap-0.5 text-[13px] text-white/85">
+        <div className={cn("hidden lg:flex items-center gap-0.5 text-[13px]", isDark ? "text-white/85" : "text-[#596273]")}>
           {['File', 'Edit', 'View', 'Go', 'Window', 'Help'].map((item) => (
             <div key={item} className="relative">
               <button
@@ -246,8 +266,11 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
                   setActiveTopMenu(activeTopMenu === item ? null : item);
                 }}
                 className={cn(
-                  "px-2.5 py-0.5 rounded text-[12px] font-normal hover:bg-white/[0.12] hover:text-white transition-colors cursor-pointer",
-                  activeTopMenu === item && "bg-white/[0.16] text-white"
+                  "px-2.5 py-0.5 rounded text-[12px] font-normal transition-colors cursor-pointer",
+                  isDark
+                    ? "hover:bg-white/[0.12] hover:text-white"
+                    : "hover:bg-black/[0.06] hover:text-[#202631]",
+                  activeTopMenu === item && (isDark ? "bg-white/[0.16] text-white" : "bg-black/[0.08] text-[#202631]")
                 )}
               >
                 {item}
@@ -255,64 +278,69 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
 
               {activeTopMenu === item && (
                 <div 
-                  className="absolute top-[32px] left-0 min-w-[200px] rounded-xl border border-white/[0.14] bg-[#161a22]/95 backdrop-blur-2xl py-1.5 shadow-2xl z-[2147483600] flex flex-col text-left text-xs text-white/90 animate-in fade-in zoom-in-95"
+                  className={cn(
+                    "absolute top-[32px] left-0 min-w-[200px] rounded-xl border py-1.5 shadow-2xl z-[2147483600] flex flex-col text-left text-xs backdrop-blur-2xl animate-in fade-in zoom-in-95",
+                    isDark
+                      ? "border-white/[0.14] bg-[#161a22]/95 text-white/90"
+                      : "border-[#DCE1E7] bg-white/98 text-[#202631] shadow-[0_16px_36px_rgba(15,23,42,0.12)]"
+                  )}
                 >
                   {item === 'File' && (
                     <>
-                      <button onClick={() => { openApplication('file-manager'); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer flex justify-between">
-                        <span>New Window</span> <span className="text-white/40">⌘N</span>
+                      <button onClick={() => { openApplication('file-manager'); setActiveTopMenu(null); }} className={cn("px-3 py-1.5 text-left cursor-pointer flex justify-between", isDark ? "hover:bg-white/10" : "hover:bg-black/[0.05]")}>
+                        <span>New Window</span> <span className={isDark ? "text-white/40" : "text-[#8C95A5]"}>⌘N</span>
                       </button>
-                      <button onClick={() => { openApplication('orion-documents'); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer">
+                      <button onClick={() => { openApplication('orion-documents'); setActiveTopMenu(null); }} className={cn("px-3 py-1.5 text-left cursor-pointer", isDark ? "hover:bg-white/10" : "hover:bg-black/[0.05]")}>
                         New Document
                       </button>
-                      <div className="h-px bg-white/10 my-1" />
-                      <button onClick={() => { if (activeAppId) closeApplication(activeAppId); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer flex justify-between">
-                        <span>Close Window</span> <span className="text-white/40">⌘W</span>
+                      <div className={cn("h-px my-1", isDark ? "bg-white/10" : "bg-[#DCE1E7]")} />
+                      <button onClick={() => { if (activeAppId) closeApplication(activeAppId); setActiveTopMenu(null); }} className={cn("px-3 py-1.5 text-left cursor-pointer flex justify-between", isDark ? "hover:bg-white/10" : "hover:bg-black/[0.05]")}>
+                        <span>Close Window</span> <span className={isDark ? "text-white/40" : "text-[#8C95A5]"}>⌘W</span>
                       </button>
                     </>
                   )}
                   {item === 'Edit' && (
                     <>
-                      <div className="px-3 py-1.5 text-white/40 text-left flex justify-between"><span>Undo</span> <span>⌘Z</span></div>
-                      <div className="px-3 py-1.5 text-white/40 text-left flex justify-between"><span>Redo</span> <span>⇧⌘Z</span></div>
-                      <div className="h-px bg-white/10 my-1" />
-                      <div className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer flex justify-between"><span>Cut</span> <span>⌘X</span></div>
-                      <div className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer flex justify-between"><span>Copy</span> <span>⌘C</span></div>
-                      <div className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer flex justify-between"><span>Paste</span> <span>⌘V</span></div>
+                      <div className={cn("px-3 py-1.5 text-left flex justify-between", isDark ? "text-white/40" : "text-[#8C95A5]")}><span>Undo</span> <span>⌘Z</span></div>
+                      <div className={cn("px-3 py-1.5 text-left flex justify-between", isDark ? "text-white/40" : "text-[#8C95A5]")}><span>Redo</span> <span>⇧⌘Z</span></div>
+                      <div className={cn("h-px my-1", isDark ? "bg-white/10" : "bg-[#DCE1E7]")} />
+                      <div className={cn("px-3 py-1.5 text-left cursor-pointer flex justify-between", isDark ? "hover:bg-white/10" : "hover:bg-black/[0.05]")}><span>Cut</span> <span>⌘X</span></div>
+                      <div className={cn("px-3 py-1.5 text-left cursor-pointer flex justify-between", isDark ? "hover:bg-white/10" : "hover:bg-black/[0.05]")}><span>Copy</span> <span>⌘C</span></div>
+                      <div className={cn("px-3 py-1.5 text-left cursor-pointer flex justify-between", isDark ? "hover:bg-white/10" : "hover:bg-black/[0.05]")}><span>Paste</span> <span>⌘V</span></div>
                     </>
                   )}
                   {item === 'View' && (
                     <>
-                      <button onClick={() => { window.dispatchEvent(new CustomEvent('orion:desktop-refresh')); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer flex justify-between">
-                        <span>Reload Desktop</span> <span>⌘R</span>
+                      <button onClick={() => { window.dispatchEvent(new CustomEvent('orion:desktop-refresh')); setActiveTopMenu(null); }} className={cn("px-3 py-1.5 text-left cursor-pointer flex justify-between", isDark ? "hover:bg-white/10" : "hover:bg-black/[0.05]")}>
+                        <span>Reload Desktop</span> <span className={isDark ? "text-white/40" : "text-[#8C95A5]"}>⌘R</span>
                       </button>
-                      <button onClick={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); else document.documentElement.requestFullscreen().catch(() => {}); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer flex justify-between">
-                        <span>Enter Full Screen</span> <span>⌃⌘F</span>
+                      <button onClick={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); else document.documentElement.requestFullscreen().catch(() => {}); setActiveTopMenu(null); }} className={cn("px-3 py-1.5 text-left cursor-pointer flex justify-between", isDark ? "hover:bg-white/10" : "hover:bg-black/[0.05]")}>
+                        <span>Enter Full Screen</span> <span className={isDark ? "text-white/40" : "text-[#8C95A5]"}>⌃⌘F</span>
                       </button>
                     </>
                   )}
                   {item === 'Go' && (
                     <>
-                      <button onClick={() => { openApplication('command-center'); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer">Control Tower</button>
-                      <button onClick={() => { setLauncherOpen(true); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer">Applications</button>
-                      <button onClick={() => { openApplication('file-manager'); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer">Documents</button>
-                      <button onClick={() => { openApplication('settings'); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer">System Settings</button>
+                      <button onClick={() => { openApplication('command-center'); setActiveTopMenu(null); }} className={cn("px-3 py-1.5 text-left cursor-pointer", isDark ? "hover:bg-white/10" : "hover:bg-black/[0.05]")}>Control Tower</button>
+                      <button onClick={() => { setLauncherOpen(true); setActiveTopMenu(null); }} className={cn("px-3 py-1.5 text-left cursor-pointer", isDark ? "hover:bg-white/10" : "hover:bg-black/[0.05]")}>Applications</button>
+                      <button onClick={() => { openApplication('file-manager'); setActiveTopMenu(null); }} className={cn("px-3 py-1.5 text-left cursor-pointer", isDark ? "hover:bg-white/10" : "hover:bg-black/[0.05]")}>Documents</button>
+                      <button onClick={() => { openApplication('settings'); setActiveTopMenu(null); }} className={cn("px-3 py-1.5 text-left cursor-pointer", isDark ? "hover:bg-white/10" : "hover:bg-black/[0.05]")}>System Settings</button>
                     </>
                   )}
                   {item === 'Window' && (
                     <>
-                      <button onClick={() => { if (activeAppId) closeApplication(activeAppId); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer flex justify-between">
-                        <span>Minimize</span> <span>⌘M</span>
+                      <button onClick={() => { if (activeAppId) closeApplication(activeAppId); setActiveTopMenu(null); }} className={cn("px-3 py-1.5 text-left cursor-pointer flex justify-between", isDark ? "hover:bg-white/10" : "hover:bg-black/[0.05]")}>
+                        <span>Minimize</span> <span className={isDark ? "text-white/40" : "text-[#8C95A5]"}>⌘M</span>
                       </button>
-                      <button onClick={() => { closeAllWindows(); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer">Close All Windows</button>
+                      <button onClick={() => { closeAllWindows(); setActiveTopMenu(null); }} className={cn("px-3 py-1.5 text-left cursor-pointer", isDark ? "hover:bg-white/10" : "hover:bg-black/[0.05]")}>Close All Windows</button>
                     </>
                   )}
                   {item === 'Help' && (
                     <>
-                      <button onClick={() => { openApplication('about'); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer">
+                      <button onClick={() => { openApplication('about'); setActiveTopMenu(null); }} className={cn("px-3 py-1.5 text-left cursor-pointer", isDark ? "hover:bg-white/10" : "hover:bg-black/[0.05]")}>
                         About {ORION_OS_METADATA.fullVersionName}
                       </button>
-                      <button onClick={() => { setStatusOpen(true); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer">
+                      <button onClick={() => { setStatusOpen(true); setActiveTopMenu(null); }} className={cn("px-3 py-1.5 text-left cursor-pointer", isDark ? "hover:bg-white/10" : "hover:bg-black/[0.05]")}>
                         System Diagnostic Status
                       </button>
                     </>
@@ -354,9 +382,9 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
       <div className="flex-1 min-w-4 pointer-events-none" aria-hidden="true" />
 
       {/* RIGHT: macOS System Status & Action Bar */}
-      <div className="flex items-center h-full gap-2 shrink-0 min-w-0 text-white/90">
+      <div className={cn("flex items-center h-full gap-2 shrink-0 min-w-0", isDark ? "text-white/90" : "text-[#596273]")}>
         {/* Sound Waveform Visualizer Icon */}
-        <div className="hidden sm:flex items-center justify-center w-6 h-6 text-white/70 hover:text-white transition-colors cursor-pointer" title="Sound Output">
+        <div className={cn("hidden sm:flex items-center justify-center w-6 h-6 transition-colors cursor-pointer", isDark ? "text-white/70 hover:text-white" : "text-[#596273] hover:text-[#202631]")} title="Sound Output">
           <svg className="w-3.5 h-3.5 stroke-current" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round">
             <line x1="4" y1="9" x2="4" y2="15" />
             <line x1="8" y1="6" x2="8" y2="18" />
@@ -371,7 +399,7 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
           type="button"
           onClick={() => openApplication('ai-copilot')}
           data-testid="orion-copilot-button"
-          className="flex items-center justify-center w-6 h-6 rounded-full hover:bg-white/10 transition-colors cursor-pointer text-purple-400"
+          className={cn("flex items-center justify-center w-6 h-6 rounded-full transition-colors cursor-pointer text-purple-400", isDark ? "hover:bg-white/10" : "hover:bg-black/[0.06]")}
           title="Orion Copilot AI"
           aria-label="Open Orion AI Copilot"
         >
@@ -379,7 +407,7 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
         </button>
 
         {/* Cloud Sync Status */}
-        <div className="hidden sm:flex items-center justify-center w-6 h-6 text-white/70 hover:text-white transition-colors cursor-pointer" title="Cloud Sync Active">
+        <div className={cn("hidden sm:flex items-center justify-center w-6 h-6 transition-colors cursor-pointer", isDark ? "text-white/70 hover:text-white" : "text-[#596273] hover:text-[#202631]")} title="Cloud Sync Active">
           <Cloud className="w-3.5 h-3.5" />
         </div>
 
@@ -388,7 +416,7 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
           <button 
             type="button"
             onClick={() => setNetworkOpen(v => !v)}
-            className="flex items-center justify-center w-6 h-6 text-white/80 hover:text-white transition-colors cursor-pointer outline-none"
+            className={cn("flex items-center justify-center w-6 h-6 transition-colors cursor-pointer outline-none", isDark ? "text-white/80 hover:text-white" : "text-[#596273] hover:text-[#202631]")}
             title={statusLabel}
             aria-label="Network Connections"
           >
@@ -397,14 +425,14 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
         </div>
 
         {/* Volume */}
-        <div className="hidden md:flex items-center justify-center w-6 h-6 text-white/70 hover:text-white transition-colors cursor-pointer" title="Volume">
+        <div className={cn("hidden md:flex items-center justify-center w-6 h-6 transition-colors cursor-pointer", isDark ? "text-white/70 hover:text-white" : "text-[#596273] hover:text-[#202631]")} title="Volume">
           <Volume2 className="w-3.5 h-3.5" />
         </div>
 
         {/* Battery 79% */}
-        <div className="hidden sm:flex items-center gap-1.5 px-1 text-white/85" title="Battery: 79% (Power Adapter Connected)">
+        <div className={cn("hidden sm:flex items-center gap-1.5 px-1", isDark ? "text-white/85" : "text-[#596273]")} title="Battery: 79% (Power Adapter Connected)">
           <span className="text-[11px] font-mono font-medium">79%</span>
-          <svg className="w-4 h-4 fill-white/80 stroke-current" viewBox="0 0 24 24" fill="none" strokeWidth="1.8">
+          <svg className={cn("w-4 h-4 stroke-current", isDark ? "fill-white/80" : "fill-[#596273]")} viewBox="0 0 24 24" fill="none" strokeWidth="1.8">
             <rect x="2" y="7" width="16" height="10" rx="2" />
             <rect x="4" y="9" width="10" height="6" rx="1" fill="currentColor" />
             <path d="M21 11v2" />

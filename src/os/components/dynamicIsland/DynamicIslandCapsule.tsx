@@ -79,7 +79,7 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
       if (activity === 'critical-alert') return 'border-rose-500/45 bg-[rgba(34,12,18,0.94)] hover:border-rose-400/60';
       if (activity === 'copilot-thinking') return 'border-indigo-400/45 bg-[rgba(16,18,36,0.92)] hover:border-indigo-300/60';
       if (activity === 'connector-sync') return 'border-sky-400/40 bg-[rgba(12,24,36,0.92)] hover:border-sky-300/60';
-      return 'border-white/[0.14] border-t-0 bg-[#050505] hover:border-white/30 shadow-[0_8px_24px_rgba(0,0,0,0.65)]';
+      return 'border-white/[0.14] border-t-0 bg-[#181B22] hover:border-white/30 shadow-[0_8px_24px_rgba(0,0,0,0.65)]';
     } else {
       if (activity === 'critical-alert') return 'border-rose-500/45 bg-[rgba(255,242,244,0.95)] hover:border-rose-600/60';
       if (activity === 'copilot-thinking') return 'border-indigo-500/40 bg-[rgba(245,247,255,0.95)] hover:border-indigo-600/55';
@@ -163,7 +163,7 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
       {/* Seamless Left Concave Transition Fillet connecting to top System Bar */}
       <svg
         className={`absolute -left-2.5 top-0 w-2.5 h-2.5 pointer-events-none hidden sm:block ${
-          isDark ? 'text-[#050505] fill-current' : 'text-white fill-current'
+          isDark ? 'text-[#181B22] fill-current' : 'text-white fill-current'
         }`}
         viewBox="0 0 10 10"
         aria-hidden="true"
@@ -174,7 +174,7 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
       {/* Seamless Right Concave Transition Fillet connecting to top System Bar */}
       <svg
         className={`absolute -right-2.5 top-0 w-2.5 h-2.5 pointer-events-none hidden sm:block ${
-          isDark ? 'text-[#050505] fill-current' : 'text-white fill-current'
+          isDark ? 'text-[#181B22] fill-current' : 'text-white fill-current'
         }`}
         viewBox="0 0 10 10"
         aria-hidden="true"
@@ -344,13 +344,15 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
                   <span>{metrics.unreadNotificationsCount}</span>
                 </span>
               ) : (
-                <div className="flex items-center gap-2 text-white/70">
+                <div className={`flex items-center gap-2 ${isDark ? 'text-white/70' : 'text-slate-600'}`}>
                   <div className="relative">
-                    <Bell className="w-3.5 h-3.5 hover:text-white transition-colors" />
+                    <Bell className={`w-3.5 h-3.5 transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`} />
                     <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-rose-500" />
                   </div>
-                  <Search className="w-3.5 h-3.5 hover:text-white transition-colors" />
-                  <div className="w-5 h-5 rounded-full overflow-hidden border border-white/20 bg-white/10 shrink-0">
+                  <Search className={`w-3.5 h-3.5 transition-colors ${isDark ? 'hover:text-white' : 'hover:text-slate-900'}`} />
+                  <div className={`w-5 h-5 rounded-full overflow-hidden border shrink-0 ${
+                    isDark ? 'border-white/20 bg-white/10' : 'border-slate-300 bg-slate-100'
+                  }`}>
                     <img
                       src="/orion-9-favicon.png"
                       alt="User Profile"

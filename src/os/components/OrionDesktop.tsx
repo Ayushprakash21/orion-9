@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { OrionSystemBar } from './OrionSystemBar';
 import { DynamicIsland } from './dynamicIsland/DynamicIsland';
 import { OrionDock } from './OrionDock';
@@ -26,7 +27,6 @@ import { useSupplyChain } from '../../store/SupplyChainContext';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
 import { OrionMobileShell } from '../mobile';
 import { DesktopWorkspace } from '../desktop/DesktopWorkspace';
-import { OrionGoldenGateHeroCard } from './OrionGoldenGateHeroCard';
 import { cn } from '../../lib/utils';
 import { 
   Search, 
@@ -63,7 +63,6 @@ export function OrionDesktop() {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedDesktopApp, setSelectedDesktopApp] = useState<string | null>(null);
-  const [heroCardDismissed, setHeroCardDismissed] = useState(false);
   const prefersReduced = isReducedMotionPreferred(supplyChain?.settings?.reducedMotion);
   const prevWorkspaceIdRef = useRef(activeWorkspaceId);
   const [workspaceDirection, setWorkspaceDirection] = useState(0);
@@ -216,10 +215,10 @@ export function OrionDesktop() {
           ]
         : []),
       {
-        id: 'toggle-hero-card',
-        label: heroCardDismissed ? 'Show Control Tower Summary' : 'Hide Control Tower Summary',
+        id: 'toggle-control-tower',
+        label: 'Dynamic Island Control Tower',
         icon: Activity,
-        action: () => setHeroCardDismissed(prev => !prev),
+        action: () => window.dispatchEvent(new CustomEvent('orion:dynamic-island-toggle')),
       },
       {
         id: 'sep-personalize',
@@ -239,7 +238,6 @@ export function OrionDesktop() {
     openApplication,
     setLauncherOpen,
     setCommandPaletteOpen,
-    heroCardDismissed,
     currentWorkspaceWindows.length,
     showConfirmModal,
     closeAllWindows,
@@ -307,11 +305,6 @@ export function OrionDesktop() {
 
         {/* Dynamic Draggable Grid-Snapped Desktop Workspace */}
         {showDesktopIcons && <DesktopWorkspace />}
-
-        {/* Central Enterprise Control Tower Hero Card (Pulsar Release) */}
-        {!heroCardDismissed && currentWorkspaceWindows.length === 0 && (
-          <OrionGoldenGateHeroCard onClose={() => setHeroCardDismissed(true)} />
-        )}
       </div>
 
       {/* OS Layer 2: Desktop Window Manager Stage (Workspace Below Top Bar) */}
@@ -343,17 +336,33 @@ export function OrionDesktop() {
       {/* OS Layer 3: Top System Bar */}
       <OrionSystemBar />
 
-      {/* OS Layer 3.5: Top-Centred Integrated Dynamic Island (Flush with Bezel & System Bar) */}
-      <div
-        data-dynamic-island-anchor="true"
-        className="fixed left-1/2 -translate-x-1/2 pointer-events-none"
-        style={{
-          top: 0,
-          zIndex: 10005,
-        }}
-      >
-        <DynamicIsland />
-      </div>
+      {/* OS Layer 6: Top-Centred Integrated Dynamic Island (Mounted in OS Root Overlay Layer attached to lower edge of Top System Bar at 44px) */}
+      {typeof document !== 'undefined' ? (
+        createPortal(
+          <div
+            data-dynamic-island-anchor="true"
+            className="fixed left-1/2 -translate-x-1/2 pointer-events-none"
+            style={{
+              top: '44px',
+              zIndex: 10020,
+            }}
+          >
+            <DynamicIsland />
+          </div>,
+          document.body
+        )
+      ) : (
+        <div
+          data-dynamic-island-anchor="true"
+          className="fixed left-1/2 -translate-x-1/2 pointer-events-none"
+          style={{
+            top: '44px',
+            zIndex: 10020,
+          }}
+        >
+          <DynamicIsland />
+        </div>
+      )}
 
       {/* OS Layer 4: Independent Floating Application Dock (Bottom Centre) */}
       <OrionDock />

@@ -627,7 +627,18 @@ export class DesktopWorkspaceService {
           updatedAt: new Date().toISOString(),
         });
       }
-      return existing;
+      // Ensure existing widgets are clamped within current viewport to prevent right-edge clipping
+      const vWidth = typeof window !== 'undefined' ? window.innerWidth : 1440;
+      const clampedExisting = existing.map((w) => {
+        const maxX = Math.max(16, vWidth - w.width - 24);
+        if (w.x > maxX) {
+          const updated = { ...w, x: maxX };
+          scmPersistenceService.saveRecord('desktop_widgets', updated.id, updated).catch(() => {});
+          return updated;
+        }
+        return w;
+      });
+      return clampedExisting;
     }
 
     return await this.seedDefaultWidgets(workspaceId, activeTenant, activeEnv);

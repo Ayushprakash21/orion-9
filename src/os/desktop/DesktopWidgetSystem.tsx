@@ -583,6 +583,9 @@ export function DesktopWidgetSystem({
 
   const targetApp = getTargetAppId();
 
+  const vWidth = typeof window !== 'undefined' ? window.innerWidth : 1440;
+  const renderLeft = Math.min(widget.x, Math.max(16, vWidth - effectiveWidth - 20));
+
   return (
     <>
       <div
@@ -592,7 +595,7 @@ export function DesktopWidgetSystem({
         data-widget-size={widget.size}
         style={{
           position: 'absolute',
-          left: `${widget.x}px`,
+          left: `${renderLeft}px`,
           top: `${widget.y}px`,
           width: `${effectiveWidth}px`,
           height: `${effectiveHeight}px`,

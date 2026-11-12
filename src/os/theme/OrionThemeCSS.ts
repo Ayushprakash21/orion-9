@@ -62,7 +62,9 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   root.style.setProperty('--orion-background', theme.colors.background);
   root.style.setProperty('--orion-background-secondary', theme.colors.surface);
   root.style.setProperty('--orion-surface', theme.colors.surface);
-  root.style.setProperty('--orion-surface-secondary', theme.colors.surfaceElevated);
+  root.style.setProperty('--orion-surface-primary', theme.colors.surface);
+  root.style.setProperty('--orion-surface-secondary', theme.appearance.mode === 'light' ? '#F7F8FA' : theme.colors.surfaceElevated);
+  root.style.setProperty('--orion-surface-tertiary', theme.appearance.mode === 'light' ? '#EEF1F4' : '#22262B');
   root.style.setProperty('--orion-surface-elevated', theme.colors.surfaceElevated);
   root.style.setProperty('--orion-surface-hover', theme.colors.surfaceHover);
   root.style.setProperty('--orion-surface-active', theme.colors.surfaceActive);
@@ -76,8 +78,9 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   root.style.setProperty('--orion-text-disabled', theme.colors.textDisabled);
 
   const isDark = theme.appearance.mode === 'dark';
-  const subtleBorder = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(15, 23, 42, 0.06)';
+  const subtleBorder = isDark ? 'rgba(255, 255, 255, 0.05)' : '#E9EDF1';
   root.style.setProperty('--orion-border', theme.colors.border);
+  root.style.setProperty('--orion-border-primary', theme.colors.border);
   root.style.setProperty('--orion-border-subtle', subtleBorder);
   root.style.setProperty('--orion-border-strong', theme.colors.borderStrong);
 
