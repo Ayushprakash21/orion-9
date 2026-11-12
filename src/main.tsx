@@ -3,7 +3,12 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
+import './design-system/typography/typography.css';
+import { initOrionTypography } from './design-system/typography';
 import 'react-easy-crop/react-easy-crop.css';
+
+// Preload & verify enterprise typography fonts
+initOrionTypography();
 
 // Apply initial theme based on Orion appearance preferences before React mount
 try {

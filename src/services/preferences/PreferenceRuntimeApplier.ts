@@ -21,8 +21,8 @@ import { DEFAULT_SYSTEM_SETTINGS, normalizeSettings, SystemSettings } from '../.
 import { languageService } from '../../i18n/LanguagePackService';
 
 const FONT_STACKS: Record<OrionFontFamily, string> = {
-  ROBOTO: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", Arial, sans-serif',
-  LATO: '"Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif',
+  ROBOTO: '"Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+  LATO: '"Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
   ARIAL: 'Arial, Helvetica, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 };
 

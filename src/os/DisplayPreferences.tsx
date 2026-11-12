@@ -44,8 +44,8 @@ export const TEXT_SIZE_OPTIONS: OrionTextSize[] = [...TEXT_SIZE_VALUES];
 export const FONT_OPTIONS: OrionFontFamily[] = [...FONT_FAMILY_VALUES];
 
 const FONT_STACKS: Record<OrionFontFamily, string> = {
-  ROBOTO: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", Arial, sans-serif',
-  LATO: '"Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif',
+  ROBOTO: '"Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+  LATO: '"Lato", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
   ARIAL: 'Arial, Helvetica, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
 };
 
