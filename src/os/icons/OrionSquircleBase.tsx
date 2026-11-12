@@ -110,23 +110,23 @@ export const OrionSquircleBase: React.FC<IconBaseProps> = ({
           </linearGradient>
 
           {/* Upper specular dome studio bloom */}
-          <radialGradient id={`${uid}-bloom`} cx="50%" cy="16%" r="64%">
-            <stop offset="0%" stopColor="#FFFFFF" stopOpacity={active ? '0.28' : '0.18'} />
-            <stop offset="38%" stopColor={resolvedAccent} stopOpacity={active ? '0.22' : '0.11'} />
+          <radialGradient id={`${uid}-bloom`} cx="50%" cy="16%" r="66%">
+            <stop offset="0%" stopColor="#FFFFFF" stopOpacity={active ? '0.34' : '0.24'} />
+            <stop offset="40%" stopColor={resolvedAccent} stopOpacity={active ? '0.26' : '0.16'} />
             <stop offset="100%" stopColor="#000000" stopOpacity="0" />
           </radialGradient>
 
           {/* Warm lower bounce-light rim gradient */}
-          <radialGradient id={`${uid}-bounce`} cx="50%" cy="94%" r="55%">
-            <stop offset="0%" stopColor={resolvedAccent} stopOpacity="0.20" />
+          <radialGradient id={`${uid}-bounce`} cx="50%" cy="94%" r="58%">
+            <stop offset="0%" stopColor={resolvedAccent} stopOpacity="0.26" />
             <stop offset="100%" stopColor="#000000" stopOpacity="0" />
           </radialGradient>
 
           {/* Chamfered specular inner bezel catchlight */}
           <linearGradient id={`${uid}-rim`} x1="64" y1="7" x2="64" y2="121" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#FFFFFF" stopOpacity={isLight ? '0.72' : '0.46'} />
-            <stop offset="32%" stopColor="#FFFFFF" stopOpacity="0.14" />
-            <stop offset="100%" stopColor="#000000" stopOpacity={isLight ? '0.20' : '0.36'} />
+            <stop offset="0%" stopColor="#FFFFFF" stopOpacity={isLight ? '0.78' : '0.56'} />
+            <stop offset="34%" stopColor="#FFFFFF" stopOpacity="0.18" />
+            <stop offset="100%" stopColor="#000000" stopOpacity={isLight ? '0.18' : '0.28'} />
           </linearGradient>
         </defs>
 
@@ -136,7 +136,7 @@ export const OrionSquircleBase: React.FC<IconBaseProps> = ({
             d={ORION_SQUIRCLE_PATH}
             stroke={resolvedAccent}
             strokeWidth={detailTier === 'micro' ? 5.5 : 3.5}
-            strokeOpacity="0.52"
+            strokeOpacity="0.58"
             fill="none"
           />
         )}
@@ -144,8 +144,8 @@ export const OrionSquircleBase: React.FC<IconBaseProps> = ({
         {/* Grounding base superellipse silhouette */}
         <path d={ORION_SQUIRCLE_PATH} fill={`url(#${uid}-bg)`} />
 
-        {/* Studio optical surface dome & subtle lower bounce light */}
-        {!isCompact && (
+        {/* Studio optical surface dome & subtle lower bounce light (enabled across all Dock/Launcher sizes) */}
+        {detailTier !== 'micro' && (
           <>
             <path d={ORION_SQUIRCLE_PATH} fill={`url(#${uid}-bloom)`} />
             <path d={ORION_SQUIRCLE_PATH} fill={`url(#${uid}-bounce)`} />

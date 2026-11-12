@@ -157,7 +157,7 @@ describe('ORION-9: Canonical Appearance, Accent, Wallpaper & Dock Architecture',
       expect(engine.getPreferences().themeId).toBe('warm');
       expect(engine.getResolvedAccent()).toBe('#C6A15B');
       expect((globalThis as any).document.documentElement.style.getPropertyValue('--orion-accent')).toBe('#C6A15B');
-      expect((globalThis as any).document.documentElement.style.getPropertyValue('--orion-dock-surface')).toBe('rgba(26, 22, 19, 0.88)');
+      expect((globalThis as any).document.documentElement.style.getPropertyValue('--orion-dock-surface')).toBe('rgba(38, 32, 27, 0.90)');
     });
 
     it('Custom HEX #FF0055 propagates to tokens and persists across simulated reload', () => {

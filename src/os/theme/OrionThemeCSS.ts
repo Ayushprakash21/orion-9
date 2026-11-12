@@ -167,11 +167,11 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   const dockTint = preferences.dockTint || 'auto';
   let dockTintBg = dockSurface;
   if (dockTint === 'light') {
-    dockTintBg = 'rgba(255, 255, 255, 0.70)';
+    dockTintBg = 'rgba(255, 255, 255, 0.78)';
   } else if (dockTint === 'accent') {
-    dockTintBg = `color-mix(in srgb, ${accent} 25%, rgba(20, 24, 32, 0.70))`;
+    dockTintBg = `color-mix(in srgb, ${accent} 28%, rgba(28, 34, 46, 0.78))`;
   } else if (dockTint === 'dark') {
-    dockTintBg = 'rgba(10, 12, 16, 0.85)';
+    dockTintBg = 'rgba(14, 18, 24, 0.86)';
   }
   root.style.setProperty('--orion-dock-tint-bg', dockTintBg);
 

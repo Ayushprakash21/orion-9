@@ -275,7 +275,9 @@ test.describe('Orion-9 All 5 Themes, Light Mode Repair & Button Contrast E2E', (
       }
     }
 
-    // Open Dynamic Island Expanded card
+    // Reveal auto-hidden bottom Dynamic Dock and open Expanded card
+    await page.mouse.move(720, 898);
+    await expect(page.locator('[data-dock="true"]').first()).toHaveAttribute('data-dock-visible', 'true', { timeout: 4000 });
     await page.locator('[aria-label="Expand Orion Dynamic Island"]').click();
     await expect(page.getByTestId('dynamic-island-expanded-panel')).toBeVisible({ timeout: 5000 });
     const islandContrast = await measureVisibleControlsContrast(

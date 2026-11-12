@@ -327,13 +327,13 @@ export const OSGeometryProvider: React.FC<OSGeometryProviderProps> = ({ children
     root.style.setProperty('--orion-dock-blur', `${dockBlurPx}px`);
 
     const dockTint = effectiveSettings.dockTint || 'auto';
-    let dockTintBg = 'rgba(20, 24, 32, 0.65)';
+    let dockTintBg = 'var(--orion-dock-surface, rgba(32, 38, 48, 0.82))';
     if (dockTint === 'light') {
-      dockTintBg = 'rgba(255, 255, 255, 0.65)';
+      dockTintBg = 'rgba(255, 255, 255, 0.78)';
     } else if (dockTint === 'accent') {
-      dockTintBg = 'color-mix(in srgb, var(--orion-accent, #38BDF8) 25%, rgba(20, 24, 32, 0.70))';
+      dockTintBg = 'color-mix(in srgb, var(--orion-accent, #38BDF8) 28%, rgba(28, 34, 46, 0.78))';
     } else if (dockTint === 'dark') {
-      dockTintBg = 'rgba(10, 12, 16, 0.85)';
+      dockTintBg = 'rgba(14, 18, 24, 0.86)';
     }
     root.style.setProperty('--orion-dock-tint-bg', dockTintBg);
 

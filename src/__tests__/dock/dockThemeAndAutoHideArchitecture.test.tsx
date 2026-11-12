@@ -11,8 +11,8 @@ import { STORAGE_KEY, loadPreferences, savePreferences } from '../../os/theme/Or
 import { DEFAULT_PERSONALIZATION_SETTINGS } from '../../theme/themePresets';
 
 // Scoped mocks for WindowManager, Language, ContextMenu, Toast
-vi.mock('../../os/WindowManagerContext', () => ({
-  useWindowManager: () => ({
+vi.mock('../../os/WindowManagerContext', () => {
+  const ctx = {
     windows: {},
     activeAppId: null,
     activeWorkspaceId: 'operations',
@@ -28,8 +28,12 @@ vi.mock('../../os/WindowManagerContext', () => ({
     reorderDock: vi.fn(),
     setLauncherOpen: vi.fn(),
     setCommandPaletteOpen: vi.fn(),
-  }),
-}));
+  };
+  return {
+    useWindowManager: () => ctx,
+    useOptionalWindowManager: () => ctx,
+  };
+});
 
 vi.mock('../../store/LanguageContext', () => ({
   useI18n: () => ({
@@ -178,16 +182,16 @@ describe('ORION-9: Comprehensive Dock, Theme, and Accent Architecture Test Suite
 
         // Check specific color tokens
         if (id === 'graphite') {
-          expect(dockSurface).toBe('rgba(22, 25, 29, 0.88)');
+          expect(dockSurface).toBe('rgba(32, 38, 48, 0.90)');
         } else if (id === 'silver') {
           expect(dockSurface).toBe('rgba(255, 255, 255, 0.90)');
-          expect(dockBorder).toBe('rgba(0, 0, 0, 0.10)');
+          expect(dockBorder).toBe('rgba(15, 23, 42, 0.15)');
         } else if (id === 'midnight') {
-          expect(dockSurface).toBe('rgba(15, 19, 27, 0.88)');
+          expect(dockSurface).toBe('rgba(24, 31, 46, 0.90)');
         } else if (id === 'forest') {
-          expect(dockSurface).toBe('rgba(18, 25, 21, 0.88)');
+          expect(dockSurface).toBe('rgba(25, 36, 30, 0.90)');
         } else if (id === 'warm') {
-          expect(dockSurface).toBe('rgba(26, 22, 19, 0.88)');
+          expect(dockSurface).toBe('rgba(38, 32, 27, 0.90)');
         }
       });
     });
@@ -213,7 +217,9 @@ describe('ORION-9: Comprehensive Dock, Theme, and Accent Architecture Test Suite
     it('dock items consume CSS variables without hardcoded hex colors or legacy tailwind colors', () => {
       const html = renderToString(React.createElement(OrionDock));
 
-      // Dock styling uses canonical variables
+      // Dock styling uses canonical variables & isolates translucency strictly onto the backdrop layer
+      expect(html).toContain('data-testid="dock-glass-backdrop"');
+      expect(html).toContain('var(--orion-dock-opacity');
       expect(html).toContain('var(--orion-dock-surface');
       expect(html).toContain('var(--orion-dock-border');
       expect(html).toContain('var(--orion-dock-shadow');

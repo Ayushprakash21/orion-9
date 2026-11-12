@@ -66,19 +66,26 @@ test.describe('Orion-9 macOS Icon System, Astraeus Dynamic Island & OS Performan
     });
   });
 
-  test('E2E-02: Dynamic Island supports 5-state expansion, pinning, Escape return-to-compact, and mobile fit', async ({ page }) => {
+  test('E2E-02: Unified Dynamic Dock supports 5-state upward expansion, pinning, Escape return-to-compact, and mobile fit', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await authenticateDemo(page);
 
-    const island = page.locator('div[role="region"][aria-label="Orion-9 Dynamic Island System Telemetry"]');
-    const pill = island.locator('div[role="button"][aria-label="Expand Orion Dynamic Island"]');
-    await expect(pill).toBeVisible();
-    await pill.click();
+    // Topbar must NOT mount a separate Dynamic Island capsule
+    await expect(page.locator('.orion-global-topbar [aria-label="Expand Orion Dynamic Island"]')).toHaveCount(0);
 
-    const expandedPanel = page.getByTestId('dynamic-island-expanded-panel');
+    // Reveal auto-hidden bottom Dynamic Dock by hovering bottom edge
+    await page.mouse.move(720, 898);
+    const dock = page.locator('[data-dock="true"]').first();
+    await expect(dock).toHaveAttribute('data-dock-visible', 'true', { timeout: 4000 });
+
+    const trigger = dock.getByTestId('dynamic-dock-trigger');
+    await expect(trigger).toBeVisible();
+    await trigger.click();
+
+    const expandedPanel = dock.getByTestId('dynamic-island-expanded-panel');
     await expect(expandedPanel).toBeVisible();
 
-    await expandedPanel.screenshot({
+    await dock.screenshot({
       path: path.join(ARTIFACTS_DIR, 'upgrade_dynamic_island_expanded.png'),
     });
 
@@ -91,10 +98,12 @@ test.describe('Orion-9 macOS Icon System, Astraeus Dynamic Island & OS Performan
     await page.keyboard.press('Escape');
     await expect(expandedPanel).toBeHidden();
 
-    // Compact desktop viewport check (1280x720) ensuring Dynamic Island fits cleanly within viewport bounds
+    // Compact desktop viewport check (1280x720) ensuring unified Dynamic Dock fits cleanly within viewport bounds
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.waitForTimeout(150);
-    await pill.click();
+    await page.mouse.move(640, 718);
+    await expect(dock).toHaveAttribute('data-dock-visible', 'true', { timeout: 4000 });
+    await trigger.click();
     await expect(expandedPanel).toBeVisible();
     const panelBox = await expandedPanel.boundingBox();
     expect(panelBox).not.toBeNull();

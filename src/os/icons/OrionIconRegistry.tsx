@@ -440,7 +440,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'Vital Signs',
     category: 'Operations',
     description: 'Core operational pulses, throughputs, and system health.',
-    palette: { from: '#DC2626', to: '#7F1D1D', accent: '#EF4444', surface: '#EF444415' },
+    palette: { from: '#EF4444', to: '#B91C1C', accent: '#FCA5A5', surface: '#EF444415' },
     component: IconVitalSigns
   },
   'trading-partners': {
@@ -712,7 +712,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'Outcomes',
     category: 'Intelligence',
     description: 'Historical decision outcome tracking and accuracy.',
-    palette: { from: '#047857', to: '#064E3B', accent: '#10B981', surface: '#10B98115' },
+    palette: { from: '#10B981', to: '#047857', accent: '#6EE7B7', surface: '#10B98115' },
     component: IconOutcomes
   },
   'decision-replay': {
@@ -721,7 +721,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'Decision Replay',
     category: 'Intelligence',
     description: 'Step-by-step playback of past automated decisions.',
-    palette: { from: '#6D28D9', to: '#2E1065', accent: '#8B5CF6', surface: '#8B5CF615' },
+    palette: { from: '#8B5CF6', to: '#5B21B6', accent: '#C4B5FD', surface: '#8B5CF615' },
     component: IconDecisionReplay
   },
   'time-machine': {
@@ -840,7 +840,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'Exceptions',
     category: 'Control',
     description: 'Supply chain disruptions and risk alerts.',
-    palette: { from: '#DC2626', to: '#7F1D1D', accent: '#EF4444', surface: '#EF444415' },
+    palette: { from: '#EF4444', to: '#B91C1C', accent: '#FDBA74', surface: '#EF444415' },
     component: IconExceptions
   },
   'approval-center': {
@@ -849,7 +849,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'Approval Center',
     category: 'Control',
     description: 'Centralized human-in-the-loop governance.',
-    palette: { from: '#0284C7', to: '#082F49', accent: '#00F2FE', surface: '#00F2FE15' },
+    palette: { from: '#0EA5E9', to: '#0369A1', accent: '#38BDF8', surface: '#00F2FE15' },
     component: IconApprovalCenter
   },
   'ai-workforce': {
@@ -858,7 +858,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'AI Workforce Center',
     category: 'Control',
     description: 'Governed enterprise AI workforce management.',
-    palette: { from: '#0E7490', to: '#164E63', accent: '#00F2FE', surface: '#00F2FE15' },
+    palette: { from: '#06B6D4', to: '#0E7490', accent: '#67E8F9', surface: '#00F2FE15' },
     component: IconAiWorkforce
   },
   'vendor-onboarding': {
@@ -867,7 +867,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'Vendor Onboarding & RFQ',
     category: 'Control',
     description: 'Supplier due diligence and RFQ quotation management.',
-    palette: { from: '#6D28D9', to: '#2E1065', accent: '#8B5CF6', surface: '#8B5CF615' },
+    palette: { from: '#8B5CF6', to: '#5B21B6', accent: '#C4B5FD', surface: '#8B5CF615' },
     component: IconVendorOnboarding
   },
   'decisions': {
@@ -876,7 +876,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'Decisions',
     category: 'Control',
     description: 'Governed decision records and execution.',
-    palette: { from: '#D97706', to: '#78350F', accent: '#F59E0B', surface: '#F59E0B15' },
+    palette: { from: '#F59E0B', to: '#B45309', accent: '#FDE68A', surface: '#F59E0B15' },
     component: IconDecisions
   },
   'action-center': {
@@ -885,7 +885,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'Action Center',
     category: 'Control',
     description: 'Prescriptive operational action queue.',
-    palette: { from: '#EA580C', to: '#7C2D12', accent: '#F97316', surface: '#F9731615' },
+    palette: { from: '#F97316', to: '#C2410C', accent: '#FED7AA', surface: '#F9731615' },
     component: IconActionCenter
   },
   'autopilot': {
@@ -894,7 +894,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'Autopilot',
     category: 'Control',
     description: 'Autonomous execution rules and policies.',
-    palette: { from: '#7C3AED', to: '#3B0764', accent: '#8B5CF6', surface: '#8B5CF615' },
+    palette: { from: '#8B5CF6', to: '#5B21B6', accent: '#C4B5FD', surface: '#8B5CF615' },
     component: IconAutopilot
   },
   'workflows': {
@@ -903,7 +903,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'Workflows',
     category: 'Control',
     description: 'State machine workflow definitions.',
-    palette: { from: '#0284C7', to: '#082F49', accent: '#0EA5E9', surface: '#0EA5E915' },
+    palette: { from: '#0EA5E9', to: '#0369A1', accent: '#7DD3FC', surface: '#0EA5E915' },
     component: IconWorkflows
   },
   'autonomy-center': {
@@ -912,7 +912,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'Autonomy Center',
     category: 'Control',
     description: 'Autonomy levels, bounded authority, and guardrails.',
-    palette: { from: '#6D28D9', to: '#1E1B4B', accent: '#8B5CF6', surface: '#8B5CF615' },
+    palette: { from: '#7C3AED', to: '#4C1D95', accent: '#C4B5FD', surface: '#8B5CF615' },
     component: IconAutonomyCenter
   },
   'attention-center': {
@@ -921,7 +921,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'Attention Center',
     category: 'Control',
     description: 'Operator focus routing and critical queue.',
-    palette: { from: '#D97706', to: '#78350F', accent: '#F59E0B', surface: '#F59E0B15' },
+    palette: { from: '#F59E0B', to: '#B45309', accent: '#FDE047', surface: '#F59E0B15' },
     component: IconAttentionCenter
   },
   'constraints': {
@@ -930,7 +930,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'Constraints',
     category: 'Control',
     description: 'Physical, regulatory, and policy boundaries.',
-    palette: { from: '#4338CA', to: '#1E1B4B', accent: '#6366F1', surface: '#6366F115' },
+    palette: { from: '#6366F1', to: '#3730A3', accent: '#A5B4FC', surface: '#6366F115' },
     component: IconConstraints
   },
   'policies': {
@@ -939,7 +939,7 @@ export const ORION_ICON_REGISTRY: Record<string, OrionIconDefinition> = {
     name: 'Policies',
     category: 'Control',
     description: 'Enterprise governance rules and policy engine.',
-    palette: { from: '#1D4ED8', to: '#172554', accent: '#3B82F6', surface: '#3B82F615' },
+    palette: { from: '#3B82F6', to: '#1E40AF', accent: '#93C5FD', surface: '#3B82F615' },
     component: IconPolicies
   },
   'control-center': {

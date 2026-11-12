@@ -61,6 +61,9 @@ export interface DynamicIslandMetrics {
   unreadNotificationsCount: number;
   runtimeMode: 'WEB OS' | 'TAURI DESKTOP';
   isNativeDesktop: boolean;
+  environmentLabel?: string;
+  connectivityLabel?: string;
+  isOnline?: boolean;
   activeAppName: string | null;
   copilotStatus: DynamicIslandCopilotStatus;
   simulationRunning: boolean;

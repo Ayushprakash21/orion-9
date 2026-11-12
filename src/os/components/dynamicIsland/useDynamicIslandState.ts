@@ -13,6 +13,8 @@ import { ORION_REGISTRY } from '../../OrionApplicationRegistry';
 import { useOptionalWindowManager } from '../../WindowManagerContext';
 import { useOptionalSupplyChain } from '../../../store/SupplyChainContext';
 import { useOptionalNotifications } from '../../../store/NotificationContext';
+import { useConnectivity } from '../../../store/ConnectivityContext';
+import { dbManager } from '../../../core/database/DatabaseConnectionManager';
 import { useIntegrationFabric } from '../../../integration/useIntegrationFabric';
 import {
   DynamicIslandActivity,
@@ -56,7 +58,15 @@ export function useDynamicIslandState(): DynamicIslandState {
   const windowManager = useOptionalWindowManager();
   const supplyChain = useOptionalSupplyChain();
   const notifications = useOptionalNotifications();
+  const connectivity = useConnectivity();
   const integration = useIntegrationFabric();
+  const [environmentLabel, setEnvironmentLabel] = useState<string>(() => {
+    try {
+      return dbManager.getEnvironment();
+    } catch {
+      return 'DEMO';
+    }
+  });
 
   const [presentationMode, setPresentationMode] = useState<DynamicIslandPresentationMode>(() => readStoredPresentationMode());
   const [isExpanded, setIsExpanded] = useState(() => readStoredPresentationMode() === 'expanded');
@@ -193,12 +203,19 @@ export function useDynamicIslandState(): DynamicIslandState {
     window.addEventListener('orion:demo-simulation-state-changed' as any, handleSimulationState as EventListener);
     window.addEventListener('orion:dynamic-island-event' as any, handleDynamicEvent as EventListener);
     window.addEventListener('orion:dynamic-island-config-changed' as any, handleDynamicConfig as EventListener);
+    const handleEnvChanged = () => {
+      try {
+        setEnvironmentLabel(dbManager.getEnvironment());
+      } catch {}
+    };
+    window.addEventListener('orion-database-environment-changed', handleEnvChanged);
 
     return () => {
       window.removeEventListener('orion:copilot-state' as any, handleCopilotState as EventListener);
       window.removeEventListener('orion:demo-simulation-state-changed' as any, handleSimulationState as EventListener);
       window.removeEventListener('orion:dynamic-island-event' as any, handleDynamicEvent as EventListener);
       window.removeEventListener('orion:dynamic-island-config-changed' as any, handleDynamicConfig as EventListener);
+      window.removeEventListener('orion-database-environment-changed', handleEnvChanged);
     };
   }, [pushActivity, dismissActivity]);
 
@@ -253,6 +270,9 @@ export function useDynamicIslandState(): DynamicIslandState {
       unreadNotificationsCount,
       runtimeMode: runtime.runtimeMode,
       isNativeDesktop: runtime.isNativeDesktop,
+      environmentLabel,
+      connectivityLabel: connectivity.statusLabel,
+      isOnline: connectivity.isOnline,
       activeAppName,
       copilotStatus,
       simulationRunning,
@@ -268,12 +288,15 @@ export function useDynamicIslandState(): DynamicIslandState {
     activeAppId,
     copilotStatus,
     simulationRunning,
+    environmentLabel,
+    connectivity.statusLabel,
+    connectivity.isOnline,
   ]);
 
-  // Unified Priority Activity State
+  // Unified Priority Activity State (live AI Copilot reasoning surfaces immediately over static alerts)
   const activity: DynamicIslandActivity = useMemo(() => {
-    if (metrics.criticalExceptionsCount > 0) return 'critical-alert';
     if (metrics.copilotStatus === 'thinking' || metrics.copilotStatus === 'analyzing') return 'copilot-thinking';
+    if (metrics.criticalExceptionsCount > 0) return 'critical-alert';
     if (metrics.activeSyncJobsCount > 0) return 'connector-sync';
     if (metrics.simulationRunning) return 'simulation-running';
     if (metrics.unreadNotificationsCount > 0) return 'unread-notifications';
@@ -331,8 +354,9 @@ export function useDynamicIslandState(): DynamicIslandState {
   const surfaceState: DynamicIslandSurfaceState = useMemo(() => {
     if (isExpanded) return 'expanded';
     if (isReturning) return 'returning';
+    if (activity === 'copilot-thinking') return 'activity';
     if (activity === 'critical-alert' || primaryEvent?.severity === 'critical') return 'critical';
-    if (activity === 'copilot-thinking' || activity === 'connector-sync' || activity === 'simulation-running' || customEvents.length > 0) {
+    if (activity === 'connector-sync' || activity === 'simulation-running' || customEvents.length > 0) {
       return 'activity';
     }
     return 'idle';
@@ -426,6 +450,10 @@ export function useDynamicIslandState(): DynamicIslandState {
   const handleAction = useCallback((appId: string) => {
     if (appId === 'search') {
       windowManager?.setCommandPaletteOpen?.(true);
+    } else if (appId === 'notifications') {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('orion:open-notifications'));
+      }
     } else {
       windowManager?.openApplication?.(appId);
     }

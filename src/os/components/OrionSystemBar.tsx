@@ -18,7 +18,6 @@ import { useBranding } from '../../store/BrandingContext';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { DatabaseEnvironmentMode } from '../../core/database/DatabaseEnvironment';
 import { cn } from '../../lib/utils';
-import { DynamicIsland } from './dynamicIsland/DynamicIsland';
 
 const SystemBarClock = React.memo(function SystemBarClock({
   onOpenTimeWorld,
@@ -126,8 +125,15 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
     const handleEnvChanged = () => {
       setDbEnv(dbManager.getEnvironment());
     };
+    const handleOpenNotifications = () => {
+      setNotificationsOpen(true);
+    };
     window.addEventListener('orion-database-environment-changed', handleEnvChanged);
-    return () => window.removeEventListener('orion-database-environment-changed', handleEnvChanged);
+    window.addEventListener('orion:open-notifications', handleOpenNotifications);
+    return () => {
+      window.removeEventListener('orion-database-environment-changed', handleEnvChanged);
+      window.removeEventListener('orion:open-notifications', handleOpenNotifications);
+    };
   }, []);
 
 
@@ -242,8 +248,8 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
         )}
       </div>
 
-      {/* CENTER: CONTEXTUAL DYNAMIC ISLAND (OS-Level Interactive Telemetry & Copilot Hub) */}
-      <DynamicIsland />
+      {/* CENTER: CLEAN SPACIOUS TOPBAR (Unified Dynamic Dock anchored at bottom) */}
+      <div className="flex-1 min-w-2" aria-hidden="true" />
 
       {/* RIGHT: SYSTEM TRAY */}
       <div className="flex items-center h-full gap-1 shrink-0 min-w-0">

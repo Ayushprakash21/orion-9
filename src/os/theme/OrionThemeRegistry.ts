@@ -27,9 +27,9 @@ export const ORION_THEMES: Record<OrionThemeId, OrionTheme> = {
       info: '#AEB5BE',
       focus: 'rgba(216,221,227,.40)',
       desktopIconLabel: '#F3EBDD', // Warm off-white / cream
-      dockBg: 'rgba(22, 25, 29, 0.88)', // Deep charcoal graphite glass
-      dockBorder: 'rgba(255, 255, 255, 0.10)',
-      dockShadow: '0 20px 48px rgba(0, 0, 0, 0.55)',
+      dockBg: 'rgba(32, 38, 48, 0.90)', // Luminous frosted graphite glass
+      dockBorder: 'rgba(255, 255, 255, 0.22)',
+      dockShadow: '0 22px 54px rgba(0, 0, 0, 0.52)',
     },
     effects: {
       glassOpacity: 0.12,
@@ -71,7 +71,7 @@ export const ORION_THEMES: Record<OrionThemeId, OrionTheme> = {
       focus: 'rgba(74,80,86,.35)',
       desktopIconLabel: '#17191B', // Dark graphite
       dockBg: 'rgba(255, 255, 255, 0.90)', // Crisp porcelain frost glass
-      dockBorder: 'rgba(0, 0, 0, 0.10)',
+      dockBorder: 'rgba(15, 23, 42, 0.15)',
       dockShadow: '0 16px 40px rgba(15, 23, 42, 0.14)',
     },
     effects: {
@@ -113,9 +113,9 @@ export const ORION_THEMES: Record<OrionThemeId, OrionTheme> = {
       info: '#AAB2BC',
       focus: 'rgba(191,198,206,.35)',
       desktopIconLabel: '#F3F0E8', // Light ivory
-      dockBg: 'rgba(15, 19, 27, 0.88)', // Deep sapphire slate glass
-      dockBorder: 'rgba(255, 255, 255, 0.12)',
-      dockShadow: '0 20px 48px rgba(0, 0, 0, 0.65)',
+      dockBg: 'rgba(24, 31, 46, 0.90)', // Luminous sapphire slate glass
+      dockBorder: 'rgba(255, 255, 255, 0.22)',
+      dockShadow: '0 22px 54px rgba(0, 0, 0, 0.58)',
     },
     effects: {
       glassOpacity: 0.14,
@@ -156,9 +156,9 @@ export const ORION_THEMES: Record<OrionThemeId, OrionTheme> = {
       info: '#A9B5AE',
       focus: 'rgba(127,165,141,.35)',
       desktopIconLabel: '#F3ECE0', // Warm ivory
-      dockBg: 'rgba(18, 25, 21, 0.88)', // Deep forest moss glass
-      dockBorder: 'rgba(255, 255, 255, 0.10)',
-      dockShadow: '0 20px 48px rgba(0, 0, 0, 0.55)',
+      dockBg: 'rgba(25, 36, 30, 0.90)', // Luminous forest moss glass
+      dockBorder: 'rgba(255, 255, 255, 0.20)',
+      dockShadow: '0 22px 54px rgba(0, 0, 0, 0.52)',
     },
     effects: {
       glassOpacity: 0.11,
@@ -199,9 +199,9 @@ export const ORION_THEMES: Record<OrionThemeId, OrionTheme> = {
       info: '#AAA49C',
       focus: 'rgba(199,183,164,.35)',
       desktopIconLabel: '#F5ECE1', // Soft cream
-      dockBg: 'rgba(26, 22, 19, 0.88)', // Dark warm espresso glass
-      dockBorder: 'rgba(255, 255, 255, 0.10)',
-      dockShadow: '0 20px 48px rgba(0, 0, 0, 0.55)',
+      dockBg: 'rgba(38, 32, 27, 0.90)', // Luminous warm espresso glass
+      dockBorder: 'rgba(255, 255, 255, 0.20)',
+      dockShadow: '0 22px 54px rgba(0, 0, 0, 0.52)',
     },
     effects: {
       glassOpacity: 0.11,

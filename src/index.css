@@ -450,11 +450,16 @@
 }
 
 .orion-dock-shelf {
-  background-color: var(--orion-morph-surface-elevated) !important;
-  backdrop-filter: var(--orion-morph-backdrop) !important;
-  -webkit-backdrop-filter: var(--orion-morph-backdrop) !important;
-  border-color: var(--orion-morph-border-strong) !important;
-  box-shadow: var(--orion-morph-elevation-modal) !important;
+  background-color: transparent !important;
+  border-color: var(--orion-dock-border, var(--orion-morph-border-strong)) !important;
+  box-shadow: var(--orion-dock-shadow, var(--orion-morph-elevation-modal)) !important;
+}
+
+.orion-dock-glass-backdrop {
+  opacity: var(--orion-dock-opacity, 0.88);
+  background-color: var(--orion-dock-tint-bg, var(--orion-dock-surface, var(--orion-morph-surface-elevated)));
+  backdrop-filter: blur(var(--orion-dock-blur, 32px)) saturate(175%);
+  -webkit-backdrop-filter: blur(var(--orion-dock-blur, 32px)) saturate(175%);
 }
 
 .orion-command-palette {

@@ -10,8 +10,8 @@ import { savePreferences, loadPreferences } from '../../os/theme/OrionThemeStora
 import { DEFAULT_PREFERENCES, OrionThemeId } from '../../os/theme/OrionThemeTypes';
 
 // Scoped mocks for WindowManager, Language, ContextMenu, Toast, and Geometry
-vi.mock('../../os/WindowManagerContext', () => ({
-  useWindowManager: () => ({
+vi.mock('../../os/WindowManagerContext', () => {
+  const ctx = {
     windows: {},
     activeAppId: null,
     activeWorkspaceId: 'operations',
@@ -27,8 +27,12 @@ vi.mock('../../os/WindowManagerContext', () => ({
     reorderDock: vi.fn(),
     setLauncherOpen: vi.fn(),
     setCommandPaletteOpen: vi.fn(),
-  }),
-}));
+  };
+  return {
+    useWindowManager: () => ctx,
+    useOptionalWindowManager: () => ctx,
+  };
+});
 
 vi.mock('../../store/LanguageContext', () => ({
   useI18n: () => ({
