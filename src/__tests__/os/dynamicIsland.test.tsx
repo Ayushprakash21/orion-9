@@ -267,7 +267,7 @@ describe('Orion-9 Dynamic Island Architecture & Telemetry', () => {
     expect(mockSetCommandPaletteOpen).toHaveBeenCalledWith(true);
   });
 
-  it('DYNAMIC-ISLAND-13: Verifies seamless top edge integration, zero top border, and concave fillet contour strokes', () => {
+  it('DYNAMIC-ISLAND-13: Verifies seamless top edge integration, flat flush top geometry, and shared system surface tokens', () => {
     const dummyMetrics = {
       activeExceptionsCount: 1,
       criticalExceptionsCount: 1,
@@ -303,15 +303,16 @@ describe('Orion-9 Dynamic Island Architecture & Telemetry', () => {
       />
     );
 
-    // 1. Zero top border and negative top margin for continuous subpixel seating
+    // 1. Mandatory structural change: flat flush top corners (0px) and 24px bottom corners
     expect(html).toContain('border-t-0');
-    expect(html).toContain('-mt-[0.5px]');
     expect(html).toContain('rounded-b-[24px]');
     expect(html).toContain('rounded-t-none');
 
-    // 2. Concave fillets with continuous stroke path
-    expect(html).toContain('M 0,0.5 Q 11.5,0.5 11.5,12');
-    expect(html).toContain('M 0.5,12 Q 0.5,0.5 12,0.5');
+    // 2. Shared system surface material tokens
+    expect(html).toContain('bg-[var(--orion-system-surface)]');
+    expect(html).toContain('backdrop-blur-[20px]');
+    expect(html).toContain('border-[var(--orion-system-border)]');
+    expect(html).toContain('shadow-[var(--orion-system-shadow)]');
 
     // 3. No box-shadow 0 0 0 1px ring across the top edge
     expect(html).not.toContain('0_0_0_1px');

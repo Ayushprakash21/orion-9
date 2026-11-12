@@ -79,12 +79,12 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
       if (activity === 'critical-alert') return 'border-rose-500/45 border-t-0 bg-[rgba(34,12,18,0.94)] hover:border-rose-400/60';
       if (activity === 'copilot-thinking') return 'border-indigo-400/45 border-t-0 bg-[rgba(16,18,36,0.92)] hover:border-indigo-300/60';
       if (activity === 'connector-sync') return 'border-sky-400/40 border-t-0 bg-[rgba(12,24,36,0.92)] hover:border-sky-300/60';
-      return 'border-white/[0.14] border-t-0 bg-[#181B22] hover:border-white/30 shadow-[0_8px_24px_rgba(0,0,0,0.65)]';
+      return 'border-white/[0.14] border-t-0 bg-[var(--orion-system-surface)] backdrop-blur-[20px] backdrop-saturate-[150%] hover:border-white/30 shadow-[0_8px_24px_rgba(0,0,0,0.65)]';
     } else {
       if (activity === 'critical-alert') return 'border-rose-500/45 border-t-0 bg-[rgba(255,242,244,0.95)] hover:border-rose-600/60';
       if (activity === 'copilot-thinking') return 'border-indigo-500/40 border-t-0 bg-[rgba(245,247,255,0.95)] hover:border-indigo-600/55';
       if (activity === 'connector-sync') return 'border-sky-500/40 border-t-0 bg-[rgba(242,249,255,0.95)] hover:border-sky-600/55';
-      return 'border-[#E1E5EA] border-t-0 bg-white hover:border-[#CBD5E1] shadow-[0_4px_16px_rgba(15,23,42,0.08)]';
+      return 'border-[#DCE1E7] border-t-0 bg-[var(--orion-system-surface)] backdrop-blur-[20px] backdrop-saturate-[150%] hover:border-[#CBD5E1] shadow-[0_4px_16px_rgba(15,23,42,0.08)]';
     }
   })();
 
@@ -151,8 +151,12 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
           ? { duration: 0 }
           : { type: 'spring', stiffness: 450, damping: 32 }
       }
-      style={{ zIndex: 10015 }}
-      className={`group relative -mt-[0.5px] flex items-center justify-between px-3.5 sm:px-4 rounded-b-2xl rounded-t-none border-b border-l border-r border-t-0 cursor-pointer select-none transition-colors duration-200 pointer-events-auto w-[min(520px,calc(100vw-24px))] min-w-[320px] ${
+      style={{
+        zIndex: 10015,
+        backdropFilter: 'var(--orion-system-backdrop-filter, blur(20px) saturate(150%))',
+        WebkitBackdropFilter: 'var(--orion-system-backdrop-filter, blur(20px) saturate(150%))',
+      }}
+      className={`group relative flex items-center justify-between px-3.5 sm:px-4 rounded-b-2xl rounded-t-none border-b border-l border-r border-t-0 cursor-pointer select-none transition-colors duration-200 pointer-events-auto w-[min(520px,calc(100vw-24px))] min-w-[320px] ${
         isDark
           ? 'shadow-[0_8px_24px_rgba(0,0,0,0.65)]'
           : 'shadow-[0_4px_16px_rgba(15,23,42,0.08)]'

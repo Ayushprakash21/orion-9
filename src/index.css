@@ -121,6 +121,23 @@
   --orion-topbar-bg: rgba(18, 22, 28, 0.80);
   --orion-topbar-border: rgba(255, 255, 255, 0.08);
   --orion-dock-h: 68px;
+
+  /* Shared Orion System Bar & Dynamic Island Surface & Geometry Tokens */
+  --orion-system-bar-height: 44px;
+  --orion-island-width: 580px;
+  --orion-island-collapsed-width: 520px;
+  --orion-island-expanded-top: var(--orion-system-bar-height);
+  --orion-island-collapsed-top: var(--orion-system-bar-height);
+
+  /* Dark Theme Shared System Surface Material (Graphite) */
+  --orion-system-surface: rgba(18, 22, 28, 0.78);
+  --orion-system-surface-opacity: 0.78;
+  --orion-system-backdrop-blur: 20px;
+  --orion-system-backdrop-saturate: 150%;
+  --orion-system-backdrop-filter: blur(20px) saturate(150%);
+  --orion-system-border: rgba(255, 255, 255, 0.10);
+  --orion-system-separator: rgba(255, 255, 255, 0.10);
+  --orion-system-shadow: 0 24px 54px rgba(0, 0, 0, 0.75);
   /* ORION GRAPHITE (Default OS Theme Foundation) */
   --os-bg: #0B0D0F;
   --os-surface: #121417;
@@ -251,6 +268,16 @@
   --os-input-bg: #FFFFFF;
   --os-accent: #D6A65C;
   --os-accent-subtle: rgba(214, 166, 92, 0.12);
+
+  /* Light Theme Shared System Surface Material (Silver) */
+  --orion-system-surface: rgba(255, 255, 255, 0.85);
+  --orion-system-surface-opacity: 0.85;
+  --orion-system-backdrop-blur: 20px;
+  --orion-system-backdrop-saturate: 150%;
+  --orion-system-backdrop-filter: blur(20px) saturate(150%);
+  --orion-system-border: #DCE1E7;
+  --orion-system-separator: #DCE1E7;
+  --orion-system-shadow: 0 20px 48px rgba(15, 23, 42, 0.12);
 
   /* Semantic --orion-* Tokens (Section 2 Light Mode Specification) */
   --orion-bg: #F5F5F3;
@@ -859,7 +886,7 @@ html, body, #root {
   padding: 0 !important;
   overflow: hidden !important;
   display: grid !important;
-  grid-template-rows: 48px minmax(0, 1fr) !important;
+  grid-template-rows: var(--orion-system-bar-height, 44px) minmax(0, 1fr) !important;
   grid-template-columns: minmax(0, 1fr) !important;
   isolation: isolate !important;
   transform: none !important;
@@ -867,15 +894,15 @@ html, body, #root {
 }
 
 /* The global bar is part of the desktop shell, not an independent viewport overlay.
-   This permanently reserves its 48px lane so application animations cannot move
+   This permanently reserves its shared layout lane so application animations cannot move
    behind, above, or through the system chrome. */
 .orion-global-topbar {
   /* Canonical macOS Liquid Glass system chrome bound to dynamic morphism & transparency tokens */
-  background: var(--orion-morph-surface-elevated) !important;
-  background-color: var(--orion-morph-surface-elevated) !important;
-  backdrop-filter: var(--orion-morph-backdrop) !important;
-  -webkit-backdrop-filter: var(--orion-morph-backdrop) !important;
-  border-bottom: 1px solid var(--orion-morph-border) !important;
+  background: var(--orion-system-surface, var(--orion-morph-surface-elevated)) !important;
+  background-color: var(--orion-system-surface, var(--orion-morph-surface-elevated)) !important;
+  backdrop-filter: var(--orion-system-backdrop-filter, blur(20px) saturate(150%)) !important;
+  -webkit-backdrop-filter: var(--orion-system-backdrop-filter, blur(20px) saturate(150%)) !important;
+  border-bottom: none !important;
   box-shadow: var(--orion-morph-shadow-soft) !important;
   position: relative !important;
   grid-row: 1 !important;
@@ -885,9 +912,9 @@ html, body, #root {
   inset: auto !important;
   width: 100% !important;
   max-width: 100% !important;
-  height: 48px !important;
-  min-height: 48px !important;
-  max-height: 48px !important;
+  height: var(--orion-system-bar-height, 44px) !important;
+  min-height: var(--orion-system-bar-height, 44px) !important;
+  max-height: var(--orion-system-bar-height, 44px) !important;
   margin: 0 !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
@@ -1039,9 +1066,9 @@ html, body, #root {
   position: relative !important;
   inset: auto !important;
   width: 100% !important;
-  height: 48px !important;
-  min-height: 48px !important;
-  max-height: 48px !important;
+  height: var(--orion-system-bar-height, 44px) !important;
+  min-height: var(--orion-system-bar-height, 44px) !important;
+  max-height: var(--orion-system-bar-height, 44px) !important;
   margin: 0 !important;
   padding-top: 0 !important;
   padding-bottom: 0 !important;
@@ -1344,11 +1371,11 @@ html, body, #root {
 .orion-desktop-shell > .orion-global-topbar,
 .orion-admin-shell > .orion-global-topbar,
 header.orion-global-topbar {
-  background: var(--orion-morph-surface-elevated) !important;
-  background-color: var(--orion-morph-surface-elevated) !important;
-  backdrop-filter: var(--orion-morph-backdrop) !important;
-  -webkit-backdrop-filter: var(--orion-morph-backdrop) !important;
-  border-bottom: 1px solid var(--orion-morph-border) !important;
+  background: var(--orion-system-surface, var(--orion-morph-surface-elevated)) !important;
+  background-color: var(--orion-system-surface, var(--orion-morph-surface-elevated)) !important;
+  backdrop-filter: var(--orion-system-backdrop-filter, blur(20px) saturate(150%)) !important;
+  -webkit-backdrop-filter: var(--orion-system-backdrop-filter, blur(20px) saturate(150%)) !important;
+  border-bottom: none !important;
   box-shadow: var(--orion-morph-shadow-soft) !important;
   isolation: isolate !important;
 }

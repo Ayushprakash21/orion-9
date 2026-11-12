@@ -208,42 +208,24 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
   }, []);
 
   // Dynamic Island footprint:
-  // When expanded: 580px width + 24px fillets = 604px total span (min(302px, calc(50vw - 12px)) from center)
+  // When expanded: 580px width (min(290px, calc(50vw - 12px)) from center)
   // When collapsed: normal uninterrupted system bar separator
   const separatorMask = isIslandExpanded
-    ? 'linear-gradient(to right, #000 0%, #000 calc(50% - min(302px, calc(50vw - 12px))), transparent calc(50% - min(302px, calc(50vw - 12px))), transparent calc(50% + min(302px, calc(50vw - 12px))), #000 calc(50% + min(302px, calc(50vw - 12px))), #000 100%)'
+    ? 'linear-gradient(to right, #000 0%, #000 calc(50% - min(290px, calc(50vw - 12px))), transparent calc(50% - min(290px, calc(50vw - 12px))), transparent calc(50% + min(290px, calc(50vw - 12px))), #000 calc(50% + min(290px, calc(50vw - 12px))), #000 100%)'
     : undefined;
 
   return (
     <header className={cn(
-      "orion-global-topbar relative top-auto left-auto right-auto h-[44px] min-h-[44px] w-full z-[10000] flex items-center justify-between px-3 md:px-4 text-[13px] font-medium select-none backdrop-blur-[20px] backdrop-saturate-[150%] pointer-events-auto shrink-0 transition-colors",
+      "orion-global-topbar relative top-auto left-auto right-auto h-[44px] min-h-[44px] w-full z-[10000] flex items-center justify-between px-3 md:px-4 text-[13px] font-medium select-none bg-[var(--orion-system-surface)] backdrop-blur-[20px] backdrop-saturate-[150%] pointer-events-auto shrink-0 transition-colors",
       isDark
-        ? "bg-[rgba(18,22,28,0.78)] text-white/90 shadow-[0_2px_12px_rgba(0,0,0,0.18)]"
-        : "bg-[rgba(255,255,255,0.85)] text-[#202631] shadow-[0_2px_12px_rgba(15,23,42,0.06)]"
+        ? "text-white/90 shadow-[0_2px_12px_rgba(0,0,0,0.18)]"
+        : "text-[#202631] shadow-[0_2px_12px_rgba(15,23,42,0.06)]"
     )}>
-      {/* 1. Monolithic Surface Bridge behind Dynamic Island footprint (active when expanded) */}
-      <div
-        data-testid="orion-island-surface-bridge"
-        aria-hidden="true"
-        className={cn(
-          "absolute top-0 bottom-0 left-1/2 -translate-x-1/2 pointer-events-none transition-all duration-200 z-[0]",
-          isIslandExpanded
-            ? "w-[min(580px,calc(100vw-24px))] opacity-100"
-            : "w-[min(520px,calc(100vw-24px))] opacity-0",
-          isDark
-            ? "bg-[#181B22]"
-            : "bg-white"
-        )}
-      />
-
-      {/* 2. System Bar Bottom Separator — masked across Dynamic Island footprint when expanded */}
+      {/* System Bar Bottom Separator — masked across Dynamic Island footprint when expanded */}
       <div
         data-testid="orion-topbar-separator"
         aria-hidden="true"
-        className={cn(
-          "absolute bottom-0 left-0 right-0 h-px pointer-events-none transition-colors duration-200 z-[1]",
-          isDark ? "bg-white/[0.12]" : "bg-[#E1E5EA]"
-        )}
+        className="absolute bottom-0 left-0 right-0 h-px pointer-events-none transition-colors duration-200 z-[1] bg-[var(--orion-system-separator)]"
         style={
           separatorMask
             ? {

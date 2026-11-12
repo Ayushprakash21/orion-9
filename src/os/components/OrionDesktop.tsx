@@ -343,7 +343,7 @@ export function OrionDesktop() {
             data-dynamic-island-anchor="true"
             className="fixed left-1/2 -translate-x-1/2 pointer-events-none"
             style={{
-              top: '44px',
+              top: 'var(--orion-system-bar-height, 44px)',
               zIndex: 10020,
             }}
           >
@@ -356,7 +356,7 @@ export function OrionDesktop() {
           data-dynamic-island-anchor="true"
           className="fixed left-1/2 -translate-x-1/2 pointer-events-none"
           style={{
-            top: '44px',
+            top: 'var(--orion-system-bar-height, 44px)',
             zIndex: 10020,
           }}
         >
