@@ -492,7 +492,7 @@ export const OrionMobileAICopilot: React.FC = () => {
       </div>
 
       {/* 4. PROMPT QUICK ACTIONS CHIPS & GALLERY BUTTON */}
-      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 shrink-0 w-full max-w-full whitespace-nowrap">
+      <div className="flex flex-wrap items-center gap-1.5 py-1.5 shrink-0 w-full max-w-full">
         <button
           type="button"
           onClick={() => setIsGalleryOpen(true)}

@@ -35,8 +35,8 @@ vi.mock('../../store/AuthContext', () => ({
 }));
 
 // Mock Supply Chain Context
-vi.mock('../../store/SupplyChainContext', () => ({
-  useSupplyChain: () => ({
+vi.mock('../../store/SupplyChainContext', () => {
+  const getMockSC = () => ({
     currency: 'USD',
     inventory: [
       { id: 'inv-lap-1', productId: 'SKU-COMPASS-01', warehouseId: 'WH-MAIN', onHand: 120, reserved: 20, safetyStock: 100, unitCost: 45 }
@@ -52,8 +52,12 @@ vi.mock('../../store/SupplyChainContext', () => ({
     settings: {
       criticalStockOutDays: 3,
     }
-  }),
-}));
+  });
+  return {
+    useSupplyChain: getMockSC,
+    useOptionalSupplyChain: getMockSC,
+  };
+});
 
 // Mock Toast Context
 vi.mock('../../store/ToastContext', () => ({

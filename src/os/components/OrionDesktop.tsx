@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { OrionSystemBar } from './OrionSystemBar';
-import { OrionDynamicDock } from './OrionDynamicDock';
+import { DynamicIsland } from './dynamicIsland/DynamicIsland';
+import { OrionDock } from './OrionDock';
 import { OrionMobileNavBar } from './OrionMobileNavBar';
 import { useResponsiveLayout } from '../../lib/useResponsiveLayout';
 import { OrionApplicationLauncher } from './OrionApplicationLauncher';
@@ -328,8 +329,19 @@ export function OrionDesktop() {
       {/* OS Layer 3: Top System Bar */}
       <OrionSystemBar />
 
-      {/* OS Layer 4: Unified Dynamic Dock (Application Shelf + Interactive Activity Panel) */}
-      <OrionDynamicDock />
+      {/* OS Layer 3.5: Top-Centred Floating Dynamic Island (Immediately Below System Bar) */}
+      <div
+        data-dynamic-island-anchor="true"
+        className="fixed left-1/2 -translate-x-1/2 z-[9985] pointer-events-none"
+        style={{
+          top: 'calc(var(--orion-topbar-h, 44px) + 4px)',
+        }}
+      >
+        <DynamicIsland />
+      </div>
+
+      {/* OS Layer 4: Independent Floating Application Dock (Bottom Centre) */}
+      <OrionDock />
 
       {/* OS Layer 4: Floating Transient Overlays */}
       <OrionApplicationLauncher />

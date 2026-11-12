@@ -508,7 +508,7 @@ export class UserPersistenceService {
         merged.syncStatus = 'LOCAL_ONLY';
         merged.isRetryable = true;
         merged.syncError = isOffline ? 'Browser offline' : 'Firestore client instance unavailable';
-        merged.userReadableError = 'Offline: Preferences saved locally and queued for cloud synchronization.';
+        merged.userReadableError = 'Cloud Firestore is temporarily offline. Preferences saved locally and queued for cloud synchronization.';
       }
     } else {
       merged.lastSyncedAt = now;

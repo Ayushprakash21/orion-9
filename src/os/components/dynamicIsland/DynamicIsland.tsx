@@ -79,7 +79,7 @@ export const DynamicIsland: React.FC = React.memo(() => {
 
       <AnimatePresence>
         {isExpanded && (
-          <div className="absolute top-full left-1/2 -translate-x-1/2 z-[120]">
+          <div className="absolute top-[calc(100%+6px)] left-1/2 -translate-x-1/2 z-[120]">
             <DynamicIslandExpanded
               activity={activity}
               activities={activities}

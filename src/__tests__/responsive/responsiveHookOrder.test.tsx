@@ -40,6 +40,10 @@ vi.mock('../../store/NotificationContext', () => ({
     notifications: [],
     unreadCount: 0,
   }),
+  useOptionalNotifications: () => ({
+    notifications: [],
+    unreadCount: 0,
+  }),
 }));
 
 // Mock Connectivity Context

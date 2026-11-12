@@ -111,17 +111,17 @@ export const DynamicIslandExpanded: React.FC<DynamicIslandExpandedProps> = React
 
   return (
     <motion.div
-      id="dynamic-dock-expanded-surface"
+      id="dynamic-island-expanded-surface"
       data-testid="dynamic-island-expanded-panel"
       initial={motionInitial}
       animate={motionAnimate}
       exit={motionExit}
       transition={isReducedMotion ? { duration: 0.08 } : ORION_SPRING_SNAPPY}
-      className={`overflow-hidden text-[var(--orion-text-primary)] ${
-        isVerticalDock
-          ? 'w-[min(368px,calc(100vw-110px))] max-h-[min(500px,calc(100dvh-96px))]'
-          : 'w-full max-h-[min(430px,calc(100dvh-160px))]'
-      }`}
+      className={`overflow-hidden text-[var(--orion-text-primary)] rounded-[20px] border shadow-[0_24px_60px_rgba(0,0,0,0.60)] backdrop-blur-[36px] ${
+        isDark
+          ? 'bg-[#141824]/92 border-white/[0.16]'
+          : 'bg-white/94 border-slate-900/[0.14] shadow-[0_20px_48px_rgba(15,23,42,0.18)]'
+      } w-[min(460px,calc(100vw-32px))] max-h-[min(540px,calc(100dvh-120px))]`}
     >
       <div className="px-3.5 pt-3 pb-2.5 flex flex-col gap-2.5 overflow-y-auto custom-scrollbar max-h-[inherit]">
         {/* 1. Connected System Header Row */}

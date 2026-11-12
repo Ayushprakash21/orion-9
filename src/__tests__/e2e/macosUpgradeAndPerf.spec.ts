@@ -66,26 +66,38 @@ test.describe('Orion-9 macOS Icon System, Astraeus Dynamic Island & OS Performan
     });
   });
 
-  test('E2E-02: Unified Dynamic Dock supports 5-state upward expansion, pinning, Escape return-to-compact, and mobile fit', async ({ page }) => {
+  test('E2E-02: Top Dynamic Island capsule expands downward independently from bottom Dock', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await authenticateDemo(page);
 
-    // Topbar must NOT mount a separate Dynamic Island capsule
-    await expect(page.locator('.orion-global-topbar [aria-label="Expand Orion Dynamic Island"]')).toHaveCount(0);
+    // Dynamic Island is positioned at TOP CENTRE immediately below system bar
+    const island = page.locator('div[role="region"][aria-label="Orion-9 Dynamic Island System Telemetry"]');
+    const pill = island.locator('div[role="button"][aria-label="Expand Orion Dynamic Island"]');
+    await expect(pill).toBeVisible({ timeout: 10000 });
 
-    // Reveal auto-hidden bottom Dynamic Dock by hovering bottom edge
-    await page.mouse.move(720, 898);
-    const dock = page.locator('[data-dock="true"]').first();
-    await expect(dock).toHaveAttribute('data-dock-visible', 'true', { timeout: 4000 });
+    const pillBox = await pill.boundingBox();
+    expect(pillBox).not.toBeNull();
+    // Centred horizontally and beneath topbar (y >= 44)
+    expect(pillBox!.y).toBeGreaterThanOrEqual(44);
+    expect(pillBox!.y).toBeLessThan(100);
+    expect(Math.abs(pillBox!.x + pillBox!.width / 2 - 720)).toBeLessThan(50);
 
-    const trigger = dock.getByTestId('dynamic-dock-trigger');
-    await expect(trigger).toBeVisible();
-    await trigger.click();
+    // Click to expand downward
+    await pill.click();
 
-    const expandedPanel = dock.getByTestId('dynamic-island-expanded-panel');
+    const expandedPanel = page.getByTestId('dynamic-island-expanded-panel');
     await expect(expandedPanel).toBeVisible();
 
-    await dock.screenshot({
+    const expandedBox = await expandedPanel.boundingBox();
+    expect(expandedBox).not.toBeNull();
+    // Expanded panel must open BELOW the top capsule
+    expect(expandedBox!.y).toBeGreaterThanOrEqual(pillBox!.y + pillBox!.height);
+
+    // Bottom Dock remains independent at the bottom of the screen
+    const dock = page.locator('[data-dock="true"]').first();
+    await expect(dock).toBeAttached();
+
+    await page.screenshot({
       path: path.join(ARTIFACTS_DIR, 'upgrade_dynamic_island_expanded.png'),
     });
 
@@ -98,12 +110,10 @@ test.describe('Orion-9 macOS Icon System, Astraeus Dynamic Island & OS Performan
     await page.keyboard.press('Escape');
     await expect(expandedPanel).toBeHidden();
 
-    // Compact desktop viewport check (1280x720) ensuring unified Dynamic Dock fits cleanly within viewport bounds
+    // Compact desktop viewport check (1280x720) ensuring top Dynamic Island fits cleanly
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.waitForTimeout(150);
-    await page.mouse.move(640, 718);
-    await expect(dock).toHaveAttribute('data-dock-visible', 'true', { timeout: 4000 });
-    await trigger.click();
+    await pill.click();
     await expect(expandedPanel).toBeVisible();
     const panelBox = await expandedPanel.boundingBox();
     expect(panelBox).not.toBeNull();

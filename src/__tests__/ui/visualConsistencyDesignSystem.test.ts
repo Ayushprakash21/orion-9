@@ -7,7 +7,7 @@ describe('ORION-9 macOS Design System Visual Consistency Suite', () => {
   const indexCssPath = path.join(rootDir, 'src/index.css');
   const systemBarPath = path.join(rootDir, 'src/os/components/OrionSystemBar.tsx');
   const windowPath = path.join(rootDir, 'src/os/components/OrionWindow.tsx');
-  const dockPath = path.join(rootDir, 'src/os/components/OrionDynamicDock.tsx');
+  const dockPath = path.join(rootDir, 'src/os/components/OrionDock.tsx');
   const settingsPath = path.join(rootDir, 'src/components/Settings.tsx');
   const splitLayoutPath = path.join(rootDir, 'src/components/settings/OrionSettingsSplitLayout.tsx');
 
@@ -95,7 +95,7 @@ describe('ORION-9 macOS Design System Visual Consistency Suite', () => {
     expect(windowContent).toContain('text-[13px] font-medium');
   });
 
-  it('10. verifies OrionDynamicDock uses rounded shell, isolated backdrop translucency, and macOS blur', () => {
+  it('10. verifies OrionDock uses rounded shell, isolated backdrop translucency, and macOS blur', () => {
     const dockContent = fs.readFileSync(dockPath, 'utf-8');
     expect(dockContent).toContain('rounded-[24px]');
     expect(dockContent).toContain('saturate(175%)');

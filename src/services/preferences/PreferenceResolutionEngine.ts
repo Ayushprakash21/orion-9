@@ -197,8 +197,8 @@ export function normalizeUserPreferenceRecord(
         ? Boolean(src.desktopLayout.autoHideDock)
         : true;
 
-  const normalizedTheme: 'dark' | 'light' | 'system' =
-    src.theme === 'light' || src.theme === 'dark' || src.theme === 'system'
+  const normalizedTheme: 'dark' | 'light' | 'system' | 'os-obsidian' =
+    src.theme === 'light' || src.theme === 'dark' || src.theme === 'system' || src.theme === 'os-obsidian'
       ? src.theme
       : src.appearanceMode === 'light'
         ? 'light'
