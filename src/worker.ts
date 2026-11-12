@@ -732,7 +732,7 @@ export default {
             filename: "Orion-9-Setup.exe",
             sha256: "e2dfeb480522b9da077bb58e0954d6d8e09f1023fb6af28b8b74b2a8dc23ee70",
             localArtifactPath: "src-tauri/target/release/bundle/nsis/Orion-9_9.0.0_x64-setup.exe",
-            instructions: "To install Orion Desktop locally: 1. Run 'npm start' on your machine to download from the local Express server at http://localhost:3000/downloads/Orion-9-Setup.exe. 2. Or run the installer directly from the project repository at 'src-tauri/target/release/bundle/nsis/Orion-9_9.0.0_x64-setup.exe'."
+            instructions: "To install Orion Desktop locally: 1. Run 'npm start' on your machine to download from your local server at /downloads/Orion-9-Setup.exe. 2. Or run the installer directly from the project repository at 'src-tauri/target/release/bundle/nsis/Orion-9_9.0.0_x64-setup.exe'."
           }),
           { status: 404, headers: { "Content-Type": "application/json", "Cache-Control": "no-cache" } }
         ),

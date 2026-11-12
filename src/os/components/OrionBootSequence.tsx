@@ -122,6 +122,7 @@ export function OrionBootSequence({ onComplete }: OrionBootSequenceProps) {
 
         {/* Calm Heading & Subtitle */}
         <h2 className="text-base sm:text-lg font-semibold tracking-tight text-white mb-1">
+          <span className="sr-only">Starting Orion</span>
           {ready ? `${ORION_OS_METADATA.product} 21.1 Ready` : `Starting ${ORION_OS_METADATA.product}`}
         </h2>
         <p className="text-xs text-neutral-400 font-normal mb-6 h-5 flex items-center justify-center">

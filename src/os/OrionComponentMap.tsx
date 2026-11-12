@@ -142,6 +142,11 @@ const GuidedBuyWorkflow = createLazyApp(() => import('../components/guided/Guide
 const ProjectManagementCenter = createLazyApp(() => import('../components/projects/ProjectManagementCenter'), 'ProjectManagementCenter');
 const FlowTracker = createLazyApp(() => import('../components/flow/FlowTracker'), 'FlowTracker');
 const OrionIconGallery = createLazyApp(() => import('./icons/OrionIconGallery'), 'OrionIconGallery');
+const ActivityMonitor = createLazyApp(() => import('../components/ActivityMonitor'), 'ActivityMonitor');
+const SystemIntelligence = createLazyApp(() => import('../components/SystemIntelligence'), 'SystemIntelligence');
+const TaskScheduler = createLazyApp(() => import('../components/TaskScheduler'), 'TaskScheduler');
+const RecoveryCenter = createLazyApp(() => import('../components/RecoveryCenter'), 'RecoveryCenter');
+const ApplicationHub = createLazyApp(() => import('../components/ApplicationHub'), 'ApplicationHub');
 
 // Lazy-loaded heavy components (Office suite & Three.js 3D engines)
 const DigitalTwin = createLazyApp(() => import('../components/DigitalTwin'), 'DigitalTwin');
@@ -280,6 +285,11 @@ export const ORION_COMPONENT_MAP: Record<string, React.ComponentType<any>> = {
   'project-management': ProjectManagementCenter,
   'flow-tracker': FlowTracker,
   'icon-gallery': OrionIconGallery,
+  'activity-monitor': ActivityMonitor,
+  'system-intelligence': SystemIntelligence,
+  'task-scheduler': TaskScheduler,
+  'recovery-center': RecoveryCenter,
+  'application-hub': ApplicationHub,
 };
 
 export function getAppComponent(appId: string): React.ComponentType<any> | null {

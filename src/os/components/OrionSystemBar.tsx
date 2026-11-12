@@ -184,7 +184,7 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
   }, []);
 
   return (
-    <header className="orion-global-topbar relative top-auto left-auto right-auto h-[44px] min-h-[44px] w-full z-[10000] flex items-center justify-between px-3 md:px-4 text-[13px] font-medium text-white/90 select-none bg-[rgba(18,22,28,0.78)] backdrop-blur-[24px] backdrop-saturate-[180%] border-b border-white/[0.10] shadow-[0_2px_12px_rgba(0,0,0,0.18)] pointer-events-auto shrink-0 transition-colors">
+    <header className="orion-global-topbar relative top-auto left-auto right-auto h-[44px] min-h-[44px] w-full z-[10000] flex items-center justify-between px-3 md:px-4 text-[13px] font-medium text-white/90 select-none bg-[rgba(18,22,28,0.78)] backdrop-blur-[20px] backdrop-saturate-[150%] border-b border-white/[0.10] shadow-[0_2px_12px_rgba(0,0,0,0.18)] pointer-events-auto shrink-0 transition-colors">
       
       {/* LEFT: Orion-9 Brand Mark, Title & Menus */}
       <div className="flex items-center h-full min-w-0 gap-1" ref={menuRef}>
@@ -231,6 +231,7 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
           onClick={() => openApplication('about')}
           className="font-bold text-[13px] text-white tracking-tight px-1.5 py-0.5 rounded hover:bg-white/[0.08] transition-colors cursor-pointer"
         >
+          <span className="sr-only">Orion OS</span>
           Orion-9 OS
         </span>
 
