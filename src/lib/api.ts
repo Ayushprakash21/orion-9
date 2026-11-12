@@ -13,7 +13,7 @@ export const generateInsight = async (
   prompt: string, 
   dataContext: any, 
   specializedMode?: any,
-  options?: { tenantId?: string; userId?: string }
+  options?: { tenantId?: string; userId?: string; signal?: AbortSignal }
 ): Promise<CopilotResponse> => {
   try {
     const result = await orionAI.generateInsight({
@@ -22,11 +22,12 @@ export const generateInsight = async (
       specializedMode,
       tenantId: options?.tenantId,
       userId: options?.userId,
-    });
+    }, options?.signal);
     return result;
   } catch (error: any) {
+    if (error?.name === 'AbortError') throw error;
     console.warn("AI Insight using fallback reasoning:", error);
-    return await orionAI.generateInsight({ prompt, dataContext, specializedMode, tenantId: options?.tenantId, userId: options?.userId });
+    return await orionAI.generateInsight({ prompt, dataContext, specializedMode, tenantId: options?.tenantId, userId: options?.userId }, options?.signal);
   }
 };
 
@@ -34,7 +35,7 @@ export const generateCopilotResponse = async (
   prompt: string,
   localDataTools: Record<string, () => any>,
   specializedMode?: 'Control Tower' | 'Decision Copilot' | 'Scenario Copilot' | 'Executive Copilot' | 'Root Cause Copilot',
-  options?: { tenantId?: string; userId?: string; conversationId?: string; agentId?: string }
+  options?: { tenantId?: string; userId?: string; conversationId?: string; agentId?: string; signal?: AbortSignal }
 ): Promise<any> => {
   const tenantId = options?.tenantId || 'global';
   const userId = options?.userId || 'user';
@@ -42,7 +43,7 @@ export const generateCopilotResponse = async (
 
   try {
     // 1. Choose required tools via AI router or fallback
-    const toolsToCall = await orionAI.chooseTools(prompt);
+    const toolsToCall = await orionAI.chooseTools(prompt, options?.signal);
 
     // 2. Execute selected operational tools
     const dataContext: any = {};
@@ -114,17 +115,20 @@ export const generateCopilotResponse = async (
     }
 
     // 7. Execute inference via Gemini or deterministic engine
-    const res = await generateInsight(prompt, dataContext, specializedMode, { tenantId, userId });
+    const res = await generateInsight(prompt, dataContext, specializedMode, { tenantId, userId, signal: options?.signal });
     return {
       response: res.response,
       source: res.source
     };
   } catch (error: any) {
+    if (error?.name === 'AbortError') {
+      throw error;
+    }
     console.error("Copilot Error:", error);
     const fallbackCtx: any = {
       getDashboardMetrics: localDataTools.getDashboardMetrics ? localDataTools.getDashboardMetrics() : {}
     };
-    const res = await generateInsight(prompt, fallbackCtx, specializedMode, { tenantId, userId });
+    const res = await generateInsight(prompt, fallbackCtx, specializedMode, { tenantId, userId, signal: options?.signal });
     return {
       response: res.response,
       source: res.source

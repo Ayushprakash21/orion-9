@@ -1475,6 +1475,18 @@ Analyze the supplied document and return a strict JSON object with:
       appType: "spa",
     });
     app.use(vite.middlewares);
+    app.use('*', async (req, res, next) => {
+      if (req.originalUrl.startsWith('/api/')) return next();
+      try {
+        const url = req.originalUrl;
+        let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
+        template = await vite.transformIndexHtml(url, template);
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
+      } catch (e: any) {
+        vite.ssrFixStacktrace(e);
+        next(e);
+      }
+    });
   } else {
     const distPath = fs.existsSync(path.join(process.cwd(), 'dist', 'client'))
       ? path.join(process.cwd(), 'dist', 'client')

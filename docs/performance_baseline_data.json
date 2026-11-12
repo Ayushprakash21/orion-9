@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-11-12T23:26:58.114Z",
+  "metrics": {
+    "initialAppLoadMs": 2237,
+    "desktopShellInitMs": 3545,
+    "dynamicIslandExpansionMs": 88,
+    "dynamicIslandCollapseMs": 166,
+    "widgetDragResponseMs": 225,
+    "windowOpeningMs": 528,
+    "appSwitchingMs": 360,
+    "copilotOpeningMs": 460,
+    "copilotResponseMs": 2595,
+    "realtimeUpdateLatencyMs": 123
+  },
+  "browserTiming": {
+    "domInteractive": 64,
+    "domContentLoaded": 1770,
+    "loadEventEnd": 1795,
+    "firstContentfulPaint": 308
+  }
+}

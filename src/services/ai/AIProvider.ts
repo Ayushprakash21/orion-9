@@ -45,6 +45,13 @@ export class OrionAIProvider {
    * Check status of server-side AI provider (Gemini)
    */
   async checkStatus(): Promise<AIProviderStatus> {
+    if (typeof window === 'undefined') {
+      return {
+        configured: false,
+        provider: 'deterministic_engine',
+        model: 'local_scm_rules'
+      };
+    }
     try {
       const res = await fetch('/api/ai/status');
       if (res.ok) {
@@ -63,25 +70,33 @@ export class OrionAIProvider {
   /**
    * Select required tools for a prompt
    */
-  async chooseTools(prompt: string): Promise<string[]> {
-    try {
-      const token = authService.getAuthToken();
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+  async chooseTools(prompt: string, signal?: AbortSignal): Promise<string[]> {
+    if (signal?.aborted) {
+      throw new DOMException('Operation cancelled', 'AbortError');
+    }
 
-      const res = await fetch('/api/ai/choose-tools', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ prompt })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (Array.isArray(data.toolsToCall) && data.toolsToCall.length > 0) {
-          return data.toolsToCall;
+    if (typeof window !== 'undefined') {
+      try {
+        const token = authService.getAuthToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        const res = await fetch('/api/ai/choose-tools', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ prompt }),
+          signal
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.toolsToCall) && data.toolsToCall.length > 0) {
+            return data.toolsToCall;
+          }
         }
+      } catch (err: any) {
+        if (err?.name === 'AbortError') throw err;
+        // Non-fatal network fallback to deterministic tool router
       }
-    } catch (err) {
-      console.warn('AI choose-tools fetch failed, using local tool router:', err);
     }
 
     // Local deterministic fallback tool selection
@@ -114,26 +129,34 @@ export class OrionAIProvider {
   /**
    * Primary inference endpoint: attempts Gemini via server, falls back to deterministic local reasoning
    */
-  async generateInsight(req: CopilotRequest): Promise<{ response: string; source: 'gemini' | 'deterministic' }> {
-    try {
-      const token = authService.getAuthToken();
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      if (token) headers['Authorization'] = `Bearer ${token}`;
+  async generateInsight(req: CopilotRequest, signal?: AbortSignal): Promise<{ response: string; source: 'gemini' | 'deterministic' }> {
+    if (signal?.aborted) {
+      throw new DOMException('Operation cancelled', 'AbortError');
+    }
 
-      const res = await fetch('/api/ai/insight', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(req)
-      });
+    if (typeof window !== 'undefined') {
+      try {
+        const token = authService.getAuthToken();
+        const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.response && !data.fallback) {
-          return { response: data.response, source: 'gemini' };
+        const res = await fetch('/api/ai/insight', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(req),
+          signal
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.response && !data.fallback) {
+            return { response: data.response, source: 'gemini' };
+          }
         }
+      } catch (err: any) {
+        if (err?.name === 'AbortError') throw err;
+        // Non-fatal network fallback to deterministic engine
       }
-    } catch (err) {
-      console.warn('Gemini insight route unreachable, activating deterministic reasoning engine:', err);
     }
 
     // Deterministic fallback reasoning based strictly on live data context

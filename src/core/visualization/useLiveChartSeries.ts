@@ -85,8 +85,8 @@ export function useLiveChartSeries(metricIds: string[], days: number = 14, custo
     }
   }, [stableMetricIds, days, effectiveTenantId, environment]);
 
-  // Determine unique domains affected by these metrics
-  const affectedDomains = useMemo(() => {
+  // Determine unique domains affected by these metrics with stable keying
+  const affectedDomainsKey = useMemo(() => {
     const domains = new Set<RealtimeDomain>();
     stableMetricIds.forEach(id => {
       const d = METRIC_DOMAIN_LOOKUP[id];
@@ -100,8 +100,12 @@ export function useLiveChartSeries(metricIds: string[], days: number = 14, custo
         else if (def?.domain === 'risk' || def?.domain === 'control_tower') domains.add('exceptions');
       }
     });
-    return Array.from(domains);
+    return Array.from(domains).sort().join('|');
   }, [stableMetricIds]);
+
+  const affectedDomains = useMemo(() => {
+    return (affectedDomainsKey ? affectedDomainsKey.split('|') : []) as RealtimeDomain[];
+  }, [affectedDomainsKey]);
 
   useEffect(() => {
     loadData();

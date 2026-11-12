@@ -5,7 +5,8 @@ import { conversationMemoryService } from '../ai/ConversationMemoryService';
 import { agentMemoryManager } from '../ai/AgentMemory';
 import { 
   Send, Loader2, Cpu, Box, AlertTriangle, ShieldCheck, Database, Search, 
-  ArrowRight, CornerDownRight, CheckCircle2, BookOpen, Sparkles, X, Filter
+  ArrowRight, CornerDownRight, CheckCircle2, BookOpen, Sparkles, X, Filter,
+  RotateCcw, Square
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '../lib/utils';
@@ -64,7 +65,9 @@ export const AICopilot = () => {
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [activeCategoryKey, setActiveCategoryKey] = useState<PromptCategoryKey>('CONTROL TOWER');
   const [lastPrompt, setLastPrompt] = useState<string>('');
+  const [activeSessionId, setActiveSessionId] = useState<string>('global-session');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const lastAssistantMessage = [...messages].reverse().find(m => m.role === 'assistant')?.content || '';
   const contextualFollowUps = getContextualFollowUps(lastAssistantMessage, lastPrompt);
@@ -72,6 +75,37 @@ export const AICopilot = () => {
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setIsLoading(false);
+    setAiState('ready');
+  };
+
+  const handleNewSession = () => {
+    handleCancel();
+    const newSessionId = `session-${Date.now()}`;
+    setActiveSessionId(newSessionId);
+    setMessages([
+      {
+        role: 'assistant',
+        content: 'I am ORION AI, the platform intelligence core. Started a fresh conversation session. How can I assist you with supply chain analysis today?',
+        governanceStatus: 'ANSWER'
+      }
+    ]);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+        abortControllerRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     scrollToBottom();
@@ -111,18 +145,27 @@ export const AICopilot = () => {
   const handleSubmit = async (e?: React.FormEvent, customPrompt?: string) => {
     if (e) e.preventDefault();
     const promptText = customPrompt || input;
-    if (!promptText.trim()) return;
+    if (isLoading || !promptText.trim()) return;
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     const userMessage = { role: 'user' as const, content: promptText };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
     setAiState('thinking');
+    setLastPrompt(promptText);
 
     // Save user message to persistent conversation memory
-    await conversationMemoryService.addMessage('global', 'user', undefined, 'user', promptText);
+    await conversationMemoryService.addMessage('global', 'user', activeSessionId, 'user', promptText);
 
-    setTimeout(() => setAiState('analyzing'), 800);
+    const analyzingTimer = setTimeout(() => {
+      if (!controller.signal.aborted) setAiState('analyzing');
+    }, 800);
 
     try {
       const forecasts = DemandForecastEngine.generateForecast(inventory, products, 30, 0);
@@ -214,9 +257,18 @@ export const AICopilot = () => {
         promptText,
         localDataTools,
         'Control Tower',
-        { tenantId: 'global', userId: 'user', agentId: 'control-tower-copilot' }
+        {
+          tenantId: 'global',
+          userId: 'user',
+          agentId: 'control-tower-copilot',
+          conversationId: activeSessionId,
+          signal: controller.signal
+        }
       );
       
+      clearTimeout(analyzingTimer);
+      if (controller.signal.aborted) return;
+
       const response = copilotRes.response || String(copilotRes);
       if (copilotRes.source) {
         setLastSource(copilotRes.source);
@@ -241,7 +293,7 @@ export const AICopilot = () => {
       const telemetryEvidence = parsedResponse?.telemetryEvidence || undefined;
       const recommendationText = parsedResponse?.strategicRoadmap?.[0]?.actionDetails || undefined;
 
-      await conversationMemoryService.addMessage('global', 'user', undefined, 'assistant', contentText, {
+      await conversationMemoryService.addMessage('global', 'user', activeSessionId, 'assistant', contentText, {
         evidence: telemetryEvidence,
         recommendation: recommendationText,
         governanceStatus: govStatus
@@ -264,13 +316,24 @@ export const AICopilot = () => {
         governanceStatus: govStatus
       }]);
     } catch (error: any) {
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: `**AI SERVICE UNAVAILABLE**\n\nUnable to process request: ${error.message || 'Connection failed'}.` 
-      }]);
+      clearTimeout(analyzingTimer);
+      if (error?.name === 'AbortError' || controller.signal.aborted) {
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: '*(Response generation stopped by user)*' 
+        }]);
+      } else {
+        setMessages(prev => [...prev, { 
+          role: 'assistant', 
+          content: `**AI SERVICE UNAVAILABLE**\n\nUnable to process request: ${error.message || 'Connection failed'}.` 
+        }]);
+      }
     } finally {
       setIsLoading(false);
       setAiState('ready');
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
     }
   };
 
@@ -305,14 +368,27 @@ export const AICopilot = () => {
             </div>
           </div>
           
-          <div className="hidden sm:flex flex-col items-end gap-0.5 text-right">
-            <div className="text-[10px] uppercase tracking-wider font-mono text-[var(--orion-text-muted,#747875)]">Intelligence Core</div>
-            <div className="text-xs font-medium text-[var(--orion-text-secondary,#A7AAA8)] flex items-center gap-1.5">
-              {lastSource === 'gemini' ? (
-                <>Gemini 3.8 Flash Grounding <span className="w-2 h-2 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.6)]" /></>
-              ) : (
-                <>Deterministic SCM Core <span className="w-2 h-2 bg-[var(--orion-accent,#0071E3)] rounded-full shadow-[0_0_8px_rgba(0,113,227,0.6)]" /></>
-              )}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleNewSession}
+              className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg bg-[var(--orion-surface-elevated,#222730)] border border-[var(--orion-border,#2B313A)] text-[var(--orion-text-secondary,#A7AAA8)] hover:text-white hover:border-[var(--orion-accent,#0071E3)]/50 transition-all cursor-pointer shadow-xs"
+              title="Start a fresh conversation session"
+              aria-label="New Session"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">New Session</span>
+            </button>
+
+            <div className="hidden sm:flex flex-col items-end gap-0.5 text-right">
+              <div className="text-[10px] uppercase tracking-wider font-mono text-[var(--orion-text-muted,#747875)]">Intelligence Core</div>
+              <div className="text-xs font-medium text-[var(--orion-text-secondary,#A7AAA8)] flex items-center gap-1.5">
+                {lastSource === 'gemini' ? (
+                  <>Gemini 3.8 Flash Grounding <span className="w-2 h-2 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.6)]" /></>
+                ) : (
+                  <>Deterministic SCM Core <span className="w-2 h-2 bg-[var(--orion-accent,#0071E3)] rounded-full shadow-[0_0_8px_rgba(0,113,227,0.6)]" /></>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -478,14 +554,27 @@ export const AICopilot = () => {
                 disabled={isLoading}
                 aria-label="Chat Input Prompt"
               />
-              <button
-                type="submit"
-                disabled={!input.trim() || isLoading}
-                className="absolute right-2 p-2 rounded-lg bg-[var(--orion-accent,#0071E3)] hover:brightness-110 text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shadow-md"
-                aria-label="Send Prompt"
-              >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              </button>
+              {isLoading ? (
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="absolute right-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-medium transition-all cursor-pointer shadow-md"
+                  aria-label="Stop Generating"
+                  title="Stop response generation"
+                >
+                  <Square className="w-3 h-3 fill-current" />
+                  <span className="hidden sm:inline">Stop</span>
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  disabled={!input.trim()}
+                  className="absolute right-2 p-2 rounded-lg bg-[var(--orion-accent,#0071E3)] hover:brightness-110 text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shadow-md"
+                  aria-label="Send Prompt"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              )}
             </form>
             <div className="text-center mt-2 text-[10px] text-[var(--orion-text-muted,#747875)] flex items-center justify-center gap-1.5">
               <ShieldCheck size={11} /> Orion Copilot operates under governed enterprise supply chain telemetry

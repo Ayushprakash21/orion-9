@@ -77,10 +77,13 @@ export interface DynamicIslandMetrics {
   simulationRunning: boolean;
 }
 
+export type IslandStateMachineState = 'COLLAPSED' | 'EXPANDING' | 'EXPANDED' | 'COLLAPSING';
+
 export interface DynamicIslandState {
   mode: DynamicIslandMode;
   presentationMode: DynamicIslandPresentationMode;
   surfaceState: DynamicIslandSurfaceState;
+  stateMachineState: IslandStateMachineState;
   isExpanded: boolean;
   isPinned: boolean;
   isHovered: boolean;
@@ -95,6 +98,7 @@ export interface DynamicIslandState {
   expand: () => void;
   collapse: () => void;
   togglePin: () => void;
+  notifyAnimationComplete: () => void;
   setIsHovered: (hovered: boolean) => void;
   handleAction: (appIdOrCb: string | (() => void)) => void;
   pushActivity: (item: DynamicIslandEventItem) => void;

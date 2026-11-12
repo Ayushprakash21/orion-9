@@ -46,6 +46,7 @@ export const DynamicIsland: React.FC = React.memo(() => {
   const {
     presentationMode,
     surfaceState,
+    stateMachineState,
     isExpanded,
     isPinned,
     isCompactOverMaximized,
@@ -58,11 +59,22 @@ export const DynamicIsland: React.FC = React.memo(() => {
     toggleExpanded,
     collapse,
     togglePin,
+    notifyAnimationComplete,
     setIsHovered,
     handleAction,
     dismissActivity,
     dismissNotification,
   } = useDynamicIslandState();
+
+  const isExpanding = stateMachineState === 'EXPANDING';
+  const isExpandedActive = stateMachineState === 'EXPANDED';
+  const isCollapsing = stateMachineState === 'COLLAPSING';
+  const isCollapsed = stateMachineState === 'COLLAPSED';
+
+  // Surface is geometrically expanded during EXPANDING or EXPANDED
+  const isSurfaceExpanded = (isExpanded || isExpanding || isExpandedActive) && !isCollapsing;
+  // Header keeps showing expanded controls during EXPANDING, EXPANDED, and COLLAPSING
+  const showExpandedHeader = isExpanding || isExpandedActive || isCollapsing;
 
   const containerRef = useRef<HTMLDivElement>(null);
   const { isDark } = useOrionTheme();
@@ -108,10 +120,10 @@ export const DynamicIsland: React.FC = React.memo(() => {
   // Synchronize expanded state with System Bar separator and surface bridge
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      (window as any).__ORION_DYNAMIC_ISLAND_EXPANDED__ = isExpanded;
-      window.dispatchEvent(new CustomEvent('orion:dynamic-island-state', { detail: { isExpanded } }));
+      (window as any).__ORION_DYNAMIC_ISLAND_EXPANDED__ = isSurfaceExpanded;
+      window.dispatchEvent(new CustomEvent('orion:dynamic-island-state', { detail: { isExpanded: isSurfaceExpanded } }));
     }
-  }, [isExpanded]);
+  }, [isSurfaceExpanded]);
 
   // Outside click to collapse when unpinned
   useEffect(() => {
@@ -164,7 +176,7 @@ export const DynamicIsland: React.FC = React.memo(() => {
   const pillHeightClass =
     presentationMode === 'minimal'
       ? 'h-[26px] px-2.5'
-      : isCompactOverMaximized && !isExpanded && surfaceState !== 'critical'
+      : isCompactOverMaximized && !isSurfaceExpanded
         ? 'h-[30px]'
         : 'h-[34px]';
 
@@ -250,33 +262,36 @@ export const DynamicIsland: React.FC = React.memo(() => {
     >
       {/* 
         ONE PERSISTENT CONTINUOUS SURFACE
-        Animates width, corner radii, and expands downward seamlessly.
-        Zero component unmounting, zero window destruction.
+        Controlled 4-state lifecycle (COLLAPSED, EXPANDING, EXPANDED, COLLAPSING).
+        Zero component unmounting, zero window destruction, zero layout jumping.
       */}
       <motion.div
-        layout
-        id={isExpanded ? "dynamic-island-expanded-surface" : "dynamic-island-capsule-surface"}
-        data-testid={isExpanded ? "dynamic-island-expanded-panel" : "dynamic-island-surface"}
+        id={isSurfaceExpanded ? "dynamic-island-expanded-surface" : "dynamic-island-capsule-surface"}
+        data-testid={isSurfaceExpanded ? "dynamic-island-expanded-panel" : "dynamic-island-surface"}
         data-surface-state={surfaceState}
+        data-state-machine={stateMachineState}
         data-compact-over-maximized={isCompactOverMaximized ? 'true' : 'false'}
         initial={false}
         animate={{
-          width: isExpanded
+          width: isSurfaceExpanded
             ? 'min(580px, calc(100vw - 24px))'
             : isCompactOverMaximized
               ? 'min(480px, calc(100vw - 24px))'
               : 'min(520px, calc(100vw - 24px))',
-          borderBottomLeftRadius: isExpanded ? 24 : 16,
-          borderBottomRightRadius: isExpanded ? 24 : 16,
+          borderBottomLeftRadius: isSurfaceExpanded ? 24 : 16,
+          borderBottomRightRadius: isSurfaceExpanded ? 24 : 16,
+        }}
+        onAnimationComplete={() => {
+          notifyAnimationComplete();
         }}
         transition={
           isReducedMotion
             ? { duration: 0.05 }
             : {
                 type: 'spring',
-                stiffness: 380,
-                damping: 30,
-                mass: 0.8,
+                stiffness: 400,
+                damping: 32,
+                mass: 0.75,
               }
         }
         style={{
@@ -294,39 +309,39 @@ export const DynamicIsland: React.FC = React.memo(() => {
         {/* 
           1. HEADER ROW:
           - When collapsed: interactive telemetry capsule pill
-          - When expanded: proprietary Orion system header controls
+          - When expanding/expanded/collapsing: proprietary Orion system header controls
         */}
         <div
           role="button"
           tabIndex={0}
-          aria-expanded={isExpanded}
-          aria-label={isExpanded ? "Dynamic Island Controls" : "Expand Orion Dynamic Island"}
+          aria-expanded={isSurfaceExpanded}
+          aria-label={isSurfaceExpanded ? "Dynamic Island Controls" : "Expand Orion Dynamic Island"}
           data-testid="dynamic-island-capsule"
           data-surface-state={surfaceState}
           data-compact-over-maximized={isCompactOverMaximized ? 'true' : 'false'}
           {...(activeNotification ? { 'data-has-notification': 'true', 'data-notification-id': activeNotification.id } : {})}
-          onClick={!isExpanded ? toggleExpanded : undefined}
+          onClick={!isSurfaceExpanded ? toggleExpanded : undefined}
           onKeyDown={(e) => {
-            if (!isExpanded && (e.key === 'Enter' || e.key === ' ')) {
+            if (!isSurfaceExpanded && (e.key === 'Enter' || e.key === ' ')) {
               e.preventDefault();
               toggleExpanded();
             } else if (e.key === 'Escape') {
               e.preventDefault();
               if (activeNotification) dismissNotification?.(activeNotification.id);
-              else if (isExpanded) collapse();
+              else if (isSurfaceExpanded) collapse();
             }
           }}
           className={cn(
             "flex items-center justify-between px-3.5 sm:px-4 w-full transition-colors duration-150 select-none",
-            isExpanded ? "pt-3 pb-2.5 cursor-default" : `cursor-pointer ${pillHeightClass} ${statusToneClass}`
+            showExpandedHeader ? "pt-3 pb-2.5 cursor-default" : `cursor-pointer ${pillHeightClass}`
           )}
         >
-          {/* Collapsed vs Expanded Header Content with smooth cross-fade */}
-          {!isExpanded ? (
+          {/* Collapsed vs Expanded Header Content with controlled state switch */}
+          {!showExpandedHeader ? (
             /* COLLAPSED HEADER CONTENT */
             <div className="flex items-center justify-between w-full min-w-0">
-              <div className="sr-only" role="status" aria-live={activeNotification?.severity === 'critical' || activity === 'critical-alert' ? 'assertive' : 'polite'}>
-                {activeNotification ? `${activeNotification.appName || 'Notification'}: ${activeNotification.title || activeNotification.message}` : activity === 'system-ready' ? 'System Ready' : activity}
+              <div className="sr-only" role="status" aria-live={activeNotification?.severity === 'critical' ? 'assertive' : 'polite'}>
+                {activeNotification ? `${activeNotification.appName || 'Notification'}: ${activeNotification.title || activeNotification.message}` : 'System Ready'}
               </div>
 
               {activeNotification ? (
@@ -378,7 +393,7 @@ export const DynamicIsland: React.FC = React.memo(() => {
                   {/* Left Anchor: State Indicator + System / Activity Status */}
                   <div className="flex items-center gap-2 min-w-0">
                     {activity === 'critical-alert' ? (
-                      <>
+                      <div className="flex items-center gap-1.5 min-w-0">
                         <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0 shadow-[0_0_8px_rgba(244,63,94,0.65)]" />
                         <AlertTriangle className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-rose-300' : 'text-rose-700'}`} />
                         <span className={`text-[11px] font-semibold truncate ${isDark ? 'text-rose-300' : 'text-rose-800'}`}>
@@ -386,31 +401,31 @@ export const DynamicIsland: React.FC = React.memo(() => {
                             ? `${metrics.criticalExceptionsCount} ${metrics.criticalExceptionsCount === 1 ? 'Alert' : 'Alerts'}`
                             : `Shipment exception detected • ${metrics.criticalExceptionsCount} ${metrics.criticalExceptionsCount === 1 ? 'Alert' : 'Alerts'}`}
                         </span>
-                      </>
+                      </div>
                     ) : activity === 'copilot-thinking' ? (
-                      <>
+                      <div className="flex items-center gap-1.5 min-w-0">
                         <span className="w-2 h-2 rounded-full bg-indigo-500 shrink-0" />
                         <Brain className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-indigo-300' : 'text-indigo-700'}`} />
                         <span className={`text-[11px] font-semibold truncate ${isDark ? 'text-indigo-200' : 'text-indigo-900'}`}>
                           {primaryEvent?.title || 'Orion Copilot Active'}
                         </span>
-                      </>
+                      </div>
                     ) : activity === 'connector-sync' ? (
-                      <>
+                      <div className="flex items-center gap-1.5 min-w-0">
                         <span className="w-2 h-2 rounded-full bg-sky-500 shrink-0" />
                         <RefreshCw className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-sky-300' : 'text-sky-700'}`} />
                         <span className={`text-[11px] font-semibold truncate ${isDark ? 'text-sky-300' : 'text-sky-900'}`}>
                           {`Syncing ${metrics.connectedConnectorsCount} connectors`}
                         </span>
-                      </>
+                      </div>
                     ) : activity === 'simulation-running' ? (
-                      <>
+                      <div className="flex items-center gap-1.5 min-w-0">
                         <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0" />
                         <Activity className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-purple-300' : 'text-purple-700'}`} />
                         <span className={`text-[11px] font-semibold truncate ${isDark ? 'text-purple-200' : 'text-purple-900'}`}>
                           {primaryEvent?.title || 'Simulation Running'}
                         </span>
-                      </>
+                      </div>
                     ) : (
                       <div className="flex items-center gap-3 min-w-0">
                         {/* Left: 09 badge + PULSAR RELEASE Branding */}
@@ -449,26 +464,16 @@ export const DynamicIsland: React.FC = React.memo(() => {
                     )}
                   </div>
 
-                  {/* Right Telemetry Micro-Badge / Quick controls */}
+                  {/* Right Telemetry Controls */}
                   <div className="flex items-center gap-2 ml-3 shrink-0">
-                    {typeof primaryEvent?.progress === 'number' && (
-                      <div className="hidden sm:flex items-center gap-1.5">
-                        <div className={`w-10 h-1 rounded-full overflow-hidden ${isDark ? 'bg-white/15' : 'bg-slate-900/15'}`}>
-                          <div
-                            className="h-full bg-sky-500 rounded-full transition-[width] duration-200"
-                            style={{ width: `${Math.max(0, Math.min(100, primaryEvent.progress))}%` }}
-                          />
-                        </div>
-                      </div>
-                    )}
-
                     {metrics.unreadNotificationsCount > 0 ? (
                       <span
-                        className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-semibold ${
+                        className={cn(
+                          "inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border text-[10px] font-semibold",
                           isDark
-                            ? 'bg-rose-500/20 border-rose-500/35 text-rose-200'
-                            : 'bg-rose-600/12 border-rose-600/30 text-rose-800'
-                        }`}
+                            ? "bg-rose-500/20 border-rose-500/35 text-rose-200"
+                            : "bg-rose-600/12 border-rose-600/30 text-rose-800"
+                        )}
                         aria-label={`${metrics.unreadNotificationsCount} unread notification${metrics.unreadNotificationsCount === 1 ? '' : 's'}`}
                       >
                         <Bell className="w-2.5 h-2.5" />
@@ -638,19 +643,19 @@ export const DynamicIsland: React.FC = React.memo(() => {
         <motion.div
           initial={false}
           animate={{
-            height: isExpanded ? 'auto' : 0,
-            opacity: isExpanded ? 1 : 0,
+            height: isSurfaceExpanded ? 'auto' : 0,
+            opacity: isSurfaceExpanded ? 1 : 0,
           }}
           transition={
             isReducedMotion
               ? { duration: 0.04 }
               : {
-                  height: { type: 'spring', stiffness: 380, damping: 30, mass: 0.8 },
-                  opacity: { duration: isExpanded ? 0.24 : 0.16, delay: isExpanded ? 0.08 : 0 },
+                  height: { type: 'spring', stiffness: 400, damping: 32, mass: 0.75 },
+                  opacity: { duration: isSurfaceExpanded ? 0.22 : 0.14, delay: isSurfaceExpanded ? 0.06 : 0 },
                 }
           }
           className="overflow-hidden"
-          style={{ pointerEvents: isExpanded ? 'auto' : 'none' }}
+          style={{ pointerEvents: isSurfaceExpanded ? 'auto' : 'none' }}
         >
           {/* Subtle separator line between header and Control Tower body */}
           <div className={cn(

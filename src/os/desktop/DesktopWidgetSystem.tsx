@@ -179,6 +179,9 @@ export function DesktopWidgetSystem({
   }, [onRemove, widget.id]);
 
   useEffect(() => {
+    // Only subscribe to clock ticks if this widget is clock or calendar
+    if (widget.widgetType !== 'clock' && widget.widgetType !== 'calendar') return;
+
     // Only tick at minute boundaries so idle desktop causes zero per-second React re-renders
     let timerId: number | null = null;
     const scheduleNextMinuteTick = () => {
@@ -199,9 +202,12 @@ export function DesktopWidgetSystem({
       if (timerId !== null) window.clearTimeout(timerId);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, []);
+  }, [widget.widgetType]);
 
   useEffect(() => {
+    // Only run health check intervals if this widget is system_health
+    if (widget.widgetType !== 'system_health') return;
+
     let mounted = true;
     const updateHealth = async () => {
       if (typeof document !== 'undefined' && document.hidden) return;
@@ -225,7 +231,7 @@ export function DesktopWidgetSystem({
       mounted = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [widget.widgetType]);
 
   const handleContainerPointerDown = (e: React.PointerEvent) => {
     // Only primary left-button click initiates drag

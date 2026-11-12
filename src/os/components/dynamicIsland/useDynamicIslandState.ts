@@ -70,6 +70,9 @@ export function useDynamicIslandState(): DynamicIslandState {
 
   const [presentationMode, setPresentationMode] = useState<DynamicIslandPresentationMode>(() => readStoredPresentationMode());
   const [isExpanded, setIsExpanded] = useState(() => readStoredPresentationMode() === 'expanded');
+  const [stateMachineState, setStateMachineState] = useState<import('./DynamicIslandTypes').IslandStateMachineState>(() =>
+    readStoredPresentationMode() === 'expanded' ? 'EXPANDED' : 'COLLAPSED'
+  );
   const [isReturning, setIsReturning] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isFullscreenHidden, setIsFullscreenHidden] = useState(false);
@@ -437,23 +440,32 @@ export function useDynamicIslandState(): DynamicIslandState {
   const expand = useCallback(() => {
     setIsReturning(false);
     setIsExpanded(true);
+    setStateMachineState('EXPANDING');
   }, []);
 
   const collapse = useCallback(() => {
-    setIsExpanded(false);
+    setStateMachineState('COLLAPSING');
     triggerReturningTransition();
   }, [triggerReturningTransition]);
 
-  const toggleExpanded = useCallback(() => {
-    setIsExpanded(prev => {
-      if (prev) {
-        triggerReturningTransition();
-        return false;
+  const notifyAnimationComplete = useCallback(() => {
+    setStateMachineState(curr => {
+      if (curr === 'EXPANDING') return 'EXPANDED';
+      if (curr === 'COLLAPSING') {
+        setIsExpanded(false);
+        return 'COLLAPSED';
       }
-      setIsReturning(false);
-      return true;
+      return curr;
     });
-  }, [triggerReturningTransition]);
+  }, []);
+
+  const toggleExpanded = useCallback(() => {
+    if (isExpanded || stateMachineState === 'EXPANDED' || stateMachineState === 'EXPANDING') {
+      collapse();
+    } else {
+      expand();
+    }
+  }, [isExpanded, stateMachineState, collapse, expand]);
 
   const togglePin = useCallback(() => {
     setIsPinned(prev => {
@@ -530,6 +542,7 @@ export function useDynamicIslandState(): DynamicIslandState {
     mode: isExpanded ? 'expanded' : 'compact',
     presentationMode,
     surfaceState,
+    stateMachineState,
     isExpanded,
     isPinned,
     isHovered,
@@ -544,6 +557,7 @@ export function useDynamicIslandState(): DynamicIslandState {
     expand,
     collapse,
     togglePin,
+    notifyAnimationComplete,
     setIsHovered,
     handleAction,
     pushActivity,
@@ -553,6 +567,7 @@ export function useDynamicIslandState(): DynamicIslandState {
     presentationMode,
     isExpanded,
     surfaceState,
+    stateMachineState,
     isPinned,
     isHovered,
     isCompactOverMaximized,
@@ -566,6 +581,7 @@ export function useDynamicIslandState(): DynamicIslandState {
     expand,
     collapse,
     togglePin,
+    notifyAnimationComplete,
     handleAction,
     pushActivity,
     dismissActivity,
