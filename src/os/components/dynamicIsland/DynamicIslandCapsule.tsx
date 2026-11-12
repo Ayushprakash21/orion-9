@@ -61,30 +61,30 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
     if (activeNotification) {
       const sev = activeNotification.severity;
       if (isDark) {
-        if (sev === 'critical') return 'border-rose-500/45 bg-[rgba(34,12,18,0.95)] hover:border-rose-400/60 shadow-[0_8px_24px_rgba(244,63,94,0.25)]';
-        if (sev === 'warning') return 'border-amber-500/45 bg-[rgba(32,24,14,0.95)] hover:border-amber-400/60 shadow-[0_8px_24px_rgba(245,158,11,0.20)]';
-        if (sev === 'success') return 'border-emerald-500/40 bg-[rgba(12,28,20,0.95)] hover:border-emerald-400/55 shadow-[0_8px_24px_rgba(16,185,129,0.20)]';
-        if (sev === 'info') return 'border-sky-500/40 bg-[rgba(14,24,38,0.95)] hover:border-sky-400/60 shadow-[0_8px_24px_rgba(56,189,248,0.20)]';
-        return 'border-white/[0.18] bg-[rgba(20,24,34,0.94)] hover:border-white/30';
+        if (sev === 'critical') return 'border-rose-500/45 border-t-0 bg-[rgba(34,12,18,0.95)] hover:border-rose-400/60 shadow-[0_8px_24px_rgba(244,63,94,0.25)]';
+        if (sev === 'warning') return 'border-amber-500/45 border-t-0 bg-[rgba(32,24,14,0.95)] hover:border-amber-400/60 shadow-[0_8px_24px_rgba(245,158,11,0.20)]';
+        if (sev === 'success') return 'border-emerald-500/40 border-t-0 bg-[rgba(12,28,20,0.95)] hover:border-emerald-400/55 shadow-[0_8px_24px_rgba(16,185,129,0.20)]';
+        if (sev === 'info') return 'border-sky-500/40 border-t-0 bg-[rgba(14,24,38,0.95)] hover:border-sky-400/60 shadow-[0_8px_24px_rgba(56,189,248,0.20)]';
+        return 'border-white/[0.18] border-t-0 bg-[rgba(20,24,34,0.94)] hover:border-white/30';
       } else {
-        if (sev === 'critical') return 'border-rose-500/40 bg-[rgba(255,241,242,0.96)] hover:border-rose-600/50 shadow-[0_4px_16px_rgba(244,63,94,0.15)]';
-        if (sev === 'warning') return 'border-amber-500/40 bg-[rgba(254,252,232,0.96)] hover:border-amber-600/50 shadow-[0_4px_16px_rgba(245,158,11,0.15)]';
-        if (sev === 'success') return 'border-emerald-500/35 bg-[rgba(240,253,244,0.96)] hover:border-emerald-600/50 shadow-[0_4px_16px_rgba(16,185,129,0.15)]';
-        if (sev === 'info') return 'border-sky-500/35 bg-[rgba(240,249,255,0.96)] hover:border-sky-600/50 shadow-[0_4px_16px_rgba(56,189,248,0.15)]';
-        return 'border-slate-300 bg-[rgba(255,255,255,0.96)] hover:border-slate-400';
+        if (sev === 'critical') return 'border-rose-500/40 border-t-0 bg-[rgba(255,241,242,0.96)] hover:border-rose-600/50 shadow-[0_4px_16px_rgba(244,63,94,0.15)]';
+        if (sev === 'warning') return 'border-amber-500/40 border-t-0 bg-[rgba(254,252,232,0.96)] hover:border-amber-600/50 shadow-[0_4px_16px_rgba(245,158,11,0.15)]';
+        if (sev === 'success') return 'border-emerald-500/35 border-t-0 bg-[rgba(240,253,244,0.96)] hover:border-emerald-600/50 shadow-[0_4px_16px_rgba(16,185,129,0.15)]';
+        if (sev === 'info') return 'border-sky-500/35 border-t-0 bg-[rgba(240,249,255,0.96)] hover:border-sky-600/50 shadow-[0_4px_16px_rgba(56,189,248,0.15)]';
+        return 'border-[#E1E5EA] border-t-0 bg-white hover:border-[#CBD5E1] shadow-[0_4px_16px_rgba(15,23,42,0.08)]';
       }
     }
 
     if (isDark) {
-      if (activity === 'critical-alert') return 'border-rose-500/45 bg-[rgba(34,12,18,0.94)] hover:border-rose-400/60';
-      if (activity === 'copilot-thinking') return 'border-indigo-400/45 bg-[rgba(16,18,36,0.92)] hover:border-indigo-300/60';
-      if (activity === 'connector-sync') return 'border-sky-400/40 bg-[rgba(12,24,36,0.92)] hover:border-sky-300/60';
+      if (activity === 'critical-alert') return 'border-rose-500/45 border-t-0 bg-[rgba(34,12,18,0.94)] hover:border-rose-400/60';
+      if (activity === 'copilot-thinking') return 'border-indigo-400/45 border-t-0 bg-[rgba(16,18,36,0.92)] hover:border-indigo-300/60';
+      if (activity === 'connector-sync') return 'border-sky-400/40 border-t-0 bg-[rgba(12,24,36,0.92)] hover:border-sky-300/60';
       return 'border-white/[0.14] border-t-0 bg-[#181B22] hover:border-white/30 shadow-[0_8px_24px_rgba(0,0,0,0.65)]';
     } else {
-      if (activity === 'critical-alert') return 'border-rose-500/45 bg-[rgba(255,242,244,0.95)] hover:border-rose-600/60';
-      if (activity === 'copilot-thinking') return 'border-indigo-500/40 bg-[rgba(245,247,255,0.95)] hover:border-indigo-600/55';
-      if (activity === 'connector-sync') return 'border-sky-500/40 bg-[rgba(242,249,255,0.95)] hover:border-sky-600/55';
-      return 'border-[rgba(15,23,42,0.16)] border-t-0 bg-[rgba(255,255,255,0.94)] hover:border-[rgba(15,23,42,0.28)] shadow-[0_4px_16px_rgba(15,23,42,0.10)]';
+      if (activity === 'critical-alert') return 'border-rose-500/45 border-t-0 bg-[rgba(255,242,244,0.95)] hover:border-rose-600/60';
+      if (activity === 'copilot-thinking') return 'border-indigo-500/40 border-t-0 bg-[rgba(245,247,255,0.95)] hover:border-indigo-600/55';
+      if (activity === 'connector-sync') return 'border-sky-500/40 border-t-0 bg-[rgba(242,249,255,0.95)] hover:border-sky-600/55';
+      return 'border-[#E1E5EA] border-t-0 bg-white hover:border-[#CBD5E1] shadow-[0_4px_16px_rgba(15,23,42,0.08)]';
     }
   })();
 
@@ -152,10 +152,10 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
           : { type: 'spring', stiffness: 450, damping: 32 }
       }
       style={{ zIndex: 10015 }}
-      className={`group relative flex items-center justify-between px-3.5 sm:px-4 rounded-full sm:rounded-t-none sm:rounded-b-2xl cursor-pointer select-none border transition-colors duration-200 pointer-events-auto w-[min(520px,calc(100vw-24px))] min-w-[320px] ${
+      className={`group relative flex items-center justify-between px-3.5 sm:px-4 rounded-b-2xl rounded-t-none border-b border-l border-r border-t-0 cursor-pointer select-none transition-colors duration-200 pointer-events-auto w-[min(520px,calc(100vw-24px))] min-w-[320px] ${
         isDark
           ? 'shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.12)]'
-          : 'shadow-[0_4px_16px_rgba(15,23,42,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]'
+          : 'shadow-[0_4px_16px_rgba(15,23,42,0.08)]'
       } ${pillHeightClass} ${statusToneClass} ${
         isExpanded ? 'opacity-90' : ''
       }`}
@@ -286,7 +286,9 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
                 <div className="flex items-center gap-3 min-w-0">
                   {/* Left: 09 badge + PULSAR RELEASE Branding */}
                   <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="w-5 h-5 rounded-full bg-white/10 border border-sky-400/50 flex items-center justify-center font-bold font-mono text-[9px] text-sky-400 shadow-xs">
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center font-bold font-mono text-[9px] shadow-xs ${
+                      isDark ? 'bg-white/10 border border-sky-400/50 text-sky-400' : 'bg-sky-50 border border-sky-300 text-sky-700'
+                    }`}>
                       09
                     </span>
                     <div className="flex flex-col text-left leading-none">
@@ -300,7 +302,7 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
                   </div>
 
                   {/* Vertical Separator */}
-                  <div className="h-4.5 w-px bg-white/15 mx-0.5 hidden xs:block" />
+                  <div className={`h-4.5 w-px mx-0.5 hidden xs:block ${isDark ? 'bg-white/15' : 'bg-slate-300'}`} />
 
                   {/* Center Status */}
                   <div className="flex items-center gap-1.5 min-w-0">

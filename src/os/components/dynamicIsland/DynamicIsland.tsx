@@ -104,7 +104,7 @@ export const DynamicIsland: React.FC = React.memo(() => {
       style={{ zIndex: 10010 }}
       className="relative z-[10010] flex flex-col items-center pointer-events-auto"
     >
-      <AnimatePresence mode="wait">
+      <AnimatePresence initial={false}>
         {!isExpanded ? (
           <DynamicIslandCapsule
             key="capsule"
