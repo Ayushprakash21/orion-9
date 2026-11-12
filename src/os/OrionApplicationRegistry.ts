@@ -208,7 +208,7 @@ export const ORION_REGISTRY: Record<string, OrionApp> = {
   },
   'orion-ai': {
     id: 'orion-ai',
-    name: 'ORION AI',
+    name: 'Orion Copilot',
     route: '/copilot',
     category: 'AI',
     icon: Brain,

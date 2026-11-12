@@ -275,48 +275,52 @@ export const AICopilot = () => {
   };
 
   return (
-    <div className="w-full h-full min-h-0 flex flex-col overflow-hidden bg-transparent">
-      <div className="flex-1 min-h-0 max-w-[1200px] w-full mx-auto p-2.5 sm:p-4 lg:p-5 flex flex-col gap-2.5 sm:gap-3.5 overflow-hidden">
+    <div className="w-full h-full min-h-0 flex flex-col overflow-hidden bg-[var(--orion-surface,#14171C)] text-[var(--orion-text-primary,#F1F5F9)] shadow-2xl">
+      <div className="flex-1 min-h-0 w-full flex flex-col overflow-hidden">
         
         {/* Header Console */}
-        <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-[12px] p-3 sm:p-3.5 flex items-center justify-between relative overflow-hidden shrink-0 shadow-[0_8px_24px_rgba(0,0,0,0.25)]">
-          <div className="flex items-center gap-3 sm:gap-4 relative z-10">
-            <div className="relative flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-[10px] bg-[var(--orion-accent,#0071E3)]/12 border border-[var(--orion-accent,#0071E3)]/25 text-[var(--orion-accent,#0071E3)] shrink-0">
-              <Cpu className="w-5 h-5 sm:w-5.5 sm:h-5.5" />
+        <div className="bg-[var(--orion-surface-secondary,#1C2026)] border-b border-[var(--orion-border,#2B313A)] px-4 py-3 flex items-center justify-between relative overflow-hidden shrink-0 shadow-sm">
+          <div className="flex items-center gap-3 relative z-10">
+            <div className="relative flex items-center justify-center w-9 h-9 rounded-xl bg-[var(--orion-accent,#0071E3)]/15 border border-[var(--orion-accent,#0071E3)]/30 text-[var(--orion-accent,#0071E3)] shrink-0 shadow-xs">
+              <Cpu className="w-5 h-5" />
             </div>
             
             <div>
-              <h1 className="text-base sm:text-lg font-semibold text-[var(--orion-text-primary,#F2F2EF)] tracking-tight mb-0.5 flex items-center gap-2">
+              <h1 className="text-sm sm:text-base font-semibold text-[var(--orion-text-primary,#F2F2EF)] tracking-tight flex items-center gap-2">
                 Orion Copilot <span className="text-[10px] font-medium text-[var(--orion-accent,#0071E3)] px-2 py-0.5 border border-[var(--orion-accent,#0071E3)]/30 bg-[var(--orion-accent,#0071E3)]/10 rounded-full">Enterprise Intelligence</span>
               </h1>
-              <div className="text-xs text-[var(--orion-text-muted,#747875)] flex items-center gap-2">
-                Engine Status: 
+              <div className="text-[11px] text-[var(--orion-text-muted,#747875)] flex items-center gap-1.5 mt-0.5">
+                <span>Engine Status:</span>
                 <span className={cn(
-                  "font-medium",
+                  "font-medium flex items-center gap-1",
                   aiState === 'ready' || aiState === 'idle' ? 'text-emerald-400' : 'text-[var(--orion-accent,#0071E3)]'
                 )}>
+                  <span className={cn(
+                    "w-1.5 h-1.5 rounded-full",
+                    aiState === 'ready' || aiState === 'idle' ? 'bg-emerald-400 animate-pulse' : 'bg-[var(--orion-accent,#0071E3)] animate-spin'
+                  )} />
                   {aiState === 'ready' || aiState === 'idle' ? 'Ready' : 'Analyzing Telemetry...'}
                 </span>
               </div>
             </div>
           </div>
           
-          <div className="hidden md:flex flex-col items-end gap-1 text-right">
-            <div className="text-[10px] text-[var(--orion-text-muted,#747875)]">Intelligence Core</div>
+          <div className="hidden sm:flex flex-col items-end gap-0.5 text-right">
+            <div className="text-[10px] uppercase tracking-wider font-mono text-[var(--orion-text-muted,#747875)]">Intelligence Core</div>
             <div className="text-xs font-medium text-[var(--orion-text-secondary,#A7AAA8)] flex items-center gap-1.5">
               {lastSource === 'gemini' ? (
-                <>Gemini 3.8 Flash Grounding <span className="w-2 h-2 bg-emerald-400 rounded-full" /></>
+                <>Gemini 3.8 Flash Grounding <span className="w-2 h-2 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.6)]" /></>
               ) : (
-                <>Deterministic SCM Core <span className="w-2 h-2 bg-[var(--orion-accent,#0071E3)] rounded-full" /></>
+                <>Deterministic SCM Core <span className="w-2 h-2 bg-[var(--orion-accent,#0071E3)] rounded-full shadow-[0_0_8px_rgba(0,113,227,0.6)]" /></>
               )}
             </div>
           </div>
         </div>
 
         {/* Chat Area */}
-        <div className="flex-1 bg-white/[0.03] backdrop-blur-xl border border-white/[0.08] rounded-[14px] flex flex-col min-h-0 overflow-hidden relative shadow-[0_12px_32px_rgba(0,0,0,0.30)]">
+        <div className="flex-1 bg-[var(--orion-surface,#14171C)] flex flex-col min-h-0 overflow-hidden relative">
           
-          <div className="flex-1 overflow-y-auto p-3.5 sm:p-5 space-y-3.5 sm:space-y-4 min-h-0 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 min-h-0 custom-scrollbar">
             {messages.map((message, index) => (
               <div 
                 key={index} 
@@ -335,11 +339,11 @@ export const AICopilot = () => {
                       {message.governanceStatus && (
                         <span className={cn(
                           "px-2 py-0.5 rounded-full text-[9px] font-medium border",
-                          message.governanceStatus === 'EXECUTED' && "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
-                          message.governanceStatus === 'PENDING APPROVAL' && "bg-amber-500/10 text-amber-400 border-amber-500/30",
-                          message.governanceStatus === 'RECOMMENDATION' && "bg-[var(--orion-accent,#0071E3)]/10 text-[var(--orion-accent,#0071E3)] border-[var(--orion-accent,#0071E3)]/30",
-                          message.governanceStatus === 'REJECTED' && "bg-rose-500/10 text-rose-400 border-rose-500/30",
-                          message.governanceStatus === 'ANSWER' && "bg-white/5 text-[var(--orion-text-muted,#747875)] border-white/10"
+                          message.governanceStatus === 'EXECUTED' && "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+                          message.governanceStatus === 'PENDING APPROVAL' && "bg-amber-500/15 text-amber-400 border-amber-500/30",
+                          message.governanceStatus === 'RECOMMENDATION' && "bg-[var(--orion-accent,#0071E3)]/15 text-[var(--orion-accent,#0071E3)] border-[var(--orion-accent,#0071E3)]/30",
+                          message.governanceStatus === 'REJECTED' && "bg-rose-500/15 text-rose-400 border-rose-500/30",
+                          message.governanceStatus === 'ANSWER' && "bg-[var(--orion-surface-elevated,#222730)] text-[var(--orion-text-muted,#747875)] border-[var(--orion-border,#2B313A)]"
                         )}>
                           {message.governanceStatus}
                         </span>
@@ -349,30 +353,30 @@ export const AICopilot = () => {
                 </div>
                 
                 <div className={cn(
-                  "p-3.5 sm:p-4 rounded-[14px] text-sm leading-relaxed",
+                  "p-3.5 sm:p-4 rounded-[14px] text-sm leading-relaxed shadow-sm",
                   message.role === 'user' 
-                    ? "bg-[var(--orion-accent,#0071E3)] text-white shadow-sm" 
-                    : "bg-white/[0.04] border border-white/[0.08] text-[var(--orion-text-primary,#F2F2EF)]"
+                    ? "bg-[var(--orion-accent,#0071E3)] text-white shadow-md font-medium" 
+                    : "bg-[var(--orion-surface-secondary,#1C2026)] border border-[var(--orion-border-strong,#3F4754)] text-[var(--orion-text-primary,#F1F5F9)]"
                 )}>
-                  <div className="prose prose-invert prose-sm max-w-none">
+                  <div className="prose prose-invert prose-sm max-w-none text-[var(--orion-text-primary,#F1F5F9)]">
                     <ReactMarkdown>{message.content}</ReactMarkdown>
                   </div>
                   
                   {message.evidence && (
-                    <div className="mt-3.5 p-3 bg-sky-500/5 border border-sky-500/20 rounded-xl">
+                    <div className="mt-3.5 p-3 bg-sky-500/10 border border-sky-500/30 rounded-xl">
                       <div className="text-[10px] font-semibold tracking-wide text-sky-400 uppercase mb-1 flex items-center gap-1.5">
                         <Database size={12} /> Grounded Telemetry Evidence
                       </div>
-                      <div className="text-xs font-mono text-slate-300">{message.evidence}</div>
+                      <div className="text-xs font-mono text-slate-200">{message.evidence}</div>
                     </div>
                   )}
                   
                   {message.recommendation && (
-                    <div className="mt-3 p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
+                    <div className="mt-3 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl">
                       <div className="text-[10px] font-semibold tracking-wide text-emerald-400 uppercase mb-1 flex items-center gap-1.5">
                         <CheckCircle2 size={12} /> Strategic Recommendation
                       </div>
-                      <div className="text-xs text-slate-300">{message.recommendation}</div>
+                      <div className="text-xs text-slate-200">{message.recommendation}</div>
                     </div>
                   )}
                 </div>
@@ -380,12 +384,12 @@ export const AICopilot = () => {
             ))}
             
             {messages.length <= 1 && (
-              <div className="pt-1 pb-1 animate-in fade-in duration-300">
-                <div className="text-[10px] font-semibold tracking-wider uppercase text-[var(--orion-text-muted,#747875)] mb-2.5 flex items-center gap-2">
-                  <Sparkles size={11} className="text-[var(--orion-accent,#0071E3)]" />
+              <div className="pt-2 pb-1 animate-in fade-in duration-300">
+                <div className="text-[10px] font-semibold tracking-wider uppercase text-[var(--orion-text-muted,#747875)] mb-2 flex items-center gap-1.5">
+                  <Sparkles size={12} className="text-[var(--orion-accent,#0071E3)]" />
                   <span>Executive Quick Launch</span>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5 max-w-3xl">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-3xl">
                   {QUICK_ACTIONS.map((action, idx) => {
                     const ActionIcon = action.icon;
                     return (
@@ -393,16 +397,16 @@ export const AICopilot = () => {
                         key={idx}
                         type="button"
                         onClick={() => setInput(action.prompt)}
-                        className="group text-left p-2.5 sm:p-3 rounded-[10px] bg-white/[0.03] hover:bg-white/[0.07] border border-white/[0.08] hover:border-[var(--orion-accent,#0071E3)]/40 transition-all cursor-pointer flex items-start gap-2.5 shadow-xs"
+                        className="group text-left p-3 rounded-xl bg-[var(--orion-surface-secondary,#1C2026)] hover:bg-[var(--orion-surface-elevated,#222730)] border border-[var(--orion-border,#2B313A)] hover:border-[var(--orion-accent,#0071E3)]/50 transition-all cursor-pointer flex items-start gap-3 shadow-xs"
                         aria-label={`Select quick action: ${action.label}`}
                       >
-                        <div className="p-1.5 rounded-[6px] bg-[var(--orion-accent,#0071E3)]/10 border border-[var(--orion-accent,#0071E3)]/20 text-[var(--orion-accent,#0071E3)] group-hover:scale-105 transition-transform shrink-0">
-                          <ActionIcon size={14} />
+                        <div className="p-2 rounded-lg bg-[var(--orion-accent,#0071E3)]/12 border border-[var(--orion-accent,#0071E3)]/25 text-[var(--orion-accent,#0071E3)] group-hover:scale-105 transition-transform shrink-0">
+                          <ActionIcon size={16} />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="text-xs font-semibold text-[var(--orion-text-primary,#F2F2EF)] group-hover:text-white flex items-center justify-between">
                             <span>{action.label}</span>
-                            <ArrowRight size={11} className="opacity-0 group-hover:opacity-100 text-[var(--orion-accent,#0071E3)] transition-opacity shrink-0 ml-1" />
+                            <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 text-[var(--orion-accent,#0071E3)] transition-opacity shrink-0 ml-1" />
                           </div>
                           <div className="text-[11px] text-[var(--orion-text-muted,#747875)] mt-0.5 line-clamp-2 leading-snug">
                             {action.prompt}
@@ -420,7 +424,7 @@ export const AICopilot = () => {
                 <div className="text-[11px] font-semibold text-sky-400 mb-1.5">
                   Orion Copilot
                 </div>
-                <div className="p-3.5 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center gap-3 text-slate-400">
+                <div className="p-3.5 rounded-xl bg-[var(--orion-surface-secondary,#1C2026)] border border-[var(--orion-border-strong,#3F4754)] flex items-center gap-3 text-slate-300">
                   <Loader2 className="w-4 h-4 animate-spin text-sky-400" />
                   <span className="text-xs">{aiState === 'thinking' ? 'Synthesizing response...' : 'Analyzing real-time SCM data...'}</span>
                 </div>
@@ -431,7 +435,7 @@ export const AICopilot = () => {
 
           {/* Contextual Follow-up Prompt Chips */}
           {!isLoading && (
-            <div className="px-3.5 sm:px-6 pb-2.5 pt-1.5 shrink-0 bg-black/20 border-t border-white/[0.05]">
+            <div className="px-4 py-2 shrink-0 bg-[var(--orion-surface-secondary,#1C2026)] border-t border-[var(--orion-border,#2B313A)]">
               <div className="flex items-center justify-between mb-1.5">
                 <div className="text-[10px] font-semibold text-[var(--orion-text-muted,#747875)] uppercase tracking-wider flex items-center gap-1.5">
                   <CornerDownRight size={11} className="text-[var(--orion-accent,#0071E3)]" /> Suggested Actions
@@ -445,17 +449,17 @@ export const AICopilot = () => {
                   <BookOpen size={12} /> Prompt Gallery
                 </button>
               </div>
-              <div className="flex flex-wrap gap-1.5 sm:gap-2 max-h-24 overflow-x-auto custom-scrollbar">
+              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-x-auto custom-scrollbar">
                 {contextualFollowUps.map((chipText, i) => (
                   <button
                     key={i}
                     type="button"
                     onClick={() => setInput(chipText)} // POPULATES INPUT per Phase 22!
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] border border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.08] hover:border-[var(--orion-accent,#0071E3)]/30 text-xs text-[var(--orion-text-secondary,#A7AAA8)] hover:text-white transition-colors cursor-pointer text-left"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--orion-border,#2B313A)] bg-[var(--orion-surface-elevated,#222730)] hover:bg-[var(--orion-surface-hover,#2A303C)] hover:border-[var(--orion-accent,#0071E3)]/40 text-xs text-[var(--orion-text-secondary,#A7AAA8)] hover:text-white transition-all cursor-pointer text-left shadow-xs"
                     aria-label={`Select prompt suggestion: ${chipText}`}
                   >
                     <Sparkles size={11} className="text-[var(--orion-accent,#0071E3)] shrink-0" />
-                    {chipText}
+                    <span>{chipText}</span>
                   </button>
                 ))}
               </div>
@@ -463,21 +467,21 @@ export const AICopilot = () => {
           )}
 
           {/* Input Form */}
-          <div className="p-3 sm:p-4 bg-black/30 border-t border-white/[0.08] shrink-0 z-10">
+          <div className="p-3 sm:p-4 bg-[var(--orion-surface-secondary,#1C2026)] border-t border-[var(--orion-border,#2B313A)] shrink-0 z-10">
             <form onSubmit={(e) => handleSubmit(e)} className="relative flex items-center max-w-4xl mx-auto">
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask Orion Copilot about stock levels, supply risks, POs..."
-                className="w-full pl-4 pr-12 py-2.5 sm:py-3 bg-white/[0.05] border border-white/[0.08] rounded-[10px] text-sm text-[var(--orion-text-primary,#F2F2EF)] placeholder:text-[var(--orion-text-muted,#747875)] focus:outline-none focus:border-[var(--orion-accent,#0071E3)]/60 focus:ring-2 focus:ring-[var(--orion-accent,#0071E3)]/25 transition-all"
+                className="w-full pl-4 pr-12 py-2.5 sm:py-3 bg-[var(--orion-surface-elevated,#222730)] border border-[var(--orion-border-strong,#3F4754)] rounded-xl text-sm text-[var(--orion-text-primary,#F2F2EF)] placeholder:text-[var(--orion-text-muted,#747875)] focus:outline-none focus:border-[var(--orion-accent,#0071E3)] focus:ring-2 focus:ring-[var(--orion-accent,#0071E3)]/30 transition-all shadow-inner"
                 disabled={isLoading}
                 aria-label="Chat Input Prompt"
               />
               <button
                 type="submit"
                 disabled={!input.trim() || isLoading}
-                className="absolute right-1.5 p-1.5 rounded-[6px] bg-[var(--orion-accent,#0071E3)] hover:brightness-105 text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shadow-xs"
+                className="absolute right-2 p-2 rounded-lg bg-[var(--orion-accent,#0071E3)] hover:brightness-110 text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer shadow-md"
                 aria-label="Send Prompt"
               >
                 {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}

@@ -640,7 +640,10 @@ export const OrionWindow = React.memo(React.forwardRef<HTMLDivElement, OrionWind
         isMinimized && "pointer-events-none",
         isMaximized 
           ? "rounded-none border-none shadow-none bg-[var(--orion-surface)]" 
-          : "rounded-[18px] border border-[var(--orion-border-strong)] bg-[var(--orion-morph-surface)] shadow-[var(--orion-morph-elevation-modal)]",
+          : cn(
+              "rounded-[18px] border border-[var(--orion-border-strong)] shadow-[var(--orion-morph-elevation-modal)]",
+              win.id === 'orion-ai' ? "bg-[var(--orion-surface)] shadow-[0_24px_64px_rgba(0,0,0,0.45)]" : "bg-[var(--orion-morph-surface)]"
+            ),
         isActive && !isMaximized && "border-[var(--orion-border-strong)] shadow-[var(--orion-morph-elevation-modal)] opacity-100",
         !isActive && !isMaximized && "opacity-95"
       )}

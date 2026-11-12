@@ -295,10 +295,10 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
 
     // Tailored, ergonomic geometry for Copilot / AI Assistant
     if (appId === 'orion-ai') {
-      const copilotW = Math.min(880, Math.max(640, Math.round(availableW * 0.62)));
-      const copilotH = Math.min(660, Math.max(500, Math.round(availableH * 0.80)));
-      const x = Math.max(margin, Math.round((screenW - copilotW) / 2) + stagger);
-      const y = Math.max(margin, Math.round((availableH - copilotH) / 2) + Math.round(stagger / 2));
+      const copilotW = Math.min(940, Math.max(720, Math.round(availableW * 0.52)));
+      const copilotH = Math.min(680, Math.max(520, Math.round(availableH * 0.78)));
+      const x = Math.max(margin, Math.round((screenW - copilotW) / 2));
+      const y = Math.max(16, Math.round((availableH - copilotH) / 2));
       return {
         position: { x, y },
         size: { width: copilotW, height: copilotH }
@@ -318,23 +318,15 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
 
   // 1. OPEN APPLICATION
   const openApplication = useCallback((rawId: string, targetWorkspace?: WorkspaceId) => {
-        const id = normalizeAppId(rawId);
+    const id = normalizeAppId(rawId);
     const app = ORION_REGISTRY[id];
     if (!app) return;
 
     // Explicit user action to open app: unblock if previously closed
     closedAppIdsRef.current.delete(id);
 
-    // Map application category to workspace
-    let mappedWorkspace: WorkspaceId = activeWorkspaceId;
-    const cat = app.category.toLowerCase();
-    if (cat === 'operations' || cat === 'intelligence' || cat === 'control') {
-      mappedWorkspace = cat as WorkspaceId;
-    } else if (cat === 'ai' || cat === 'platform' || cat === 'administration' || cat === 'system') {
-      mappedWorkspace = 'control'; // Fallback mapping for system apps
-    }
-
-    let destWorkspace: WorkspaceId = targetWorkspace || mappedWorkspace;
+    // Keep newly opened applications in the user's current active workspace unless explicitly targeted
+    let destWorkspace: WorkspaceId = targetWorkspace || activeWorkspaceId;
 
     setWindows(prev => {
       const existing = prev[id];
@@ -346,13 +338,13 @@ export function OrionWindowManager({ children }: { children: React.ReactNode }) 
           [id]: {
             ...existing,
             workspace: destWorkspace,
-            state: existing.state === 'minimized' ? 'maximized' : existing.state
+            state: existing.state === 'minimized' ? 'active' : existing.state
           }
         }, id);
       } else {
         const screenW = typeof window !== 'undefined' ? window.innerWidth : 1440;
         const screenH = typeof window !== 'undefined' ? window.innerHeight : 900;
-        const shouldMaximize = id === 'orion-ai' ? (screenW < 768 || screenH < 500) : (screenW < 1024 || screenH < 680);
+        const shouldMaximize = id === 'orion-ai' ? false : (screenW < 1024 || screenH < 680);
         const geom = computeDefaultGeometry(Object.keys(prev).length, id);
         res = normalizeWindowZIndexes({
           ...prev,
