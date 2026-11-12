@@ -11,7 +11,7 @@ export const StatusBadge = ({
   type?: StatusType;
   className?: string;
 }) => {
-  const base = "inline-flex items-center rounded-md px-2 py-0.5 text-[10px] uppercase font-mono font-medium border";
+  const base = "inline-flex items-center rounded-xs px-1.5 py-0.5 text-[10px] uppercase font-mono font-semibold tracking-wider border select-none";
   
   let colors = "bg-os-surface-secondary text-os-text-secondary border-os-border";
   

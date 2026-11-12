@@ -624,7 +624,7 @@ export function OrionSheets({ initialFileId, onClose }: OrionSheetsProps) {
                 >
                   {availableFolders.map(folder => (
                     <option key={folder.id} value={folder.id}>
-                      📁 {folder.name}
+                      {folder.name}
                     </option>
                   ))}
                 </select>

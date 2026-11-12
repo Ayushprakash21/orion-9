@@ -33,10 +33,10 @@ export const Card: React.FC<CardProps> = ({
   return (
     <div
       className={cn(
-        'rounded-[12px] border overflow-hidden box-border transition-all duration-200 relative',
+        'rounded-md border overflow-hidden box-border transition-all duration-200 relative',
         variantStyles,
         hoverEffect &&
-          'hover:border-[var(--orion-border-strong)] hover:shadow-[var(--orion-morph-shadow)] hover:-translate-y-0.5',
+          'hover:border-[var(--orion-border-strong)] hover:shadow-[var(--orion-morph-shadow)]',
         className
       )}
       {...props}

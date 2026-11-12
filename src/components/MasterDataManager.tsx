@@ -34,7 +34,8 @@ import {
   Award,
   BarChart3,
   UploadCloud,
-  FileText
+  FileText,
+  Search
 } from 'lucide-react';
 import { useMasterData } from '../data/useMasterData';
 import { useIntegrationFabric } from '../integration/useIntegrationFabric';
@@ -852,9 +853,9 @@ export const MasterDataManager: React.FC = () => {
         {activeTab === 'reconciliation' && (
           <div className="h-full overflow-y-auto p-6 space-y-6">
             {/* Header banner */}
-            <div className="p-5 rounded-xl bg-gradient-to-r from-purple-900/30 via-indigo-900/20 to-blue-900/20 border border-indigo-500/20 flex items-center justify-between">
+            <div className="p-4 rounded-md bg-[#161b22] border border-[#30363d] flex items-center justify-between">
               <div>
-                <h3 className="text-base font-semibold text-white">
+                <h3 className="text-sm font-semibold text-white uppercase tracking-wider">
                   Bidirectional State Reconciliation Engine
                 </h3>
                 <p className="text-xs text-white/60 mt-0.5">
@@ -864,7 +865,7 @@ export const MasterDataManager: React.FC = () => {
               <button
                 onClick={handleRunReconciliation}
                 disabled={isReconciling}
-                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md transition flex items-center gap-2"
+                className="px-3.5 py-1.5 rounded-sm bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold shadow-xs transition flex items-center gap-2 cursor-pointer"
               >
                 <GitCompare size={14} className={isReconciling ? 'animate-spin' : ''} />
                 <span>{isReconciling ? 'Auditing Enterprise State...' : 'Trigger Full Audit'}</span>
@@ -1400,8 +1401,9 @@ export const MasterDataManager: React.FC = () => {
                           </div>
                         )}
                         {rec.duplicateMatches.length > 0 && (
-                          <div className="text-xs text-amber-400 pt-0.5">
-                            🔍 {rec.duplicateMatches.length} duplicate candidate(s) flagged for review.
+                          <div className="text-xs text-amber-400 pt-0.5 flex items-center gap-1.5">
+                            <Search className="w-3 h-3 text-amber-400 shrink-0" />
+                            <span>{rec.duplicateMatches.length} duplicate candidate(s) flagged for review.</span>
                           </div>
                         )}
                       </div>

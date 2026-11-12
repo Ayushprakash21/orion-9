@@ -386,7 +386,7 @@ export const AICopilot = () => {
             {messages.length <= 1 && (
               <div className="pt-2 pb-1 animate-in fade-in duration-300">
                 <div className="text-[10px] font-semibold tracking-wider uppercase text-[var(--orion-text-muted,#747875)] mb-2 flex items-center gap-1.5">
-                  <Sparkles size={12} className="text-[var(--orion-accent,#0071E3)]" />
+                  <Cpu size={12} className="text-[var(--orion-accent,#0071E3)]" />
                   <span>Executive Quick Launch</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-3xl">

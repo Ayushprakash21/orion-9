@@ -584,7 +584,7 @@ export function OrionSlides({ initialFileId, onClose }: OrionSlidesProps) {
                 >
                   {availableFolders.map(folder => (
                     <option key={folder.id} value={folder.id}>
-                      📁 {folder.name}
+                      {folder.name}
                     </option>
                   ))}
                 </select>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Globe2, Search, LayoutDashboard, FileText, 
   Sparkles, Settings, Clock, ArrowUpRight, Trash2,
-  Compass
+  Compass, Cpu
 } from 'lucide-react';
 import { BrowserHistoryEntry, SearchEngineType } from './BrowserTypes';
 import { cn } from '../../lib/utils';
@@ -60,11 +60,11 @@ export const BrowserNewTab: React.FC<BrowserNewTabProps> = ({
       color: 'from-sky-500/20 to-blue-500/10 text-sky-400 border-sky-500/20',
     },
     {
-      title: 'AI Copilot',
-      subtitle: 'Cognitive Assistant',
+      title: 'Orion Copilot',
+      subtitle: 'Enterprise Intelligence',
       url: '/ai-copilot',
-      icon: Sparkles,
-      color: 'from-purple-500/20 to-indigo-500/10 text-purple-400 border-purple-500/20',
+      icon: Cpu,
+      color: 'from-sky-500/20 to-cyan-500/10 text-sky-400 border-sky-500/20',
     },
     {
       title: 'Settings',

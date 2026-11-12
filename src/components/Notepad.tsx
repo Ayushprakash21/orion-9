@@ -584,7 +584,7 @@ export function Notepad({ initialFileId, onClose }: NotepadProps) {
                 >
                   {availableFolders.map(folder => (
                     <option key={folder.id} value={folder.id}>
-                      📁 {folder.name}
+                      {folder.name}
                     </option>
                   ))}
                 </select>
@@ -665,7 +665,7 @@ export function Notepad({ initialFileId, onClose }: NotepadProps) {
                 <option value="">All Folders</option>
                 {availableFolders.map(f => (
                   <option key={f.id} value={f.id}>
-                    📁 {f.name}
+                    {f.name}
                   </option>
                 ))}
               </select>

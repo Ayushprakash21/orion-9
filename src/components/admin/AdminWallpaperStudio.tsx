@@ -168,11 +168,11 @@ export const AdminWallpaperStudio: React.FC = () => {
       {/* Admin Header */}
       <div className="p-5 rounded-2xl bg-[#12151a] border border-white/[0.08] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/20 to-sky-600/20 border border-purple-500/30 flex items-center justify-center">
-            <ShieldCheck className="w-6 h-6 text-purple-400" />
+          <div className="w-10 h-10 rounded-md bg-sky-500/10 border border-sky-500/20 flex items-center justify-center shrink-0">
+            <ShieldCheck className="w-5 h-5 text-sky-400" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-white">OS Wallpaper Administration</h2>
+            <h2 className="text-sm font-semibold text-white uppercase tracking-wider">OS Wallpaper Administration</h2>
             <p className="text-xs text-slate-400 mt-0.5">Manage system default wallpapers, approved gallery, and user AI policies.</p>
           </div>
         </div>

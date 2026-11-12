@@ -44,7 +44,7 @@ export function OrionTable<T>({
   return (
     <div
       className={cn(
-        'w-full overflow-x-auto rounded-[10px] border border-[var(--orion-border)] bg-[var(--orion-surface)] backdrop-blur-md shadow-[var(--orion-morph-shadow-soft)]',
+        'w-full overflow-x-auto rounded-md border border-[var(--orion-border)] bg-[var(--orion-surface)] backdrop-blur-md shadow-xs',
         className
       )}
     >

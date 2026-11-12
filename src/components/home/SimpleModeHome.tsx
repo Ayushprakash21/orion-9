@@ -330,10 +330,10 @@ export const SimpleModeHome: React.FC = () => {
               <ArrowRight size={16} className="text-os-text-muted group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
             </div>
             <div className="text-base font-semibold text-os-text-primary group-hover:text-cyan-400 transition-colors">
-              Ask AI Assistant
+              Orion Copilot Intelligence
             </div>
             <p className="text-xs text-os-text-secondary mt-1 leading-relaxed">
-              Get natural-language answers, recommendations, and assistance.
+              Query operational telemetry, stockout risk factors, and replenishment proposals.
             </p>
           </button>
         </div>

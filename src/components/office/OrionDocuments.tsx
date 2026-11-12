@@ -275,7 +275,7 @@ Tier-1 supplier performance across North America, Europe, and APAC reached **98.
       setIsAiLoading(false);
       if (action === 'summarize') {
         const summary = `\n\n---
-### 🤖 Orion Copilot Executive Summary
+### Orion Copilot Executive Summary
 - **Key Focus:** Tier-1 supplier OTIF performance reached 98.4%.
 - **Financial Protection:** \$4.25M in revenue at risk safeguarded via autonomous rerouting.
 - **Action Required:** Expand volume allocation for Apex Dynamics by +15%.
@@ -293,7 +293,7 @@ Tier-1 supplier performance across North America, Europe, and APAC reached **98.
         showToast('Enhanced document phrasing to formal SCM standard', 'success', 'Orion Documents');
       } else if (action === 'actions') {
         const actionMatrix = `\n\n---
-### 📋 Extracted Operational Action Items
+### Extracted Operational Action Items
 | ID | Action | Assigned Owner | Priority | Target SLA |
 |---|---|---|---|---|
 | ACT-01 | Reallocate \$250K PO budget for Apex Dynamics | Procurement Lead | HIGH | 24 Hours |
@@ -616,7 +616,7 @@ Tier-1 supplier performance across North America, Europe, and APAC reached **98.
                 >
                   {availableFolders.map(folder => (
                     <option key={folder.id} value={folder.id}>
-                      📁 {folder.name}
+                      {folder.name}
                     </option>
                   ))}
                 </select>

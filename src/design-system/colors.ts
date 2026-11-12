@@ -20,7 +20,7 @@ export const ORION_COLORS_LIGHT = {
   textTertiary: '#7C8286',
   textMuted: '#7C8286',
   textDisabled: '#A5A8AB',
-  accent: '#0071E3', // Apple system blue or active user accent
+  accent: '#0071E3', // Orion system cobalt or active user accent
   accentHover: '#0077ED',
   accentActive: '#0062C4',
   accentSoft: 'rgba(0, 113, 227, 0.08)',
@@ -49,7 +49,7 @@ export const ORION_COLORS_DARK = {
   textTertiary: '#747875',
   textMuted: '#747875',
   textDisabled: '#555855',
-  accent: '#2997FF', // Apple system bright blue or active user accent
+  accent: '#2997FF', // Orion system bright blue or active user accent
   accentHover: '#3EA0FF',
   accentActive: '#1F84E6',
   accentSoft: 'rgba(41, 151, 255, 0.10)',

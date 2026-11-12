@@ -1,12 +1,12 @@
 /**
- * ORION-9 macOS / Liquid Glass Design System — Typography Tokens
- * System Apple font stack and optical hierarchy.
+ * ORION-9 OS 21.1 — PULSAR RELEASE
+ * Centralized Enterprise Typography Tokens
  */
 
 export const ORION_TYPOGRAPHY = {
-  fontDisplay: '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-  fontBody: '-apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif',
-  fontMono: '"SF Mono", ui-monospace, Menlo, Monaco, Consolas, monospace',
+  fontDisplay: 'system-ui, -apple-system, "Segoe UI", Roboto, "Inter", sans-serif',
+  fontBody: 'system-ui, -apple-system, "Segoe UI", Roboto, "Inter", sans-serif',
+  fontMono: '"JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace',
 
   sizes: {
     display: '36px',
