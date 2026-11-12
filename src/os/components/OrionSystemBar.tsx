@@ -2,7 +2,24 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useWindowManager, WORKSPACES, WorkspaceId } from '../WindowManagerContext';
 import { ORION_REGISTRY } from '../OrionApplicationRegistry';
-import { Search, Brain, Bell, Wifi, WifiOff, RefreshCw, Maximize2, Sliders } from 'lucide-react';
+import { 
+  Search, 
+  Brain, 
+  Bell, 
+  Wifi, 
+  WifiOff, 
+  RefreshCw, 
+  Maximize2, 
+  Sliders,
+  Cloud,
+  Volume2,
+  Battery,
+  Activity,
+  Layers,
+  Sparkles,
+  ChevronDown,
+  Info
+} from 'lucide-react';
 import { AccountMenu } from '../../components/layout/AccountMenu';
 import { useNotifications } from '../../store/NotificationContext';
 import { useConnectivity } from '../../store/ConnectivityContext';
@@ -13,11 +30,11 @@ import { NotificationCenter } from '../../components/modals/NotificationCenter';
 import { SystemStatusModal } from '../../components/modals/SystemStatusModal';
 import { NetworkConnectionPopover } from './NetworkConnectionPopover';
 import { OrionControlCenterPopover } from './OrionControlCenterPopover';
-import { BrandLogo } from '../../components/brand/BrandLogo';
 import { useBranding } from '../../store/BrandingContext';
 import { dbManager } from '../../core/database/DatabaseConnectionManager';
 import { DatabaseEnvironmentMode } from '../../core/database/DatabaseEnvironment';
 import { cn } from '../../lib/utils';
+import { ORION_OS_METADATA } from '../constants/OrionOsMetadata';
 
 const SystemBarClock = React.memo(function SystemBarClock({
   onOpenTimeWorld,
@@ -61,9 +78,11 @@ const SystemBarClock = React.memo(function SystemBarClock({
     };
   }, [hovered]);
 
-  const timeZoneName = hovered
-    ? (new Intl.DateTimeFormat(undefined, { timeZoneName: 'long' }).formatToParts(currentTime).find(p => p.type === 'timeZoneName')?.value || 'Local Time')
-    : 'Local Time';
+  const weekdayStr = currentTime.toLocaleDateString([], { weekday: 'short' });
+  const monthStr = currentTime.toLocaleDateString([], { month: 'short' });
+  const dayNum = currentTime.getDate();
+  const timeStr = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+  const fullDateTimeDisplay = `${weekdayStr} ${monthStr} ${dayNum} ${timeStr}`;
 
   return (
     <button
@@ -71,17 +90,18 @@ const SystemBarClock = React.memo(function SystemBarClock({
       onClick={onOpenTimeWorld}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="hidden sm:flex group relative items-center px-2 h-[28px] text-[12px] font-medium tabular-nums text-white/80 hover:text-white hover:bg-white/[0.08] rounded-lg transition-colors cursor-pointer"
+      className="hidden sm:flex group relative items-center px-2 h-[26px] text-[12px] font-medium text-white/90 hover:text-white hover:bg-white/[0.08] rounded-md transition-colors cursor-pointer"
       aria-label="Open Time & World settings"
       title="Open Time & World"
     >
-      {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-      <span className="pointer-events-none absolute right-0 top-[calc(100%+7px)] z-[2147483600] min-w-[190px] rounded-xl border border-white/[0.14] bg-[#161a22]/95 px-3.5 py-2.5 text-left opacity-0 translate-y-[-3px] group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 shadow-2xl">
+      <span>{fullDateTimeDisplay}</span>
+      <span className="pointer-events-none absolute right-0 top-[calc(100%+7px)] z-[2147483600] min-w-[210px] rounded-xl border border-white/[0.14] bg-[#161a22]/95 px-3.5 py-2.5 text-left opacity-0 translate-y-[-3px] group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-150 shadow-2xl">
         <span className="block font-mono tabular-nums text-[12px] font-medium text-[var(--orion-text-primary)]">
           {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
         </span>
-        <span className="block mt-1 text-[11px] text-[var(--orion-text-secondary)]">{timeZoneName}</span>
-        <span className="block mt-0.5 text-[10px] text-[var(--orion-accent)]">{Intl.DateTimeFormat().resolvedOptions().timeZone}</span>
+        <span className="block mt-1 text-[11px] text-[var(--orion-text-secondary)]">
+          {Intl.DateTimeFormat().resolvedOptions().timeZone}
+        </span>
       </span>
     </button>
   );
@@ -91,12 +111,23 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
   const navigate = useNavigate();
   const { branding } = useBranding();
   const { isAdmin } = useAuth();
-  const { activeAppId, setCommandPaletteOpen, activeWorkspaceId, setWorkspace, openApplication, missionControlOpen } = useWindowManager();
+  const { 
+    activeAppId, 
+    setCommandPaletteOpen, 
+    activeWorkspaceId, 
+    setWorkspace, 
+    openApplication, 
+    closeApplication,
+    closeAllWindows,
+    missionControlOpen, 
+    setLauncherOpen 
+  } = useWindowManager();
   const { unreadCount } = useNotifications();
   const { isOnline, statusLabel, isLocalMode } = useConnectivity();
   const { exceptions, settings, updateSettings } = useSupplyChain();
   
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeTopMenu, setActiveTopMenu] = useState<string | null>(null);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [networkOpen, setNetworkOpen] = useState(false);
   const [controlCenterOpen, setControlCenterOpen] = useState(false);
@@ -108,17 +139,17 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
   const networkRef = useRef<HTMLDivElement>(null);
   const controlCenterRef = useRef<HTMLDivElement>(null);
 
-  // Automatically dismiss top-bar popovers when Mission Control opens
+  // Automatically dismiss popovers when Mission Control opens
   useEffect(() => {
     if (missionControlOpen) {
       setControlCenterOpen(false);
       setNotificationsOpen(false);
       setNetworkOpen(false);
       setMenuOpen(false);
+      setActiveTopMenu(null);
     }
   }, [missionControlOpen]);
 
-  // Check for critical exceptions to inform notification badge status
   const hasCriticalExceptions = exceptions?.some(e => e.severity === 'Critical') ?? false;
 
   useEffect(() => {
@@ -136,62 +167,47 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
     };
   }, []);
 
-
-  // Keyboard shortcuts for workspaces: Alt+1, Alt+2, Alt+3
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.altKey || e.metaKey) && e.key === '1') {
-        e.preventDefault();
-        setWorkspace('operations');
-      } else if ((e.altKey || e.metaKey) && e.key === '2') {
-        e.preventDefault();
-        setWorkspace('intelligence');
-      } else if ((e.altKey || e.metaKey) && e.key === '3') {
-        e.preventDefault();
-        setWorkspace('control');
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [setWorkspace]);
-
   // Click outside handlers
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setMenuOpen(false);
+        setActiveTopMenu(null);
       }
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
         setNotificationsOpen(false);
-      }
-      if (networkRef.current && !networkRef.current.contains(e.target as Node)) {
-        // Network popover also handles its internal outside click
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const activeApp = activeAppId ? ORION_REGISTRY[activeAppId] : null;
-
   return (
-    <header className="orion-global-topbar relative top-auto left-auto right-auto h-[44px] min-h-[44px] w-full z-[10000] flex items-center justify-between px-3 md:px-4 text-[12px] font-medium text-[var(--orion-text-secondary)] select-none bg-[var(--orion-topbar-bg)] backdrop-blur-[20px] backdrop-saturate-[150%] border-b border-[var(--orion-topbar-border)] shadow-[0_2px_12px_rgba(0,0,0,0.12)] pointer-events-auto shrink-0 transition-colors">
+    <header className="orion-global-topbar relative top-auto left-auto right-auto h-[40px] min-h-[40px] w-full z-[10000] flex items-center justify-between px-3 md:px-4 text-[13px] font-medium text-white/90 select-none bg-[rgba(18,22,28,0.78)] backdrop-blur-[24px] backdrop-saturate-[180%] border-b border-white/[0.10] shadow-[0_2px_12px_rgba(0,0,0,0.18)] pointer-events-auto shrink-0 transition-colors">
       
-      {/* LEFT: ORION HOME BUTTON & MENU */}
-      <div className="flex items-center h-full min-w-0 gap-1.5" ref={menuRef}>
-        {/* ORION SYSTEM MENU TRIGGER */}
+      {/* LEFT: macOS Apple Logo, Orion-9 OS Title & Menus */}
+      <div className="flex items-center h-full min-w-0 gap-1" ref={menuRef}>
+        {/* Apple / Brand Trigger Button */}
         <button 
-          onClick={() => setMenuOpen(!menuOpen)}
+          onClick={() => {
+            setMenuOpen(!menuOpen);
+            setActiveTopMenu(null);
+          }}
           data-testid="orion-brand-trigger-btn"
           className={cn(
-            "flex items-center h-[28px] px-2 gap-2 hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] transition-all cursor-pointer rounded-lg shrink-0 group",
-            menuOpen && "bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)]"
+            "flex items-center h-[26px] px-2 gap-1.5 rounded hover:bg-white/[0.12] transition-colors cursor-pointer text-white/95 shrink-0",
+            menuOpen && "bg-white/[0.16] text-white"
           )}
-          title="Orion System Menu"
+          title="Apple / Orion System Menu"
           aria-label="Open ORION System Menu"
           aria-expanded={menuOpen}
         >
-          <BrandLogo sizePreset="sm" variant="mark" />
+          {/* Apple Logo SVG with orion-brand-image */}
+          <span className="orion-brand-image flex items-center justify-center">
+            <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 170 170">
+              <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.7-3.04-7.69-7.85-11.97-14.42-6.53-9.99-11.66-21.6-15.39-34.82-3.73-13.23-5.59-25.59-5.59-37.08 0-15.3 3.65-28.18 10.96-38.64 7.31-10.45 16.73-15.82 28.24-16.1 4.79 0 10.44 1.25 16.96 3.75 6.52 2.5 10.59 3.81 12.21 3.93 2.17-.37 6.47-1.78 12.89-4.23 6.42-2.45 12.02-3.54 16.79-3.27 12.83.65 23.36 5.38 31.59 14.19-11.19 6.74-16.68 16.14-16.48 28.2 0 9.89 3.86 18.25 11.59 25.07 7.73 6.82 17.07 10.66 28.02 11.53-2.6 7.61-5.71 14.8-9.33 21.58zM119.22 31.81c0-7.72 2.77-14.99 8.31-21.8 5.54-6.81 12.39-10.91 20.55-12.31.22 1.3.33 2.44.33 3.43 0 7.72-2.88 15.15-8.63 22.28-5.75 7.13-12.67 11.37-20.76 12.71-.21-1.41-.32-2.58-.32-3.51z"/>
+            </svg>
+          </span>
           <span 
             onClick={(e) => {
               if (isAdmin) {
@@ -200,161 +216,211 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
               }
             }}
             className={cn(
-              "text-[9px] font-mono font-medium px-1.5 py-0.5 rounded-md border uppercase tracking-wider select-none transition-all",
-              dbEnv === 'LIVE'
-                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                : "bg-amber-500/10 text-amber-400 border-amber-500/30",
-              isAdmin && "hover:border-[var(--orion-accent)] hover:text-[var(--orion-text-primary)]"
+              "text-[9px] font-mono font-medium px-1.5 py-0.2 rounded border uppercase tracking-wider select-none transition-all hidden xs:inline-block",
+              dbEnv === 'DEMO' 
+                ? "bg-amber-500/15 border-amber-500/30 text-amber-300"
+                : "bg-emerald-500/15 border-emerald-500/30 text-emerald-300",
+              isAdmin ? "cursor-pointer hover:scale-105" : "cursor-default"
             )}
-            title={isAdmin ? `Database: ${dbEnv}. Click to open Control Plane.` : `Database: ${dbEnv}`}
           >
             {dbEnv}
           </span>
         </button>
-        <span className="sr-only">Orion OS</span>
 
-        {/* Sync/Refresh Action */}
-        <button 
-          onClick={() => {
-            window.dispatchEvent(new CustomEvent('orion:desktop-refresh', { detail: { timestamp: Date.now() } }));
-          }}
-          className="hidden sm:flex items-center justify-center w-7 h-7 text-[var(--orion-text-muted)] hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] transition-colors cursor-pointer rounded-lg"
-          title="Refresh State"
+        {/* Brand OS Name */}
+        <span 
+          onClick={() => openApplication('about')}
+          className="font-bold text-[13px] text-white tracking-tight px-1.5 py-0.5 rounded hover:bg-white/[0.08] transition-colors cursor-pointer"
         >
-          <RefreshCw className="w-3.5 h-3.5" />
-        </button>
+          Orion-9 OS
+        </span>
 
-        {/* Fullscreen Action */}
-        <button 
-          onClick={() => {
-            if (typeof document !== 'undefined') {
-              if (document.fullscreenElement) {
-                document.exitFullscreen().catch(() => {});
-              } else {
-                document.documentElement.requestFullscreen().catch(() => {});
-              }
+        {/* macOS Top Menus */}
+        <div className="hidden lg:flex items-center gap-0.5 text-[13px] text-white/85">
+          {['File', 'Edit', 'View', 'Go', 'Window', 'Help'].map((item) => (
+            <div key={item} className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setActiveTopMenu(activeTopMenu === item ? null : item);
+                }}
+                className={cn(
+                  "px-2.5 py-0.5 rounded text-[12px] font-normal hover:bg-white/[0.12] hover:text-white transition-colors cursor-pointer",
+                  activeTopMenu === item && "bg-white/[0.16] text-white"
+                )}
+              >
+                {item}
+              </button>
+
+              {activeTopMenu === item && (
+                <div 
+                  className="absolute top-[32px] left-0 min-w-[200px] rounded-xl border border-white/[0.14] bg-[#161a22]/95 backdrop-blur-2xl py-1.5 shadow-2xl z-[2147483600] flex flex-col text-left text-xs text-white/90 animate-in fade-in zoom-in-95"
+                >
+                  {item === 'File' && (
+                    <>
+                      <button onClick={() => { openApplication('file-manager'); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer flex justify-between">
+                        <span>New Window</span> <span className="text-white/40">⌘N</span>
+                      </button>
+                      <button onClick={() => { openApplication('orion-documents'); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer">
+                        New Document
+                      </button>
+                      <div className="h-px bg-white/10 my-1" />
+                      <button onClick={() => { if (activeAppId) closeApplication(activeAppId); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer flex justify-between">
+                        <span>Close Window</span> <span className="text-white/40">⌘W</span>
+                      </button>
+                    </>
+                  )}
+                  {item === 'Edit' && (
+                    <>
+                      <div className="px-3 py-1.5 text-white/40 text-left flex justify-between"><span>Undo</span> <span>⌘Z</span></div>
+                      <div className="px-3 py-1.5 text-white/40 text-left flex justify-between"><span>Redo</span> <span>⇧⌘Z</span></div>
+                      <div className="h-px bg-white/10 my-1" />
+                      <div className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer flex justify-between"><span>Cut</span> <span>⌘X</span></div>
+                      <div className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer flex justify-between"><span>Copy</span> <span>⌘C</span></div>
+                      <div className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer flex justify-between"><span>Paste</span> <span>⌘V</span></div>
+                    </>
+                  )}
+                  {item === 'View' && (
+                    <>
+                      <button onClick={() => { window.dispatchEvent(new CustomEvent('orion:desktop-refresh')); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer flex justify-between">
+                        <span>Reload Desktop</span> <span>⌘R</span>
+                      </button>
+                      <button onClick={() => { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); else document.documentElement.requestFullscreen().catch(() => {}); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer flex justify-between">
+                        <span>Enter Full Screen</span> <span>⌃⌘F</span>
+                      </button>
+                    </>
+                  )}
+                  {item === 'Go' && (
+                    <>
+                      <button onClick={() => { openApplication('command-center'); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer">Control Tower</button>
+                      <button onClick={() => { setLauncherOpen(true); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer">Applications</button>
+                      <button onClick={() => { openApplication('file-manager'); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer">Documents</button>
+                      <button onClick={() => { openApplication('settings'); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer">System Settings</button>
+                    </>
+                  )}
+                  {item === 'Window' && (
+                    <>
+                      <button onClick={() => { if (activeAppId) closeApplication(activeAppId); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer flex justify-between">
+                        <span>Minimize</span> <span>⌘M</span>
+                      </button>
+                      <button onClick={() => { closeAllWindows(); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer">Close All Windows</button>
+                    </>
+                  )}
+                  {item === 'Help' && (
+                    <>
+                      <button onClick={() => { openApplication('about'); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer">
+                        About ORION-9 OS 21.1
+                      </button>
+                      <button onClick={() => { setStatusOpen(true); setActiveTopMenu(null); }} className="px-3 py-1.5 hover:bg-white/10 text-left cursor-pointer">
+                        System Diagnostic Status
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Database Env Indicator */}
+        <span 
+          onClick={(e) => {
+            if (isAdmin) {
+              e.stopPropagation();
+              navigate('/admin/database');
             }
           }}
-          className="hidden md:flex items-center justify-center w-7 h-7 text-[var(--orion-text-muted)] hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] transition-colors cursor-pointer rounded-lg"
-          title="Toggle Fullscreen"
+          className={cn(
+            "text-[9px] font-mono font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider select-none transition-all ml-1",
+            dbEnv === 'LIVE'
+              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+              : "bg-amber-500/10 text-amber-400 border-amber-500/30",
+            isAdmin && "hover:border-[var(--orion-accent)] hover:text-white cursor-pointer"
+          )}
+          title={isAdmin ? `Database: ${dbEnv}. Click to open Control Plane.` : `Database: ${dbEnv}`}
         >
-          <Maximize2 className="w-3.5 h-3.5" />
-        </button>
+          {dbEnv}
+        </span>
 
         {menuOpen && (
-          <div className="absolute top-[48px] left-2 z-[2147483600]">
+          <div className="absolute top-[42px] left-2 z-[2147483600]">
             <OrionSystemMenu onClose={() => setMenuOpen(false)} />
           </div>
         )}
       </div>
 
-      {/* CENTER: CLEAN SPACIOUS TOPBAR (Unified Dynamic Dock anchored at bottom) */}
-      <div className="flex-1 min-w-2" aria-hidden="true" />
+      {/* CENTER: Clean Gap Reserved for Top-Centred Dynamic Island */}
+      <div className="flex-1 min-w-4 pointer-events-none" aria-hidden="true" />
 
-      {/* RIGHT: SYSTEM TRAY */}
-      <div className="flex items-center h-full gap-1 shrink-0 min-w-0">
-        {/* Orion Copilot AI Quick Launch */}
-        <button 
-          onClick={() => openApplication('ai-copilot')}
-          data-testid="orion-copilot-button"
-          className="flex items-center gap-1.5 px-2.5 h-[28px] text-[var(--orion-text-primary)] bg-[var(--orion-surface-elevated)]/70 hover:bg-[var(--orion-surface-hover)] active:bg-[var(--orion-surface-active)] border border-[var(--orion-border)] rounded-lg transition-all cursor-pointer text-[11px] font-medium shadow-xs backdrop-blur-sm"
-          title="Open Orion AI Copilot"
-          aria-label="Open Orion AI Copilot"
-          type="button"
-        >
-          <Brain className="w-3.5 h-3.5 text-[var(--orion-accent)]" />
-          <span className="hidden sm:inline">Copilot</span>
-        </button>
-
-        {/* Global Search */}
-        <button 
-          onClick={() => setCommandPaletteOpen(true)}
-          className="flex items-center justify-center w-7 h-7 hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] rounded-lg transition-colors text-[var(--orion-text-muted)] cursor-pointer"
-          title="Search (Cmd+K)"
-        >
-          <Search className="w-3.5 h-3.5" />
-        </button>
-
-        {/* Notifications */}
-        <div className="relative flex items-center notification-anchor" ref={notifRef}>
-          <button 
-            type="button"
-            onClick={() => setNotificationsOpen(v => !v)}
-            className={cn(
-              "relative flex items-center justify-center w-7 h-7 hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] rounded-lg transition-colors cursor-pointer outline-none",
-              hasCriticalExceptions ? "text-[var(--orion-danger)]" : "text-[var(--orion-text-muted)]",
-              notificationsOpen && "bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)]"
-            )}
-            title={hasCriticalExceptions ? "Critical exceptions detected" : "Notifications"}
-            aria-label="Notifications"
-            aria-expanded={notificationsOpen}
-          >
-            <Bell className="w-3.5 h-3.5" />
-            {(unreadCount > 0 || hasCriticalExceptions) && (
-              <span
-                className={cn(
-                  "absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full",
-                  hasCriticalExceptions ? "bg-rose-500" : "bg-[var(--orion-accent)]"
-                )}
-              />
-            )}
-          </button>
-          {notificationsOpen && (
-            <div className="notification-popover fixed sm:absolute right-2 sm:right-0 top-[calc(env(safe-area-inset-top,0px)+46px)] sm:top-[calc(100%+6px)] w-[min(calc(100vw-16px),420px)] max-h-[calc(100dvh-120px)] sm:max-h-[480px] z-40 bg-[var(--orion-morph-surface-elevated)] backdrop-blur-2xl border border-[var(--orion-border-strong)] rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
-              <NotificationCenter isOpen={true} onClose={() => setNotificationsOpen(false)} />
-            </div>
-          )}
+      {/* RIGHT: macOS System Status & Action Bar */}
+      <div className="flex items-center h-full gap-2 shrink-0 min-w-0 text-white/90">
+        {/* Sound Waveform Visualizer Icon */}
+        <div className="hidden sm:flex items-center justify-center w-6 h-6 text-white/70 hover:text-white transition-colors cursor-pointer" title="Sound Output">
+          <svg className="w-3.5 h-3.5 stroke-current" viewBox="0 0 24 24" fill="none" strokeWidth="2" strokeLinecap="round">
+            <line x1="4" y1="9" x2="4" y2="15" />
+            <line x1="8" y1="6" x2="8" y2="18" />
+            <line x1="12" y1="3" x2="12" y2="21" />
+            <line x1="16" y1="7" x2="16" y2="17" />
+            <line x1="20" y1="10" x2="20" y2="14" />
+          </svg>
         </div>
 
-        {/* Network status */}
+        {/* Siri / Copilot Quick Action Orb */}
+        <button
+          type="button"
+          onClick={() => openApplication('ai-copilot')}
+          data-testid="orion-copilot-button"
+          className="flex items-center justify-center w-6 h-6 rounded-full hover:bg-white/10 transition-colors cursor-pointer text-purple-400"
+          title="Orion Copilot AI"
+          aria-label="Open Orion AI Copilot"
+        >
+          <Sparkles className="w-3.5 h-3.5 fill-purple-400/30" />
+        </button>
+
+        {/* Cloud Sync Status */}
+        <div className="hidden sm:flex items-center justify-center w-6 h-6 text-white/70 hover:text-white transition-colors cursor-pointer" title="Cloud Sync Active">
+          <Cloud className="w-3.5 h-3.5" />
+        </div>
+
+        {/* Wi-Fi Status */}
         <div className="relative flex items-center network-anchor" ref={networkRef}>
           <button 
             type="button"
             onClick={() => setNetworkOpen(v => !v)}
-            className={cn(
-              "relative flex items-center justify-center w-7 h-7 hover:bg-[var(--orion-surface-hover)] rounded-lg transition-colors cursor-pointer outline-none",
-              isOnline ? (isLocalMode ? "text-amber-500" : "text-emerald-500") : "text-red-500",
-              networkOpen && "bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)]"
-            )}
+            className="flex items-center justify-center w-6 h-6 text-white/80 hover:text-white transition-colors cursor-pointer outline-none"
             title={statusLabel}
             aria-label="Network Connections"
-            aria-expanded={networkOpen}
           >
-            {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+            {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5 text-rose-400" />}
           </button>
         </div>
 
-        {/* Control Center */}
-        <div className="relative flex items-center" ref={controlCenterRef}>
-          <button
-            type="button"
-            data-testid="control-center-toggle-btn"
-            onClick={() => setControlCenterOpen(v => !v)}
-            className={cn(
-              "relative flex items-center justify-center w-7 h-7 hover:bg-[var(--orion-surface-hover)] hover:text-[var(--orion-text-primary)] rounded-lg transition-colors cursor-pointer outline-none text-[var(--orion-text-muted)]",
-              controlCenterOpen && "bg-[var(--orion-surface-active)] text-[var(--orion-text-primary)]"
-            )}
-            title="Control Center"
-            aria-label="Control Center"
-            aria-expanded={controlCenterOpen}
-          >
-            <Sliders className="w-3.5 h-3.5" />
-          </button>
-          <OrionControlCenterPopover
-            isOpen={controlCenterOpen}
-            onClose={() => setControlCenterOpen(false)}
-          />
+        {/* Volume */}
+        <div className="hidden md:flex items-center justify-center w-6 h-6 text-white/70 hover:text-white transition-colors cursor-pointer" title="Volume">
+          <Volume2 className="w-3.5 h-3.5" />
         </div>
 
-        {/* Clock (isolated minute-boundary component to avoid 1s topbar/DynamicIsland re-renders) */}
+        {/* Battery 79% */}
+        <div className="hidden sm:flex items-center gap-1.5 px-1 text-white/85" title="Battery: 79% (Power Adapter Connected)">
+          <span className="text-[11px] font-mono font-medium">79%</span>
+          <svg className="w-4 h-4 fill-white/80 stroke-current" viewBox="0 0 24 24" fill="none" strokeWidth="1.8">
+            <rect x="2" y="7" width="16" height="10" rx="2" />
+            <rect x="4" y="9" width="10" height="6" rx="1" fill="currentColor" />
+            <path d="M21 11v2" />
+          </svg>
+        </div>
+
+        {/* System Bar Clock (Mon Nov 16 18:45) */}
         <SystemBarClock onOpenTimeWorld={() => openApplication('time-world')} />
 
-        <div className="flex items-center h-full pl-1">
+        {/* Account Menu */}
+        <div className="flex items-center h-full pl-0.5">
           <AccountMenu />
         </div>
       </div>
 
-      {/* Network Connection OS Overlay Popover */}
+      {/* Network Connection Popover */}
       <NetworkConnectionPopover
         isOpen={networkOpen}
         anchorRect={networkRef.current ? networkRef.current.getBoundingClientRect() : null}
@@ -366,3 +432,5 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
     </header>
   );
 });
+
+export default OrionSystemBar;

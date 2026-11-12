@@ -26,6 +26,7 @@ import { useSupplyChain } from '../../store/SupplyChainContext';
 import OrionAppIcon from '../../components/brand/OrionAppIcon';
 import { OrionMobileShell } from '../mobile';
 import { DesktopWorkspace } from '../desktop/DesktopWorkspace';
+import { OrionGoldenGateHeroCard } from './OrionGoldenGateHeroCard';
 import { cn } from '../../lib/utils';
 import { 
   Search, 
@@ -62,6 +63,7 @@ export function OrionDesktop() {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [selectedDesktopApp, setSelectedDesktopApp] = useState<string | null>(null);
+  const [heroCardDismissed, setHeroCardDismissed] = useState(false);
   const prefersReduced = isReducedMotionPreferred(supplyChain?.settings?.reducedMotion);
   const prevWorkspaceIdRef = useRef(activeWorkspaceId);
   const [workspaceDirection, setWorkspaceDirection] = useState(0);
@@ -214,6 +216,12 @@ export function OrionDesktop() {
           ]
         : []),
       {
+        id: 'toggle-hero-card',
+        label: heroCardDismissed ? 'Show Control Tower Summary' : 'Hide Control Tower Summary',
+        icon: Activity,
+        action: () => setHeroCardDismissed(prev => !prev),
+      },
+      {
         id: 'sep-personalize',
         label: '',
         separator: true,
@@ -231,6 +239,7 @@ export function OrionDesktop() {
     openApplication,
     setLauncherOpen,
     setCommandPaletteOpen,
+    heroCardDismissed,
     currentWorkspaceWindows.length,
     showConfirmModal,
     closeAllWindows,
@@ -298,6 +307,13 @@ export function OrionDesktop() {
 
         {/* Dynamic Draggable Grid-Snapped Desktop Workspace */}
         {showDesktopIcons && <DesktopWorkspace />}
+
+        {/* Golden Gate Edition Central Hero Card (Enterprise Control Tower) */}
+        {!heroCardDismissed && currentWorkspaceWindows.length === 0 && (
+          <div className="absolute inset-0 z-15 flex items-center justify-center p-4 pointer-events-none pb-24">
+            <OrionGoldenGateHeroCard onClose={() => setHeroCardDismissed(true)} />
+          </div>
+        )}
       </div>
 
       {/* OS Layer 2: Desktop Window Manager Stage (Workspace Below Top Bar) */}

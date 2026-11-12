@@ -34,7 +34,7 @@ export const WORKSPACES: WorkspaceConfig[] = [
   {
     id: 'operations',
     name: 'OPERATIONS',
-    pinnedApps: ['command-center', 'inventory', 'procurement', 'suppliers', 'shipments', 'inbound', 'outbound', 'warehouse', 'logistics', 'integrations']
+    pinnedApps: ['file-manager', 'about', 'command-center', 'orion-ai', 'integrations', 'digital-twin', 'analytics', 'workflows', 'ai-workforce', 'settings', 'recycle-bin']
   },
   {
     id: 'intelligence',
@@ -91,15 +91,17 @@ interface WindowManagerContextProps {
 const WindowManagerContext = createContext<WindowManagerContextProps | undefined>(undefined);
 
 const DEFAULT_DOCK_PINNED = [
-  'browser',
   'file-manager',
-  'orion-documents',
-  'orion-sheets',
-  'orion-slides',
-  'orion-ai',
+  'about',
   'command-center',
-  'inventory',
-  'settings'
+  'orion-ai',
+  'integrations',
+  'digital-twin',
+  'analytics',
+  'workflows',
+  'ai-workforce',
+  'settings',
+  'recycle-bin'
 ];
 
 const normalizeAppId = (id: string): string => {

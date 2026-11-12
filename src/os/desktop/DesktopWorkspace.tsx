@@ -163,6 +163,12 @@ export function DesktopWorkspace() {
   const [widgets, setWidgets] = useState<DesktopWidgetRecord[]>([]);
   const [isEditMode, setIsEditMode] = useState<boolean>(false);
   const [isWidgetGalleryOpen, setIsWidgetGalleryOpen] = useState<boolean>(false);
+  const [showWidgets, setShowWidgets] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('orion_show_desktop_widgets') === 'true';
+    }
+    return false;
+  });
 
   // Load shortcuts for active workspace
   const loadShortcuts = useCallback(async () => {
@@ -456,6 +462,10 @@ export function DesktopWorkspace() {
     try {
       await desktopWorkspaceService.saveWidget(newWidget);
       setWidgets((prev) => [...prev, newWidget]);
+      setShowWidgets(true);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('orion_show_desktop_widgets', 'true');
+      }
       showToast(`Added ${item.title} to desktop`, 'success', 'Desktop');
     } catch (err: any) {
       console.error('Failed to add widget from gallery:', err);
@@ -467,6 +477,10 @@ export function DesktopWorkspace() {
     try {
       const restored = await desktopWorkspaceService.restoreDefaultWidgets(activeWorkspaceId);
       setWidgets(restored);
+      setShowWidgets(true);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('orion_show_desktop_widgets', 'true');
+      }
       showToast('Default widgets restored', 'success', 'Desktop');
     } catch (e: any) {
       showToast(`Failed to restore defaults: ${e?.message || 'Error'}`, 'error', 'Desktop');
@@ -1218,7 +1232,7 @@ export function DesktopWorkspace() {
       )}
 
       {/* Spatial Widgets Canvas */}
-      {widgets.map((widget) => (
+      {(showWidgets || isEditMode) && widgets.map((widget) => (
         <DesktopWidgetSystem
           key={widget.id}
           widget={widget}

@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Info,
   RefreshCw,
+  Search,
   X,
 } from 'lucide-react';
 import {
@@ -77,12 +78,12 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
       if (activity === 'critical-alert') return 'border-rose-500/45 bg-[rgba(34,12,18,0.94)] hover:border-rose-400/60';
       if (activity === 'copilot-thinking') return 'border-indigo-400/45 bg-[rgba(16,18,36,0.92)] hover:border-indigo-300/60';
       if (activity === 'connector-sync') return 'border-sky-400/40 bg-[rgba(12,24,36,0.92)] hover:border-sky-300/60';
-      return 'border-white/[0.14] bg-[rgba(14,17,24,0.90)] hover:border-white/25';
+      return 'border-[#D6A65C]/40 bg-[rgba(14,17,24,0.94)] hover:border-[#D6A65C]/65 shadow-[0_4px_24px_rgba(214,166,92,0.22)]';
     } else {
       if (activity === 'critical-alert') return 'border-rose-500/45 bg-[rgba(255,242,244,0.95)] hover:border-rose-600/60';
       if (activity === 'copilot-thinking') return 'border-indigo-500/40 bg-[rgba(245,247,255,0.95)] hover:border-indigo-600/55';
       if (activity === 'connector-sync') return 'border-sky-500/40 bg-[rgba(242,249,255,0.95)] hover:border-sky-600/55';
-      return 'border-[rgba(15,23,42,0.16)] bg-[rgba(255,255,255,0.94)] hover:border-[rgba(15,23,42,0.28)]';
+      return 'border-[rgba(15,23,42,0.16)] bg-[rgba(255,255,255,0.94)] hover:border-[rgba(15,23,42,0.28)] shadow-[0_4px_16px_rgba(15,23,42,0.10)]';
     }
   })();
 
@@ -149,7 +150,7 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
           ? { duration: 0 }
           : { type: 'spring', stiffness: 450, damping: 32 }
       }
-      className={`group flex items-center justify-between px-3.5 sm:px-4 rounded-full cursor-pointer select-none border transition-colors duration-200 max-w-[min(480px,calc(100vw-24px))] ${
+      className={`group flex items-center justify-between px-3.5 sm:px-4 rounded-full cursor-pointer select-none border transition-colors duration-200 min-w-[320px] max-w-[min(500px,calc(100vw-24px))] ${
         isDark
           ? 'shadow-[0_6px_24px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.16)]'
           : 'shadow-[0_4px_16px_rgba(15,23,42,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]'
@@ -259,17 +260,42 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
                   </span>
                 </>
               ) : (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
-                  <CheckCircle2 className={`w-3.5 h-3.5 shrink-0 ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`} />
-                  <span className={`text-[11px] font-medium truncate ${isDark ? 'text-white/90' : 'text-slate-900'}`}>
-                    {metrics.activeAppName ? metrics.activeAppName : 'System Ready'}
-                  </span>
-                </>
+                <div className="flex items-center gap-3 min-w-0">
+                  {/* Left: 09 badge + Golden Gate Edition Branding */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="w-5 h-5 rounded-full bg-white/10 border border-[#D6A65C]/60 flex items-center justify-center font-bold font-mono text-[9px] text-[#D6A65C] shadow-xs">
+                      09
+                    </span>
+                    <div className="flex flex-col text-left leading-none">
+                      <span className={`text-[11px] font-bold tracking-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        ORION-9 OS 21.1
+                      </span>
+                      <span className={`text-[8.5px] font-medium mt-0.5 ${isDark ? 'text-white/50' : 'text-slate-500'}`}>
+                        Golden Gate Edition
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Vertical Separator */}
+                  <div className="h-4.5 w-px bg-white/15 mx-0.5 hidden xs:block" />
+
+                  {/* Center Status */}
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0 shadow-[0_0_8px_#34D399]" />
+                    <div className="flex flex-col text-left leading-none">
+                      <span className={`text-[11px] font-medium truncate ${isDark ? 'text-white/95' : 'text-slate-900'}`}>
+                        {metrics.activeAppName ? metrics.activeAppName : 'System Ready'}
+                      </span>
+                      <span className={`text-[8.5px] mt-0.5 hidden sm:block ${isDark ? 'text-white/50' : 'text-slate-500'}`}>
+                        Optimal • Operational
+                      </span>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
 
-            {/* Right Telemetry Micro-Badge */}
+            {/* Right Telemetry Micro-Badge / Quick controls */}
             <div className="flex items-center gap-2 ml-3 shrink-0">
               {typeof primaryEvent?.progress === 'number' && (
                 <div className="hidden sm:flex items-center gap-1.5">
@@ -295,9 +321,23 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
                   <span>{metrics.unreadNotificationsCount}</span>
                 </span>
               ) : (
-                <span className={`text-[10px] font-mono ${isDark ? 'text-white/55' : 'text-slate-600'}`}>
-                  {activity === 'system-ready' ? 'Optimal' : metrics.runtimeMode === 'TAURI DESKTOP' ? 'DESKTOP' : 'LIVE'}
-                </span>
+                <div className="flex items-center gap-2 text-white/70">
+                  <div className="relative">
+                    <Bell className="w-3.5 h-3.5 hover:text-white transition-colors" />
+                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-rose-500" />
+                  </div>
+                  <Search className="w-3.5 h-3.5 hover:text-white transition-colors" />
+                  <div className="w-5 h-5 rounded-full overflow-hidden border border-white/20 bg-white/10 shrink-0">
+                    <img
+                      src="/orion-9-favicon.png"
+                      alt="User Profile"
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                </div>
               )}
             </div>
           </motion.div>
