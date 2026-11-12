@@ -209,10 +209,14 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
 
   // Dynamic Island footprint:
   // When expanded: 580px width (min(290px, calc(50vw - 12px)) from center)
-  // When collapsed: normal uninterrupted system bar separator
-  const separatorMask = isIslandExpanded
-    ? 'linear-gradient(to right, #000 0%, #000 calc(50% - min(290px, calc(50vw - 12px))), transparent calc(50% - min(290px, calc(50vw - 12px))), transparent calc(50% + min(290px, calc(50vw - 12px))), #000 calc(50% + min(290px, calc(50vw - 12px))), #000 100%)'
-    : undefined;
+  // When collapsed: 520px width (min(260px, calc(50vw - 12px)) from center)
+  // Mask the system bar separator across the island's horizontal footprint in all states
+  // ensuring zero seam, zero dividing line, and continuous glass surface
+  const halfIslandWidth = isIslandExpanded
+    ? 'min(290px, calc(50vw - 12px))'
+    : 'min(260px, calc(50vw - 12px))';
+
+  const separatorMask = `linear-gradient(to right, #000 0%, #000 calc(50% - ${halfIslandWidth}), transparent calc(50% - ${halfIslandWidth}), transparent calc(50% + ${halfIslandWidth}), #000 calc(50% + ${halfIslandWidth}), #000 100%)`;
 
   return (
     <header className={cn(
@@ -221,19 +225,15 @@ export const OrionSystemBar = React.memo(function OrionSystemBar() {
         ? "text-white/90 shadow-[0_2px_12px_rgba(0,0,0,0.18)]"
         : "text-[#202631] shadow-[0_2px_12px_rgba(15,23,42,0.06)]"
     )}>
-      {/* System Bar Bottom Separator — masked across Dynamic Island footprint when expanded */}
+      {/* System Bar Bottom Separator — masked across Dynamic Island footprint */}
       <div
         data-testid="orion-topbar-separator"
         aria-hidden="true"
-        className="absolute bottom-0 left-0 right-0 h-px pointer-events-none transition-colors duration-200 z-[1] bg-[var(--orion-system-separator)]"
-        style={
-          separatorMask
-            ? {
-                maskImage: separatorMask,
-                WebkitMaskImage: separatorMask,
-              }
-            : undefined
-        }
+        className="absolute bottom-0 left-0 right-0 h-px pointer-events-none transition-all duration-300 z-[1] bg-[var(--orion-system-separator)]"
+        style={{
+          maskImage: separatorMask,
+          WebkitMaskImage: separatorMask,
+        }}
       />
       
       {/* LEFT: Orion-9 Brand Mark, Title & Menus */}
