@@ -79,12 +79,12 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
       if (activity === 'critical-alert') return 'border-rose-500/45 bg-[rgba(34,12,18,0.94)] hover:border-rose-400/60';
       if (activity === 'copilot-thinking') return 'border-indigo-400/45 bg-[rgba(16,18,36,0.92)] hover:border-indigo-300/60';
       if (activity === 'connector-sync') return 'border-sky-400/40 bg-[rgba(12,24,36,0.92)] hover:border-sky-300/60';
-      return 'border-[#D6A65C]/40 bg-[rgba(14,17,24,0.94)] hover:border-[#D6A65C]/65 shadow-[0_4px_24px_rgba(214,166,92,0.22)]';
+      return 'border-white/[0.14] border-t-0 bg-[#050505] hover:border-white/30 shadow-[0_8px_24px_rgba(0,0,0,0.65)]';
     } else {
       if (activity === 'critical-alert') return 'border-rose-500/45 bg-[rgba(255,242,244,0.95)] hover:border-rose-600/60';
       if (activity === 'copilot-thinking') return 'border-indigo-500/40 bg-[rgba(245,247,255,0.95)] hover:border-indigo-600/55';
       if (activity === 'connector-sync') return 'border-sky-500/40 bg-[rgba(242,249,255,0.95)] hover:border-sky-600/55';
-      return 'border-[rgba(15,23,42,0.16)] bg-[rgba(255,255,255,0.94)] hover:border-[rgba(15,23,42,0.28)] shadow-[0_4px_16px_rgba(15,23,42,0.10)]';
+      return 'border-[rgba(15,23,42,0.16)] border-t-0 bg-[rgba(255,255,255,0.94)] hover:border-[rgba(15,23,42,0.28)] shadow-[0_4px_16px_rgba(15,23,42,0.10)]';
     }
   })();
 
@@ -151,14 +151,35 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
           ? { duration: 0 }
           : { type: 'spring', stiffness: 450, damping: 32 }
       }
-      className={`group flex items-center justify-between px-3.5 sm:px-4 rounded-full cursor-pointer select-none border transition-colors duration-200 w-[min(520px,calc(100vw-24px))] min-w-[320px] ${
+      className={`group relative flex items-center justify-between px-3.5 sm:px-4 rounded-full sm:rounded-t-none sm:rounded-b-2xl cursor-pointer select-none border transition-colors duration-200 w-[min(520px,calc(100vw-24px))] min-w-[320px] ${
         isDark
-          ? 'shadow-[0_6px_24px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.16)]'
+          ? 'shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.12)]'
           : 'shadow-[0_4px_16px_rgba(15,23,42,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]'
       } ${pillHeightClass} ${statusToneClass} ${
         isExpanded ? 'opacity-90' : ''
       }`}
     >
+      {/* Seamless Left Concave Transition Fillet connecting to top System Bar */}
+      <svg
+        className={`absolute -left-2.5 top-0 w-2.5 h-2.5 pointer-events-none hidden sm:block ${
+          isDark ? 'text-[#050505] fill-current' : 'text-white fill-current'
+        }`}
+        viewBox="0 0 10 10"
+        aria-hidden="true"
+      >
+        <path d="M 0,0 L 10,0 L 10,10 Q 10,0 0,0 Z" />
+      </svg>
+
+      {/* Seamless Right Concave Transition Fillet connecting to top System Bar */}
+      <svg
+        className={`absolute -right-2.5 top-0 w-2.5 h-2.5 pointer-events-none hidden sm:block ${
+          isDark ? 'text-[#050505] fill-current' : 'text-white fill-current'
+        }`}
+        viewBox="0 0 10 10"
+        aria-hidden="true"
+      >
+        <path d="M 0,10 L 0,0 L 10,0 Q 0,0 0,10 Z" />
+      </svg>
       <div className="sr-only" role="status" aria-live={activeNotification?.severity === 'critical' || activity === 'critical-alert' ? 'assertive' : 'polite'}>
         {activeNotification ? `${activeNotification.appName || 'Notification'}: ${activeNotification.title || activeNotification.message}` : activity === 'system-ready' ? 'System Ready' : activity}
       </div>

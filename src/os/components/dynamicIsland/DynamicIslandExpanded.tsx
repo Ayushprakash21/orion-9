@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { motion } from 'motion/react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import {
   Activity,
   AlertTriangle,
@@ -21,7 +21,14 @@ import {
   Calendar as CalendarIcon,
   Settings as SettingsIcon,
   Sparkles,
-  ExternalLink
+  ExternalLink,
+  Shuffle,
+  Repeat,
+  Battery,
+  Home,
+  Layers,
+  BarChart2,
+  ChevronUp,
 } from 'lucide-react';
 import { ORION_SPRING_SNAPPY } from '../../motion/OrionMotion';
 import { useOrionTheme } from '../../theme/useOrionTheme';
@@ -32,6 +39,42 @@ import {
   DynamicIslandMetrics,
 } from './DynamicIslandTypes';
 
+interface Track {
+  title: string;
+  artist: string;
+  album: string;
+  duration: number; // in seconds
+  gradient: string;
+  badge: 'spotify' | 'apple';
+}
+
+const DEMO_TRACKS: Track[] = [
+  {
+    title: 'Lay Low',
+    artist: 'Tiësto',
+    album: 'Lay Low - Single',
+    duration: 199, // 3:19
+    gradient: 'from-rose-600 via-rose-700 to-amber-700',
+    badge: 'spotify',
+  },
+  {
+    title: 'After Hours',
+    artist: 'The Weeknd',
+    album: 'After Hours',
+    duration: 361, // 6:01
+    gradient: 'from-red-800 via-stone-900 to-black',
+    badge: 'spotify',
+  },
+  {
+    title: 'Yellow Paper Daisy',
+    artist: 'When Chai Met Toast',
+    album: 'Van Kerala',
+    duration: 199, // 3:19
+    gradient: 'from-emerald-700 via-teal-800 to-amber-700',
+    badge: 'spotify',
+  },
+];
+
 interface DynamicIslandExpandedProps {
   activity: DynamicIslandActivity;
   activities: DynamicIslandEventItem[];
@@ -39,10 +82,12 @@ interface DynamicIslandExpandedProps {
   isPinned: boolean;
   isReducedMotion: boolean;
   dockPosition?: DockPosition;
+  activeNotification?: DynamicIslandEventItem | null;
   onTogglePin: () => void;
   onCollapse: () => void;
   onAction: (appIdOrCb: string | (() => void)) => void;
   onDismissActivity: (id: string) => void;
+  onDismissNotification?: (id: string) => void;
 }
 
 export const DynamicIslandExpanded: React.FC<DynamicIslandExpandedProps> = React.memo(({
@@ -52,38 +97,79 @@ export const DynamicIslandExpanded: React.FC<DynamicIslandExpandedProps> = React
   isPinned,
   isReducedMotion,
   dockPosition = 'bottom',
+  activeNotification,
   onTogglePin,
   onCollapse,
   onAction,
   onDismissActivity,
+  onDismissNotification,
 }) => {
   const { isDark } = useOrionTheme();
   const [activeTab, setActiveTab] = useState<'hub' | 'ops'>('hub');
   const [isPlaying, setIsPlaying] = useState(true);
+  const [trackIndex, setTrackIndex] = useState(0);
+  const [progressSeconds, setProgressSeconds] = useState(88); // 1:28 initial
+  const [isShuffle, setIsShuffle] = useState(false);
+  const [isRepeat, setIsRepeat] = useState(false);
 
-  // Compute dynamic calendar 5-day strip around today (matching reference image)
+  const currentTrack = DEMO_TRACKS[trackIndex] ?? DEMO_TRACKS[0];
+
+  // Live progress simulation when playing
+  useEffect(() => {
+    if (!isPlaying) return;
+    const interval = window.setInterval(() => {
+      setProgressSeconds(prev => {
+        if (prev >= currentTrack.duration) {
+          return 0;
+        }
+        return prev + 1;
+      });
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [isPlaying, currentTrack.duration]);
+
+  const handleNextTrack = () => {
+    setTrackIndex(prev => (prev + 1) % DEMO_TRACKS.length);
+    setProgressSeconds(0);
+  };
+
+  const handlePrevTrack = () => {
+    setTrackIndex(prev => (prev - 1 + DEMO_TRACKS.length) % DEMO_TRACKS.length);
+    setProgressSeconds(0);
+  };
+
+  // Format seconds to mm:ss
+  const formatTime = (secs: number) => {
+    const mins = Math.floor(secs / 60);
+    const rem = Math.floor(secs % 60);
+    return `${mins}:${String(rem).padStart(2, '0')}`;
+  };
+
+  // Compute dynamic calendar 7-day strip around today (matching reference images)
   const calendarData = useMemo(() => {
     const now = new Date();
     const monthShort = now.toLocaleDateString('en', { month: 'short' });
+    const year = now.getFullYear();
     const currentDay = now.getDate();
     const weekdayShort = now.toLocaleDateString('en', { weekday: 'short' }).toUpperCase();
     
-    // Generate 5 days: today - 2, today - 1, today, today + 1, today + 2
-    const days: { dayNumber: number; isToday: boolean }[] = [];
-    for (let offset = -2; offset <= 2; offset++) {
+    // Generate 7 days: today - 3 to today + 3
+    const days: { dayNumber: number; weekday: string; isToday: boolean }[] = [];
+    for (let offset = -3; offset <= 3; offset++) {
       const d = new Date(now);
       d.setDate(currentDay + offset);
       days.push({
         dayNumber: d.getDate(),
+        weekday: d.toLocaleDateString('en', { weekday: 'short' }),
         isToday: offset === 0,
       });
     }
-    return { monthShort, currentDay, weekdayShort, days };
+    return { monthShort, year, currentDay, weekdayShort, days };
   }, []);
 
   const motionInitial = isReducedMotion
     ? { opacity: 0 }
-    : { opacity: 0, scale: 0.95, y: -6 };
+    : { opacity: 0, scale: 0.98, y: -4 };
 
   const motionAnimate = isReducedMotion
     ? { opacity: 1 }
@@ -91,11 +177,9 @@ export const DynamicIslandExpanded: React.FC<DynamicIslandExpandedProps> = React
 
   const motionExit = isReducedMotion
     ? { opacity: 0 }
-    : { opacity: 0, scale: 0.95, y: -6 };
+    : { opacity: 0, scale: 0.98, y: -4 };
 
-  const neutralCardClass = isDark
-    ? 'bg-white/[0.05] border-white/[0.10]'
-    : 'bg-slate-900/[0.04] border-slate-900/[0.10]';
+  const progressPercent = Math.min(100, Math.max(0, (progressSeconds / currentTrack.duration) * 100));
 
   return (
     <motion.div
@@ -105,49 +189,119 @@ export const DynamicIslandExpanded: React.FC<DynamicIslandExpandedProps> = React
       animate={motionAnimate}
       exit={motionExit}
       transition={isReducedMotion ? { duration: 0.08 } : ORION_SPRING_SNAPPY}
-      className={`overflow-hidden text-white rounded-[26px] border border-white/[0.14] shadow-[0_24px_64px_rgba(0,0,0,0.72),0_0_0_1px_rgba(255,255,255,0.06)] backdrop-blur-[36px] w-[min(540px,calc(100vw-24px))] transition-colors select-none ${
-        isDark ? 'bg-[#0A0D14]/96 text-white' : 'bg-[#121620]/96 text-white'
-      }`}
+      className="relative overflow-visible text-white border-b border-l border-r border-white/[0.14] border-t-0 rounded-b-[30px] rounded-t-none shadow-[0_24px_64px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.06)] bg-[#050505] w-[min(560px,calc(100vw-24px))] transition-colors select-none"
     >
-      <div className="px-3.5 pt-2 pb-3 flex flex-col gap-2">
-        {/* Top Header Row with Centered Indicator Dot & Action Buttons */}
-        <div className="relative flex items-center justify-between pb-1 border-b border-white/[0.08]">
-          {/* Left: Hub & Ops Tabs */}
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setActiveTab('hub')}
-              className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'hub'
-                  ? 'bg-white/20 text-white shadow-xs'
-                  : 'text-white/50 hover:text-white/80 hover:bg-white/10'
-              }`}
-            >
-              <span>🎯 Hub</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('ops')}
-              className={`px-2.5 py-0.5 rounded-full text-[11px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeTab === 'ops'
-                  ? 'bg-white/20 text-white shadow-xs'
-                  : 'text-white/50 hover:text-white/80 hover:bg-white/10'
-              }`}
-            >
-              <span>⚡ Telemetry</span>
-              {metrics.criticalExceptionsCount > 0 && (
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-              )}
-            </button>
+      {/* Seamless Left Concave Fillet connecting to top System Bar */}
+      <svg
+        className="absolute -left-3 top-0 w-3 h-3 text-[#050505] fill-current pointer-events-none hidden sm:block"
+        viewBox="0 0 12 12"
+        aria-hidden="true"
+      >
+        <path d="M 0,0 L 12,0 L 12,12 Q 12,0 0,0 Z" />
+      </svg>
+
+      {/* Seamless Right Concave Fillet connecting to top System Bar */}
+      <svg
+        className="absolute -right-3 top-0 w-3 h-3 text-[#050505] fill-current pointer-events-none hidden sm:block"
+        viewBox="0 0 12 12"
+        aria-hidden="true"
+      >
+        <path d="M 0,12 L 0,0 L 12,0 Q 0,0 0,12 Z" />
+      </svg>
+
+      <div className="px-3.5 pt-1.5 pb-2.5 flex flex-col gap-1.5">
+        {/* Top Utility Header Row */}
+        <div className="relative flex items-center justify-between pb-1 border-b border-white/[0.08] min-h-[26px]">
+          {/* Left: App Shortcuts & View Tabs */}
+          <div className="flex items-center gap-1.5">
+            {/* Quick App Shortcut Icons */}
+            <div className="flex items-center gap-1 pr-1 border-r border-white/10 hidden xs:flex">
+              <button
+                type="button"
+                onClick={() => onAction('search')}
+                className="w-5 h-5 rounded flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                title="Search & Launcher"
+                aria-label="Search"
+              >
+                <Home className="w-3 h-3" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onAction('scm-twin')}
+                className="w-5 h-5 rounded flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                title="Digital Twin Workspace"
+                aria-label="Digital Twin"
+              >
+                <Layers className="w-3 h-3" />
+              </button>
+              <button
+                type="button"
+                onClick={() => onAction('command-center')}
+                className="w-5 h-5 rounded flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                title="Control Tower Radar"
+                aria-label="Control Tower"
+              >
+                <BarChart2 className="w-3 h-3" />
+              </button>
+            </div>
+
+            {/* Hub / Telemetry Tabs */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('hub')}
+                className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                  activeTab === 'hub'
+                    ? 'bg-white/20 text-white shadow-xs'
+                    : 'text-white/50 hover:text-white/80 hover:bg-white/10'
+                }`}
+              >
+                <span>🎯 Hub</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('ops')}
+                className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                  activeTab === 'ops'
+                    ? 'bg-white/20 text-white shadow-xs'
+                    : 'text-white/50 hover:text-white/80 hover:bg-white/10'
+                }`}
+              >
+                <span>⚡ Telemetry</span>
+                {metrics.criticalExceptionsCount > 0 && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+                )}
+              </button>
+            </div>
           </div>
 
-          {/* Centered Camera / Status Sensor Glowing Dot (Exact match to reference photo) */}
-          <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex items-center justify-center">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34D399]" />
+          {/* Center: Glowing Waveform Visualizer or System Sensor Dot */}
+          <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 flex items-center justify-center pointer-events-none">
+            {isPlaying && activeTab === 'hub' ? (
+              <div className="flex items-center gap-0.5 h-3 px-2 py-0.5 rounded-full bg-white/[0.04] border border-cyan-500/20 shadow-[0_0_12px_rgba(6,182,212,0.15)]">
+                <span className="w-0.5 h-1.5 bg-cyan-400 rounded-full animate-[pulse_0.6s_ease-in-out_infinite]" />
+                <span className="w-0.5 h-2.5 bg-sky-400 rounded-full animate-[pulse_0.8s_ease-in-out_infinite_0.1s]" />
+                <span className="w-0.5 h-3 bg-blue-400 rounded-full animate-[pulse_0.7s_ease-in-out_infinite_0.2s]" />
+                <span className="w-0.5 h-2 bg-indigo-400 rounded-full animate-[pulse_0.9s_ease-in-out_infinite_0.15s]" />
+                <span className="w-0.5 h-2.5 bg-fuchsia-400 rounded-full animate-[pulse_0.75s_ease-in-out_infinite_0.05s]" />
+                <span className="w-0.5 h-1.5 bg-rose-400 rounded-full animate-[pulse_0.65s_ease-in-out_infinite_0.25s]" />
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_#34D399]" />
+                <span className="text-[9px] font-medium text-emerald-300 hidden md:inline">System Ready</span>
+              </div>
+            )}
           </div>
 
-          {/* Right: Settings, Pin & Collapse */}
-          <div className="flex items-center gap-1">
+          {/* Right: Battery, Settings, Pin & Collapse */}
+          <div className="flex items-center gap-1.5">
+            {/* Battery Indicator (matching ref 2/4) */}
+            <div className="hidden xs:flex items-center gap-1 text-white/70 px-1 py-0.5 text-[10px] font-mono">
+              <Battery className="w-3.5 h-3.5 text-emerald-400 fill-emerald-400/40" />
+              <span>98%</span>
+            </div>
+
             <button
               type="button"
               onClick={() => onAction('settings')}
@@ -173,45 +327,103 @@ export const DynamicIslandExpanded: React.FC<DynamicIslandExpandedProps> = React
               aria-label="Collapse"
               className="p-1 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
             >
-              <X className="w-3.5 h-3.5" />
+              <ChevronUp className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        {/* 3-Section Primary Surface (Exact reproduction of uploaded reference image) */}
+        {/* Inline Active Notification Banner (if any) */}
+        {activeNotification && (
+          <div className="p-2 rounded-xl bg-white/[0.06] border border-sky-400/30 flex items-center justify-between gap-2 text-xs">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
+              <div className="min-w-0">
+                <span className="text-[9px] font-bold text-sky-300 uppercase tracking-wider block">
+                  {activeNotification.appName || 'ORION SYSTEM'}
+                </span>
+                <span className="text-[11px] font-medium text-white truncate block">
+                  {activeNotification.title || activeNotification.message}
+                </span>
+              </div>
+            </div>
+            {onDismissNotification && (
+              <button
+                type="button"
+                onClick={() => onDismissNotification(activeNotification.id)}
+                className="text-white/40 hover:text-white p-1 cursor-pointer"
+                aria-label="Dismiss"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* 3-Section Primary Surface (Exact Reproduction of Uploaded Reference Images) */}
         {activeTab === 'hub' ? (
-          <div className="grid grid-cols-12 gap-2 items-center py-1">
-            {/* SECTION A: Left Section (Music / Audio Media Player Tile) */}
+          <div className="grid grid-cols-12 gap-2.5 items-center py-0.5">
+            {/* SECTION A: Left Section (Advanced Media Player - 5 Cols) */}
             <div className="col-span-5 flex items-center gap-2.5 min-w-0 pr-1">
-              {/* Red / Crimson Album Artwork with Music badge */}
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-600 via-rose-700 to-amber-700 shadow-md flex items-center justify-center relative shrink-0 overflow-hidden border border-white/20">
-                <div className="flex flex-col items-center justify-center text-center leading-none">
-                  <span className="text-[7.5px] font-mono tracking-widest text-white/70">TIËSTO</span>
-                  <span className="text-[10px] font-black tracking-tight text-white mt-0.5">LAY LOW</span>
+              {/* Album Artwork with Spotify Badge */}
+              <div className={`w-[52px] h-[52px] rounded-xl bg-gradient-to-br ${currentTrack.gradient} shadow-md flex items-center justify-center relative shrink-0 overflow-hidden border border-white/20`}>
+                <div className="flex flex-col items-center justify-center text-center leading-none px-0.5">
+                  <span className="text-[7px] font-mono tracking-widest text-white/70 uppercase truncate max-w-[48px]">
+                    {currentTrack.artist}
+                  </span>
+                  <span className="text-[9px] font-black tracking-tight text-white mt-0.5 uppercase truncate max-w-[48px]">
+                    {currentTrack.title}
+                  </span>
                 </div>
-                {/* Small music note badge */}
-                <div className="absolute bottom-1 right-1 w-3.5 h-3.5 rounded-full bg-black/60 flex items-center justify-center">
-                  <Music className="w-2 h-2 text-rose-300" />
+                {/* Streaming badge in bottom right corner (Spotify style) */}
+                <div className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-[#1DB954] shadow-xs flex items-center justify-center">
+                  <Music className="w-2 h-2 text-black" />
                 </div>
               </div>
 
-              {/* Track Info + Playback Controls */}
+              {/* Track Info + Seek Bar + Controls */}
               <div className="flex flex-col min-w-0 flex-1 justify-center leading-tight">
                 <span className="text-[12px] font-bold text-white truncate tracking-tight">
-                  Lay Low
+                  {currentTrack.title}
                 </span>
-                <span className="text-[10px] text-white/60 truncate mt-0.5">
-                  Lay Low - Single
-                </span>
-                <span className="text-[9px] text-white/40 truncate">
-                  Tiësto
+                <span className="text-[9.5px] text-white/60 truncate mt-0.5">
+                  {currentTrack.artist}
                 </span>
 
-                {/* Playback Controls: Previous, Play/Pause, Next */}
-                <div className="flex items-center gap-2.5 mt-1 text-white/70">
+                {/* Progress Seek Bar with Timestamps (matching ref 2/4) */}
+                <div className="w-full mt-1">
+                  <div
+                    className="w-full h-1 bg-white/15 rounded-full overflow-hidden relative cursor-pointer"
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      const clickX = e.clientX - rect.left;
+                      const pct = clickX / rect.width;
+                      setProgressSeconds(Math.floor(pct * currentTrack.duration));
+                    }}
+                  >
+                    <div
+                      className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full transition-all duration-200"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between text-[8px] font-mono text-white/40 mt-0.5">
+                    <span>{formatTime(progressSeconds)}</span>
+                    <span>{formatTime(currentTrack.duration)}</span>
+                  </div>
+                </div>
+
+                {/* Transport Controls: Shuffle, Previous, Play/Pause, Next, Repeat */}
+                <div className="flex items-center gap-2 mt-0.5 text-white/75">
                   <button
                     type="button"
-                    onClick={() => {}}
+                    onClick={() => setIsShuffle(v => !v)}
+                    className={`hover:text-white transition-colors cursor-pointer ${isShuffle ? 'text-cyan-400' : 'text-white/40'}`}
+                    title="Shuffle"
+                  >
+                    <Shuffle className="w-2.5 h-2.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handlePrevTrack}
                     className="hover:text-white transition-colors cursor-pointer"
                     title="Previous Track"
                   >
@@ -220,49 +432,62 @@ export const DynamicIslandExpanded: React.FC<DynamicIslandExpandedProps> = React
                   <button
                     type="button"
                     onClick={() => setIsPlaying(prev => !prev)}
-                    className="hover:text-white transition-colors cursor-pointer"
+                    className="w-5 h-5 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-all cursor-pointer shadow-xs"
                     title={isPlaying ? 'Pause' : 'Play'}
                   >
                     {isPlaying ? (
-                      <Pause className="w-3 h-3 fill-current" />
+                      <Pause className="w-2.5 h-2.5 fill-current" />
                     ) : (
-                      <Play className="w-3 h-3 fill-current" />
+                      <Play className="w-2.5 h-2.5 fill-current ml-0.5" />
                     )}
                   </button>
                   <button
                     type="button"
-                    onClick={() => {}}
+                    onClick={handleNextTrack}
                     className="hover:text-white transition-colors cursor-pointer"
                     title="Next Track"
                   >
                     <SkipForward className="w-3 h-3 fill-current" />
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsRepeat(v => !v)}
+                    className={`hover:text-white transition-colors cursor-pointer ${isRepeat ? 'text-cyan-400' : 'text-white/40'}`}
+                    title="Repeat"
+                  >
+                    <Repeat className="w-2.5 h-2.5" />
+                  </button>
                 </div>
               </div>
             </div>
 
-            {/* SECTION B: Center Section (Calendar & Date Timeline) */}
+            {/* SECTION B: Center Section (Advanced Calendar & Timeline - 5 Cols) */}
             <div className="col-span-5 flex flex-col items-center justify-center min-w-0 px-2 border-x border-white/10">
-              <div className="flex items-baseline gap-2">
-                {/* Month Name */}
-                <span className="text-[14px] font-bold text-white tracking-tight">
-                  {calendarData.monthShort}
-                </span>
+              <div className="flex items-center gap-2 w-full justify-between">
+                {/* Month & Year */}
+                <div className="flex flex-col text-left leading-none shrink-0">
+                  <span className="text-[12px] font-bold text-white tracking-tight">
+                    {calendarData.monthShort}
+                  </span>
+                  <span className="text-[8.5px] font-mono text-white/40 mt-0.5">
+                    {calendarData.year}
+                  </span>
+                </div>
 
-                {/* 5-Day Horizontal Timeline Strip */}
-                <div className="flex items-center gap-1.5">
+                {/* 7-Day Horizontal Timeline Strip (Exact match to ref 2/4) */}
+                <div className="flex items-center gap-1">
                   {calendarData.days.map((item) => (
-                    <div key={item.dayNumber} className="flex flex-col items-center">
-                      {item.isToday && (
-                        <span className="text-[7.5px] font-bold text-blue-400 font-mono leading-none mb-0.5">
-                          {calendarData.weekdayShort}
-                        </span>
-                      )}
+                    <div key={`${item.weekday}-${item.dayNumber}`} className="flex flex-col items-center min-w-[17px]">
+                      <span className={`text-[7px] font-mono leading-none mb-0.5 uppercase ${
+                        item.isToday ? 'font-bold text-blue-400' : 'text-white/40'
+                      }`}>
+                        {item.weekday.slice(0, 2)}
+                      </span>
                       <span
-                        className={`text-[10px] font-mono leading-none ${
+                        className={`text-[9.5px] font-mono leading-none flex items-center justify-center ${
                           item.isToday
-                            ? 'bg-blue-600 text-white font-bold px-1 py-0.5 rounded shadow-xs'
-                            : 'text-white/45'
+                            ? 'bg-blue-600 text-white font-bold w-4.5 h-4.5 rounded-full shadow-xs'
+                            : 'text-white/50'
                         }`}
                       >
                         {String(item.dayNumber).padStart(2, '0')}
@@ -273,24 +498,45 @@ export const DynamicIslandExpanded: React.FC<DynamicIslandExpandedProps> = React
               </div>
 
               {/* Status / Calendar Event */}
-              <div className="flex items-center gap-1.5 mt-2 text-white/50 text-[9.5px]">
-                <CalendarIcon className="w-3 h-3 text-white/40" />
-                <span>Nothing for today</span>
-              </div>
+              <button
+                type="button"
+                onClick={() => onAction('time-world')}
+                className="flex items-center gap-1.5 mt-2 text-white/55 hover:text-white/80 transition-colors text-[9px] cursor-pointer"
+                title="Open Calendar"
+              >
+                <CalendarIcon className="w-2.5 h-2.5 text-blue-400" />
+                <span>No events today • Enjoy your free time!</span>
+              </button>
             </div>
 
-            {/* SECTION C: Right Section (User Profile Avatar) */}
-            <div className="col-span-2 flex items-center justify-center pl-1">
-              <div className="relative group cursor-pointer" onClick={() => onAction('settings')}>
-                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-white/20 shadow-md bg-white/10 flex items-center justify-center">
+            {/* SECTION C: Right Section (Profile Avatar & Quick Actions - 2 Cols) */}
+            <div className="col-span-2 flex flex-col items-center justify-center pl-1 gap-1">
+              <div
+                className="relative group cursor-pointer"
+                onClick={() => onAction('settings')}
+                title="Account Settings"
+              >
+                <div className="w-9 h-9 rounded-full overflow-hidden border border-white/20 shadow-md bg-white/10 flex items-center justify-center hover:scale-105 transition-transform">
                   <img
                     src="/orion-9-favicon.png"
                     alt="User Profile"
                     className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = 'none';
+                    }}
                   />
                 </div>
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-black" />
+                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 border border-black shadow-xs" />
               </div>
+              <button
+                type="button"
+                onClick={() => onAction('ai-copilot')}
+                className="px-1.5 py-0.5 rounded-full bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/30 text-purple-200 text-[8.5px] font-semibold flex items-center gap-0.5 transition-colors cursor-pointer"
+                title="Launch Copilot"
+              >
+                <Sparkles className="w-2 h-2 text-purple-300" />
+                <span>Copilot</span>
+              </button>
             </div>
           </div>
         ) : (
@@ -321,7 +567,7 @@ export const DynamicIslandExpanded: React.FC<DynamicIslandExpandedProps> = React
 
         {/* Dynamic Activity / Notification Items */}
         {activities.length > 0 && (
-          <div className="flex flex-col gap-1.5 pt-1 border-t border-white/[0.08] max-h-[140px] overflow-y-auto custom-scrollbar">
+          <div className="flex flex-col gap-1.5 pt-1 border-t border-white/[0.08] max-h-[120px] overflow-y-auto custom-scrollbar">
             {activities.map(item => (
               <div
                 key={item.id}

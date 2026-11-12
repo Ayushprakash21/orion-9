@@ -80,39 +80,42 @@ export const DynamicIsland: React.FC = React.memo(() => {
       data-dynamic-island="true"
       data-surface-state={surfaceState}
       data-presentation-mode={presentationMode}
+      data-expanded={isExpanded ? 'true' : 'false'}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className="relative z-40 flex flex-col items-center pointer-events-auto"
     >
-      <DynamicIslandCapsule
-        activity={activity}
-        surfaceState={surfaceState}
-        presentationMode={presentationMode}
-        metrics={metrics}
-        primaryEvent={primaryEvent}
-        activeNotification={activeNotification}
-        isExpanded={isExpanded}
-        isCompactOverMaximized={isCompactOverMaximized}
-        isReducedMotion={isReducedMotion}
-        onToggleExpand={toggleExpanded}
-        onDismissNotification={dismissNotification}
-      />
-
-      <AnimatePresence>
-        {isExpanded && (
-          <div className="absolute top-[calc(100%+6px)] left-1/2 -translate-x-1/2 z-[120]">
-            <DynamicIslandExpanded
-              activity={activity}
-              activities={activities}
-              metrics={metrics}
-              isPinned={isPinned}
-              isReducedMotion={isReducedMotion}
-              onTogglePin={togglePin}
-              onCollapse={collapse}
-              onAction={handleAction}
-              onDismissActivity={dismissActivity}
-            />
-          </div>
+      <AnimatePresence mode="wait">
+        {!isExpanded ? (
+          <DynamicIslandCapsule
+            key="capsule"
+            activity={activity}
+            surfaceState={surfaceState}
+            presentationMode={presentationMode}
+            metrics={metrics}
+            primaryEvent={primaryEvent}
+            activeNotification={activeNotification}
+            isExpanded={false}
+            isCompactOverMaximized={isCompactOverMaximized}
+            isReducedMotion={isReducedMotion}
+            onToggleExpand={toggleExpanded}
+            onDismissNotification={dismissNotification}
+          />
+        ) : (
+          <DynamicIslandExpanded
+            key="expanded"
+            activity={activity}
+            activities={activities}
+            metrics={metrics}
+            isPinned={isPinned}
+            isReducedMotion={isReducedMotion}
+            activeNotification={activeNotification}
+            onTogglePin={togglePin}
+            onCollapse={collapse}
+            onAction={handleAction}
+            onDismissActivity={dismissActivity}
+            onDismissNotification={dismissNotification}
+          />
         )}
       </AnimatePresence>
     </div>
