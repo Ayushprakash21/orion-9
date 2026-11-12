@@ -83,7 +83,8 @@ export const DynamicIsland: React.FC = React.memo(() => {
       data-expanded={isExpanded ? 'true' : 'false'}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="relative z-40 flex flex-col items-center pointer-events-auto"
+      style={{ zIndex: 10010 }}
+      className="relative z-[10010] flex flex-col items-center pointer-events-auto"
     >
       <AnimatePresence mode="wait">
         {!isExpanded ? (

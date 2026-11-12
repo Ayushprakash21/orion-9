@@ -189,20 +189,21 @@ export const DynamicIslandExpanded: React.FC<DynamicIslandExpandedProps> = React
       animate={motionAnimate}
       exit={motionExit}
       transition={isReducedMotion ? { duration: 0.08 } : ORION_SPRING_SNAPPY}
-      className="relative overflow-visible text-white border-b border-l border-r border-white/[0.14] border-t-0 rounded-b-[30px] rounded-t-none shadow-[0_24px_64px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.06)] bg-[#050505] w-[min(560px,calc(100vw-24px))] transition-colors select-none"
+      style={{ zIndex: 10020 }}
+      className="relative overflow-visible text-white border-b border-l border-r border-white/[0.14] border-t-0 rounded-b-[30px] rounded-t-none shadow-[0_24px_64px_rgba(0,0,0,0.85),0_0_0_1px_rgba(255,255,255,0.06)] bg-[#050505] w-[min(560px,calc(100vw-24px))] transition-colors select-none pointer-events-auto"
     >
-      {/* Seamless Left Concave Fillet connecting to top System Bar */}
+      {/* Seamless Left Concave Fillet connecting to top System Bar at 44px */}
       <svg
-        className="absolute -left-3 top-0 w-3 h-3 text-[#050505] fill-current pointer-events-none hidden sm:block"
+        className="absolute -left-3 top-[44px] w-3 h-3 text-[#050505] fill-current pointer-events-none hidden sm:block"
         viewBox="0 0 12 12"
         aria-hidden="true"
       >
         <path d="M 0,0 L 12,0 L 12,12 Q 12,0 0,0 Z" />
       </svg>
 
-      {/* Seamless Right Concave Fillet connecting to top System Bar */}
+      {/* Seamless Right Concave Fillet connecting to top System Bar at 44px */}
       <svg
-        className="absolute -right-3 top-0 w-3 h-3 text-[#050505] fill-current pointer-events-none hidden sm:block"
+        className="absolute -right-3 top-[44px] w-3 h-3 text-[#050505] fill-current pointer-events-none hidden sm:block"
         viewBox="0 0 12 12"
         aria-hidden="true"
       >
@@ -245,29 +246,31 @@ export const DynamicIslandExpanded: React.FC<DynamicIslandExpandedProps> = React
               </button>
             </div>
 
-            {/* Hub / Telemetry Tabs */}
+            {/* Nook / Tray Tabs (Matching Reference Images 1, 3, 8, 9) */}
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => setActiveTab('hub')}
-                className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                   activeTab === 'hub'
                     ? 'bg-white/20 text-white shadow-xs'
                     : 'text-white/50 hover:text-white/80 hover:bg-white/10'
                 }`}
               >
-                <span>🎯 Hub</span>
+                <Pin className="w-2.5 h-2.5 rotate-45" />
+                <span>Nook</span>
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('ops')}
-                className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                className={`px-2.5 py-0.5 rounded-full text-[10.5px] font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                   activeTab === 'ops'
                     ? 'bg-white/20 text-white shadow-xs'
                     : 'text-white/50 hover:text-white/80 hover:bg-white/10'
                 }`}
               >
-                <span>⚡ Telemetry</span>
+                <Layers className="w-2.5 h-2.5" />
+                <span>Tray</span>
                 {metrics.criticalExceptionsCount > 0 && (
                   <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
                 )}

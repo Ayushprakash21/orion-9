@@ -151,7 +151,8 @@ export const DynamicIslandCapsule: React.FC<DynamicIslandCapsuleProps> = React.m
           ? { duration: 0 }
           : { type: 'spring', stiffness: 450, damping: 32 }
       }
-      className={`group relative flex items-center justify-between px-3.5 sm:px-4 rounded-full sm:rounded-t-none sm:rounded-b-2xl cursor-pointer select-none border transition-colors duration-200 w-[min(520px,calc(100vw-24px))] min-w-[320px] ${
+      style={{ zIndex: 10015 }}
+      className={`group relative flex items-center justify-between px-3.5 sm:px-4 rounded-full sm:rounded-t-none sm:rounded-b-2xl cursor-pointer select-none border transition-colors duration-200 pointer-events-auto w-[min(520px,calc(100vw-24px))] min-w-[320px] ${
         isDark
           ? 'shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.12)]'
           : 'shadow-[0_4px_16px_rgba(15,23,42,0.10),inset_0_1px_0_rgba(255,255,255,0.9)]'

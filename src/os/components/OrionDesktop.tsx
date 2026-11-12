@@ -343,12 +343,13 @@ export function OrionDesktop() {
       {/* OS Layer 3: Top System Bar */}
       <OrionSystemBar />
 
-      {/* OS Layer 3.5: Top-Centred Integrated Dynamic Island (Attached Directly to System Bar) */}
+      {/* OS Layer 3.5: Top-Centred Integrated Dynamic Island (Flush with Bezel & System Bar) */}
       <div
         data-dynamic-island-anchor="true"
-        className="fixed left-1/2 -translate-x-1/2 z-[9985] pointer-events-none"
+        className="fixed left-1/2 -translate-x-1/2 pointer-events-none"
         style={{
-          top: 'var(--orion-topbar-h, 44px)',
+          top: 0,
+          zIndex: 10005,
         }}
       >
         <DynamicIsland />
