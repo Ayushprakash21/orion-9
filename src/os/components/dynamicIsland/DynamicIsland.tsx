@@ -24,6 +24,7 @@ export const DynamicIsland: React.FC = React.memo(() => {
     activity,
     activities,
     primaryEvent,
+    activeNotification,
     metrics,
     toggleExpanded,
     collapse,
@@ -31,6 +32,7 @@ export const DynamicIsland: React.FC = React.memo(() => {
     setIsHovered,
     handleAction,
     dismissActivity,
+    dismissNotification,
   } = useDynamicIslandState();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -38,6 +40,20 @@ export const DynamicIsland: React.FC = React.memo(() => {
   const isReducedMotion = isReducedMotionPreferred(
     supplyChain?.settings?.reducedMotion ?? supplyChain?.settings?.personalization?.reducedMotion
   );
+
+  // Authoritative Dynamic Island Availability Lifecycle Signal
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__ORION_DYNAMIC_ISLAND_MOUNTED__ = true;
+      window.dispatchEvent(new CustomEvent('orion:dynamic-island-availability', { detail: { available: true } }));
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        (window as any).__ORION_DYNAMIC_ISLAND_MOUNTED__ = false;
+        window.dispatchEvent(new CustomEvent('orion:dynamic-island-availability', { detail: { available: false } }));
+      }
+    };
+  }, []);
 
   // Outside click to collapse when unpinned
   useEffect(() => {
@@ -60,6 +76,8 @@ export const DynamicIsland: React.FC = React.memo(() => {
       ref={containerRef}
       role="region"
       aria-label="Orion-9 Dynamic Island System Telemetry"
+      data-testid="dynamic-island-root"
+      data-dynamic-island="true"
       data-surface-state={surfaceState}
       data-presentation-mode={presentationMode}
       onMouseEnter={() => setIsHovered(true)}
@@ -72,9 +90,12 @@ export const DynamicIsland: React.FC = React.memo(() => {
         presentationMode={presentationMode}
         metrics={metrics}
         primaryEvent={primaryEvent}
+        activeNotification={activeNotification}
         isExpanded={isExpanded}
         isCompactOverMaximized={isCompactOverMaximized}
+        isReducedMotion={isReducedMotion}
         onToggleExpand={toggleExpanded}
+        onDismissNotification={dismissNotification}
       />
 
       <AnimatePresence>

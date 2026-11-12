@@ -81,25 +81,71 @@ export function useDynamicIslandState(): DynamicIslandState {
   const [copilotStatus, setCopilotStatus] = useState<DynamicIslandCopilotStatus>('idle');
   const [simulationRunning, setSimulationRunning] = useState(false);
   const [customEvents, setCustomEvents] = useState<DynamicIslandEventItem[]>([]);
+  const [activeNotificationId, setActiveNotificationId] = useState<string | null>(null);
 
   const autoCollapseTimeoutRef = useRef<number | null>(null);
   const returningTimeoutRef = useRef<number | null>(null);
 
   const pushActivity = useCallback((incoming: DynamicIslandEventItem) => {
+    const now = Date.now();
     setCustomEvents(prev => {
+      // Deduplication: if an item with same dedupKey exists and arrived within 2s, refresh it
+      if (incoming.dedupKey) {
+        const existingIdx = prev.findIndex(
+          e => e.dedupKey === incoming.dedupKey && (now - e.timestamp) < 2000
+        );
+        if (existingIdx >= 0) {
+          const updated = [...prev];
+          updated[existingIdx] = {
+            ...updated[existingIdx],
+            ...incoming,
+            timestamp: now,
+            expiresAt: incoming.expiresAt,
+          };
+          return updated;
+        }
+      }
       const idx = prev.findIndex(e => e.id === incoming.id);
       if (idx >= 0) {
         const updated = [...prev];
-        updated[idx] = { ...updated[idx], ...incoming };
+        updated[idx] = { ...updated[idx], ...incoming, timestamp: now };
         return updated;
       }
       return [incoming, ...prev].slice(0, MAX_TRANSIENT_EVENTS);
     });
+
+    if (incoming.isNotification || incoming.source === 'system' || incoming.source === 'user') {
+      setActiveNotificationId(incoming.id);
+    }
   }, []);
 
   const dismissActivity = useCallback((id: string) => {
+    setActiveNotificationId(curr => (curr === id ? null : curr));
     setCustomEvents(prev => prev.filter(e => e.id !== id));
   }, []);
+
+  const dismissNotification = useCallback((id: string) => {
+    dismissActivity(id);
+  }, [dismissActivity]);
+
+  const activeNotification = useMemo(() => {
+    if (!activeNotificationId) return null;
+    const found = customEvents.find(e => e.id === activeNotificationId);
+    if (!found) return null;
+    if (found.expiresAt && found.expiresAt <= Date.now()) return null;
+    return found;
+  }, [activeNotificationId, customEvents]);
+
+  // Preview timer for active notification
+  useEffect(() => {
+    if (!activeNotification || !activeNotification.expiresAt) return;
+    const now = Date.now();
+    const remainingMs = Math.max(50, activeNotification.expiresAt - now);
+    const timer = globalThis.setTimeout(() => {
+      setActiveNotificationId(curr => (curr === activeNotification.id ? null : curr));
+    }, remainingMs);
+    return () => globalThis.clearTimeout(timer);
+  }, [activeNotification]);
 
   // Single nearest-expiration cleanup timer (zero polling loops)
   useEffect(() => {
@@ -297,6 +343,10 @@ export function useDynamicIslandState(): DynamicIslandState {
   const activity: DynamicIslandActivity = useMemo(() => {
     if (metrics.copilotStatus === 'thinking' || metrics.copilotStatus === 'analyzing') return 'copilot-thinking';
     if (metrics.criticalExceptionsCount > 0) return 'critical-alert';
+    if (activeNotification) {
+      if (activeNotification.severity === 'critical') return 'critical-alert';
+      return 'notification';
+    }
     if (metrics.activeSyncJobsCount > 0) return 'connector-sync';
     if (metrics.simulationRunning) return 'simulation-running';
     if (metrics.unreadNotificationsCount > 0) return 'unread-notifications';
@@ -304,6 +354,7 @@ export function useDynamicIslandState(): DynamicIslandState {
   }, [
     metrics.criticalExceptionsCount,
     metrics.copilotStatus,
+    activeNotification,
     metrics.activeSyncJobsCount,
     metrics.simulationRunning,
     metrics.unreadNotificationsCount,
@@ -311,10 +362,15 @@ export function useDynamicIslandState(): DynamicIslandState {
 
   // Unified Deduplicated Event Queue (derived + custom events)
   const activities: DynamicIslandEventItem[] = useMemo(() => {
-    const derived: DynamicIslandEventItem[] = [];
+    const queue: DynamicIslandEventItem[] = [];
+
+    // Prioritize critical active notification at very top
+    if (activeNotification && activeNotification.severity === 'critical') {
+      queue.push(activeNotification);
+    }
 
     if (metrics.criticalExceptionsCount > 0) {
-      derived.push({
+      queue.push({
         id: 'sys-critical-exceptions',
         source: 'exception',
         title: `Shipment exception detected • ${metrics.criticalExceptionsCount} ${metrics.criticalExceptionsCount === 1 ? 'Alert' : 'Alerts'}`,
@@ -326,8 +382,13 @@ export function useDynamicIslandState(): DynamicIslandState {
       });
     }
 
+    // Active notification preview
+    if (activeNotification && activeNotification.severity !== 'critical' && !queue.some(e => e.id === activeNotification.id)) {
+      queue.push(activeNotification);
+    }
+
     if (metrics.activeSyncJobsCount > 0) {
-      derived.push({
+      queue.push({
         id: 'sys-connector-sync',
         source: 'connector',
         title: `Syncing ${metrics.connectedConnectorsCount} connectors`,
@@ -339,16 +400,15 @@ export function useDynamicIslandState(): DynamicIslandState {
       });
     }
 
-    const combined = [...derived];
     for (const item of customEvents) {
-      if (!combined.some(existing => existing.id === item.id)) {
-        combined.push(item);
+      if (!queue.some(existing => existing.id === item.id)) {
+        queue.push(item);
       }
     }
-    return combined.slice(0, MAX_TRANSIENT_EVENTS);
-  }, [metrics.criticalExceptionsCount, metrics.activeSyncJobsCount, metrics.connectedConnectorsCount, customEvents]);
+    return queue.slice(0, MAX_TRANSIENT_EVENTS);
+  }, [activeNotification, metrics.criticalExceptionsCount, metrics.activeSyncJobsCount, metrics.connectedConnectorsCount, customEvents]);
 
-  const primaryEvent = activities[0] || null;
+  const primaryEvent = activeNotification || activities[0] || null;
 
   // 5-state surface model
   const surfaceState: DynamicIslandSurfaceState = useMemo(() => {
@@ -356,6 +416,7 @@ export function useDynamicIslandState(): DynamicIslandState {
     if (isReturning) return 'returning';
     if (activity === 'copilot-thinking') return 'activity';
     if (activity === 'critical-alert' || primaryEvent?.severity === 'critical') return 'critical';
+    if (activity === 'notification') return 'activity';
     if (activity === 'connector-sync' || activity === 'simulation-running' || customEvents.length > 0) {
       return 'activity';
     }
@@ -447,15 +508,17 @@ export function useDynamicIslandState(): DynamicIslandState {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isExpanded, triggerReturningTransition]);
 
-  const handleAction = useCallback((appId: string) => {
-    if (appId === 'search') {
+  const handleAction = useCallback((appIdOrCb: string | (() => void)) => {
+    if (typeof appIdOrCb === 'function') {
+      appIdOrCb();
+    } else if (appIdOrCb === 'search') {
       windowManager?.setCommandPaletteOpen?.(true);
-    } else if (appId === 'notifications') {
+    } else if (appIdOrCb === 'notifications') {
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent('orion:open-notifications'));
       }
-    } else {
-      windowManager?.openApplication?.(appId);
+    } else if (typeof appIdOrCb === 'string') {
+      windowManager?.openApplication?.(appIdOrCb);
     }
     if (!isPinned) {
       setIsExpanded(false);
@@ -475,6 +538,7 @@ export function useDynamicIslandState(): DynamicIslandState {
     activity,
     activities,
     primaryEvent,
+    activeNotification,
     metrics,
     toggleExpanded,
     expand,
@@ -484,6 +548,7 @@ export function useDynamicIslandState(): DynamicIslandState {
     handleAction,
     pushActivity,
     dismissActivity,
+    dismissNotification,
   }), [
     presentationMode,
     isExpanded,
@@ -495,6 +560,7 @@ export function useDynamicIslandState(): DynamicIslandState {
     activity,
     activities,
     primaryEvent,
+    activeNotification,
     metrics,
     toggleExpanded,
     expand,
@@ -503,5 +569,6 @@ export function useDynamicIslandState(): DynamicIslandState {
     handleAction,
     pushActivity,
     dismissActivity,
+    dismissNotification,
   ]);
 }

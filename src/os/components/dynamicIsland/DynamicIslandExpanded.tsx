@@ -6,6 +6,7 @@ import {
   Bell,
   Brain,
   CheckCircle2,
+  Info,
   Pin,
   PinOff,
   RefreshCw,
@@ -31,7 +32,7 @@ interface DynamicIslandExpandedProps {
   dockPosition?: DockPosition;
   onTogglePin: () => void;
   onCollapse: () => void;
-  onAction: (appId: string) => void;
+  onAction: (appIdOrCb: string | (() => void)) => void;
   onDismissActivity: (id: string) => void;
 }
 
@@ -200,21 +201,38 @@ export const DynamicIslandExpanded: React.FC<DynamicIslandExpandedProps> = React
             activities.map(item => (
               <div
                 key={item.id}
-                className={`rounded-xl border p-2.5 flex items-start gap-2.5 ${
+                data-testid={item.isNotification ? 'dynamic-island-notification-item' : 'dynamic-island-activity-item'}
+                className={`rounded-xl border p-2.5 flex items-start gap-2.5 transition-colors ${
                   item.severity === 'critical'
                     ? isDark
                       ? 'bg-rose-500/14 border-rose-500/35'
                       : 'bg-rose-500/10 border-rose-600/30'
-                    : item.severity === 'active'
+                    : item.severity === 'warning'
                       ? isDark
-                        ? 'bg-sky-500/12 border-sky-400/30'
-                        : 'bg-sky-500/10 border-sky-600/25'
-                      : neutralCardClass
+                        ? 'bg-amber-500/14 border-amber-500/35'
+                        : 'bg-amber-500/10 border-amber-600/30'
+                      : item.severity === 'success'
+                        ? isDark
+                          ? 'bg-emerald-500/14 border-emerald-500/35'
+                          : 'bg-emerald-500/10 border-emerald-600/30'
+                        : item.severity === 'active' || item.severity === 'info'
+                          ? isDark
+                            ? 'bg-sky-500/12 border-sky-400/30'
+                            : 'bg-sky-500/10 border-sky-600/25'
+                          : neutralCardClass
                 }`}
               >
                 <div className="mt-0.5 shrink-0">
-                  {item.severity === 'critical' ? (
+                  {item.iconUrl ? (
+                    <img src={item.iconUrl} alt="" className="w-4 h-4 rounded object-contain" />
+                  ) : item.severity === 'critical' ? (
                     <AlertTriangle className={`w-4 h-4 ${isDark ? 'text-rose-300' : 'text-rose-700'}`} />
+                  ) : item.severity === 'warning' ? (
+                    <AlertTriangle className={`w-4 h-4 ${isDark ? 'text-amber-300' : 'text-amber-700'}`} />
+                  ) : item.severity === 'success' ? (
+                    <CheckCircle2 className={`w-4 h-4 ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`} />
+                  ) : item.severity === 'info' ? (
+                    <Info className={`w-4 h-4 ${isDark ? 'text-sky-300' : 'text-sky-700'}`} />
                   ) : item.source === 'copilot' ? (
                     <Brain className={`w-4 h-4 ${isDark ? 'text-indigo-300' : 'text-indigo-700'}`} />
                   ) : item.source === 'connector' ? (
@@ -225,10 +243,20 @@ export const DynamicIslandExpanded: React.FC<DynamicIslandExpandedProps> = React
                 </div>
 
                 <div className="min-w-0 flex-1">
-                  <div className="text-[11px] font-semibold text-[var(--orion-text-primary)] truncate">{item.title}</div>
-                  {item.subtitle && (
-                    <div className="text-[10px] text-[var(--orion-text-secondary)] truncate mt-0.5">{item.subtitle}</div>
+                  {item.appName && (
+                    <div className="flex items-center justify-between text-[10px] text-[var(--orion-text-secondary)] mb-0.5">
+                      <span className="font-semibold uppercase tracking-wider">{item.appName}</span>
+                      <span className="font-mono text-[9px] opacity-75">
+                        {item.timestamp ? 'recent' : 'active'}
+                      </span>
+                    </div>
                   )}
+                  <div className="text-[11px] font-semibold text-[var(--orion-text-primary)] leading-tight">{item.title}</div>
+                  {(item.message && item.message !== item.title) ? (
+                    <div className="text-[10px] text-[var(--orion-text-secondary)] leading-relaxed mt-0.5 break-words">{item.message}</div>
+                  ) : item.subtitle ? (
+                    <div className="text-[10px] text-[var(--orion-text-secondary)] leading-relaxed mt-0.5 break-words">{item.subtitle}</div>
+                  ) : null}
                   {typeof item.progress === 'number' && (
                     <div className="mt-1.5 h-1 rounded-full bg-[var(--orion-surface-active)] overflow-hidden">
                       <div
@@ -240,16 +268,23 @@ export const DynamicIslandExpanded: React.FC<DynamicIslandExpandedProps> = React
                 </div>
 
                 <div className="flex items-center gap-1 shrink-0">
-                  {item.actionAppId && (
+                  {(item.actionLabel && (item.onAction || item.actionAppId)) && (
                     <button
                       type="button"
-                      onClick={() => onAction(item.actionAppId!)}
+                      onClick={() => {
+                        if (item.onAction) {
+                          item.onAction();
+                          onDismissActivity(item.id);
+                        } else if (item.actionAppId) {
+                          onAction(item.actionAppId);
+                        }
+                      }}
                       className="px-2 py-1 rounded-lg bg-[var(--orion-surface-hover)] hover:bg-[var(--orion-surface-active)] border border-[var(--orion-border)] text-[10px] font-medium text-[var(--orion-text-primary)] cursor-pointer transition-colors"
                     >
-                      {item.actionLabel || 'Open'}
+                      {item.actionLabel}
                     </button>
                   )}
-                  {item.source === 'user' && (
+                  {item.dismissible !== false && (
                     <button
                       type="button"
                       onClick={() => onDismissActivity(item.id)}

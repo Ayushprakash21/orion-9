@@ -9,6 +9,18 @@ import { motion, AnimatePresence } from 'motion/react';
 import { CheckCircle2, AlertTriangle, XCircle, Info, X } from 'lucide-react';
 import { toastNotificationVariants } from '../os/motion/OrionMotionVariants';
 import { isReducedMotionPreferred } from '../os/motion/OrionMotion';
+import { DynamicIslandEventItem, DynamicIslandEventSeverity } from '../os/components/dynamicIsland/DynamicIslandTypes';
+
+export function isDynamicIslandAvailable(): boolean {
+  if (typeof window === 'undefined') return false;
+  return Boolean(
+    (window as any).__ORION_DYNAMIC_ISLAND_MOUNTED__ ||
+    (typeof document !== 'undefined' && (
+      document.querySelector('[data-dynamic-island="true"]') ||
+      document.querySelector('[data-testid="dynamic-island-capsule"]')
+    ))
+  );
+}
 
 export type ToastType = 'success' | 'warning' | 'error' | 'info' | 'system';
 
@@ -99,8 +111,61 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const toastType = opts.type ?? type;
       const toastTitle = opts.title ?? title;
       const toastIcon = opts.iconUrl ?? iconUrl;
-      const toastAppName = opts.appName ?? appName ?? (title && typeof options === 'string' ? title : 'ORION SYSTEM');
+
+      // Intelligent app/source attribution
+      let toastAppName = opts.appName ?? appName ?? (title && typeof options === 'string' ? title : undefined);
+      if (!toastAppName) {
+        const lowerMsg = (opts.message || '').toLowerCase();
+        if (lowerMsg.includes('widget') || lowerMsg.includes('desktop')) {
+          toastAppName = 'Desktop';
+        } else if (lowerMsg.includes('copilot') || lowerMsg.includes('ai')) {
+          toastAppName = 'Copilot';
+        } else if (lowerMsg.includes('setting') || lowerMsg.includes('appearance') || lowerMsg.includes('theme')) {
+          toastAppName = 'Settings';
+        } else {
+          toastAppName = 'System';
+        }
+      }
+
       const dedupKey = makeDedupKey(toastType, toastTitle, opts.message);
+
+      // 1. If Dynamic Island is active in the desktop OS, route notification through Dynamic Island
+      if (isDynamicIslandAvailable()) {
+        const duration = DURATION_MAP[toastType];
+        const severity: DynamicIslandEventSeverity =
+          toastType === 'error'
+            ? 'critical'
+            : toastType === 'warning'
+              ? 'warning'
+              : toastType === 'success'
+                ? 'success'
+                : toastType === 'system'
+                  ? 'system'
+                  : 'info';
+
+        const islandEvent: DynamicIslandEventItem = {
+          id: `toast-${Math.random().toString(36).substring(2, 9)}`,
+          source: 'system',
+          appName: toastAppName,
+          iconUrl: toastIcon,
+          title: toastTitle && toastTitle !== toastAppName ? toastTitle : opts.message,
+          subtitle: toastTitle && toastTitle !== opts.message ? opts.message : undefined,
+          message: opts.message,
+          severity,
+          timestamp: now,
+          expiresAt: duration > 0 ? now + duration : undefined,
+          actionLabel: opts.actionLabel,
+          onAction: opts.onAction,
+          dedupKey,
+          dismissible: true,
+          isNotification: true,
+        };
+
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('orion:dynamic-island-event', { detail: islandEvent }));
+        }
+        return;
+      }
 
       // If a very recent toast with the same key exists, just refresh its timer.
       const existing = toasts.find(t => t.dedupKey === dedupKey && now - t.createdAt < 2000);
@@ -166,6 +231,43 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     window.addEventListener('orion:show-toast', handleCustomToast);
     return () => window.removeEventListener('orion:show-toast', handleCustomToast);
   }, [showToast]);
+
+  // Forward & flush fallback toasts if Dynamic Island becomes available
+  useEffect(() => {
+    const handleIslandAvailability = (e: Event) => {
+      const detail = (e as CustomEvent<{ available?: boolean }>).detail;
+      if (detail?.available && toasts.length > 0) {
+        for (const t of toasts) {
+          const duration = DURATION_MAP[t.type];
+          const severity: DynamicIslandEventSeverity =
+            t.type === 'error' ? 'critical' : t.type === 'warning' ? 'warning' : t.type === 'success' ? 'success' : 'info';
+          window.dispatchEvent(
+            new CustomEvent('orion:dynamic-island-event', {
+              detail: {
+                id: `toast-${t.id}`,
+                source: 'system',
+                appName: t.appName,
+                iconUrl: t.iconUrl,
+                title: t.title || t.message,
+                message: t.message,
+                severity,
+                timestamp: t.createdAt,
+                expiresAt: duration > 0 ? t.createdAt + duration : undefined,
+                actionLabel: t.actionLabel,
+                onAction: t.onAction,
+                dedupKey: t.dedupKey,
+                dismissible: true,
+                isNotification: true,
+              },
+            })
+          );
+        }
+        setToasts([]);
+      }
+    };
+    window.addEventListener('orion:dynamic-island-availability', handleIslandAvailability);
+    return () => window.removeEventListener('orion:dynamic-island-availability', handleIslandAvailability);
+  }, [toasts]);
 
   // Show only the newest three toasts.
   const visibleToasts = toasts.slice(-3);

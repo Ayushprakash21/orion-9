@@ -398,7 +398,7 @@ export function DesktopWorkspace() {
   const handleRemoveWidget = async (widgetId: string) => {
     await desktopWorkspaceService.removeWidget(widgetId);
     setWidgets((prev) => prev.filter((w) => w.id !== widgetId));
-    showToast('Widget removed from desktop', 'info');
+    showToast('Widget removed from desktop', 'info', 'Desktop');
   };
 
   const handleResizeWidget = async (widgetId: string, newSize: WidgetSize) => {
@@ -414,7 +414,7 @@ export function DesktopWorkspace() {
     };
     await desktopWorkspaceService.saveWidget(updated);
     setWidgets(prev => prev.map(w => w.id === widgetId ? updated : w));
-    showToast(`Widget resized to ${newSize.toLowerCase()}`, 'info');
+    showToast(`Widget resized to ${newSize.toLowerCase()}`, 'info', 'Desktop');
   };
 
   const handleAddWidgetFromGallery = async (item: WidgetGalleryItem, customPos?: { x: number; y: number }) => {

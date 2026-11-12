@@ -31,23 +31,31 @@ export type DynamicIslandActivity =
   | 'connector-sync'
   | 'simulation-running'
   | 'unread-notifications'
+  | 'notification'
   | 'system-ready';
 
 export type DynamicIslandCopilotStatus = 'ready' | 'thinking' | 'analyzing' | 'idle';
 
-export type DynamicIslandEventSeverity = 'info' | 'active' | 'warning' | 'critical' | 'success';
+export type DynamicIslandEventSeverity = 'info' | 'active' | 'warning' | 'critical' | 'success' | 'system';
 
 export interface DynamicIslandEventItem {
   id: string;
   source: 'system' | 'copilot' | 'connector' | 'simulation' | 'exception' | 'user';
   title: string;
   subtitle?: string;
+  message?: string;
+  appName?: string;
+  iconUrl?: string;
   severity: DynamicIslandEventSeverity;
   timestamp: number;
   expiresAt?: number;
   progress?: number; // 0 - 100 optional determinate progress
   actionLabel?: string;
   actionAppId?: string;
+  onAction?: () => void;
+  dedupKey?: string;
+  dismissible?: boolean;
+  isNotification?: boolean;
 }
 
 export interface DynamicIslandMetrics {
@@ -81,13 +89,15 @@ export interface DynamicIslandState {
   activity: DynamicIslandActivity;
   activities: DynamicIslandEventItem[];
   primaryEvent: DynamicIslandEventItem | null;
+  activeNotification: DynamicIslandEventItem | null;
   metrics: DynamicIslandMetrics;
   toggleExpanded: () => void;
   expand: () => void;
   collapse: () => void;
   togglePin: () => void;
   setIsHovered: (hovered: boolean) => void;
-  handleAction: (appId: string) => void;
+  handleAction: (appIdOrCb: string | (() => void)) => void;
   pushActivity: (item: DynamicIslandEventItem) => void;
   dismissActivity: (id: string) => void;
+  dismissNotification: (id: string) => void;
 }
