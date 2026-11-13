@@ -1,0 +1,29 @@
+{
+  "testId": "DR-DRILL-001-REAL-RESTORE",
+  "tenantId": "TENANT-GOLDEN-01",
+  "backupTimestamp": "2026-11-13T00:25:13.381Z",
+  "restorationStartTimestamp": "2026-11-13T00:25:13.382Z",
+  "restorationCompletionTimestamp": "2026-11-13T00:25:13.396Z",
+  "actualRpoSeconds": 2,
+  "actualRtoSeconds": 0.014,
+  "originalRecordCounts": {
+    "purchase_orders": 3,
+    "inventory": 3,
+    "suppliers": 3,
+    "audit_ledger": 2
+  },
+  "restoredRecordCounts": {
+    "purchase_orders": 3,
+    "inventory": 3,
+    "suppliers": 3,
+    "audit_ledger": 2
+  },
+  "integrityVerification": {
+    "poCountMatches": true,
+    "invCountMatches": true,
+    "supplierCountMatches": true,
+    "relationshipsValid": true,
+    "negativeInventoryRepaired": true
+  },
+  "status": "PASS"
+}
