@@ -15,6 +15,9 @@ export const generateInsight = async (
   specializedMode?: any,
   options?: { tenantId?: string; userId?: string; signal?: AbortSignal }
 ): Promise<CopilotResponse> => {
+  if (options?.signal?.aborted) {
+    throw new DOMException('Operation cancelled', 'AbortError');
+  }
   try {
     const result = await orionAI.generateInsight({
       prompt,
@@ -25,8 +28,11 @@ export const generateInsight = async (
     }, options?.signal);
     return result;
   } catch (error: any) {
-    if (error?.name === 'AbortError') throw error;
+    if (error?.name === 'AbortError' || options?.signal?.aborted) throw error;
     console.warn("AI Insight using fallback reasoning:", error);
+    if (options?.signal?.aborted) {
+      throw new DOMException('Operation cancelled', 'AbortError');
+    }
     return await orionAI.generateInsight({ prompt, dataContext, specializedMode, tenantId: options?.tenantId, userId: options?.userId }, options?.signal);
   }
 };
@@ -121,10 +127,13 @@ export const generateCopilotResponse = async (
       source: res.source
     };
   } catch (error: any) {
-    if (error?.name === 'AbortError') {
+    if (error?.name === 'AbortError' || options?.signal?.aborted) {
       throw error;
     }
     console.error("Copilot Error:", error);
+    if (options?.signal?.aborted) {
+      throw new DOMException('Operation cancelled', 'AbortError');
+    }
     const fallbackCtx: any = {
       getDashboardMetrics: localDataTools.getDashboardMetrics ? localDataTools.getDashboardMetrics() : {}
     };

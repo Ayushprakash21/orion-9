@@ -17,7 +17,8 @@ import {
 } from "./src/server/brandingBackend";
 import { verifyWorkerAuthToken } from "./src/server/workerSecurity";
 
-dotenv.config({ path: ['.env.local', '.env'] });
+dotenv.config({ path: '.env.local', override: true });
+dotenv.config({ path: '.env', override: false });
 
 // Diagnostic logging for unhandled rejections with network error resilience
 process.on('unhandledRejection', (reason: any, promise) => {
@@ -73,8 +74,8 @@ const getFirebaseAdmin = () => {
 // Lazy initialization of Gemini client (Enterprise AI Engine)
 let geminiClient: GoogleGenAI | null = null;
 const getGemini = () => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) return null;
+  const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+  if (!apiKey || apiKey === '""' || apiKey === "''") return null;
   if (!geminiClient) {
     geminiClient = new GoogleGenAI({
       apiKey,
@@ -910,10 +911,11 @@ async function startServer() {
 
   // AI Status Route - Gemini Enterprise Native
   app.get("/api/ai/status", (req, res) => {
-    const hasGemini = !!process.env.GEMINI_API_KEY;
+    const apiKey = (process.env.GEMINI_API_KEY || "").trim();
+    const hasGemini = Boolean(apiKey && apiKey !== '""' && apiKey !== "''");
     
     if (hasGemini) {
-      res.json({ configured: true, provider: "gemini", model: "gemini-2.5-flash" });
+      res.json({ configured: true, provider: "gemini", model: "gemini-3.5-flash-lite" });
     } else {
       res.json({ configured: false, provider: "none", model: "none" });
     }
@@ -1019,11 +1021,11 @@ If unsure for operational queries, include 'getDashboardMetrics'.`;
       
       const response: any = await withServerDeadline(
         gemini.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash-lite',
           contents: `${systemPrompt}\n\nUser Prompt: ${prompt}`,
           config: { temperature: 0.1 }
         }),
-        2500,
+        15000,
         'Server AI tool router'
       );
       responseText = response.text || "[]";
@@ -1096,14 +1098,14 @@ SPECIALIZED COGNITIVE MODE: ${specializedMode || 'General Copilot'}
 USER PROMPT:
 ${prompt}`;
 
-      const usedModel = "gemini-2.5-flash";
+      const usedModel = "gemini-3.5-flash-lite";
       const response: any = await withServerDeadline(
         gemini.models.generateContent({
           model: usedModel,
           contents: `${systemInstruction}\n\n${userContent}`,
           config: { temperature: 0.2 }
         }),
-        4500,
+        15000,
         'Server AI insight'
       );
       const responseText = response.text || "No response generated.";
@@ -1207,14 +1209,14 @@ ${JSON.stringify(dataContext, null, 2)}`;
 
       const response: any = await withServerDeadline(
         gemini.models.generateContent({
-          model: 'gemini-2.5-flash',
+          model: 'gemini-3.5-flash-lite',
           contents: `${systemInstruction}\n\n${userContent}`,
           config: {
             temperature: 0.15,
             responseMimeType: "application/json"
           }
         }),
-        6000,
+        15000,
         'Server AI platform intelligence'
       );
 
@@ -1242,7 +1244,7 @@ ${JSON.stringify(dataContext, null, 2)}`;
         success: true,
         data: parsed,
         provider: "gemini",
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash-lite",
         timestamp: new Date().toISOString()
       });
     } catch (error: any) {
@@ -1336,11 +1338,11 @@ Analyze the supplied document and return a strict JSON object with:
 
       const response: any = await withServerDeadline(
         gemini.models.generateContent({
-          model: "gemini-2.5-flash",
+          model: "gemini-3.5-flash-lite",
           contents,
           config: { temperature: 0.1, responseMimeType: "application/json" }
         }),
-        6000,
+        15000,
         'Server AI document intelligence'
       );
       

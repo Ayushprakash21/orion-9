@@ -30,6 +30,13 @@ const QUICK_ACTIONS = [
 export const AICopilot = () => {
   const { inventory, products, suppliers, purchaseOrders, shipments, exceptions, decisions, settings, contracts, routes } = useSupplyChain();
   
+  const [activeSessionId, setActiveSessionId] = useState<string>(() => {
+    if (typeof sessionStorage !== 'undefined') {
+      return sessionStorage.getItem('orion_copilot_active_session') || 'conv-global-user-default';
+    }
+    return 'conv-global-user-default';
+  });
+
   const [messages, setMessages] = useState<{
     role: 'user' | 'assistant', 
     content: string,
@@ -39,7 +46,8 @@ export const AICopilot = () => {
     approvalId?: string,
     commandId?: string
   }[]>(() => {
-    const session = conversationMemoryService.getOrCreateSession('global', 'user');
+    const activeId = (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('orion_copilot_active_session')) || 'conv-global-user-default';
+    const session = conversationMemoryService.getOrCreateSession('global', 'user', activeId);
     if (session && session.messages.length > 0) {
       return session.messages.map(m => ({
         role: m.role as 'user' | 'assistant',
@@ -62,10 +70,10 @@ export const AICopilot = () => {
   const [aiState, setAiState] = useState<'idle' | 'thinking' | 'analyzing' | 'ready'>('ready');
   const [lastSource, setLastSource] = useState<'gemini' | 'deterministic' | null>(null);
   const [serverProvider, setServerProvider] = useState<'gemini' | 'none' | 'checking'>('checking');
+  const [modelLabel, setModelLabel] = useState<string>('Gemini 3.5 Flash Grounding');
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [activeCategoryKey, setActiveCategoryKey] = useState<PromptCategoryKey>('CONTROL TOWER');
   const [lastPrompt, setLastPrompt] = useState<string>('');
-  const [activeSessionId, setActiveSessionId] = useState<string>('global-session');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -87,8 +95,11 @@ export const AICopilot = () => {
 
   const handleNewSession = () => {
     handleCancel();
-    const newSessionId = `session-${Date.now()}`;
+    const newSessionId = `conv-global-user-${Date.now()}`;
     setActiveSessionId(newSessionId);
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem('orion_copilot_active_session', newSessionId);
+    }
     setMessages([
       {
         role: 'assistant',
@@ -97,6 +108,30 @@ export const AICopilot = () => {
       }
     ]);
   };
+
+  useEffect(() => {
+    let mounted = true;
+    orionAI.checkStatus().then(status => {
+      if (!mounted) return;
+      if (status.configured && status.provider === 'gemini') {
+        setServerProvider('gemini');
+        setLastSource('gemini');
+        if (status.model?.includes('3.5')) {
+          setModelLabel('Gemini 3.5 Flash Grounding');
+        } else if (status.model?.includes('3.8')) {
+          setModelLabel('Gemini 3.8 Flash Grounding');
+        }
+      } else {
+        setServerProvider('none');
+        setLastSource('deterministic');
+      }
+    }).catch(() => {
+      if (!mounted) return;
+      setServerProvider('none');
+      setLastSource('deterministic');
+    });
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -384,7 +419,7 @@ export const AICopilot = () => {
               <div className="text-[10px] uppercase tracking-wider font-mono text-[var(--orion-text-muted,#747875)]">Intelligence Core</div>
               <div className="text-xs font-medium text-[var(--orion-text-secondary,#A7AAA8)] flex items-center gap-1.5">
                 {lastSource === 'gemini' ? (
-                  <>Gemini 3.8 Flash Grounding <span className="w-2 h-2 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.6)]" /></>
+                  <>{modelLabel} <span className="w-2 h-2 bg-emerald-400 rounded-full shadow-[0_0_8px_rgba(52,211,153,0.6)]" /></>
                 ) : (
                   <>Deterministic SCM Core <span className="w-2 h-2 bg-[var(--orion-accent,#0071E3)] rounded-full shadow-[0_0_8px_rgba(0,113,227,0.6)]" /></>
                 )}

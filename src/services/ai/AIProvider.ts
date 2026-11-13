@@ -94,9 +94,13 @@ export class OrionAIProvider {
           }
         }
       } catch (err: any) {
-        if (err?.name === 'AbortError') throw err;
+        if (err?.name === 'AbortError' || signal?.aborted) throw new DOMException('Operation cancelled', 'AbortError');
         // Non-fatal network fallback to deterministic tool router
       }
+    }
+
+    if (signal?.aborted) {
+      throw new DOMException('Operation cancelled', 'AbortError');
     }
 
     // Local deterministic fallback tool selection
@@ -154,9 +158,13 @@ export class OrionAIProvider {
           }
         }
       } catch (err: any) {
-        if (err?.name === 'AbortError') throw err;
+        if (err?.name === 'AbortError' || signal?.aborted) throw new DOMException('Operation cancelled', 'AbortError');
         // Non-fatal network fallback to deterministic engine
       }
+    }
+
+    if (signal?.aborted) {
+      throw new DOMException('Operation cancelled', 'AbortError');
     }
 
     // Deterministic fallback reasoning based strictly on live data context

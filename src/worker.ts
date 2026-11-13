@@ -750,7 +750,7 @@ export default {
         JSON.stringify({
           configured: !!apiKey,
           provider: apiKey ? "gemini" : "deterministic_engine",
-          model: apiKey ? "gemini-2.5-flash" : "local_scm_rules",
+          model: apiKey ? "gemini-3.5-flash-lite" : "local_scm_rules",
         }),
         { status: 200, headers: { "Content-Type": "application/json", "Cache-Control": "no-store" } }
       );
@@ -813,11 +813,11 @@ If unsure for operational queries, include 'getDashboardMetrics'.`;
 
         const response: any = await withWorkerDeadline(
           gemini.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.5-flash-lite',
             contents: `${systemPrompt}\n\nUser Prompt: ${rawPrompt}`,
             config: { temperature: 0.1 }
           }),
-          2500,
+          15000,
           'AI tool router'
         );
         const responseText = response.text || "[]";
@@ -909,16 +909,16 @@ ${prompt || ''}`;
 
         const response: any = await withWorkerDeadline(
           gemini.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.5-flash-lite',
             contents: `${systemInstruction}\n\n${userContent}`,
             config: { temperature: 0.2 }
           }),
-          4500,
+          15000,
           'AI insight generation'
         );
 
         return new Response(
-          JSON.stringify({ response: response.text || "No response generated.", provider: "gemini", model: "gemini-2.5-flash" }),
+          JSON.stringify({ response: response.text || "No response generated.", provider: "gemini", model: "gemini-3.5-flash-lite" }),
           { status: 200, headers: { "Content-Type": "application/json" } }
         );
       } catch (err: any) {
@@ -987,11 +987,11 @@ ${JSON.stringify(dataContext || {}, null, 2)}`;
 
         const response: any = await withWorkerDeadline(
           gemini.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.5-flash-lite',
             contents: `${systemInstruction}\n\n${userContent}`,
             config: { temperature: 0.15, responseMimeType: "application/json" }
           }),
-          6000,
+          15000,
           'AI platform intelligence'
         );
 
@@ -1285,11 +1285,11 @@ Analyze the supplied document and return a strict JSON object with:
 
         const response: any = await withWorkerDeadline(
           gemini.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3.5-flash-lite',
             contents: promptText,
             config: { temperature: 0.1, responseMimeType: 'application/json' }
           }),
-          6000,
+          15000,
           'AI document intelligence'
         );
 
