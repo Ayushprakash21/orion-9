@@ -1,0 +1,80 @@
+{
+  "dynamicIslandExpansionMs": {
+    "samples": [
+      93,
+      859,
+      295,
+      308,
+      378
+    ],
+    "p50": 308,
+    "p95": 859,
+    "p99": 859,
+    "mean": 387
+  },
+  "dynamicIslandCollapseMs": {
+    "samples": [
+      114,
+      298,
+      152,
+      277,
+      282
+    ],
+    "p50": 277,
+    "p95": 298,
+    "p99": 298,
+    "mean": 225
+  },
+  "widgetDragResponseMs": {
+    "samples": [
+      38,
+      38,
+      38,
+      38,
+      38
+    ],
+    "p50": 38,
+    "p95": 38,
+    "p99": 38,
+    "mean": 38
+  },
+  "windowOpeningMs": {
+    "samples": [
+      260,
+      595,
+      398,
+      433,
+      383
+    ],
+    "p50": 398,
+    "p95": 595,
+    "p99": 595,
+    "mean": 414
+  },
+  "appSwitchingMs": {
+    "samples": [
+      222,
+      273,
+      235,
+      213,
+      230
+    ],
+    "p50": 230,
+    "p95": 273,
+    "p99": 273,
+    "mean": 235
+  },
+  "realtimeUpdateLatencyMs": {
+    "samples": [
+      259,
+      62,
+      71,
+      75,
+      73
+    ],
+    "p50": 73,
+    "p95": 259,
+    "p99": 259,
+    "mean": 108
+  }
+}
