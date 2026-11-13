@@ -155,7 +155,8 @@ export function resolveThemeVariables(
 
     '--orion-dock-surface': dockSurface,
     '--orion-dock-bg': dockSurface,
-    '--orion-dock-opacity': `${(settings.dockTransparency ?? 85) / 100}`,
+    '--orion-glass-opacity': `${(settings.glassOpacity !== undefined ? settings.glassOpacity : (settings.dockTransparency ?? 85)) / 100}`,
+    '--orion-dock-opacity': '1',
     '--orion-dock-border': dockBorder,
     '--orion-dock-shadow': dockShadow,
     '--orion-dock-active': accentHex,
@@ -217,6 +218,8 @@ export function applyThemeToDocument(settings: PersonalizationSettings): void {
     appearanceMode: effectiveMode,
     windowControlPosition: settings.windowControlPosition || activePrefs.windowControlPosition,
     reduceMotion: settings.reducedMotion ?? activePrefs.reduceMotion,
+    glassOpacity: settings.glassOpacity ?? activePrefs.glassOpacity,
+    dockOpacity: settings.glassOpacity ?? activePrefs.dockOpacity,
   });
 
   const root = document.documentElement;

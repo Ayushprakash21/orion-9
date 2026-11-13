@@ -110,6 +110,7 @@ export interface OrionAppearancePreferences {
   dockSize?: 'small' | 'medium' | 'large';
   dockShowRunningIndicators: boolean;
   dockShowBadges: boolean;
+  glassOpacity?: number;
   dockTransparency: boolean;
   dockOpacity?: number;
   dockBlur?: number;
@@ -155,6 +156,8 @@ export const DEFAULT_PREFERENCES: OrionAppearancePreferences = {
   dockSize: 'medium',
   dockShowRunningIndicators: true,
   dockShowBadges: true,
+  glassOpacity: 85,
+  dockOpacity: 85,
   dockTransparency: true,
   iconStyle: 'default',
   widgetStyle: 'solid',

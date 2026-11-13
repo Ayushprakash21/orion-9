@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
 import { DEFAULT_PERSONALIZATION_SETTINGS } from '../theme/themePresets';
 import { loadPreferences, savePreferences } from '../os/theme/OrionThemeStorage';
+import { runtimeSettingsAuthority } from '../os/settings/RuntimeSettingsAuthority';
 import { isValidThemeId } from '../os/theme/OrionThemeRegistry';
 import {
   Product, Warehouse, Inventory, Supplier, PurchaseOrder, Shipment, Exception,
@@ -240,8 +241,13 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
         base = parsedCandidate;
       }
       const normalized = normalizeSettings(base);
-      if (activePrefs && activePrefs.dockAutoHide !== undefined) {
-        normalized.personalization.dockAutoHide = Boolean(activePrefs.dockAutoHide);
+      if (activePrefs) {
+        if (activePrefs.dockAutoHide !== undefined) {
+          normalized.personalization.dockAutoHide = Boolean(activePrefs.dockAutoHide);
+        }
+        const effectiveGlassOpacity = activePrefs.glassOpacity ?? activePrefs.dockOpacity ?? normalized.personalization.glassOpacity ?? normalized.personalization.dockTransparency ?? 85;
+        normalized.personalization.glassOpacity = effectiveGlassOpacity;
+        normalized.personalization.dockTransparency = effectiveGlassOpacity;
       }
       return normalized;
     } catch (e) {
@@ -781,6 +787,12 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
         const targetThemeId = explicitThemeId || activePrefs.themeId;
         normalized.personalization.themeId = targetThemeId;
 
+        const authoritativeGlassOpacity = normalized.personalization.glassOpacity !== undefined
+          ? normalized.personalization.glassOpacity
+          : (normalized.personalization.dockTransparency !== undefined ? normalized.personalization.dockTransparency : (activePrefs.glassOpacity ?? activePrefs.dockOpacity ?? 85));
+        normalized.personalization.glassOpacity = authoritativeGlassOpacity;
+        normalized.personalization.dockTransparency = authoritativeGlassOpacity;
+
         savePreferences({
           ...activePrefs,
           themeId: targetThemeId,
@@ -789,10 +801,23 @@ export const SupplyChainProvider: React.FC<{ children: React.ReactNode }> = ({ c
           dockPosition: (normalized.personalization.dockPosition as any) || activePrefs.dockPosition,
           dockAutoHide: normalized.personalization.dockAutoHide !== undefined ? normalized.personalization.dockAutoHide : activePrefs.dockAutoHide,
           dockMagnification: normalized.personalization.dockMagnification !== undefined ? normalized.personalization.dockMagnification : activePrefs.dockMagnification,
-          dockOpacity: normalized.personalization.dockTransparency !== undefined ? normalized.personalization.dockTransparency : activePrefs.dockOpacity,
+          dockOpacity: authoritativeGlassOpacity,
+          glassOpacity: authoritativeGlassOpacity,
           dockBlur: normalized.personalization.dockBlur !== undefined ? normalized.personalization.dockBlur : activePrefs.dockBlur,
           dockTint: normalized.personalization.dockTint || activePrefs.dockTint,
         });
+
+        try {
+          runtimeSettingsAuthority.updateSettings({
+            dock: {
+              ...runtimeSettingsAuthority.settings.dock,
+              dockOpacity: authoritativeGlassOpacity / 100,
+              glassOpacity: authoritativeGlassOpacity,
+              dockAutoHide: normalized.personalization.dockAutoHide !== undefined ? normalized.personalization.dockAutoHide : runtimeSettingsAuthority.settings.dock.dockAutoHide,
+              dockPosition: (normalized.personalization.dockPosition as any) || runtimeSettingsAuthority.settings.dock.dockPosition,
+            }
+          });
+        } catch (_) {}
       }
     } catch (e) {
       console.warn('Could not save settings to localStorage', e);

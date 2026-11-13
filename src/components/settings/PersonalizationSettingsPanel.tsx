@@ -19,8 +19,17 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
   const [lockPrefs, setLockPrefs] = React.useState<LockScreenPreferences>(() => loadLockScreenPreferences());
 
   const handleUpdate = (updated: Partial<PersonalizationSettings>) => {
+    const effectiveOpacity = updated.glassOpacity !== undefined 
+      ? updated.glassOpacity 
+      : (updated.dockTransparency !== undefined ? updated.dockTransparency : undefined);
+
+    const mergedUpdated: Partial<PersonalizationSettings> = {
+      ...updated,
+      ...(effectiveOpacity !== undefined ? { glassOpacity: effectiveOpacity, dockTransparency: effectiveOpacity } : {})
+    };
+
     // 1. Live preview immediately in OS Geometry & Theme Root
-    previewSettings(updated);
+    previewSettings(mergedUpdated);
 
     // 2. Synchronize to RuntimeSettingsAuthority (single authoritative runtime bus)
     try {
@@ -32,7 +41,10 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
           ...(updated.dockAutoHide !== undefined ? { dockAutoHide: updated.dockAutoHide } : {}),
           ...(updated.dockSize ? { dockSize: updated.dockSize as any } : {}),
           ...(updated.dockMagnification !== undefined ? { dockMagnification: updated.dockMagnification } : {}),
-          ...(updated.dockTransparency !== undefined ? { dockOpacity: updated.dockTransparency / 100 } : {}),
+          ...(effectiveOpacity !== undefined ? { 
+            dockOpacity: effectiveOpacity / 100,
+            glassOpacity: effectiveOpacity,
+          } : {}),
         },
         window: {
           ...current.window,
@@ -63,8 +75,9 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
         prefs.dockMagnification = updated.dockMagnification;
         changed = true;
       }
-      if (updated.dockTransparency !== undefined && updated.dockTransparency !== prefs.dockOpacity) {
-        prefs.dockOpacity = updated.dockTransparency;
+      if (effectiveOpacity !== undefined && (effectiveOpacity !== prefs.glassOpacity || effectiveOpacity !== prefs.dockOpacity)) {
+        prefs.glassOpacity = effectiveOpacity;
+        prefs.dockOpacity = effectiveOpacity;
         changed = true;
       }
       if (updated.dockBlur !== undefined && updated.dockBlur !== prefs.dockBlur) {
@@ -87,7 +100,7 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
     }
 
     // 4. Bubble up to settings editor state
-    onChange(updated);
+    onChange(mergedUpdated);
   };
 
   return (
@@ -256,14 +269,21 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
           <div className="space-y-2">
             <div className="flex justify-between text-xs">
               <span className="font-semibold text-[var(--orion-text)]">Glass Opacity</span>
-              <span className="font-mono text-[var(--orion-text-secondary)]">{settings.dockTransparency ?? 85}%</span>
+              <span className="font-mono text-[var(--orion-text-secondary)]">
+                {`${settings.glassOpacity !== undefined ? settings.glassOpacity : (settings.dockTransparency ?? 85)}%`}
+              </span>
             </div>
             <input
               type="range"
               min="0"
               max="100"
-              value={settings.dockTransparency ?? 85}
-              onChange={(e) => handleUpdate({ dockTransparency: Number(e.target.value) })}
+              value={settings.glassOpacity !== undefined ? settings.glassOpacity : (settings.dockTransparency ?? 85)}
+              onChange={(e) => {
+                const val = Number(e.target.value);
+                handleUpdate({ glassOpacity: val, dockTransparency: val });
+              }}
+              data-testid="glass-opacity-slider"
+              aria-label="Glass Opacity"
               className="w-full accent-[var(--orion-accent)] cursor-pointer"
             />
             <div className="flex justify-between text-[10px] text-[var(--orion-text-muted)] font-mono">
@@ -364,12 +384,12 @@ export const PersonalizationSettingsPanel: React.FC<PersonalizationSettingsPanel
             className="flex items-center gap-3 px-5 py-2 rounded-2xl border border-white/20 shadow-xl transition-all duration-300"
             style={{
               backgroundColor: settings.dockTint === 'light'
-                ? `rgba(255, 255, 255, ${(settings.dockTransparency ?? 85) / 100})`
+                ? `rgba(255, 255, 255, ${(settings.glassOpacity !== undefined ? settings.glassOpacity : (settings.dockTransparency ?? 85)) / 100})`
                 : settings.dockTint === 'accent'
-                ? `color-mix(in srgb, var(--orion-accent, #38BDF8) 25%, rgba(20, 24, 32, ${(settings.dockTransparency ?? 85) / 100}))`
+                ? `color-mix(in srgb, var(--orion-accent, #38BDF8) 25%, rgba(20, 24, 32, ${(settings.glassOpacity !== undefined ? settings.glassOpacity : (settings.dockTransparency ?? 85)) / 100}))`
                 : settings.dockTint === 'dark'
-                ? `rgba(10, 12, 16, ${(settings.dockTransparency ?? 85) / 100})`
-                : `rgba(20, 24, 32, ${(settings.dockTransparency ?? 85) / 100})`,
+                ? `rgba(10, 12, 16, ${(settings.glassOpacity !== undefined ? settings.glassOpacity : (settings.dockTransparency ?? 85)) / 100})`
+                : `rgba(20, 24, 32, ${(settings.glassOpacity !== undefined ? settings.glassOpacity : (settings.dockTransparency ?? 85)) / 100})`,
               backdropFilter: `blur(${Math.round(((settings.dockBlur ?? 80) / 100) * 40)}px) saturate(180%)`,
               WebkitBackdropFilter: `blur(${Math.round(((settings.dockBlur ?? 80) / 100) * 40)}px) saturate(180%)`,
               boxShadow: 'inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.35), 0 16px 36px rgba(0,0,0,0.45)'

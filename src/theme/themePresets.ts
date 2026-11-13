@@ -135,6 +135,7 @@ export const DEFAULT_PERSONALIZATION_SETTINGS: PersonalizationSettings = {
   dockPosition: 'bottom',
   dockSize: 'medium',
   dockAutoHide: true,
+  glassOpacity: 85,
   dockTransparency: 85,
   dockBlur: 80,
   dockTint: 'auto',

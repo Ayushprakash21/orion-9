@@ -573,8 +573,8 @@ export function OrionDock() {
             aria-hidden="true"
             className="orion-dock-glass-backdrop pointer-events-none absolute inset-0 rounded-[inherit]"
             style={{
-              opacity: 'var(--orion-dock-opacity, 0.90)',
-              backgroundColor: 'var(--orion-dock-tint-bg, var(--orion-dock-surface, var(--orion-morph-surface-elevated)))',
+              opacity: 'var(--orion-dock-opacity, 1)',
+              backgroundColor: 'var(--orion-dock-tint-bg, var(--orion-dock-surface, rgba(20, 24, 32, var(--orion-glass-opacity, 0.85))))',
               backdropFilter: 'blur(var(--orion-dock-blur, 32px)) saturate(175%)',
               WebkitBackdropFilter: 'blur(var(--orion-dock-blur, 32px)) saturate(175%)',
               boxShadow: isDark

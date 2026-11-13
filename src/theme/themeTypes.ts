@@ -61,7 +61,8 @@ export interface PersonalizationSettings {
   dockPosition: DockPosition;
   dockSize: DockSize;
   dockAutoHide: boolean;
-  dockTransparency: number; // 0 - 100%
+  glassOpacity?: number; // 0 - 100% (authoritative Liquid Glass Opacity)
+  dockTransparency: number; // 0 - 100% (synced alias for glassOpacity)
   dockBlur?: number; // 0 - 100%
   dockTint?: 'auto' | 'dark' | 'light' | 'accent';
   dockMagnification: boolean;

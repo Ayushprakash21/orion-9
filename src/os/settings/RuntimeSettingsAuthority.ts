@@ -208,9 +208,15 @@ export class RuntimeSettingsAuthority {
       }
 
       // Dock Variables
+      const glassAlpha = this._settings.dock.glassOpacity !== undefined 
+        ? this._settings.dock.glassOpacity / 100 
+        : (this._settings.dock.dockOpacity !== undefined 
+            ? (this._settings.dock.dockOpacity > 1 ? this._settings.dock.dockOpacity / 100 : this._settings.dock.dockOpacity)
+            : 0.85);
       root.style.setProperty('--orion-dock-position', this._settings.dock.dockPosition);
       root.style.setProperty('--orion-dock-autohide', String(this._settings.dock.dockAutoHide));
-      root.style.setProperty('--orion-dock-opacity', String(this._settings.dock.dockOpacity));
+      root.style.setProperty('--orion-dock-opacity', String(glassAlpha));
+      root.style.setProperty('--orion-glass-opacity', String(glassAlpha));
       root.style.setProperty('--orion-dock-scale', String(this._settings.dock.dockScale));
 
       // Wallpaper Variables
@@ -260,12 +266,18 @@ export class RuntimeSettingsAuthority {
       resolvedDockAutoHide = true;
     }
 
+    const rawOpacity = legacy.glassOpacity ?? legacy.dockOpacity ?? legacy.dockTransparency;
+    const normalizedOpacity = typeof rawOpacity === 'number' 
+      ? (rawOpacity > 1 ? rawOpacity / 100 : rawOpacity) 
+      : 0.85;
+
     const dock = {
       dockPosition: legacy.dockPosition || 'bottom',
       dockAutoHide: resolvedDockAutoHide,
       dockSize: legacy.dockSize || 'medium',
       dockMagnification: legacy.dockMagnification !== false,
-      dockOpacity: 1.0,
+      dockOpacity: normalizedOpacity,
+      glassOpacity: Math.round(normalizedOpacity * 100),
       dockScale: 1.0,
       dockTransparency: legacy.dockTransparency !== false,
       dockShowRunningIndicators: legacy.dockShowRunningIndicators !== false,
@@ -326,6 +338,12 @@ export class RuntimeSettingsAuthority {
       dockShowRunningIndicators: settings.dock.dockShowRunningIndicators,
       dockShowBadges: settings.dock.dockShowBadges,
       dockTransparency: settings.dock.dockTransparency,
+      dockOpacity: settings.dock.glassOpacity !== undefined
+        ? Math.round(settings.dock.glassOpacity)
+        : Math.round(settings.dock.dockOpacity > 1 ? settings.dock.dockOpacity : settings.dock.dockOpacity * 100),
+      glassOpacity: settings.dock.glassOpacity !== undefined
+        ? Math.round(settings.dock.glassOpacity)
+        : Math.round(settings.dock.dockOpacity > 1 ? settings.dock.dockOpacity : settings.dock.dockOpacity * 100),
       iconStyle: 'default',
       widgetStyle: 'solid',
     };

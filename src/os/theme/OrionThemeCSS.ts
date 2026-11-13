@@ -167,25 +167,30 @@ export function applyThemeToDOM(theme: OrionTheme, preferences: OrionAppearanceP
   root.style.setProperty('--orion-nav-accent-active', applyNavAccent ? accent : theme.colors.textPrimary);
   root.style.setProperty('--orion-nav-accent-glow', applyNavAccent ? accentState.focusGlow : 'none');
 
-  const dockOpacityVal = ((preferences.dockOpacity ?? 85) / 100);
+  const rawGlassOpacity = preferences.glassOpacity !== undefined 
+    ? preferences.glassOpacity 
+    : (preferences.dockOpacity !== undefined ? preferences.dockOpacity : 85);
+  const normalizedGlassAlpha = Math.max(0, Math.min(100, rawGlassOpacity)) / 100;
   const dockBlurVal = Math.round(((preferences.dockBlur ?? 80) / 100) * 40);
-  root.style.setProperty('--orion-dock-opacity', dockOpacityVal.toString());
+  root.style.setProperty('--orion-dock-opacity', '1');
   root.style.setProperty('--orion-dock-blur', `${dockBlurVal}px`);
 
   const dockTint = preferences.dockTint || 'auto';
   let dockTintBg = dockSurface;
   if (dockTint === 'light') {
-    dockTintBg = 'rgba(255, 255, 255, 0.78)';
+    dockTintBg = `rgba(255, 255, 255, ${normalizedGlassAlpha})`;
   } else if (dockTint === 'accent') {
-    dockTintBg = `color-mix(in srgb, ${accent} 28%, rgba(28, 34, 46, 0.78))`;
+    dockTintBg = `color-mix(in srgb, ${accent} 25%, rgba(20, 24, 32, ${normalizedGlassAlpha}))`;
   } else if (dockTint === 'dark') {
-    dockTintBg = 'rgba(14, 18, 24, 0.86)';
+    dockTintBg = `rgba(10, 12, 16, ${normalizedGlassAlpha})`;
+  } else {
+    dockTintBg = isDark ? `rgba(20, 24, 32, ${normalizedGlassAlpha})` : `rgba(245, 247, 250, ${normalizedGlassAlpha})`;
   }
   root.style.setProperty('--orion-dock-tint-bg', dockTintBg);
 
   // Effects and UI vars
   const isTransEnabled = preferences.transparencyEnabled !== false;
-  const glassOpacity = isTransEnabled ? (preferences.transparencyIntensity / 100) * theme.effects.glassOpacity : 1;
+  const glassOpacity = isTransEnabled ? normalizedGlassAlpha : 1;
   const blur = (isTransEnabled && preferences.blurEnabled) ? (preferences.blurIntensity / 100) * theme.effects.blur : 0;
   
   root.style.setProperty('--orion-transparency-enabled', isTransEnabled ? '1' : '0');

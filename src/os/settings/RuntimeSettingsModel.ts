@@ -18,6 +18,7 @@ export interface RuntimeSettingsDock {
   dockSize: 'small' | 'medium' | 'large';
   dockMagnification: boolean;
   dockOpacity: number;
+  glassOpacity?: number;
   dockScale: number;
   dockTransparency: boolean;
   dockShowRunningIndicators: boolean;
@@ -73,7 +74,8 @@ export const DEFAULT_RUNTIME_SETTINGS: RuntimeSettings = {
     dockAutoHide: true,
     dockSize: 'medium',
     dockMagnification: true,
-    dockOpacity: 1.0,
+    dockOpacity: 0.85,
+    glassOpacity: 85,
     dockScale: 1.0,
     dockTransparency: true,
     dockShowRunningIndicators: true,

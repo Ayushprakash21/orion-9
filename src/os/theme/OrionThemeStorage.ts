@@ -74,6 +74,21 @@ export function migratePreferences(raw: unknown): OrionAppearancePreferences {
     prefs.appearanceMode = 'dark';
   }
 
+  // Preserve authoritative glassOpacity / dockOpacity
+  if (rawObj.glassOpacity !== undefined) {
+    prefs.glassOpacity = Math.max(0, Math.min(100, Number(rawObj.glassOpacity)));
+    prefs.dockOpacity = prefs.glassOpacity;
+  } else if (rawObj.dockOpacity !== undefined) {
+    prefs.glassOpacity = Math.max(0, Math.min(100, Number(rawObj.dockOpacity)));
+    prefs.dockOpacity = prefs.glassOpacity;
+  } else if (rawObj.dockTransparency !== undefined && typeof rawObj.dockTransparency === 'number') {
+    prefs.glassOpacity = Math.max(0, Math.min(100, Number(rawObj.dockTransparency)));
+    prefs.dockOpacity = prefs.glassOpacity;
+  } else if (prefs.glassOpacity === undefined) {
+    prefs.glassOpacity = 85;
+    prefs.dockOpacity = 85;
+  }
+
   // Preserve accent to navigation and color arrays
   if (rawObj.applyAccentToNavigation !== undefined) {
     prefs.applyAccentToNavigation = Boolean(rawObj.applyAccentToNavigation);
@@ -153,6 +168,8 @@ export function loadPreferences(): OrionAppearancePreferences {
           windowControlPosition: p.windowControlPosition || 'left',
           morphismMode: p.morphismMode || 'glass',
           dockPosition: p.dockPosition || 'bottom',
+          glassOpacity: p.glassOpacity ?? p.dockOpacity ?? p.dockTransparency ?? 85,
+          dockOpacity: p.glassOpacity ?? p.dockOpacity ?? p.dockTransparency ?? 85,
         });
         savePreferences(migrated);
         return migrated;

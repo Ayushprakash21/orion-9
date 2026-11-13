@@ -655,6 +655,7 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
 
       case 'desktop': {
         const activePrefs = loadPreferences();
+        const effectiveGlassOpacity = activePrefs.glassOpacity ?? activePrefs.dockOpacity ?? localSettings.personalization?.glassOpacity ?? localSettings.personalization?.dockTransparency ?? 85;
         const currentPers: PersonalizationSettings = {
           ...DEFAULT_PERSONALIZATION_SETTINGS,
           ...(localSettings.personalization || {}),
@@ -662,14 +663,24 @@ export const Settings: React.FC<{ initialSection?: SettingsSection }> = ({ initi
           dockPosition: (activePrefs.dockPosition as any) || localSettings.personalization?.dockPosition || 'bottom',
           dockAutoHide: activePrefs.dockAutoHide !== undefined ? activePrefs.dockAutoHide : (localSettings.personalization?.dockAutoHide ?? true),
           dockMagnification: activePrefs.dockMagnification !== undefined ? activePrefs.dockMagnification : (localSettings.personalization?.dockMagnification ?? true),
-          dockTransparency: activePrefs.transparencyIntensity !== undefined ? activePrefs.transparencyIntensity : (localSettings.personalization?.dockTransparency ?? 85),
+          glassOpacity: effectiveGlassOpacity,
+          dockTransparency: effectiveGlassOpacity,
           windowControlPosition: activePrefs.windowControlPosition || localSettings.personalization?.windowControlPosition || 'left',
         };
         return (
           <PersonalizationSettingsPanel
             settings={currentPers}
             onChange={(updated) => {
-              const newPers = { ...currentPers, ...updated, themeId: activePrefs.themeId };
+              const updatedOpacity = updated.glassOpacity !== undefined 
+                ? updated.glassOpacity 
+                : (updated.dockTransparency !== undefined ? updated.dockTransparency : currentPers.glassOpacity);
+              const newPers = { 
+                ...currentPers, 
+                ...updated, 
+                glassOpacity: updatedOpacity,
+                dockTransparency: updatedOpacity,
+                themeId: activePrefs.themeId 
+              };
               const newSettings = { ...localSettings, personalization: newPers };
               setLocalSettings(newSettings);
               updateSettings(newSettings);

@@ -168,6 +168,7 @@ export const OSGeometryProvider: React.FC<OSGeometryProviderProps> = ({ children
     const scPers = supplyChain?.settings?.personalization;
     let authoritativeAutoHide = true;
     let authoritativePosition: DockPosition = (scPers?.dockPosition || 'bottom') as DockPosition;
+    let authoritativeGlassOpacity = 85;
     try {
       const prefs = loadPreferences();
       if (prefs?.dockAutoHide !== undefined) {
@@ -178,6 +179,7 @@ export const OSGeometryProvider: React.FC<OSGeometryProviderProps> = ({ children
       if (prefs?.dockPosition) {
         authoritativePosition = prefs.dockPosition as DockPosition;
       }
+      authoritativeGlassOpacity = prefs.glassOpacity ?? prefs.dockOpacity ?? scPers?.glassOpacity ?? scPers?.dockTransparency ?? 85;
     } catch {
       authoritativeAutoHide = true;
     }
@@ -187,6 +189,8 @@ export const OSGeometryProvider: React.FC<OSGeometryProviderProps> = ({ children
       ...(scPers || {}),
       dockAutoHide: authoritativeAutoHide,
       dockPosition: authoritativePosition,
+      glassOpacity: authoritativeGlassOpacity,
+      dockTransparency: authoritativeGlassOpacity,
     };
   }, [supplyChain?.settings?.personalization]);
 
@@ -225,12 +229,21 @@ export const OSGeometryProvider: React.FC<OSGeometryProviderProps> = ({ children
     const handlePrefChange = (e: any) => {
       if (e.detail && typeof e.detail === 'object') {
         const detail = e.detail;
-        if (detail.dockAutoHide !== undefined || detail.dockPosition !== undefined || detail.dockMagnification !== undefined) {
+        if (
+          detail.dockAutoHide !== undefined || 
+          detail.dockPosition !== undefined || 
+          detail.dockMagnification !== undefined ||
+          detail.glassOpacity !== undefined ||
+          detail.dockOpacity !== undefined ||
+          detail.dockTransparency !== undefined
+        ) {
+          const rawOp = detail.glassOpacity ?? detail.dockOpacity ?? detail.dockTransparency;
           setPreviewOverrides(prev => ({
             ...(prev || {}),
             ...(detail.dockAutoHide !== undefined ? { dockAutoHide: Boolean(detail.dockAutoHide) } : {}),
             ...(detail.dockPosition !== undefined ? { dockPosition: detail.dockPosition } : {}),
             ...(detail.dockMagnification !== undefined ? { dockMagnification: Boolean(detail.dockMagnification) } : {}),
+            ...(rawOp !== undefined ? { glassOpacity: Number(rawOp), dockTransparency: Number(rawOp) } : {}),
           }));
         }
       }
@@ -248,12 +261,19 @@ export const OSGeometryProvider: React.FC<OSGeometryProviderProps> = ({ children
   useEffect(() => {
     try {
       return RuntimeSettingsAuthority.instance.subscribe((rtSettings) => {
+        const rawOp = rtSettings.dock.glassOpacity !== undefined 
+          ? rtSettings.dock.glassOpacity 
+          : (rtSettings.dock.dockOpacity !== undefined 
+              ? (rtSettings.dock.dockOpacity > 1 ? rtSettings.dock.dockOpacity : Math.round(rtSettings.dock.dockOpacity * 100))
+              : 85);
         setPreviewOverrides(prev => ({
           ...(prev || {}),
           dockAutoHide: rtSettings.dock.dockAutoHide,
           dockPosition: rtSettings.dock.dockPosition,
           dockSize: rtSettings.dock.dockSize,
           dockMagnification: rtSettings.dock.dockMagnification,
+          glassOpacity: rawOp,
+          dockTransparency: rawOp,
         }));
       });
     } catch (_) {
@@ -321,19 +341,29 @@ export const OSGeometryProvider: React.FC<OSGeometryProviderProps> = ({ children
     root.style.setProperty('--orion-usable-height', `${usableRect.height}px`);
 
     // Surface custom transparency & wallpaper styling
-    const dockOpacity = (effectiveSettings.dockTransparency ?? 85) / 100;
+    const rawGlassOpacity = effectiveSettings.glassOpacity !== undefined 
+      ? effectiveSettings.glassOpacity 
+      : (effectiveSettings.dockTransparency ?? 85);
+    const normalizedGlassAlpha = Math.max(0, Math.min(100, rawGlassOpacity)) / 100;
     const dockBlurPx = Math.round(((effectiveSettings.dockBlur ?? 80) / 100) * 40);
-    root.style.setProperty('--orion-dock-opacity', `${dockOpacity}`);
+
+    root.style.setProperty('--orion-glass-opacity', normalizedGlassAlpha.toFixed(2));
+    root.style.setProperty('--orion-dock-opacity', '1');
     root.style.setProperty('--orion-dock-blur', `${dockBlurPx}px`);
 
     const dockTint = effectiveSettings.dockTint || 'auto';
-    let dockTintBg = 'var(--orion-dock-surface, rgba(32, 38, 48, 0.82))';
+    let dockTintBg = '';
     if (dockTint === 'light') {
-      dockTintBg = 'rgba(255, 255, 255, 0.78)';
+      dockTintBg = `rgba(255, 255, 255, ${normalizedGlassAlpha})`;
     } else if (dockTint === 'accent') {
-      dockTintBg = 'color-mix(in srgb, var(--orion-accent, #38BDF8) 28%, rgba(28, 34, 46, 0.78))';
+      dockTintBg = `color-mix(in srgb, var(--orion-accent, #0071E3) 25%, rgba(20, 24, 32, ${normalizedGlassAlpha}))`;
     } else if (dockTint === 'dark') {
-      dockTintBg = 'rgba(14, 18, 24, 0.86)';
+      dockTintBg = `rgba(10, 12, 16, ${normalizedGlassAlpha})`;
+    } else {
+      const isDarkMode = root.getAttribute('data-orion-mode') !== 'light';
+      dockTintBg = isDarkMode 
+        ? `rgba(20, 24, 32, ${normalizedGlassAlpha})`
+        : `rgba(245, 247, 250, ${normalizedGlassAlpha})`;
     }
     root.style.setProperty('--orion-dock-tint-bg', dockTintBg);
 
